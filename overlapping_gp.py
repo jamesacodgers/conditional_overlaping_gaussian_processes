@@ -2,29 +2,36 @@ import torch
 import time
 
 class OverlappingGP(torch.nn.Module):
-    def __init__(self, C, M,  V_temp, beta = 1, sigma2 = 1, sigma2_s = 1):
+    def __init__(self, C, M,  V_temp,  sigma2 = 1, beta = None, sigma2_s = None):
         # torch.set_default_dtype(torch.float64)
         super(OverlappingGP, self).__init__()
         # Store dimensions
         # store variational parameters 
         self.V_temp = V_temp
+        self.C = C
+        self.M = M
+
+        if beta is None:
+            beta = [1]*self.C
+        if sigma2_s is None:
+            sigma2_s = [1]*self.C
 
         # store GP parameters
-        self._log_beta = torch.nn.Parameter(torch.log(torch.tensor([beta])))
+        self._log_beta = torch.nn.Parameter(torch.log(torch.tensor(beta)))
         # self._log_beta = torch.log(torch.tensor([beta]))
-        self._log_sigma_s2 = torch.nn.Parameter( torch.log(torch.tensor([sigma2_s])))
+        self._log_sigma_s2 = torch.nn.Parameter( torch.log(torch.tensor(sigma2_s)))
         self._log_sigma2 = torch.nn.Parameter(torch.log(torch.tensor(sigma2)))
         # self._log_sigma2 = torch.log(torch.tensor(sigma2))
 
-        self.C = C
-        self.M = M
         self.L = self.V_temp.shape[0]
-        self._mu_u = torch.nn.Parameter(torch.zeros(self.M, self.C*self.L ))
+        self._mu_u = torch.nn.Parameter(torch.randn(self.M, self.C*self.L ))
 
         K_VV = self.get_K_VV()
-        K_VV = torch.block_diag(*[K_VV]*self.C)
-        chol = torch.linalg.cholesky(K_VV)[None,...].repeat(self.M, 1,1)
-        self._raw_chol = torch.nn.Parameter(chol)
+        chol = torch.linalg.cholesky(K_VV)
+        new_tensor = torch.zeros(self.C, self.C, self.L, self.L)
+        new_tensor[range(self.C), range(self.C), :, :] = chol[range(self.C), :, :]
+        new_tensor = new_tensor.transpose(1,2).reshape(self.L*self.C, self.L*self.C)
+        self._raw_chol = torch.nn.Parameter(new_tensor[None,:,:].repeat(self.M,1,1))
 
         if len(V_temp.shape) != 1:
             raise ValueError("Inducing points for temperatures must be 1D")
@@ -48,64 +55,82 @@ class OverlappingGP(torch.nn.Module):
         test_fit = self.get_test_fit(
             test_spectra=test_spectra,
             test_temperatures=test_temperatures,
-            wavelengths=wavelengths
         )
         KL_u = self.get_kl_u()
         const = wavelengths.shape[0] * (training_spectra.shape[0] 
                                         ) * (torch.log(torch.tensor([2*torch.pi])) + self._log_sigma2)
-        return (training_fit 
-                + test_fit 
-                - KL_u 
-                - const)
+        return training_fit + test_fit - KL_u - const
         
-    def get_test_fit(self, test_spectra, test_temperatures, wavelengths):
-        S = self.get_S_samples(test_temperatures, wavelengths)
+    def get_test_fit(self, test_spectra, test_temperatures):
+        S = self.get_S_samples(test_temperatures)
         Ma = (1/self.sigma2 * S.transpose(-2,-1) @ S + torch.eye(self.C))
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)
-        sample_quadratic_terms =  - 1/(2*self.sigma2)*(test_spectra[..., None, :]@(torch.eye(wavelengths.shape[0]) - 1/self.sigma2*S@Ma_inv@S.transpose(-2,-1))@test_spectra[...,:, None]).mean(dim=0)
+        sample_quadratic_terms =  - 1/(2*self.sigma2)*(test_spectra[..., None, :]@(torch.eye(self.M) - 1/self.sigma2*S@Ma_inv@S.transpose(-2,-1))@test_spectra[...,:, None]).mean(dim=0)
         log_det_term = torch.log(torch.linalg.det(Ma_inv)).mean(dim=0)
         return log_det_term.sum() + sample_quadratic_terms.sum()
 
-    def get_S_samples(self, temperatures, wavelengths, num_samples=4):
-        mu_s = self.get_mu_s(temps = temperatures, wavelengths=wavelengths)
-        Sigma_s = self.get_Sigma_s_cov_C(temps=temperatures, wavelengths=wavelengths) 
+    def get_S_samples(self, temperatures, num_samples=4):
+        mu_s = self.get_mu_s(temps = temperatures, )
+        Sigma_s = self.get_Sigma_s_cov_C(temps=temperatures) 
         s_dist = torch.distributions.MultivariateNormal(mu_s, Sigma_s, validate_args=False)
         return s_dist.rsample((num_samples,))
 
     def get_training_fit(self, training_spectra, training_weights, training_temperatures, wavelengths):
         outer_observed_spectra = (training_spectra**2).sum() # 1
-        mu_s = self.get_mu_s(training_temperatures, wavelengths) # N x M x C 
+        mu_s = self.get_mu_s(training_temperatures) # N x M x C 
         cross_term =(training_spectra[:, :, None] * mu_s [:,:,:] *training_weights[:, None, :]).sum() # 1
         mu_s_outer = (mu_s[:, :, :, None] * mu_s[:, :, None, :]) # N x M x C x C 
-        cov_s_marginal = self.get_Sigma_s_cov_C(training_temperatures, wavelengths) # N x M x C x C 
+        cov_s_marginal = self.get_Sigma_s_cov_C(training_temperatures) # N x M x C x C 
         gp_term = (training_weights[:, None, None, :] * training_weights[:, None, :, None] * (mu_s_outer + cov_s_marginal) ).sum()
         return -1/(2*self.sigma2) * (outer_observed_spectra - 2*cross_term + gp_term)
 
     
     
     def _temp_kernel(self, x, y):
-        return self.sigma_s2*torch.exp(-1/2*(x[:,None]-y[None,:])**2/self.beta)
+        return self.sigma_s2[:, None,None]*torch.exp(-1/2*(x[None, :,None]-y[None, None,:])**2/self.beta[:,None, None])
     
     def get_K_VV(self):
         """
-        Returns shape L x L
+        Returns shape C x L x L 
         """
         return self._temp_kernel(self.V_temp, self.V_temp)
     
+    def get_K_VV_matrix(self):
+        """
+        Returns shape C x L x L 
+        """
+        K_VV_matrix  = torch.zeros(self.C, self.C, self.L, self.L)
+        K_VV = self.get_K_VV()
+        K_VV_matrix[range(self.C), range(self.C), :, :] = K_VV[range(self.C),:,:]
+        return K_VV_matrix.transpose(1,2).reshape(self.C*self.L, self.C*self.L)
+    
     def get_K_VV_inv(self):
         """
-        Returns shape L x L
+        Returns shape C x L x L
         """
         K_Vtemp_Vtemp = self._temp_kernel(self.V_temp, self.V_temp)
         chol_K_Vtemp_Vtemp = torch.linalg.cholesky(K_Vtemp_Vtemp)
         return torch.cholesky_inverse(chol_K_Vtemp_Vtemp)
+    
+    def get_K_VV_inv_matrix(self):
+        K_VV_inv_matrix  = torch.zeros(self.C, self.C, self.L, self.L)
+        K_VV = self.get_K_VV_inv()
+        K_VV_inv_matrix[range(self.C), range(self.C), :, :] = K_VV[range(self.C),:,:]
+        return K_VV_inv_matrix.transpose(1,2).reshape(self.C*self.L, self.C*self.L)
 
     def get_K_obsV(self, temps):
         """
-        Returns shape N x M x L
+        Returns shape  N x C x L
         """
-        return self._temp_kernel(temps, self.V_temp)
+        K = self._temp_kernel(temps, self.V_temp)
+        return K.transpose(0,1)
+    
+    def get_K_obsV_matrix(self, temps):
+        K_obsV = self.get_K_obsV(temps)
+        K_obsV_matrix = torch.zeros(temps.shape[0],self.C, self.C, self.L)
+        K_obsV_matrix[:, range(self.C), range(self.C), :] = K_obsV[:, range(self.C),:]
+        return K_obsV_matrix.reshape(temps.shape[0], self.C, self.L*self.C)
     
 
     def get_mu_u(self):
@@ -128,62 +153,63 @@ class OverlappingGP(torch.nn.Module):
 
     def get_matrix_Sigma_u(self):
         chol = self.get_chol_Sigma_u()
-        return chol @ chol.transpose(-2,-1) + (1e-4*torch.eye(self.L*self.C))
+        return chol @ chol.transpose(-2,-1) # + (1e-3*torch.eye(self.L*self.C))
 
     def get_chol_Sigma_u(self):
         return torch.tril(self._raw_chol) 
     
     def get_q_u_dist(self):
         mu_u = self.get_vector_mu_u()
-        Sigma_u = self.get_matrix_Sigma_u()
+        Sigma_u = self.get_matrix_Sigma_u() + 1e-5*torch.eye(self.C*self.L)
         return torch.distributions.MultivariateNormal(mu_u, Sigma_u)
     
     def get_u_prior(self):
         K_vv = self.get_K_VV()
-        return torch.distributions.MultivariateNormal(torch.zeros(self.C * self.L), torch.block_diag(*[K_vv]*self.C))
+        block_kernel_matrix = torch.zeros(self.C, self.C, self.L, self.L)
+        block_kernel_matrix[range(self.C), range(self.C),:,:] = K_vv[range(self.C),:,:]
+        block_kernel_matrix = block_kernel_matrix.transpose(1,2).reshape(self.L*self.C, self.L*self.C)
+        return torch.distributions.MultivariateNormal(torch.zeros(self.C * self.L), block_kernel_matrix)
     
     def get_kl_u(self):
         prior = self.get_u_prior()
         q_u = self.get_q_u_dist()
         return torch.distributions.kl_divergence(q_u, prior).sum()
     
-    def get_mu_s(self, temps, wavelengths):
+    def get_mu_s(self, temps):
         """
         Returns N x M x C 
         """
-        K_VV_inv = self.get_K_VV_inv() # L x L 
-        K_obsV = self.get_K_obsV(temps) # N x M x L 
-        mu_u = self.get_mu_u() # C x L 
-        return (K_obsV[:, None, None, None, :]@K_VV_inv[None, None, None, :, :]@mu_u[None, :, :, :, None])[...,0,0]
+        K_VV_inv = self.get_K_VV_inv() # C x L x L 
+        K_obsV = self.get_K_obsV(temps) # N x C x L 
+        mu_u = self.get_mu_u() # M x C x L 
+        return (K_obsV[:, None, :, None, :]@K_VV_inv[None, None, :, :, :]@mu_u[None, :, :, :, None])[...,0,0]
 
-    def get_Sigma_s_cov_C(self, temps, wavelengths):
+    def get_Sigma_s_cov_C(self, temps):
         # want to get to shape NxMxCxC
-        K_obsobs_diag_elements = torch.ones(temps.shape[0], wavelengths.shape[0])*self.sigma_s2 # N x M 
+        K_obsobs_diag_elements = torch.diag_embed(torch.ones(temps.shape[0], self.M, self.C)*self.sigma_s2[None, None, :]) # N x M x C x C 
 
 
-        K_obsV = self.get_K_obsV(temps) # N x L
-        A = self._get_conditional_cov_correction() # M x C x C x L x L
+        K_obsV = self.get_K_obsV_matrix(temps) # N x CL x CL - yes this is messy but I think it works 
+        A = self._get_conditional_cov_correction() # M x CL x CL
 
-        Sigma_s = (K_obsobs_diag_elements[:, :, None, None, None, None] - K_obsV[:, None, None, None,  None, :] @ 
-                A[None, :, :, :, :, :] @ K_obsV[:, None, None, None, :, None]
-        )[...,0,0]
-        return Sigma_s + 5e-3*torch.eye(self.C)
+        Sigma_s = K_obsobs_diag_elements - (K_obsV[:,None,:,:] @ A[None,:,:,:]@ K_obsV.transpose(-2,-1)[:, None,:,:])
+        return Sigma_s + 1e-3*torch.eye(self.C)
     
 
     def _get_conditional_cov_correction(self):
-        Sigma_u = self.get_Sigma_u() # C x C x L x L 
-        K_VV_inv = self.get_K_VV_inv() # L x L 
-        return (K_VV_inv[ None, None, :, :] 
-                 -  K_VV_inv @ Sigma_u[ :, :, :, :] @ K_VV_inv
+        Sigma_u = self.get_matrix_Sigma_u() # M x CL  x CL
+        K_VV_inv = self.get_K_VV_inv_matrix() # CL x CL
+        return (K_VV_inv
+                 -  K_VV_inv @ Sigma_u @ K_VV_inv
                 ) 
     
-    def get_R_estimate_samples(self, test_spectra, test_temperatures, wavelengths, num_samples=100):
+    def get_R_estimate_samples(self, test_spectra, test_temperatures, num_samples=100):
         
-        dists = self.get_R_dist_samples(test_spectra, test_temperatures, wavelengths, num_samples)
+        dists = self.get_R_dist_samples(test_spectra, test_temperatures, num_samples)
         return dists.sample()
     
-    def get_R_dist_samples(self, test_spectra, test_temperatures, wavelengths, num_samples=100):
-        S = self.get_S_samples(test_temperatures, wavelengths, num_samples=num_samples)
+    def get_R_dist_samples(self, test_spectra, test_temperatures, num_samples=100):
+        S = self.get_S_samples(test_temperatures, num_samples=num_samples)
         Ma = (1/self.sigma2 * S.transpose(-2,-1) @ S + torch.eye(self.C))
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)

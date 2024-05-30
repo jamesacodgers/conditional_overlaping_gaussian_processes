@@ -13,7 +13,7 @@ from torch.distributions.constraints import positive
 import cProfile
 
 # %%
-torch.set_default_dtype(torch.float32)
+torch.set_default_dtype(torch.float64)
 torch.set_default_device("cpu")
 
 # os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
@@ -24,12 +24,14 @@ temp_train = torch.linspace(0,2*torch.pi,100)
 temp_test = torch.rand(50)*2*torch.pi
 
 # S_train = torch.stack([torch.sin((wavelengths[None, :] - temp_train[:, None]))], dim=-1)
-S_train = torch.stack([torch.sin((wavelengths[None, :] - 3*temp_train[:, None])), torch.cos((wavelengths[None, :] - temp_train[:, None]))], dim=-1)
-S_test = torch.stack([torch.sin(wavelengths[None, :] - 3*temp_test[:, None]), torch.cos(wavelengths[None, :] - temp_test[:, None])], dim=-1)
+S_train = torch.stack([torch.sin((wavelengths[None, :] - 3*temp_train[:, None])), torch.cos((3*wavelengths[None, :] - temp_train[:, None]))], dim=-1)
+S_test = torch.stack([torch.sin(wavelengths[None, :] - 3*temp_test[:, None]), torch.cos(3*wavelengths[None, :] - temp_test[:, None])], dim=-1)
 
 R_train = torch.randn(100,2)
+# R_train = torch.ones(100,2)
 # R_train = torch.ones(100,1)
 R_test = torch.randn(50,2)
+# R_test = torch.ones(50,2)
 
 # D_train = (S_train[:,:,0]) + torch.randn(100,101)/10
 D_train = (S_train[:,:,:]*R_train[:, None, :]).sum(dim=-1) + torch.randn(100,101)/10
@@ -45,8 +47,7 @@ def make_grid(x,y):
 
 
 # %%
-V_temp = torch.linspace(0, 2*torch.pi, 8)
-V_wavelenghs = torch.linspace(0, 2*torch.pi, 8)
+V_temp = torch.linspace(0, 2*torch.pi, 12)
 # model = OverlappingGP(2, V_temp=V_temp, V_wavelengths=V_wavelenghs)
 model = OverlappingGP(2, wavelengths.shape[0], V_temp=V_temp)
 
@@ -59,8 +60,8 @@ D_train = D_train
 
 def train():
     loss_list = []
-    optimizer = torch.optim.Adam(lr=1e-1, params=model.parameters())
-    iterator = tqdm.tqdm(range(2000))
+    optimizer = torch.optim.Adam(lr=1e-2, params=model.parameters())
+    iterator = tqdm.tqdm(range(500))
     for _ in iterator:
         loss = -model.elbo(
             training_spectra=D_train, 
@@ -133,8 +134,8 @@ with torch.no_grad():
     plt.show()
 # %%
 with torch.no_grad():
-    f_hat = model.get_mu_s(temp_train, wavelengths)
-    sigma = model.get_Sigma_s_cov_C(temp_train, wavelengths)
+    f_hat = model.get_mu_s(temp_train)
+    sigma = model.get_Sigma_s_cov_C(temp_train)
     print("stuff",sigma.min(), sigma.max())
 
 # %%
@@ -155,10 +156,13 @@ with torch.no_grad():
 
 # %%
 with torch.no_grad():
-    S_samples = model.get_S_samples(temp_test, wavelengths)
-    plt.figure()
-    plt.plot(wavelengths, S_samples[0,0,:,0])
-    plt.show()
+    S_samples = model.get_S_samples(temp_test, 100)
+    for i in range(temp_test.shape[0]):
+        plt.figure()
+        for j in range(S_samples.shape[0]):
+            plt.plot(wavelengths, S_samples[j,i,:,0], c = "orange")
+            plt.plot(wavelengths, S_samples[j,i,:,1], c = "blue")
+        plt.show()
 # r_samples = gp.get_r_samples(D_test, temp_test, wavelengths, num_samples=num_samples)
 
 # plt.figure()
@@ -170,8 +174,8 @@ with torch.no_grad():
 # %%
 
 num_samples = 1000
-R_samples = model.get_R_estimate_samples(D_test, temp_test, wavelengths,num_samples)
-R_dists = model.get_R_dist_samples(D_test, temp_test, wavelengths, num_samples)
+R_samples = model.get_R_estimate_samples(D_test, temp_test,num_samples)
+R_dists = model.get_R_dist_samples(D_test, temp_test, num_samples)
 
 with torch.no_grad():
     plt.figure()
@@ -186,4 +190,10 @@ with torch.no_grad():
     plt.plot(R_test[:,0],R_test[:,0])
     plt.show()
 
+# %%
+
+with torch.no_grad():
+    plt.figure()
+    plt.matshow(model.get_q_u_dist().covariance_matrix[1])
+    plt.show()
 # %%
