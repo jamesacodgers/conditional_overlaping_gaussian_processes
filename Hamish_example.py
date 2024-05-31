@@ -7,6 +7,7 @@ import arrow
 import numpy as np
 import tqdm
 from overlapping_gp import OverlappingGP
+from utils import trim_wavelengths
 
 
 torch.set_default_dtype(torch.float64)
@@ -28,7 +29,7 @@ low_conc = 56.0e-3
 # low_conc = 56.0e-2
 
 # %%
-train_start_index = 300
+train_start_index = 150
 train_end_index = 1650
 
 test_start_index = 475
@@ -62,12 +63,10 @@ R_train = R_train - R_train.mean(dim=0)
 # R_train = R_train/ torch.sqrt(R_train.var(dim=0))
 # R_train = R_train[350:]
 # %%
-def trim_wavelengths(min_wavelengths, max_wavelengths, wavelengths, spectra):
-    filter = torch.logical_and(wavelengths<max_wavelengths , min_wavelengths<wavelengths)
-    return  spectra[:,filter], wavelengths[filter]
 
-min_wavelengths = 1200
-max_wavelengths = 1450
+
+min_wavelengths = 1250
+max_wavelengths = 1750
 
 # spectra = spectra - spectra.mean()
 # spectra = spectra/np.sqrt(spectra.var())
@@ -110,69 +109,11 @@ model = OverlappingGP(
 
 frac_of_test = 1
 
-def train():
-    loss_list = []
-    optimizer = torch.optim.Adam(lr=5e-1, params=model.parameters())
-    iterator = tqdm.tqdm(range(50))
-    for _ in iterator:
-        loss = -model.elbo(
-            training_spectra=D_train,
-            # training_spectra=D_train,
-            training_weights=R_train, 
-            training_temperatures=temp_train,
-            test_spectra=D_test[::frac_of_test],
-            # test_spectra=D_test[::frac_of_train],
-            test_temperatures=temp_test[::frac_of_test], 
-            wavelengths=wavelengths
-            # wavelengths=wavelengths
-            )
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        iterator.set_postfix(loss=loss[-1])
-        loss_list.append(loss)
-    return loss_list
-def train_lbfgs():
-    def closure():
-        optimizer.zero_grad()
-        loss = -model.elbo(
-            training_spectra=D_train,
-            # training_spectra=D_train,
-            training_weights=R_train, 
-            training_temperatures=temp_train,
-            test_spectra=D_test[::frac_of_test],
-            # test_spectra=D_test[::frac_of_train],
-            test_temperatures=temp_test[::frac_of_test], 
-            wavelengths=wavelengths
-            # wavelengths=wavelengths
-            )
-        loss.backward()
-        return loss
-    loss_list = []
-    optimizer = torch.optim.LBFGS(params=model.parameters())
-    iterator = tqdm.tqdm(range(10))
-    for _ in iterator:
-        loss = -model.elbo(
-            training_spectra=D_train,
-            # training_spectra=D_train,
-            training_weights=R_train, 
-            training_temperatures=temp_train,
-            test_spectra=D_test[::frac_of_test],
-            # test_spectra=D_test[::frac_of_train],
-            test_temperatures=temp_test[::frac_of_test], 
-            wavelengths=wavelengths
-            # wavelengths=wavelengths
-            )
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step(closure)
-        iterator.set_postfix(loss=loss[-1])
-        loss_list.append(loss)
-    return loss_list
+
 print("beta", model.beta)
 # %%
 loss = train()
-# loss = train_lbfgs()
+loss = train_lbfgs()
 
 # %%
 low_temp_spectra = D_train[350:]
@@ -211,8 +152,9 @@ with torch.no_grad():
     num_samples = 100
     R_est = model.get_R_estimate_samples(D_test, temp_test)
     plt.figure()
-    for i in range(num_samples):
-        plt.scatter(range(R_est.shape[1]), R_est[i,:,0 ], c = "orange", alpha=0.01 )
+    for i in range(num_samples-1):
+        plt.scatter(range(R_est.shape[1]), R_est[i,:,0 ], c = "orange", alpha=0.01,  )
+    plt.scatter(range(R_est.shape[1]), R_est[-1,:,0 ], c = "orange", alpha=0.5,  label = "estimates for concentration")
         # plt.plot(range(R_est.shape[1]), temp_test, c = "red", alpha=1 )
     plt.hlines(R_train[0,0], -250, 0, label = "initial conentration", ls = "--", color = "green", lw = 3)
     plt.hlines(R_train[-1,0], R_est.shape[1],  R_est.shape[1] +250, label="final concentration", color = "red", ls = "--", lw = 3 )

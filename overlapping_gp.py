@@ -24,7 +24,8 @@ class OverlappingGP(torch.nn.Module):
         # self._log_sigma2 = torch.log(torch.tensor(sigma2))
 
         self.L = self.V_temp.shape[0]
-        self._mu_u = torch.nn.Parameter(torch.randn(self.M, self.C*self.L ))
+        # self._mu_u = torch.nn.Parameter(torch.randn(self.M, self.C*self.L ))
+        self._mu_u = torch.nn.Parameter(torch.zeros(self.M, self.C*self.L ))
 
         K_VV = self.get_K_VV()
         chol = torch.linalg.cholesky(K_VV)
@@ -39,7 +40,7 @@ class OverlappingGP(torch.nn.Module):
     def forward(self):
         ...
     
-    def elbo(self, training_spectra, training_weights, training_temperatures, wavelengths, 
+    def elbo(self, training_spectra, training_weights, training_temperatures, 
              test_spectra, test_temperatures
              ):
         if training_spectra.shape[0] != training_weights.shape[0]:
@@ -49,7 +50,6 @@ class OverlappingGP(torch.nn.Module):
         training_fit = self.get_training_fit(
                                 training_spectra=training_spectra, 
                                 training_weights=training_weights,
-                                wavelengths=wavelengths,
                                 training_temperatures=training_temperatures
                                 )
         test_fit = self.get_test_fit(
@@ -57,7 +57,7 @@ class OverlappingGP(torch.nn.Module):
             test_temperatures=test_temperatures,
         )
         KL_u = self.get_kl_u()
-        const = wavelengths.shape[0] * (training_spectra.shape[0] 
+        const = self.M * (training_spectra.shape[0] 
                                         ) * (torch.log(torch.tensor([2*torch.pi])) + self._log_sigma2)
         return training_fit + test_fit - KL_u - const
         
@@ -76,7 +76,7 @@ class OverlappingGP(torch.nn.Module):
         s_dist = torch.distributions.MultivariateNormal(mu_s, Sigma_s, validate_args=False)
         return s_dist.rsample((num_samples,))
 
-    def get_training_fit(self, training_spectra, training_weights, training_temperatures, wavelengths):
+    def get_training_fit(self, training_spectra, training_weights, training_temperatures):
         outer_observed_spectra = (training_spectra**2).sum() # 1
         mu_s = self.get_mu_s(training_temperatures) # N x M x C 
         cross_term =(training_spectra[:, :, None] * mu_s [:,:,:] *training_weights[:, None, :]).sum() # 1
@@ -213,7 +213,7 @@ class OverlappingGP(torch.nn.Module):
         Ma = (1/self.sigma2 * S.transpose(-2,-1) @ S + torch.eye(self.C))
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)
-        mu_r = 1/self.sigma2*(Ma_inv@S.transpose(-2,-1)@test_spectra[...,None]).squeeze()
+        mu_r = 1/self.sigma2*(Ma_inv@S.transpose(-2,-1)@test_spectra[...,None])[...,0]
         dists = torch.distributions.MultivariateNormal(mu_r, Ma_inv, validate_args=False)
         return dists
 
