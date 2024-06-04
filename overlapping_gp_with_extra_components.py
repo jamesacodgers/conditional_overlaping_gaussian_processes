@@ -22,6 +22,7 @@ class OverlappingGP(torch.nn.Module):
         self._log_beta = torch.nn.Parameter(torch.log(torch.tensor(beta)))
         # self._log_beta = torch.log(torch.tensor([beta]))
         self._log_sigma_s2 = torch.nn.Parameter( torch.log(torch.tensor(sigma2_s)))
+        # self._log_sigma_s2 =  torch.log(torch.tensor([sigma2_s]))
         self._log_sigma2 = torch.nn.Parameter(torch.log(torch.tensor(sigma2)))
         # self._log_sigma2 = torch.log(torch.tensor(sigma2))
 
@@ -47,8 +48,6 @@ class OverlappingGP(torch.nn.Module):
              ):
         if training_spectra.shape[0] != training_weights.shape[0]:
             raise ValueError("Number of training weights needs to match number of training spectra")
-        if training_weights.shape[1] != self.C:
-            raise ValueError("Number of components of weights needs to match number of components of weights")
         training_fit = self.get_training_fit(
                                 training_spectra=training_spectra, 
                                 training_weights=training_weights,
@@ -79,18 +78,21 @@ class OverlappingGP(torch.nn.Module):
         return s_dist.rsample((num_samples,))
 
     def get_training_fit(self, training_spectra, training_weights, training_temperatures):
-        outer_observed_spectra = (training_spectra**2).sum() # 1
-        mu_s = self.get_mu_s(training_temperatures) # N x M x C 
-        cross_term =(training_spectra[:, :, None] * mu_s [:,:,:] *training_weights[:, None, :]).sum() # 1
-        mu_s_outer = (mu_s[:, :, :, None] * mu_s[:, :, None, :]) # N x M x C x C 
-        cov_s_marginal = self.get_Sigma_s_cov_C(training_temperatures) # N x M x C x C 
-        gp_term = (training_weights[:, None, None, :] * training_weights[:, None, :, None] * (mu_s_outer + cov_s_marginal) ).sum()
-        return -1/(2*self.sigma2) * (outer_observed_spectra - 2*cross_term + gp_term)
-
+        S = self.get_S_samples(training_temperatures) # P x N x M x C 
+        S_obs = S[..., :self.C_obs]
+        S_unobs = S[..., self.C_obs:] # P x N x M x C_unobs
+        D_unexplained = training_spectra -  (S_obs @ training_weights[..., None])[...,0] # P x N x M training_weights 
+        Ma = (1/self.sigma2 * S_unobs.transpose(-2,-1) @ S_unobs + torch.eye(self.C_unobs)) # P x N x C_unobs x C_unobs
+        Ma_chol = torch.linalg.cholesky(Ma)
+        Ma_inv = torch.cholesky_inverse(Ma_chol)
+        sample_quadratic_terms =  - 1/(2*self.sigma2)*(D_unexplained[..., None, :]@(torch.eye(self.M) - 1/self.sigma2*S_unobs@Ma_inv@S_unobs.transpose(-2,-1))@D_unexplained[...,:, None]).mean(dim=0)
+        log_det_term = torch.log(torch.linalg.det(Ma_inv)).mean(dim=0)
+        return log_det_term.sum() + sample_quadratic_terms.sum()
     
     
     def _temp_kernel(self, x, y):
-        return self.sigma_s2[:, None,None]*torch.exp(-1/2*(x[None, :,None]-y[None, None,:])**2/self.beta[:,None, None])
+        return self.sigma_s2[:, None,None]*torch.exp(-1/2*(x[None, :,None]-y[None, None,:])**2/self.beta[:,None, None]**2)
+        # return x[None,:,None]@y[None,None, :] * torch.ones(self.C, 1,1)
     
     def get_K_VV(self):
         """

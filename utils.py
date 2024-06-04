@@ -5,7 +5,7 @@ def trim_wavelengths(min_wavelengths, max_wavelengths, wavelengths, spectra):
     filter = torch.logical_and(wavelengths<max_wavelengths , min_wavelengths<wavelengths)
     return  spectra[:,filter], wavelengths[filter]
 
-def train(model, training_spectra, test_spectra, training_temps , test_temps, training_weights, steps = 50, lr = 1e-1):
+def train(model, training_spectra, test_spectra, training_temps , test_temps, training_weights, steps = 50, lr = 1e-1, frac_of_test=1):
     loss_list = []
     optimizer = torch.optim.Adam(lr=lr, params=model.parameters())
     iterator = tqdm.tqdm(range(steps))
@@ -14,8 +14,8 @@ def train(model, training_spectra, test_spectra, training_temps , test_temps, tr
             training_spectra=training_spectra,
             training_weights=training_weights, 
             training_temperatures=training_temps,
-            test_spectra=test_spectra,
-            test_temperatures=test_temps, 
+            test_spectra=test_spectra[::frac_of_test],
+            test_temperatures=test_temps[::frac_of_test], 
             )
         optimizer.zero_grad()
         loss.backward()

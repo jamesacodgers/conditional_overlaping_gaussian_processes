@@ -6,8 +6,8 @@ import torch
 import arrow
 import numpy as np
 import tqdm
-from overlapping_gp import OverlappingGP
-from utils import trim_wavelengths
+from overlapping_gp_with_extra_components import OverlappingGP
+from utils import trim_wavelengths, train, train_lbfgs
 
 
 torch.set_default_dtype(torch.float64)
@@ -18,11 +18,15 @@ def make_grid(x,y):
     return torch.stack([grid_x, grid_y], dim=-1) 
 
 temp = pd.read_excel("Triglycine_Tsat30_Tcrys21_Collated (2).xlsx", sheet_name="Temperature")
-temp = temp.drop(index=0)
+temp = temp["Tr"].to_numpy()[1:]
+temp = temp.astype(np.float32)
+temp = temp - temp.mean()
+temp = temp/temp.std()
 spectra = pd.read_excel("Triglycine_Tsat30_Tcrys21_Collated (2).xlsx", sheet_name="IR")
 wavelengths = torch.Tensor(spectra["Wavenumbercm-1"].to_numpy())
 spectra = spectra.drop(columns="Wavenumbercm-1").to_numpy().T
 spectra = spectra - spectra.mean(axis=0)
+# spectra = spectra/spectra.std()
 high_conc = 70.6e-3
 low_conc = 56.0e-3
 # high_conc = 70.6e-2
@@ -36,11 +40,11 @@ test_start_index = 475
 test_end_index = 1575
 
 temp_train = torch.concat([
-                torch.tensor(temp["Tr"].to_numpy().astype(np.float32)[train_start_index:test_start_index]),
-                torch.tensor(temp["Tr"].to_numpy().astype(np.float32)[test_end_index:train_end_index])
+                torch.tensor(temp)[train_start_index:test_start_index],
+                torch.tensor(temp[test_end_index:train_end_index])
                 ])
 # temp_train = temp_train[350:]
-temp_test = torch.Tensor(temp["Tr"].to_numpy().astype(np.float32)[test_start_index:test_end_index])
+temp_test = torch.Tensor(temp[test_start_index:test_end_index])
 D_train = torch.concat([
                 torch.Tensor(spectra[train_start_index:test_start_index]),
                 torch.Tensor(spectra[test_end_index:train_end_index])
@@ -59,8 +63,19 @@ R_train = torch.vstack(
     # torch.ones(150) *(100-low_conc)
 ])]
 ).T
+# %%
+R_train = torch.vstack(
+    [
+    torch.ones(test_start_index - train_start_index,1)*high_conc
+    , torch.ones(train_end_index - test_end_index,1) *(low_conc),]
+    # torch.ones(400) *(100-high_conc),
+    # torch.ones(150) *(100-low_conc)]
+)
+# %%
 R_train = R_train - R_train.mean(dim=0)
-# R_train = R_train/ torch.sqrt(R_train.var(dim=0))
+# R_train = R_train/R_train.std()
+
+
 # R_train = R_train[350:]
 # %%
 
@@ -95,7 +110,8 @@ plt.show()
 #                     # sigma2_s=1
 #                     )
 model = OverlappingGP(
-                    2, 
+                    R_train.shape[1], 
+                    2,
                     wavelengths.shape[0],
                     # wavelengths.shape[0],
                     torch.linspace(temp_train.min(), temp_train.max(),2), 
@@ -107,13 +123,12 @@ model = OverlappingGP(
 # %%
 
 
-frac_of_test = 1
 
 
 print("beta", model.beta)
 # %%
-loss = train()
-loss = train_lbfgs()
+loss = train(model, D_train, D_test, temp_train, temp_test, R_train, 200, frac_of_test=1)
+# loss.extend(train_lbfgs(model, D_train, D_test, temp_train, temp_test, R_train, 10))
 
 # %%
 low_temp_spectra = D_train[350:]
@@ -124,8 +139,9 @@ low_temp_conc = R_train
 S_hat = torch.inverse(low_temp_conc.T @ low_temp_conc) @ low_temp_conc.T @ low_temp_spectra
 with torch.no_grad():
     plt.figure()
-    plt.plot(wavelengths,S_hat[0])
-    plt.plot(wavelengths,S_hat[1])
+    for i in range(model.C):
+        plt.plot(wavelengths,S_hat[0])
+    # plt.plot(wavelengths,S_hat[1])
     plt.show()
 # # %%
 
@@ -138,8 +154,9 @@ with torch.no_grad():
 S_samples = model.get_mu_s(temp_test)
 
 with torch.no_grad():
-    plt.plot(wavelengths, S_samples[0, :, 0])
-    plt.plot(wavelengths, S_samples[0, :, 1])
+    plt.figure()
+    for i in range(model.C):
+        plt.plot(wavelengths, S_samples[0, :, i])
     plt.show()
 
 # %%
@@ -159,6 +176,25 @@ with torch.no_grad():
     plt.hlines(R_train[0,0], -250, 0, label = "initial conentration", ls = "--", color = "green", lw = 3)
     plt.hlines(R_train[-1,0], R_est.shape[1],  R_est.shape[1] +250, label="final concentration", color = "red", ls = "--", lw = 3 )
     plt.legend()
+    plt.savefig("figs/flash_cooled/flash_cooled_time_series_estimate_3unobserved.pdf")
 
     plt.show()
+# %%
+
+# %%
+from sklearn.cross_decomposition import PLSRegression
+pls = PLSRegression(3)
+pls.fit(D_train, R_train)
+y_hat = pls.predict(D_test)
+
+plt.figure()
+plt.scatter(range(R_est.shape[1]), y_hat, label = "PLS prediction")
+# plt.plot(test_concs[:,0], test_concs[:,0])
+plt.hlines(R_train[0,0], -250, 0, label = "initial conentration", ls = "--", color = "green", lw = 3)
+plt.hlines(R_train[-1,0], R_est.shape[1],  R_est.shape[1] +250, label="final concentration", color = "red", ls = "--", lw = 3 )
+plt.legend()
+# plt.savefig("figs/flash_cooled/flash_cooled_time_series_estimate_pls.pdf")
+
+plt.show()
+
 # %%
