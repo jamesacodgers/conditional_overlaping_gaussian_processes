@@ -9,11 +9,11 @@ class InnerTrainSolver(ABC):
         ...
 
 class AllComponentsObserved(InnerTrainSolver):
-    def get_inner_elbo(self, targets, mu_s, cov_s,  weights, sigma2, num_samples=None):
+    def get_inner_elbo(self, targets, mu_s, cov_s,  observed_weights, sigma2, num_samples=None):
         outer_observed_spectra = (targets**2).sum() # 1
-        cross_term =(targets[:, :, None] * mu_s [:,:,:] *weights[:, None, :]).sum() # 1
+        cross_term =(targets[:, :, None] * mu_s [:,:,:] *observed_weights[:, None, :]).sum() # 1
         mu_s_outer = (mu_s[:, :, :, None] * mu_s[:, :, None, :]) # N x M x C x C 
-        gp_term = (weights[:, None, None, :] * weights[:, None, :, None] * (mu_s_outer + cov_s) ).sum()
+        gp_term = (observed_weights[:, None, None, :] * observed_weights[:, None, :, None] * (mu_s_outer + cov_s) ).sum()
         return -1/(2*sigma2) * (outer_observed_spectra - 2*cross_term + gp_term)
 
 class UnobservedComponents(InnerTrainSolver):
@@ -23,12 +23,12 @@ class UnobservedComponents(InnerTrainSolver):
         self.C_unobs = C_unobs
         self.num_samples_for_elbo = num_samples_for_elbo
     
-    def get_inner_elbo(self, targets, mu_s, cov_s,  observed_weigts, sigma2):
+    def get_inner_elbo(self, targets, mu_s, cov_s,  observed_weights, sigma2):
         gp_dist = torch.distributions.MultivariateNormal(mu_s, cov_s)
         S = gp_dist.rsample((self.num_samples_for_elbo,))
         S_obs = S[..., :self.C_obs]
         S_unobs = S[..., self.C_obs:] # P x N x M x C_unobs
-        D_unexplained = targets -  (S_obs @ observed_weigts[..., None])[...,0] # P x N x M training_weights 
+        D_unexplained = targets -  (S_obs @ observed_weights[..., None])[...,0] # P x N x M training_weights 
         Ma = (1/sigma2 * S_unobs.transpose(-2,-1) @ S_unobs + torch.eye(self.C_unobs)) # P x N x C_unobs x C_unobs
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)

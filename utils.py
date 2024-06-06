@@ -20,7 +20,7 @@ def train(model, training_targets, test_targets, training_inputs , test_inputs, 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        iterator.set_postfix(loss=loss[-1])
+        iterator.set_postfix(loss=loss)
         loss_list.append(loss)
     return loss_list
 def train_lbfgs(model, training_targets, test_targets, training_inputs , test_inputs, training_weights, steps = 3 ):

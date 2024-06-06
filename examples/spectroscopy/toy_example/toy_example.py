@@ -15,8 +15,7 @@ from torch.distributions.constraints import positive
 import cProfile
 
 # %%
-torch.set_default_dtype(torch.float64)
-torch.set_default_device("cpu")
+
 
 # os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
@@ -49,7 +48,7 @@ def make_grid(x,y):
 
 
 # %%
-V_temp = torch.linspace(0, 2*torch.pi, 12).reshape(-1,1)
+V_temp = torch.linspace(0, 2*torch.pi, 10).reshape(-1,1)
 # model = OverlappingGP(2, V_temp=V_temp, V_wavelengths=V_wavelenghs)
 model = COGP(C_obs=2, C_unobs=0, M = wavelengths.shape[0], V = V_temp, )
 
@@ -67,7 +66,7 @@ print("beta", model.beta)
 
 # %%
 with torch.no_grad():
-    plt.plot(-np.array(loss))
+    plt.plot(loss)
     plt.show()
 # %%
 with torch.no_grad():

@@ -1,9 +1,9 @@
 import torch
 import time
 
-from src.inner_optimisers import MultivariateNormal, AllComponentsObserved, UnobservedComponents
+from src.inner_optimisers import MultivariateNormal, Categorical, AllComponentsObserved, UnobservedComponents
 
-problem_type_dict = {"continuos": MultivariateNormal}
+problem_type_dict = {"continuos": MultivariateNormal, "categorical": Categorical}
 
 class COGP(torch.nn.Module):
     def __init__(self, C_obs, C_unobs, M,  V,  sigma2 = 1, beta = None, sigma2_s = None,  trainable_V = False, problem_type = "continuos"):
@@ -62,54 +62,48 @@ class COGP(torch.nn.Module):
         ...
     
     def elbo(self, training_targets, training_weights, training_inputs, 
-             test_targets, test_inputs
+             test_targets, test_inputs, n_samples = 4
              ):
         if training_targets.shape[0] != training_weights.shape[0]:
             raise ValueError("Number of training weights needs to match number of training spectra")
         training_fit = self.get_training_fit(
                                 targets=training_targets, 
                                 training_weights=training_weights,
-                                inputs=training_inputs
+                                inputs=training_inputs,
+                                n_samples = n_samples
                                 )
         test_fit = self.get_test_fit(
             targets=test_targets,
             inputs=test_inputs,
+            n_samples = n_samples
         )
         KL_u = self.get_kl_u()
-        const = self.M * (training_targets.shape[0] 
-                                        ) * (torch.log(torch.tensor([2*torch.pi])) + self._log_sigma2)
-        return training_fit + test_fit - KL_u - const
+        const = self.get_const_term(training_targets.shape[0] + test_targets.shape[0])
+        return (training_fit + test_fit - KL_u - const).squeeze()
+    
+    def get_const_term(self, N):
+        return self.M * (N) * (torch.log(torch.tensor([2*torch.pi])) + self._log_sigma2)
         
-    def get_test_fit(self, targets, inputs):
+    def get_test_fit(self, targets, inputs, n_samples):
         samples = self.get_S_samples(inputs)
-        return self._test_solver.get_inner_elbo(samples=samples, targets=targets, sigma2=self.sigma2)
+        return self._test_solver.get_inner_elbo(samples=samples, targets=targets, sigma2=self.sigma2, n_samples = n_samples)
 
+    def get_training_fit(self, targets, training_weights, inputs, n_samples):
+        mu_s = self.get_mu_s(inputs)
+        Sigma_s = self.get_Sigma_s_cov_C(inputs)
+        return self._train_solver.get_inner_elbo(targets=targets, observed_weights=training_weights, mu_s=mu_s, cov_s=Sigma_s, sigma2=self.sigma2, num_samples=n_samples)
+    
     def get_S_samples(self, temperatures, num_samples=4):
         mu_s = self.get_mu_s(inputs = temperatures, )
         Sigma_s = self.get_Sigma_s_cov_C(inputs=temperatures) 
         s_dist = torch.distributions.MultivariateNormal(mu_s, Sigma_s, validate_args=False)
         return s_dist.rsample((num_samples,))
 
-    def get_training_fit(self, targets, training_weights, inputs):
-        mu_s = self.get_mu_s(inputs)
-        Sigma_s = self.get_Sigma_s_cov_C(inputs)
-        return self._train_solver.get_inner_elbo(targets=targets, observed_weigts=training_weights, mu_s=mu_s, cov_s=Sigma_s, sigma2=self.sigma2, )
-        # S = self.get_S_samples(training_temperatures) # P x N x M x C 
-        # S_obs = S[..., :self.C_obs]
-        # S_unobs = S[..., self.C_obs:] # P x N x M x C_unobs
-        # D_unexplained = training_spectra -  (S_obs @ training_weights[..., None])[...,0] # P x N x M training_weights 
-        # Ma = (1/self.sigma2 * S_unobs.transpose(-2,-1) @ S_unobs + torch.eye(self.C_unobs)) # P x N x C_unobs x C_unobs
-        # Ma_chol = torch.linalg.cholesky(Ma)
-        # Ma_inv = torch.cholesky_inverse(Ma_chol)
-        # sample_quadratic_terms =  - 1/(2*self.sigma2)*(D_unexplained[..., None, :]@(torch.eye(self.M) - 1/self.sigma2*S_unobs@Ma_inv@S_unobs.transpose(-2,-1))@D_unexplained[...,:, None]).mean(dim=0)
-        # log_det_term = torch.log(torch.linalg.det(Ma_inv)).mean(dim=0)
-        # return log_det_term.sum() + sample_quadratic_terms.sum()
-    
     
     def _kernel(self, x, y):
         if x.shape[-1] != y.shape[-1]:
             raise ValueError(f"input to kernel have differing dimensionalies: {x.shape[-1]} and {y.shape[-1]}")
-        return self.sigma_s2[:, None, None]*torch.exp(-1/2*((x[None, :,None,:]-y[None, None,:,:])**2/self.beta[:,None, None,:]**2).sum(dim=-1))
+        return self.sigma_s2[:, None, None]*torch.exp(-1/2*((x[..., :,None,:]-y[...,:,:])**2/self.beta[:, None, None,:]**2).sum(dim=-1)) # problem for future james: correcting that in gplvm there C inputs per data point and in non LV case there arent 
     
     def get_K_VV(self):
         """
@@ -147,11 +141,11 @@ class COGP(torch.nn.Module):
         K = self._kernel(temps, self.V)
         return K.transpose(0,1)
     
-    def get_K_obsV_matrix(self, temps):
-        K_obsV = self.get_K_obsV(temps)
-        K_obsV_matrix = torch.zeros(temps.shape[0],self.C, self.C, self.L)
-        K_obsV_matrix[:, range(self.C), range(self.C), :] = K_obsV[:, range(self.C),:]
-        return K_obsV_matrix.reshape(temps.shape[0], self.C, self.L*self.C)
+    def get_K_obsV_matrix(self, inputs):
+        K_obsV = self.get_K_obsV(inputs)
+        K_obsV_matrix = torch.zeros(*inputs.shape[-4:],self.C, self.C, self.L)
+        K_obsV_matrix[..., range(self.C), range(self.C), :] = K_obsV[..., range(self.C),:]
+        return K_obsV_matrix.reshape(inputs.shape[0], self.C, self.L*self.C)
     
 
     def get_mu_u(self):
