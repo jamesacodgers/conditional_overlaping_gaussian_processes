@@ -41,14 +41,14 @@ class UnobservedComponents(InnerTrainSolver):
 
 class InnerTestSolver(ABC):
     @abstractmethod
-    def get_inner_elbo(self, samples: torch.tensor, target:torch.tensor) -> torch.tensor:
+    def get_inner_elbo(self, samples: torch.tensor, target:torch.tensor, sigma2) -> torch.tensor:
         ...
     @abstractmethod
     def get_weight_distribution(self, samples: torch.tensor, target: torch.tensor) -> torch.tensor: 
         ...
 
 
-class MultivariateNormal(torch.nn.Module):
+class MultivariateNormal(InnerTestSolver):
     def get_inner_elbo(self, samples, targets, sigma2):
         Ma = (1/sigma2 * samples.transpose(-2,-1) @ samples + torch.eye(samples.shape[-1]))
         Ma_chol = torch.linalg.cholesky(Ma)
@@ -64,4 +64,13 @@ class MultivariateNormal(torch.nn.Module):
         mu_r = 1/sigma2*(Ma_inv@samples.transpose(-2,-1)@targets[...,None])[...,0]
         dists = torch.distributions.MultivariateNormal(mu_r, Ma_inv, validate_args=False)
         return dists
+    
+class Categorical(InnerTestSolver):
+    def get_inner_elbo(self, samples: torch.tensor, target: torch.tensor, sigma2: torch.tensor) -> torch.tensor:
+        return torch.log(torch.exp(-1/(2*sigma2)*(target - samples)**2).mean(dim=-1)).mean(dim=0).sum()
+
+    def get_weight_distribution(self, samples: torch.tensor, target: torch.tensor, sigma2) -> torch.tensor:
+        exp_dist_sq = torch.exp(-1/(2*sigma2)*(target - samples)**2)
+        probs = exp_dist_sq/exp_dist_sq.sum(dim=-1)
+        return torch.distributions.Categorical(probs=probs)
     
