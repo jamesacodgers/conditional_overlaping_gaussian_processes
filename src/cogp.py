@@ -2,11 +2,15 @@ import torch
 import time
 
 from src.inner_optimisers import MultivariateNormal, Categorical, AllComponentsObserved, UnobservedComponents
+from src.inducing_points import FullRankCovariance, MeanField
 
 problem_type_dict = {"continuos": MultivariateNormal, "categorical": Categorical}
+inducing_point_variational_family_dict = {"full_rank": None, "mean_field": None}
+
+# Precidence of dimensions: 
 
 class COGP(torch.nn.Module):
-    def __init__(self, C_obs, C_unobs, M,  V,  sigma2 = 1, beta = None, sigma2_s = None,  trainable_V = False, problem_type = "continuos"):
+    def __init__(self, C_obs, C_unobs, M,  V,  sigma2 = 1, beta = None, sigma2_s = None,  trainable_V = False, problem_type = "continuos", inducing_covariance = "full_rank"):
         # torch.set_default_dtype(torch.float64)
         super(COGP, self).__init__()
         # Store dimensions
@@ -20,6 +24,11 @@ class COGP(torch.nn.Module):
         self.C_obs = C_obs 
         self.C_unobs = C_unobs
         self.M = M
+
+        if inducing_covariance in inducing_point_variational_family_dict:
+            self._variational_family = inducing_point_variational_family_dict[inducing_covariance]
+        else: 
+            raise ValueError(f"problem type must be one of the implemented versions: {print(inducing_point_variational_family_dict.keys())}")
 
         if problem_type in problem_type_dict:
             self._test_solver = problem_type_dict[problem_type]()
@@ -85,8 +94,8 @@ class COGP(torch.nn.Module):
         return self.M * (N) * (torch.log(torch.tensor([2*torch.pi])) + self._log_sigma2)
         
     def get_test_fit(self, targets, inputs, n_samples):
-        samples = self.get_S_samples(inputs)
-        return self._test_solver.get_inner_elbo(samples=samples, targets=targets, sigma2=self.sigma2, n_samples = n_samples)
+        samples = self.get_S_samples(inputs, num_samples=n_samples).reshape(-1, targets.shape[0], targets.shape[1], self.C)
+        return self._test_solver.get_inner_elbo(samples=samples, targets=targets, sigma2=self.sigma2)
 
     def get_training_fit(self, targets, training_weights, inputs, n_samples):
         mu_s = self.get_mu_s(inputs)
@@ -134,18 +143,18 @@ class COGP(torch.nn.Module):
         K_VV_inv_matrix[range(self.C), range(self.C), :, :] = K_VV[range(self.C),:,:]
         return K_VV_inv_matrix.transpose(1,2).reshape(self.C*self.L, self.C*self.L)
 
-    def get_K_obsV(self, temps):
+    def get_K_obsV(self, inputs):
         """
         Returns shape  N x C x L
         """
-        K = self._kernel(temps, self.V)
-        return K.transpose(0,1)
+        K = self._kernel(inputs, self.V)
+        return K.transpose(-3,-2)
     
     def get_K_obsV_matrix(self, inputs):
         K_obsV = self.get_K_obsV(inputs)
-        K_obsV_matrix = torch.zeros(*inputs.shape[-4:],self.C, self.C, self.L)
+        K_obsV_matrix = torch.zeros(*K_obsV.shape[:-2],self.C, self.C, self.L)
         K_obsV_matrix[..., range(self.C), range(self.C), :] = K_obsV[..., range(self.C),:]
-        return K_obsV_matrix.reshape(inputs.shape[0], self.C, self.L*self.C)
+        return K_obsV_matrix.reshape(*K_obsV.shape[:-2], self.C, self.L*self.C)
     
 
     def get_mu_u(self):
@@ -197,17 +206,16 @@ class COGP(torch.nn.Module):
         K_VV_inv = self.get_K_VV_inv() # C x L x L 
         K_obsV = self.get_K_obsV(inputs) # N x C x L 
         mu_u = self.get_mu_u() # M x C x L 
-        return (K_obsV[:, None, :, None, :]@K_VV_inv[None, None, :, :, :]@mu_u[None, :, :, :, None])[...,0,0]
+        return (K_obsV[...,:, None, :, None, :]@K_VV_inv[None, None, :, :, :]@mu_u[None, :, :, :, None])[...,0,0]
 
     def get_Sigma_s_cov_C(self, inputs):
         # want to get to shape NxMxCxC
-        K_obsobs_diag_elements = torch.diag_embed(torch.ones(inputs.shape[0], self.M, self.C)*self.sigma_s2[None, None, :]) # N x M x C x C 
-
+        K_obsobs_diag_elements = torch.diag_embed(torch.ones(inputs.shape[0], self.M, self.C)*self.sigma_s2[None, None, :]) # P x N x M x C x C 
 
         K_obsV = self.get_K_obsV_matrix(inputs) # N x CL x CL - yes this is messy but I think it works 
         A = self._get_conditional_cov_correction() # M x CL x CL
 
-        Sigma_s = K_obsobs_diag_elements - (K_obsV[:,None,:,:] @ A[None,:,:,:]@ K_obsV.transpose(-2,-1)[:, None,:,:])
+        Sigma_s = K_obsobs_diag_elements[..., None,:,:,:] - (K_obsV[...,:,None,:,:] @ A[...,None,:,:,:]@ K_obsV.transpose(-2,-1)[...,:, None,:,:])
         return Sigma_s + 1e-3*torch.eye(self.C)
     
 

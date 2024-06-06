@@ -54,11 +54,11 @@ class COGPLMV(COGP):
         dist = self.get_test_distributions()
         return dist.rsample((n_samples, ))
 
-    def elbo(self, training_targets, test_targets, training_weights,  n_samples = 16):
-        x_train = self.get_train_samples(n_samples=n_samples)
-        x_test = self.get_test_samples(n_samples=n_samples)
+    def elbo(self, training_targets, test_targets, training_weights,  n_samples = 4):
+        x_train = self.get_train_samples(n_samples=n_samples).transpose(2,1)
+        x_test = self.get_test_samples(n_samples=n_samples).transpose(2,1)
         training_fit = super().get_training_fit(inputs=x_train, targets=training_targets, training_weights=training_weights, n_samples = 1)
-        test_fit = super().get_test_fit(test_inputs=x_test, test_targets=test_targets, n_samples = 1)
+        test_fit = super().get_test_fit(inputs=x_test, targets=test_targets, n_samples = 1)
         KL_u = self.get_kl_u()
         const = self.get_const_term(training_targets.shape[0] + test_targets.shape[0])
         return (training_fit.mean() + test_fit.mean() - KL_u - const).squeeze()

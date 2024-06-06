@@ -12,7 +12,7 @@ class AllComponentsObserved(InnerTrainSolver):
     def get_inner_elbo(self, targets, mu_s, cov_s,  observed_weights, sigma2, num_samples=None):
         outer_observed_spectra = (targets**2).sum() # 1
         cross_term =(targets[:, :, None] * mu_s [:,:,:] *observed_weights[:, None, :]).sum() # 1
-        mu_s_outer = (mu_s[:, :, :, None] * mu_s[:, :, None, :]) # N x M x C x C 
+        mu_s_outer = (mu_s[...,:, :, :, None] * mu_s[...,:, :, None, :]) # N x M x C x C 
         gp_term = (observed_weights[:, None, None, :] * observed_weights[:, None, :, None] * (mu_s_outer + cov_s) ).sum()
         return -1/(2*sigma2) * (outer_observed_spectra - 2*cross_term + gp_term)
 
@@ -66,11 +66,11 @@ class MultivariateNormal(InnerTestSolver):
         return dists
     
 class Categorical(InnerTestSolver):
-    def get_inner_elbo(self, samples: torch.tensor, target: torch.tensor, sigma2: torch.tensor) -> torch.tensor:
-        return torch.log(torch.exp(-1/(2*sigma2)*(target - samples)**2).mean(dim=-1)).mean(dim=0).sum()
+    def get_inner_elbo(self, samples: torch.tensor, targets: torch.tensor, sigma2: torch.tensor) -> torch.tensor:
+        return torch.log(torch.exp(-1/(2*sigma2)*(targets[...,None] - samples)**2).mean(dim=-1)).mean(dim=0).sum()
 
-    def get_weight_distribution(self, samples: torch.tensor, target: torch.tensor, sigma2) -> torch.tensor:
-        exp_dist_sq = torch.exp(-1/(2*sigma2)*(target - samples)**2)
+    def get_weight_distribution(self, samples: torch.tensor, targets: torch.tensor, sigma2) -> torch.tensor:
+        exp_dist_sq = torch.exp(-1/(2*sigma2)*(targets - samples)**2)
         probs = exp_dist_sq/exp_dist_sq.sum(dim=-1)
         return torch.distributions.Categorical(probs=probs)
     
