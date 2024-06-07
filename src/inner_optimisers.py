@@ -70,7 +70,7 @@ class Categorical(InnerTestSolver):
         return torch.log(torch.exp(-1/(2*sigma2)*(targets[...,None] - samples)**2).mean(dim=-1)).mean(dim=0).sum()
 
     def get_weight_distribution(self, samples: torch.tensor, targets: torch.tensor, sigma2) -> torch.tensor:
-        exp_dist_sq = torch.exp(-1/(2*sigma2)*(targets - samples)**2)
-        probs = exp_dist_sq/exp_dist_sq.sum(dim=-1)
+        exp_dist_sq = torch.exp(-1/(2*sigma2)*(targets[...,None] - samples)**2).sum(dim=-2)
+        probs = exp_dist_sq/exp_dist_sq.sum(dim=-1, keepdim=True)
         return torch.distributions.Categorical(probs=probs)
     

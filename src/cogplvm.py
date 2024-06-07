@@ -14,24 +14,27 @@ class COGPLMV(COGP):
                  C_unobs = 0, 
                  trainable_V = True, 
                  independent_LVs=True,
+                 variational_family = "mean_filed",
+                 problem_type = "categorical"
                  ):
         super(COGPLMV, self).__init__(C_obs = C_obs, 
                                       C_unobs=C_unobs, 
                                       M=M, 
                                       V=V, 
                                       trainable_V=trainable_V,
-                                    problem_type="categorical"
+                                    problem_type=problem_type,
+                                    variational_family=variational_family
                                     )
         if independent_LVs:
             self.mu_x_train = torch.nn.Parameter(torch.zeros(N_train,self.C,num_latent_dims))
-            self._log_sigma_x_train = torch.nn.Parameter(torch.ones(N_train,self.C,num_latent_dims))
+            self._log_sigma_x_train = torch.nn.Parameter(torch.zeros(N_train,self.C,num_latent_dims))
             self.mu_x_test = torch.nn.Parameter(torch.zeros(N_test,self.C,num_latent_dims))
-            self._log_sigma_x_test = torch.nn.Parameter(torch.ones(N_test,self.C,num_latent_dims))
+            self._log_sigma_x_test = torch.nn.Parameter(torch.zeros(N_test,self.C,num_latent_dims))
         else: 
             self.mu_x_train = torch.nn.Parameter(torch.zeros(N_train,1,num_latent_dims))
-            self._log_sigma_x_train = torch.nn.Parameter(torch.ones(N_train,1,num_latent_dims))
+            self._log_sigma_x_train = torch.nn.Parameter(torch.zeros(N_train,1,num_latent_dims))
             self.mu_x_test = torch.nn.Parameter(torch.zeros(N_test,1,num_latent_dims))
-            self._log_sigma_x_test = torch.nn.Parameter(torch.ones(N_test,1,num_latent_dims))
+            self._log_sigma_x_test = torch.nn.Parameter(torch.zeros(N_test,1,num_latent_dims))
 
     @property 
     def sigma_x_train(self): 
@@ -55,14 +58,19 @@ class COGPLMV(COGP):
         return dist.rsample((n_samples, ))
 
     def elbo(self, training_targets, test_targets, training_weights,  n_samples = 4):
-        x_train = self.get_train_samples(n_samples=n_samples).transpose(2,1)
-        x_test = self.get_test_samples(n_samples=n_samples).transpose(2,1)
+        x_train = self.get_train_samples(n_samples=n_samples)#.transpose(2,1)
+        x_test = self.get_test_samples(n_samples=n_samples)#.transpose(2,1)
         training_fit = super().get_training_fit(inputs=x_train, targets=training_targets, training_weights=training_weights, n_samples = 1)
         test_fit = super().get_test_fit(inputs=x_test, targets=test_targets, n_samples = 1)
         KL_u = self.get_kl_u()
         const = self.get_const_term(training_targets.shape[0] + test_targets.shape[0])
         return (training_fit.mean() + test_fit.mean() - KL_u - const).squeeze()
     
+    def get_R_estimate_samples(self, targets, num_samples=4):
+        #Note, this relies on the same order of targets and inputs
+        x_test = self.get_test_samples(n_samples=num_samples)#.transpose(2,1)
+        prob_samples = self.get_R_dist_samples(targets=targets, inputs=x_test, num_samples=1)
+        return prob_samples.probs.mean(dim=[0,1])
 
 
 if __name__=="__main__":

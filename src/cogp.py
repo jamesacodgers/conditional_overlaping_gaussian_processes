@@ -5,12 +5,12 @@ from src.inner_optimisers import MultivariateNormal, Categorical, AllComponentsO
 from src.inducing_points import FullRankCovariance, MeanField
 
 problem_type_dict = {"continuos": MultivariateNormal, "categorical": Categorical}
-inducing_point_variational_family_dict = {"full_rank": None, "mean_field": None}
+inducing_point_variational_family_dict = {"full_rank": FullRankCovariance, "mean_field": MeanField}
 
 # Precidence of dimensions: 
 
 class COGP(torch.nn.Module):
-    def __init__(self, C_obs, C_unobs, M,  V,  sigma2 = 1, beta = None, sigma2_s = None,  trainable_V = False, problem_type = "continuos", inducing_covariance = "full_rank"):
+    def __init__(self, C_obs, C_unobs, M,  V,  sigma2 = 1, beta = None, sigma2_s = None,  trainable_V = False, problem_type = "continuos", variational_family = "full_rank"):
         # torch.set_default_dtype(torch.float64)
         super(COGP, self).__init__()
         # Store dimensions
@@ -24,9 +24,26 @@ class COGP(torch.nn.Module):
         self.C_obs = C_obs 
         self.C_unobs = C_unobs
         self.M = M
+        self.L = self.V.shape[0]
 
-        if inducing_covariance in inducing_point_variational_family_dict:
-            self._variational_family = inducing_point_variational_family_dict[inducing_covariance]
+        if beta is None:
+            beta = [[1]*self.A]*self.C
+        if sigma2_s is None:
+            sigma2_s = [1]*self.C
+
+         # store GP parameters
+        self._log_beta = torch.nn.Parameter(torch.log(torch.tensor(beta)))
+        # self._log_beta = torch.log(torch.tensor([beta]))
+        self._log_sigma_s2 = torch.nn.Parameter( torch.log(torch.tensor(sigma2_s)))
+        # self._log_sigma_s2 =  torch.log(torch.tensor([sigma2_s]))
+        self._log_sigma2 = torch.nn.Parameter(torch.log(torch.tensor(sigma2)))
+        # self._log_sigma2 = torch.log(torch.tensor(sigma2))
+
+        K_VV = self.get_K_VV()
+
+
+        if variational_family in inducing_point_variational_family_dict:
+            self._variational_family = inducing_point_variational_family_dict[variational_family](C=self.C, M=self.M, L=self.L, kernel_matrix=K_VV)
         else: 
             raise ValueError(f"problem type must be one of the implemented versions: {print(inducing_point_variational_family_dict.keys())}")
 
@@ -40,30 +57,6 @@ class COGP(torch.nn.Module):
         else:
             self._train_solver = UnobservedComponents(self._test_solver, self.C_obs, self.C_unobs)
 
-        if beta is None:
-            beta = [[1]*self.A]*self.C
-        if sigma2_s is None:
-            sigma2_s = [1]*self.C
-
-        # store GP parameters
-        self._log_beta = torch.nn.Parameter(torch.log(torch.tensor(beta)))
-        # self._log_beta = torch.log(torch.tensor([beta]))
-        self._log_sigma_s2 = torch.nn.Parameter( torch.log(torch.tensor(sigma2_s)))
-        # self._log_sigma_s2 =  torch.log(torch.tensor([sigma2_s]))
-        self._log_sigma2 = torch.nn.Parameter(torch.log(torch.tensor(sigma2)))
-        # self._log_sigma2 = torch.log(torch.tensor(sigma2))
-
-        self.L = self.V.shape[0]
-        # self._mu_u = torch.nn.Parameter(torch.randn(self.M, self.C*self.L ))
-        self._mu_u = torch.nn.Parameter(torch.zeros(self.M, self.C*self.L ))
-
-        K_VV = self.get_K_VV()
-        chol = torch.linalg.cholesky(K_VV)
-        new_tensor = torch.zeros(self.C, self.C, self.L, self.L)
-        new_tensor[range(self.C), range(self.C), :, :] = chol[range(self.C), :, :]
-        new_tensor = new_tensor.transpose(1,2).reshape(self.L*self.C, self.L*self.C)
-        self._raw_chol = torch.nn.Parameter(new_tensor[None,:,:].repeat(self.M,1,1))
-
         if V.shape[-1] != self.beta.shape[-1]:
             raise ValueError("Inducing points and beta must agree on number of dimensions")
 
@@ -75,6 +68,11 @@ class COGP(torch.nn.Module):
              ):
         if training_targets.shape[0] != training_weights.shape[0]:
             raise ValueError("Number of training weights needs to match number of training spectra")
+        if training_inputs.shape[1:] != test_inputs.shape[1:]:
+            raise ValueError("input dims must mach for training and test")
+        if len(training_inputs.shape) == 2:
+            training_inputs = training_inputs.unsqueeze(-2)
+            test_inputs = test_inputs.unsqueeze(-2)
         training_fit = self.get_training_fit(
                                 targets=training_targets, 
                                 training_weights=training_weights,
@@ -97,14 +95,14 @@ class COGP(torch.nn.Module):
         samples = self.get_S_samples(inputs, num_samples=n_samples).reshape(-1, targets.shape[0], targets.shape[1], self.C)
         return self._test_solver.get_inner_elbo(samples=samples, targets=targets, sigma2=self.sigma2)
 
-    def get_training_fit(self, targets, training_weights, inputs, n_samples):
+    def get_training_fit(self, targets: torch.tensor, training_weights: torch.tensor, inputs: torch.tensor, n_samples: torch.tensor) -> torch.tensor:
         mu_s = self.get_mu_s(inputs)
         Sigma_s = self.get_Sigma_s_cov_C(inputs)
         return self._train_solver.get_inner_elbo(targets=targets, observed_weights=training_weights, mu_s=mu_s, cov_s=Sigma_s, sigma2=self.sigma2, num_samples=n_samples)
     
-    def get_S_samples(self, temperatures, num_samples=4):
-        mu_s = self.get_mu_s(inputs = temperatures, )
-        Sigma_s = self.get_Sigma_s_cov_C(inputs=temperatures) 
+    def get_S_samples(self, inputs, num_samples=4):
+        mu_s = self.get_mu_s(inputs = inputs) # N x M x C 
+        Sigma_s = self.get_Sigma_s_cov_C(inputs=inputs) # N x M x C x C 
         s_dist = torch.distributions.MultivariateNormal(mu_s, Sigma_s, validate_args=False)
         return s_dist.rsample((num_samples,))
 
@@ -145,16 +143,13 @@ class COGP(torch.nn.Module):
 
     def get_K_obsV(self, inputs):
         """
+        inputs either of shape N x A or N x C x A 
         Returns shape  N x C x L
         """
-        K = self._kernel(inputs, self.V)
+        if len(inputs.shape) == 2:
+            inputs.expand(-1)
+        K = self._kernel(inputs.transpose(-3,-2), self.V)
         return K.transpose(-3,-2)
-    
-    def get_K_obsV_matrix(self, inputs):
-        K_obsV = self.get_K_obsV(inputs)
-        K_obsV_matrix = torch.zeros(*K_obsV.shape[:-2],self.C, self.C, self.L)
-        K_obsV_matrix[..., range(self.C), range(self.C), :] = K_obsV[..., range(self.C),:]
-        return K_obsV_matrix.reshape(*K_obsV.shape[:-2], self.C, self.L*self.C)
     
 
     def get_mu_u(self):
@@ -169,23 +164,19 @@ class COGP(torch.nn.Module):
         """
         Sigma_u = self.get_matrix_Sigma_u()
         Sigma_u = Sigma_u.reshape(self.M, self.C, self.L, self.C, self.L)
-        
         return Sigma_u.permute(0,1,3,2,4)
 
-    def get_vector_mu_u(self):
-        return self._mu_u
+    # def get_vector_mu_u(self):
+    #     return self._mu_u
 
     def get_matrix_Sigma_u(self):
         chol = self.get_chol_Sigma_u()
         return chol @ chol.transpose(-2,-1) # + (1e-3*torch.eye(self.L*self.C))
-
-    def get_chol_Sigma_u(self):
-        return torch.tril(self._raw_chol) 
     
-    def get_q_u_dist(self):
-        mu_u = self.get_vector_mu_u()
-        Sigma_u = self.get_matrix_Sigma_u() + 1e-5*torch.eye(self.C*self.L)
-        return torch.distributions.MultivariateNormal(mu_u, Sigma_u)
+    # def get_q_u_dist(self):
+    #     mu_u = self.get_vector_mu_u()
+        # Sigma_u = self.get_matrix_Sigma_u() + 1e-5*torch.eye(self.C*self.L)
+        # return torch.distributions.MultivariateNormal(mu_u, Sigma_u)
     
     def get_u_prior(self):
         K_vv = self.get_K_VV()
@@ -196,7 +187,7 @@ class COGP(torch.nn.Module):
     
     def get_kl_u(self):
         prior = self.get_u_prior()
-        q_u = self.get_q_u_dist()
+        q_u = self._variational_family.get_q_u_dist()
         return torch.distributions.kl_divergence(q_u, prior).sum()
     
     def get_mu_s(self, inputs):
@@ -205,30 +196,23 @@ class COGP(torch.nn.Module):
         """
         K_VV_inv = self.get_K_VV_inv() # C x L x L 
         K_obsV = self.get_K_obsV(inputs) # N x C x L 
-        mu_u = self.get_mu_u() # M x C x L 
-        return (K_obsV[...,:, None, :, None, :]@K_VV_inv[None, None, :, :, :]@mu_u[None, :, :, :, None])[...,0,0]
+        return self._variational_family.get_mu_s(K_obsV = K_obsV, K_VV_inv=K_VV_inv)
+        # mu_u = self.get_mu_u() # M x C x L 
+        # return (K_obsV[...,:, None, :, None, :]@K_VV_inv[None, None, :, :, :]@mu_u[None, :, :, :, None])[...,0,0]
 
     def get_Sigma_s_cov_C(self, inputs):
         # want to get to shape NxMxCxC
-        K_obsobs_diag_elements = torch.diag_embed(torch.ones(inputs.shape[0], self.M, self.C)*self.sigma_s2[None, None, :]) # P x N x M x C x C 
+        # K_obsobs_elements = torch.ones(*inputs.shape[:-1]).unsqueeze(-2)*self.sigma_s2[None, None, :] # (P x) N x [M - leave as 1] x C x C !! hang on !! This is all the same - why can't I jut pass a single element??
+        K_obsobs_elements = self.sigma_s2 
+        K_obsV = self.get_K_obsV(inputs) # N x C x L - yes this is messy but I think it works 
+        K_VV_inv = self.get_K_VV() # L x L 
+        return self._variational_family.get_Sigma_s_cov_C(K_obsobs_elements=K_obsobs_elements, K_obsV=K_obsV, K_VV_inv=K_VV_inv)
 
-        K_obsV = self.get_K_obsV_matrix(inputs) # N x CL x CL - yes this is messy but I think it works 
-        A = self._get_conditional_cov_correction() # M x CL x CL
 
-        Sigma_s = K_obsobs_diag_elements[..., None,:,:,:] - (K_obsV[...,:,None,:,:] @ A[...,None,:,:,:]@ K_obsV.transpose(-2,-1)[...,:, None,:,:])
-        return Sigma_s + 1e-3*torch.eye(self.C)
     
-
-    def _get_conditional_cov_correction(self):
-        Sigma_u = self.get_matrix_Sigma_u() # M x CL  x CL
-        K_VV_inv = self.get_K_VV_inv_matrix() # CL x CL
-        return (K_VV_inv
-                 -  K_VV_inv @ Sigma_u @ K_VV_inv
-                ) 
-    
-    def get_R_estimate_samples(self, test_spectra, test_temperatures, num_samples=100):
+    def get_R_estimate_samples(self, targets, inputs, num_samples=100):
         
-        dists = self.get_R_dist_samples(test_spectra, test_temperatures, num_samples)
+        dists = self.get_R_dist_samples(targets, inputs, num_samples)
         return dists.rsample()
     
     def get_R_dist_samples(self, targets, inputs, num_samples=100):

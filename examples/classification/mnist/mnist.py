@@ -4,8 +4,11 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
 from src.cogplvm import COGPLMV
+from utils import train_cogplvm
 
 import cProfile
+
+torch.set_default_dtype(torch.float64)
 
 # Define a transform to normalize the data
 transform = transforms.Compose([
@@ -43,9 +46,18 @@ test_images = test_images/test_images.std()
 test_images_vec = test_images.flatten(start_dim=-2, end_dim=-1)
 test_labels = torch.nn.functional.one_hot(test_dataset.targets[:n_test])
 
-model = COGPLMV(C_obs=10, C_unobs=0, num_latent_dims=3, V = torch.randn(4,3), N_train=n_train, N_test=n_test, M = train_images_vec.shape[-1])
+model = COGPLMV(C_obs=10, C_unobs=0, num_latent_dims=3, V = torch.randn(8,3), N_train=n_train, N_test=n_test, M = train_images_vec.shape[-1], variational_family="mean_field")
 
-cProfile.run("model.elbo(training_targets=train_images_vec, test_targets=test_images_vec, training_weights=train_labels)")
+# cProfile.run("model.elbo(training_targets=train_images_vec, test_targets=test_images_vec, training_weights=train_labels)", sort="cumtime")
+
+loss = train_cogplvm(model=model, training_targets=train_images_vec, training_weights=train_labels, test_targets=test_images_vec, steps=50)
 
 # plt.matshow(train_images.data[0])
 # plt.show()
+with torch.no_grad():
+    plt.plot(loss)
+    plt.show()
+
+ests = model.get_R_estimate_samples(test_images_vec)
+print(ests - test_labels)
+print((ests - test_labels).max())

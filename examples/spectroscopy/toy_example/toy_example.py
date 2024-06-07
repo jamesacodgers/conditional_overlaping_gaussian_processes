@@ -6,6 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from src.cogp import COGP
 import time
+import cProfile
 
 from utils import train
 # import os
@@ -16,8 +17,8 @@ import cProfile
 
 # %%
 
+torch.set_default_dtype(torch.float64)
 
-# os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 wavelengths = torch.linspace(0,2*torch.pi, 101)
 
@@ -56,6 +57,7 @@ r = R_train#.unsqueeze(1).repeat([1,101,1]).reshape(-1,2)
 D_train = D_train
 # D_test = D_test
 
+# cProfile.run("model.elbo(training_targets=D_train, test_targets=D_test, training_inputs=temp_train, test_inputs=temp_test, training_weights=R_train)", sort="cumtime")
 
 
 loss = train(model=model, training_targets=D_train, test_targets=D_test, training_inputs=temp_train, test_inputs=temp_test, training_weights=R_train, steps=200)
@@ -70,8 +72,8 @@ with torch.no_grad():
     plt.show()
 # %%
 with torch.no_grad():
-    f_hat = model.get_mu_s(temp_train)
-    sigma = model.get_Sigma_s_cov_C(temp_train)
+    f_hat = model.get_mu_s(temp_train[:,None,:])
+    sigma = model.get_Sigma_s_cov_C(temp_train[:,None,:])
     print("stuff",sigma.min(), sigma.max())
 
 # %%
@@ -103,8 +105,10 @@ with torch.no_grad():
 # %%
 
 num_samples = 1000
-R_samples = model.get_R_estimate_samples(D_test, temp_test,num_samples)
-R_dists = model.get_R_dist_samples(D_test, temp_test, num_samples)
+R_samples = model.get_R_estimate_samples(D_test, temp_test[:,None,:],num_samples)
+R_dists = model.get_R_dist_samples(D_test, temp_test[:, None, :], num_samples)
+
+R_
 
 with torch.no_grad():
     plt.figure()
@@ -119,10 +123,3 @@ with torch.no_grad():
     plt.plot(R_test[:,0],R_test[:,0])
     plt.show()
 
-# %%
-
-with torch.no_grad():
-    plt.figure()
-    plt.matshow(model.get_q_u_dist().covariance_matrix[1])
-    plt.show()
-# %%
