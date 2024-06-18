@@ -46,11 +46,11 @@ test_images = test_images/test_images.std()
 test_images_vec = test_images.flatten(start_dim=-2, end_dim=-1)
 test_labels = torch.nn.functional.one_hot(test_dataset.targets[:n_test])
 
-model = COGPLMV(C_obs=10, C_unobs=0, num_latent_dims=3, V = torch.randn(8,3), N_train=n_train, N_test=n_test, M = train_images_vec.shape[-1], variational_family="mean_field")
+model = COGPLMV(C_obs=10, C_unobs=0, num_latent_dims=2, V = torch.randn(8,2), sigma2 = 10, N_train=n_train, N_test=n_test, M = train_images_vec.shape[-1], variational_family="mean_field")
 
 # cProfile.run("model.elbo(training_targets=train_images_vec, test_targets=test_images_vec, training_weights=train_labels)", sort="cumtime")
 
-loss = train_cogplvm(model=model, training_targets=train_images_vec, training_weights=train_labels, test_targets=test_images_vec, steps=50)
+loss = train_cogplvm(model=model, training_targets=train_images_vec, training_weights=train_labels, test_targets=test_images_vec, steps=50, lr=0.1)
 
 # plt.matshow(train_images.data[0])
 # plt.show()
@@ -60,4 +60,4 @@ with torch.no_grad():
 
 ests = model.get_R_estimate_samples(test_images_vec)
 print(ests - test_labels)
-print((ests - test_labels).max())
+print((ests - test_labels).min())

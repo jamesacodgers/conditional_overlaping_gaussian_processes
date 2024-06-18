@@ -62,6 +62,9 @@ class COGP(torch.nn.Module):
 
     def forward(self):
         ...
+
+    def get_S_dist(self, ):
+        ...
     
     def elbo(self, training_targets, training_weights, training_inputs, 
              test_targets, test_inputs, n_samples = 4
@@ -93,24 +96,25 @@ class COGP(torch.nn.Module):
         
     def get_test_fit(self, targets, inputs, n_samples):
         samples = self.get_S_samples(inputs, num_samples=n_samples).reshape(-1, targets.shape[0], targets.shape[1], self.C)
-        return self._test_solver.get_inner_elbo(samples=samples, targets=targets, sigma2=self.sigma2)
+        fit = self._test_solver.get_inner_elbo(samples=samples, targets=targets, sigma2=self.sigma2)
+        return fit
 
     def get_training_fit(self, targets: torch.tensor, training_weights: torch.tensor, inputs: torch.tensor, n_samples: torch.tensor) -> torch.tensor:
         mu_s = self.get_mu_s(inputs)
-        Sigma_s = self.get_Sigma_s_cov_C(inputs)
+        Sigma_s = self.get_Sigma_s(inputs)
         return self._train_solver.get_inner_elbo(targets=targets, observed_weights=training_weights, mu_s=mu_s, cov_s=Sigma_s, sigma2=self.sigma2, num_samples=n_samples)
     
     def get_S_samples(self, inputs, num_samples=4):
-        mu_s = self.get_mu_s(inputs = inputs) # N x M x C 
-        Sigma_s = self.get_Sigma_s_cov_C(inputs=inputs) # N x M x C x C 
-        s_dist = torch.distributions.MultivariateNormal(mu_s, Sigma_s, validate_args=False)
-        return s_dist.rsample((num_samples,))
+        K_obsobs = self.sigma_s2 
+        K_obsV = self.get_K_obsV(inputs) # N x C x L 
+        K_VV_inv = self.get_K_VV() # L x L 
+        return self._variational_family.get_S_samples(K_obsobs=K_obsobs, K_obsV=K_obsV, K_VV_inv=K_VV_inv, num_samples=num_samples)
 
     
     def _kernel(self, x, y):
         if x.shape[-1] != y.shape[-1]:
             raise ValueError(f"input to kernel have differing dimensionalies: {x.shape[-1]} and {y.shape[-1]}")
-        return self.sigma_s2[:, None, None]*torch.exp(-1/2*((x[..., :,None,:]-y[...,:,:])**2/self.beta[:, None, None,:]**2).sum(dim=-1)) # problem for future james: correcting that in gplvm there C inputs per data point and in non LV case there arent 
+        return self.sigma_s2[:, None, None]*torch.exp(-1/2*((x[..., :,None,:]-y[...,:,:])**2/self.beta[:, None, None,:]**2).sum(dim=-1)) 
     
     def get_K_VV(self):
         """
@@ -146,8 +150,6 @@ class COGP(torch.nn.Module):
         inputs either of shape N x A or N x C x A 
         Returns shape  N x C x L
         """
-        if len(inputs.shape) == 2:
-            inputs.expand(-1)
         K = self._kernel(inputs.transpose(-3,-2), self.V)
         return K.transpose(-3,-2)
     
@@ -156,27 +158,13 @@ class COGP(torch.nn.Module):
         """
         Returns shape C x L 
         """
-        return self._mu_u.reshape(self.M, self.C, self.L)
+        return self._variational_family.mu_u
         
     def get_Sigma_u(self):
         """
         Returns shape C x C x L x L
         """
-        Sigma_u = self.get_matrix_Sigma_u()
-        Sigma_u = Sigma_u.reshape(self.M, self.C, self.L, self.C, self.L)
-        return Sigma_u.permute(0,1,3,2,4)
-
-    # def get_vector_mu_u(self):
-    #     return self._mu_u
-
-    def get_matrix_Sigma_u(self):
-        chol = self.get_chol_Sigma_u()
-        return chol @ chol.transpose(-2,-1) # + (1e-3*torch.eye(self.L*self.C))
-    
-    # def get_q_u_dist(self):
-    #     mu_u = self.get_vector_mu_u()
-        # Sigma_u = self.get_matrix_Sigma_u() + 1e-5*torch.eye(self.C*self.L)
-        # return torch.distributions.MultivariateNormal(mu_u, Sigma_u)
+        return self._variational_family.Sigma_u
     
     def get_u_prior(self):
         K_vv = self.get_K_VV()
@@ -197,24 +185,13 @@ class COGP(torch.nn.Module):
         K_VV_inv = self.get_K_VV_inv() # C x L x L 
         K_obsV = self.get_K_obsV(inputs) # N x C x L 
         return self._variational_family.get_mu_s(K_obsV = K_obsV, K_VV_inv=K_VV_inv)
-        # mu_u = self.get_mu_u() # M x C x L 
-        # return (K_obsV[...,:, None, :, None, :]@K_VV_inv[None, None, :, :, :]@mu_u[None, :, :, :, None])[...,0,0]
 
-    def get_Sigma_s_cov_C(self, inputs):
-        # want to get to shape NxMxCxC
-        # K_obsobs_elements = torch.ones(*inputs.shape[:-1]).unsqueeze(-2)*self.sigma_s2[None, None, :] # (P x) N x [M - leave as 1] x C x C !! hang on !! This is all the same - why can't I jut pass a single element??
-        K_obsobs_elements = self.sigma_s2 
-        K_obsV = self.get_K_obsV(inputs) # N x C x L - yes this is messy but I think it works 
+    def get_Sigma_s(self, inputs):
+        K_obsobs = self.sigma_s2 
+        K_obsV = self.get_K_obsV(inputs) # N x C x L 
         K_VV_inv = self.get_K_VV() # L x L 
-        return self._variational_family.get_Sigma_s_cov_C(K_obsobs_elements=K_obsobs_elements, K_obsV=K_obsV, K_VV_inv=K_VV_inv)
-
-
-    
-    def get_R_estimate_samples(self, targets, inputs, num_samples=100):
-        
-        dists = self.get_R_dist_samples(targets, inputs, num_samples)
-        return dists.rsample()
-    
+        return self._variational_family.get_Sigma_s(K_obsobs=K_obsobs, K_obsV=K_obsV, K_VV_inv=K_VV_inv)
+ 
     def get_R_dist_samples(self, targets, inputs, num_samples=100):
         samples = self.get_S_samples(inputs, num_samples=num_samples)
         return self._test_solver.get_weight_distribution(targets=targets, samples=samples, sigma2=self.sigma2)

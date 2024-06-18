@@ -11,9 +11,17 @@ class InnerTrainSolver(ABC):
 class AllComponentsObserved(InnerTrainSolver):
     def get_inner_elbo(self, targets, mu_s, cov_s,  observed_weights, sigma2, num_samples=None):
         outer_observed_spectra = (targets**2).sum() # 1
-        cross_term =(targets[:, :, None] * mu_s [:,:,:] *observed_weights[:, None, :]).sum() # 1
+        cross_term =(targets[:, :, None] * mu_s [:,:,:] *observed_weights[:, None, :]) # 1
+
         mu_s_outer = (mu_s[...,:, :, :, None] * mu_s[...,:, :, None, :]) # N x M x C x C 
-        gp_term = (observed_weights[:, None, None, :] * observed_weights[:, None, :, None] * (mu_s_outer + cov_s) ).sum()
+        gp_term = (observed_weights[:, None, None, :] * observed_weights[:, None, :, None] * (mu_s_outer + cov_s) )
+        if mu_s.shape[:2]==targets.shape:
+            cross_term = cross_term.sum()
+            gp_term = gp_term.sum()
+        else:
+            cross_term = cross_term.mean(dim=0).sum()
+            gp_term = gp_term.mean(dim=0).sum()
+        
         return -1/(2*sigma2) * (outer_observed_spectra - 2*cross_term + gp_term)
 
 class UnobservedComponents(InnerTrainSolver):
@@ -67,7 +75,11 @@ class MultivariateNormal(InnerTestSolver):
     
 class Categorical(InnerTestSolver):
     def get_inner_elbo(self, samples: torch.tensor, targets: torch.tensor, sigma2: torch.tensor) -> torch.tensor:
-        return torch.log(torch.exp(-1/(2*sigma2)*(targets[...,None] - samples)**2).mean(dim=-1)).mean(dim=0).sum()
+        C = samples.shape[-1]
+        dists = ((targets[...,None] - samples)**2).sum(dim=-2)
+
+        min_dists,_ = dists.min(dim=-1)
+        return (-1/(2*sigma2)*min_dists/C + torch.log(torch.exp(-1/(2*sigma2)*(dists-min_dists[..., None])).sum(dim=-1)/C)).sum()
 
     def get_weight_distribution(self, samples: torch.tensor, targets: torch.tensor, sigma2) -> torch.tensor:
         exp_dist_sq = torch.exp(-1/(2*sigma2)*(targets[...,None] - samples)**2).sum(dim=-2)

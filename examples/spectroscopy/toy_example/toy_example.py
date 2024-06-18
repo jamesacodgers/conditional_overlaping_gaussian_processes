@@ -49,7 +49,7 @@ def make_grid(x,y):
 
 
 # %%
-V_temp = torch.linspace(0, 2*torch.pi, 10).reshape(-1,1)
+V_temp = torch.linspace(0, 2*torch.pi, 8).reshape(-1,1)
 # model = OverlappingGP(2, V_temp=V_temp, V_wavelengths=V_wavelenghs)
 model = COGP(C_obs=2, C_unobs=0, M = wavelengths.shape[0], V = V_temp, )
 
@@ -73,7 +73,7 @@ with torch.no_grad():
 # %%
 with torch.no_grad():
     f_hat = model.get_mu_s(temp_train[:,None,:])
-    sigma = model.get_Sigma_s_cov_C(temp_train[:,None,:])
+    sigma = model.get_Sigma_s(temp_train[:,None,:])
     print("stuff",sigma.min(), sigma.max())
 
 # %%
@@ -105,10 +105,11 @@ with torch.no_grad():
 # %%
 
 num_samples = 1000
-R_samples = model.get_R_estimate_samples(D_test, temp_test[:,None,:],num_samples)
-R_dists = model.get_R_dist_samples(D_test, temp_test[:, None, :], num_samples)
+R_dists = model.get_R_dist_samples(D_test, temp_test[:,None,:],num_samples)
+R_samples = R_dists.sample()
 
-R_
+
+
 
 with torch.no_grad():
     plt.figure()

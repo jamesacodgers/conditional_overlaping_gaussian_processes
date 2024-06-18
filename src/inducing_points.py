@@ -31,13 +31,16 @@ class InducingPointVariationalDist(torch.nn.Module,ABC):
         return (K_obsV[...,:, None, :, None, :]@K_VV_inv[None, None, :, :, :]@mu_u[None, :, :, :, None])[...,0,0]
     
     @abstractmethod
-    def get_Sigma_s_cov_C(self, inputs):
+    def get_Sigma_s(self, inputs):
         ...
 
     @abstractmethod
     def get_matrix_Sigma_u(self):
         ...
     
+    @abstractmethod
+    def get_S_samples(self):
+        ...
     
 class FullRankCovariance(InducingPointVariationalDist):
     def __init__(self, C, M, L, kernel_matrix):
@@ -66,15 +69,15 @@ class FullRankCovariance(InducingPointVariationalDist):
     def get_chol_Sigma_u(self):
         return torch.tril(self._raw_chol) 
     
-    def get_Sigma_s_cov_C(self, K_obsobs_elements, K_obsV, K_VV_inv):
+    def get_Sigma_s(self, K_obsobs, K_obsV, K_VV_inv):
         # want to get to shape (Px)NxMxCxC
         K_obsV = self.get_K_obsV_matrix(K_obsV=K_obsV)
         K_VV_inv_matrix  = torch.zeros(self.C, self.C, self.L, self.L)
         K_VV_inv_matrix[range(self.C), range(self.C), :, :] = K_VV_inv[range(self.C),:,:]
         K_VV_inv_matrix = K_VV_inv_matrix.transpose(1,2).reshape(self.C*self.L, self.C*self.L)
-        K_obsobs_elements = torch.diag_embed(K_obsobs_elements)
+        K_obsobs = torch.diag_embed(K_obsobs)
         A = self._get_conditional_cov_correction(K_VV_inv=K_VV_inv_matrix) # M x CL x CL
-        Sigma_s = K_obsobs_elements - (K_obsV[...,:,None,:,:] @ A[...,None,:,:,:]@ K_obsV.transpose(-2,-1)[...,:, None,:,:])
+        Sigma_s = K_obsobs - (K_obsV[...,:,None,:,:] @ A[...,None,:,:,:]@ K_obsV.transpose(-2,-1)[...,:, None,:,:])
         return Sigma_s #+ 2.5e-3*torch.eye(self.C)
     
     def get_K_obsV_matrix(self, K_obsV):
@@ -87,6 +90,12 @@ class FullRankCovariance(InducingPointVariationalDist):
         return (K_VV_inv
                  -  K_VV_inv @ Sigma_u @ K_VV_inv
                 ) 
+    
+    def get_S_samples(self, K_obsobs, K_obsV, K_VV_inv, num_samples):
+        mu_s = self.get_mu_s(K_VV_inv=K_VV_inv, K_obsV=K_obsV)
+        Sigma_s = self.get_Sigma_s(K_obsobs=K_obsobs, K_obsV=K_obsV, K_VV_inv=K_VV_inv)
+        dist = torch.distributions.MultivariateNormal(mu_s, Sigma_s)
+        return dist.sample((num_samples,))
 
 class MeanField(InducingPointVariationalDist):
     def __init__(self, C, M, L, kernel_matrix):
@@ -96,13 +105,21 @@ class MeanField(InducingPointVariationalDist):
     @property 
     def Sigma_u(self): 
         return torch.exp(self._log_sigma_u)
-
     
-    def get_Sigma_s_cov_C(self, K_obsobs_elements, K_obsV, K_VV_inv):
+    def get_S_samples(self, K_obsobs, K_obsV, K_VV_inv, num_samples):
+        mu_s = self.get_mu_s(K_VV_inv=K_VV_inv, K_obsV=K_obsV)
+        Sigma_s = self.get_Sigma_s(K_obsobs=K_obsobs, K_obsV=K_obsV, K_VV_inv=K_VV_inv)
+        dist = torch.distributions.Normal(mu_s, Sigma_s)
+        return dist.sample((num_samples,))
+    
+    def get_Sigma_s(self, K_obsobs, K_obsV, K_VV_inv):
+        return torch.diag_embed(self.get_Sigma_s(K_obsobs=K_obsobs, K_obsV=K_obsV, K_VV_inv=K_VV_inv))
+    
+    def get_Sigma_s(self, K_obsobs, K_obsV, K_VV_inv):
         # want to get to shape (Px)NxMxCxC
         A = self._get_conditional_cov_correction(K_VV_inv=K_VV_inv)
-        Sigma_s = K_obsobs_elements - (K_obsV[...,None,:,None,:] @ A @ K_obsV[...,None,:,:, None])[...,0,0]
-        return torch.diag_embed(Sigma_s) + 1e-4*torch.eye(self.C)
+        Sigma_s = K_obsobs - (K_obsV[...,None,:,None,:] @ A @ K_obsV[...,None,:,:, None])[...,0,0]
+        return Sigma_s + 1e-3
     
     def _get_conditional_cov_correction(self, K_VV_inv):
         return (K_VV_inv
