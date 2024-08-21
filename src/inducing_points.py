@@ -4,23 +4,23 @@ from abc import ABC,abstractmethod
 class InducingPointVariationalDist(torch.nn.Module,ABC):
     def __init__(self, C, M, L):
         super(InducingPointVariationalDist, self).__init__()
-        self._mu_u = torch.nn.Parameter(torch.zeros(M, C*L))
+        self._mu_phi = torch.nn.Parameter(torch.zeros(M, C, L))
         self.C = C
         self.M = M
         self.L = L
     
-    def get_mu_u(self):
+    def get_mu_phi(self):
         """
         Returns shape C x L 
         """
         return self._mu_u.reshape(self.M, self.C, self.L)
     
-    def get_vector_mu_u(self):
+    def get_vector_mu_phi(self):
         return self._mu_u
     
-    def get_q_u_dist(self):
+    def get_q_phi_dist(self):
         mu_u = self.get_vector_mu_u()
-        Sigma_u = self.get_matrix_Sigma_u() + 1e-5*torch.eye(self.C*self.L)
+        Sigma_u = self.get_matrix_Sigma_phi() + 1e-5*torch.eye(self.C*self.L)
         return torch.distributions.MultivariateNormal(mu_u, Sigma_u)
     
     def get_mu_s(self, K_VV_inv, K_obsV):
@@ -30,12 +30,15 @@ class InducingPointVariationalDist(torch.nn.Module,ABC):
         mu_u = self.get_mu_u() # M x C x L 
         return (K_obsV[...,:, None, :, None, :]@K_VV_inv[None, None, :, :, :]@mu_u[None, :, :, :, None])[...,0,0]
     
+    def get_KL_phi(self):
+        raise NotImplementedError()
+    
     @abstractmethod
     def get_Sigma_s(self, inputs):
         ...
 
     @abstractmethod
-    def get_matrix_Sigma_u(self):
+    def get_matrix_Sigma_phi(self):
         ...
     
     @abstractmethod
@@ -53,7 +56,7 @@ class FullRankCovariance(InducingPointVariationalDist):
 
 
 
-    def get_Sigma_u(self):
+    def get_Sigma_phi(self):
         """
         Returns shape C x C x L x L
         """
@@ -62,11 +65,11 @@ class FullRankCovariance(InducingPointVariationalDist):
         Sigma_u = Sigma_u.reshape(self.M, self.C, self.L, self.C, self.L)
         return Sigma_u.permute(0,1,3,2,4)
     
-    def get_matrix_Sigma_u(self):
+    def get_matrix_Sigma_phi(self):
         chol = self.get_chol_Sigma_u()
-        return chol @ chol.transpose(-2,-1) # + (1e-3*torch.eye(self.L*self.C))
+        return chol @ chol.transpose(-2,-1) 
     
-    def get_chol_Sigma_u(self):
+    def get_chol_Sigma_phi(self):
         return torch.tril(self._raw_chol) 
     
     def get_Sigma_s(self, K_obsobs, K_obsV, K_VV_inv):
@@ -126,7 +129,7 @@ class MeanField(InducingPointVariationalDist):
                  -  K_VV_inv @ torch.diag_embed(self.Sigma_u) @ K_VV_inv
                 ) 
     
-    def get_matrix_Sigma_u(self):
+    def get_matrix_Sigma_phi(self):
         Sigma_u = self.Sigma_u.reshape(self.M, self.C*self.L)
         return torch.diag_embed(Sigma_u)
 

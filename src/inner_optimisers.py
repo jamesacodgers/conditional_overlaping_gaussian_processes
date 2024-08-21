@@ -56,8 +56,9 @@ class InnerTestSolver(ABC):
         ...
 
 
-class MultivariateNormal(InnerTestSolver):
-    def get_inner_elbo(self, samples, targets, sigma2):
+class MultivariateNormalSolver(InnerTestSolver):
+    @staticmethod
+    def get_inner_elbo(samples, targets, sigma2):
         Ma = (1/sigma2 * samples.transpose(-2,-1) @ samples + torch.eye(samples.shape[-1]))
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)
@@ -65,7 +66,8 @@ class MultivariateNormal(InnerTestSolver):
         log_det_term = torch.log(torch.linalg.det(Ma_inv)).mean(dim=0)
         return log_det_term.sum() + sample_quadratic_terms.sum()
     
-    def get_weight_distribution(self, samples,targets,sigma2):
+    @staticmethod
+    def get_weight_distribution(samples,targets,sigma2):
         Ma = (1/sigma2 * samples.transpose(-2,-1) @ samples + torch.eye(samples.shape[-1]))
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)

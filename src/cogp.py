@@ -1,10 +1,10 @@
 import torch
 import time
 
-from src.inner_optimisers import MultivariateNormal, Categorical, AllComponentsObserved, UnobservedComponents
+from src.inner_optimisers import MultivariateNormalSolver, Categorical, AllComponentsObserved, UnobservedComponents
 from src.inducing_points import FullRankCovariance, MeanField
 
-problem_type_dict = {"continuos": MultivariateNormal, "categorical": Categorical}
+problem_type_dict = {"continuos": MultivariateNormalSolver, "categorical": Categorical}
 inducing_point_variational_family_dict = {"full_rank": FullRankCovariance, "mean_field": MeanField}
 
 # Precidence of dimensions: 

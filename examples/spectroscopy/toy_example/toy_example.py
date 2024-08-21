@@ -8,7 +8,7 @@ from src.cogp import COGP
 import time
 import cProfile
 
-from utils import train
+from src.utils import train
 # import os
 
 from torch.distributions.constraints import positive
