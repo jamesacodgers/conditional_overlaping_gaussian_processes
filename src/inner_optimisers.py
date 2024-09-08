@@ -57,21 +57,25 @@ class InnerTestSolver(ABC):
 
 
 class MultivariateNormalSolver(InnerTestSolver):
-    @staticmethod
-    def get_inner_elbo(samples, targets, sigma2):
-        Ma = (1/sigma2 * samples.transpose(-2,-1) @ samples + torch.eye(samples.shape[-1]))
+    def __init__(self, C):
+        self.prior = torch.eye(C)
+
+    def __call__(self, A, b, const):
+        return self.get_inner_elbo(A,b, const)
+
+    def get_inner_elbo(self, A, b, const):
+        Ma = (A + torch.linalg.inv(self.prior))
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)
-        sample_quadratic_terms =  - 1/(2*sigma2)*(targets[..., None, :]@(torch.eye(targets.shape[1]) - 1/sigma2*samples@Ma_inv@samples.transpose(-2,-1))@targets[...,:, None]).mean(dim=0)
-        log_det_term = torch.log(torch.linalg.det(Ma_inv)).mean(dim=0)
-        return log_det_term.sum() + sample_quadratic_terms.sum()
+        sample_quadratic_terms =  1/2*b[..., None, :]@Ma_inv@b[..., None]
+        log_det_term = torch.log(torch.linalg.det(Ma_inv))
+        return log_det_term*b.shape[-2] + sample_quadratic_terms.sum(dim=[-3,-2,-1]) + const
     
-    @staticmethod
-    def get_weight_distribution(samples,targets,sigma2):
-        Ma = (1/sigma2 * samples.transpose(-2,-1) @ samples + torch.eye(samples.shape[-1]))
+    def get_weight_distribution(self,A,b):
+        Ma = (A + self.prior)
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)
-        mu_r = 1/sigma2*(Ma_inv@samples.transpose(-2,-1)@targets[...,None])[...,0]
+        mu_r = (Ma_inv@b[...,None])[...,0]
         dists = torch.distributions.MultivariateNormal(mu_r, Ma_inv, validate_args=False)
         return dists
     

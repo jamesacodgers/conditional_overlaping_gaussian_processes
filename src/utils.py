@@ -1,5 +1,6 @@
 import torch
 import tqdm
+from scipy.optimize import fsolve
 
 def trim_wavelengths(min_wavelengths, max_wavelengths, wavelengths, spectra):
     filter = torch.logical_and(wavelengths<max_wavelengths , min_wavelengths<wavelengths)
@@ -76,3 +77,9 @@ def train_lbfgs(model, training_targets, test_targets, training_inputs , test_in
         iterator.set_postfix(loss=loss[-1])
         loss_list.append(loss)
     return loss_list
+
+
+def get_percentile(dists_1d, alpha):
+        def f(a):
+            return dists_1d.cdf(a).mean(axis = 0) - alpha
+        return fsolve(f,dists_1d.mean().mean(axis=0))
