@@ -16,12 +16,12 @@ from scipy.stats import cauchy
 from src.utils import get_percentile
 
 N = 1
-N_test = 30
+N_test = 200
 M = 1000
-P = 100
+P = 10
 C_obs = 1
-C_unobs = 1
-sigma = 1
+C_unobs = 1  
+sigma = 0.1
 sigma2= sigma**2
 
 S_true = torch.randn(M,C_obs)
@@ -126,7 +126,7 @@ class ConditionalEIOT(torch.nn.Module):
         self._log_sigma2 = torch.nn.Parameter(torch.log(torch.tensor(sigma2, dtype=torch.float)))
         self.mu_S_T = torch.nn.Parameter(torch.randn(M, self.C))
         # self.mu_T = torch.nn.Parameter(torch.eye(M, C_obs))
-        self._raw_chol_S_T = torch.nn.Parameter(torch.eye(self.C))
+        self._raw_chol_S_T = torch.nn.Parameter(torch.eye(self.C)[None, :,:].repeat(self.M,1,1))
         self.inner_train_solver = MultivariateNormalSolver(self.C_unobs)
         self.inner_test_solver = MultivariateNormalSolver(self.C)
         self.P=P
@@ -172,35 +172,41 @@ class ConditionalEIOT(torch.nn.Module):
         return self.mu_S_T[:,self.C_obs:]
     @property 
     def Sigma_S_T(self): 
-        return self._raw_chol_S_T.T @ self._raw_chol_S_T
+        return self._raw_chol_S_T.transpose(-2,-1) @ self._raw_chol_S_T
     @property 
     def Sigma_S(self): 
-        return self.Sigma_S_T[:self.C_obs, :self.C_obs]
+        return self.Sigma_S_T[:, :self.C_obs, :self.C_obs]
     @property 
     def Sigma_T(self): 
-        return  self.Sigma_S_T[self.C_obs:, self.C_obs:]
+        return  self.Sigma_S_T[:, self.C_obs:, self.C_obs:]
     @property
     def Sigma_cross(self):
-        return self.Sigma_S_T[self.C_obs:, :self.C_obs]
+        return self.Sigma_S_T[:, self.C_obs:, :self.C_obs]
     @property 
     def sigma2(self): 
         return torch.exp(self._log_sigma2)
 
 def train(model, D_train, R_train, D_test):
-
-
-    optimizer = torch.optim.LBFGS(model.parameters(), line_search_fn="strong_wolfe")
+    optim = torch.optim.Adam(model.parameters())
     ll = []
+    for epoch in range(1000):  # Runs for 10 epochs
+        optim.zero_grad()
+        loss = -model.elbo( D_train, R_train, D_test)
+        loss.backward()
+        optim.step()  # Update model
+        ll.append(model.elbo( D_train, R_train, D_test))
+
+    lbfgs = torch.optim.LBFGS(model.parameters(), line_search_fn="strong_wolfe")
     # Define a closure function for the optimizer
     def closure():
-        optimizer.zero_grad()
+        lbfgs.zero_grad()
         loss = -model.elbo( D_train, R_train, D_test)
         loss.backward()
         
         return loss
 
-    for epoch in range(30):  # Runs for 10 epochs
-        optimizer.step(closure)  # Update model
+    for epoch in range(50):  # Runs for 10 epochs
+        lbfgs.step(closure)  # Update model
         ll.append(model.elbo( D_train, R_train, D_test))
     with torch.no_grad():
         plt.figure()
@@ -230,7 +236,7 @@ cond_preds_1d = norm(cond_preds.mean[:,:,0].detach().numpy(), np.sqrt(cond_preds
 with torch.no_grad():
     plt.figure()
     plt.title("signal preds")
-    plt.errorbar(S_true[:,0], conditional_eiot.mu_S[:,0], yerr=1.96*torch.sqrt(conditional_eiot.Sigma_S[0,0]), color = "blue", ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
+    plt.errorbar(S_true[:,0], conditional_eiot.mu_S[:,0], yerr=1.96*torch.sqrt(conditional_eiot.Sigma_S[:,0,0]), color = "blue", ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
     plt.errorbar(S_true[:,0], mf_eiot.mu_S[:,0], yerr=1.96*torch.sqrt(mf_eiot.Sigma_S[0,0]), color = "orange", ls = "None", marker = ".", markersize = 10, capsize=5, label = "MF VI ")
     # plt.scatter(S_true[:,0], mf_eiot.mu_S[:,0])
     # plt.scatter(S_true[:,0], mf_eiot.mu_S[:,0])
