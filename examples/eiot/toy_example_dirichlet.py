@@ -48,9 +48,9 @@ from scipy.stats import cauchy
 N = 100
 N_test = 150
 M = 100
-P = 100
-C = 20
-sigma = 0.1
+P = 500
+C = 5
+sigma = 1
 
 S_true = torch.randn(M,C)
 
@@ -197,7 +197,7 @@ with torch.no_grad():
     plt.errorbar(R_test[:,0], mf_get_percentile(mf_conc_1, mf_conc_0, 0.5), [mf_get_percentile(mf_conc_1, mf_conc_0, 0.5) - mf_get_percentile(mf_conc_1, mf_conc_0, 0.025), mf_get_percentile(mf_conc_1, mf_conc_0, 0.975) - mf_get_percentile(mf_conc_1, mf_conc_0, 0.5)], marker = ".", markersize = 10, ls = "None", capsize=5, color = "orange", label = "mean field prediction")
     plt.legend()
     # plt.ylim(-3.5, 3.5)
-    plt.savefig(f"examples/eiot/figures/toy_C={C}.pdf")
+    plt.savefig(f"examples/eiot/figures/toy_dirichlet_C={C}.pdf")
     
     # %%
 plt.show()

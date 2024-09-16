@@ -56,9 +56,11 @@ class InnerTestSolver(ABC):
         ...
 
 
-class MultivariateNormalSolver(InnerTestSolver):
+class MultivariateNormalSolver(torch.nn.Module, InnerTestSolver):
     def __init__(self, C):
-        self.prior = torch.eye(C)
+        super(MultivariateNormalSolver,self).__init__()
+        self._log_prior = torch.zeros(C)
+        # self._log_prior = torch.nn.Parameter(torch.zeros(C))
 
     def __call__(self, A, b, const):
         return self.get_inner_elbo(A,b, const)
@@ -68,16 +70,21 @@ class MultivariateNormalSolver(InnerTestSolver):
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)
         sample_quadratic_terms =  1/2*b[..., None, :]@Ma_inv@b[..., None]
-        log_det_term = torch.log(torch.linalg.det(Ma_inv))
+        log_det_term = torch.log(torch.linalg.det(Ma_inv)).flatten()
         return log_det_term*b.shape[-2] + sample_quadratic_terms.sum(dim=[-3,-2,-1]) + const
+        # return log_det_term + sample_quadratic_terms.sum(dim=[-3,-2,-1]) + const
     
     def get_weight_distribution(self,A,b):
-        Ma = (A + self.prior)
+        Ma = (A + torch.linalg.inv(self.prior))
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)
         mu_r = (Ma_inv@b[...,None])[...,0]
         dists = torch.distributions.MultivariateNormal(mu_r, Ma_inv, validate_args=False)
         return dists
+    
+    @property 
+    def prior(self): 
+        return torch.diag(torch.exp(self._log_prior))
     
 class Categorical(InnerTestSolver):
     def get_inner_elbo(self, samples: torch.tensor, targets: torch.tensor, sigma2: torch.tensor) -> torch.tensor:
