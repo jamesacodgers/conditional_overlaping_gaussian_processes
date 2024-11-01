@@ -1,6 +1,27 @@
 import torch
 import tqdm
 from scipy.optimize import fsolve
+import numpy as np
+
+def _generate_regular_simplex(n):
+    """
+    Generate the vertices of a regular simplex in n dimensions centered at the origin.
+    Returns an array of shape (n + 1, n).
+    """
+    # Initialize the vertices matrix
+    if n < 1:
+        raise ValueError()
+    if n == 1:
+        return torch.tensor([[1],[-1]])
+    else: 
+        vertices = _generate_regular_simplex(n-1)
+        vertices = torch.hstack([-1/n*torch.ones(n).reshape(-1,1), np.sqrt(1-1/n**2)*vertices])
+        new_vector = torch.tensor([1]+[0]*(n-1))
+        vertices = torch.vstack([new_vector, vertices])
+        return vertices
+    
+def generate_regular_simplex(n):
+    return np.sqrt(n)/(np.sqrt(1+n))*_generate_regular_simplex(n)
 
 def trim_wavelengths(min_wavelengths, max_wavelengths, wavelengths, spectra):
     filter = torch.logical_and(wavelengths<max_wavelengths , min_wavelengths<wavelengths)

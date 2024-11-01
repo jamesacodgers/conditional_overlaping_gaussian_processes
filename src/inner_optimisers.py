@@ -52,7 +52,7 @@ class InnerTestSolver(ABC):
     def get_inner_elbo(self, samples: torch.tensor, target:torch.tensor, sigma2) -> torch.tensor:
         ...
     @abstractmethod
-    def get_weight_distribution(self, samples: torch.tensor, target: torch.tensor) -> torch.tensor: 
+    def get_weight_params(self, samples: torch.tensor, target: torch.tensor) -> torch.tensor: 
         ...
 
 
@@ -62,30 +62,31 @@ class MultivariateNormalSolver(torch.nn.Module, InnerTestSolver):
         self._log_prior = torch.zeros(C)
         # self._log_prior = torch.nn.Parameter(torch.zeros(C))
 
-    def __call__(self, A, b, const):
-        return self.get_inner_elbo(A,b, const)
+    def __call__(self, A, b):
+        return self.get_inner_elbo(A,b)
 
-    def get_inner_elbo(self, A, b, const):
+    def get_inner_elbo(self, A, b):
         Ma = (A + torch.linalg.inv(self.prior))
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)
         sample_quadratic_terms =  1/2*b[..., None, :]@Ma_inv@b[..., None]
-        log_det_term = torch.log(torch.linalg.det(Ma_inv)).flatten()
-        return log_det_term*b.shape[-2] + sample_quadratic_terms.sum(dim=[-3,-2,-1]) + const
-        # return log_det_term + sample_quadratic_terms.sum(dim=[-3,-2,-1]) + const
+        log_det_term = torch.log(torch.linalg.det(Ma_inv)).sum(dim=-1)
+        # return log_det_term*b.shape[-2] + sample_quadratic_terms.sum(dim=[-3,-2,-1]) 
+        return log_det_term + sample_quadratic_terms.sum(dim=[-3,-2,-1]) 
+        # return log_det_term*b.shape[-2] + sample_quadratic_terms.sum(dim=[-3,-2,-1]) + const
     
-    def get_weight_distribution(self,A,b):
+    def get_weight_params(self,A,b):
         Ma = (A + torch.linalg.inv(self.prior))
         Ma_chol = torch.linalg.cholesky(Ma)
         Ma_inv = torch.cholesky_inverse(Ma_chol)
         mu_r = (Ma_inv@b[...,None])[...,0]
-        dists = torch.distributions.MultivariateNormal(mu_r, Ma_inv, validate_args=False)
-        return dists
+        # dists = torch.distributions.MultivariateNormal(mu_r, Ma_inv, validate_args=False)
+        return mu_r, Ma_inv
     
     @property 
     def prior(self): 
         return torch.diag(torch.exp(self._log_prior))
-    
+       
 class Categorical(InnerTestSolver):
     def get_inner_elbo(self, samples: torch.tensor, targets: torch.tensor, sigma2: torch.tensor) -> torch.tensor:
         C = samples.shape[-1]
@@ -94,7 +95,7 @@ class Categorical(InnerTestSolver):
         min_dists,_ = dists.min(dim=-1)
         return (-1/(2*sigma2)*min_dists/C + torch.log(torch.exp(-1/(2*sigma2)*(dists-min_dists[..., None])).sum(dim=-1)/C)).sum()
 
-    def get_weight_distribution(self, samples: torch.tensor, targets: torch.tensor, sigma2) -> torch.tensor:
+    def get_weight_params(self, samples: torch.tensor, targets: torch.tensor, sigma2) -> torch.tensor:
         exp_dist_sq = torch.exp(-1/(2*sigma2)*(targets[...,None] - samples)**2).sum(dim=-2)
         probs = exp_dist_sq/exp_dist_sq.sum(dim=-1, keepdim=True)
         return torch.distributions.Categorical(probs=probs)
