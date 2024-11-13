@@ -7,7 +7,7 @@ from scipy.optimize import fsolve
 
 
 from src.eiot import ConditionalEIOT, train_eiot_lbfgs, train_eiot_gd, plot_preds
-from mf_methods import MFStaticSignals
+from src.mf_methods import MFStaticSignals
 
 
 import numpy as np

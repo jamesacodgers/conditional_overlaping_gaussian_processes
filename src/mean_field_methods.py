@@ -1,7 +1,7 @@
 import torch 
 from src.utils import generate_regular_simplex
 from src.inner_optimisers import MultivariateNormalSolver
-from src.gps import MultiSparseGPs
+from src.gps import WLIndependentGPs
 
 from abc import ABC, abstractmethod
 
@@ -182,18 +182,18 @@ class MFStaticSignals(MFModels):
     def prior_Sigma(self): 
         return  torch.diag(torch.concat((torch.ones(self.C_obs), torch.exp(self._log_priors_T)+1e-6)))
     
-class MFVariableSignalsObservedInputs(MFModels, MultiSparseGPs):
+class MFVariableSignalsObservedInputs(MFModels, WLIndependentGPs):
     def __init__(self, V, input_dims, M, C_obs, C_unobs=0, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None):
         MFModels.__init__(self,M, C_obs, C_unobs, sigma2, sum_to_one)
-        MultiSparseGPs.__init__(self, self.C, M, input_dims, V, beta = None, sigma2_s = None, trainable_V = True)
+        WLIndependentGPs.__init__(self, self.C, M, input_dims, V, beta = None, sigma2_s = None, trainable_V = True)
 
     def get_kl(self):
         return self.get_kl_u()
     
     def get_gp_expectation(self, inputs):
-        return MultiSparseGPs.get_gp_expectation(self, inputs)
+        return WLIndependentGPs.get_gp_expectation(self, inputs)
     
     def get_s_outer_expectation(self,inputs):
-        mu_s = MultiSparseGPs.get_gp_expectation(self, inputs)
-        Sigma_s = MultiSparseGPs.get_gp_covariance(self, inputs)
+        mu_s = WLIndependentGPs.get_gp_expectation(self, inputs)
+        Sigma_s = WLIndependentGPs.get_gp_covariance(self, inputs)
         return torch.sum(mu_s[..., None]*mu_s[...,None,:] + Sigma_s, dim=1)

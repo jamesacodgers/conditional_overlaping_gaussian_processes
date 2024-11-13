@@ -135,115 +135,87 @@ class ConditionalEIOT(torch.nn.Module):
     def prior_vars_S_T(self): 
         return  torch.exp(torch.concat((self._log_prior_diag_Sigma_S, self._log_prior_diag_Sigma_T)))
     
-def train_eiot_lbfgs(model, D_train, R_train, D_test, n_steps = None, plot = False, to_convergence=False):
+# def train_eiot_lbfgs(model, D_train, R_train, D_test, n_steps = None, plot = False, to_convergence=False):
 
 
-    optimizer = torch.optim.LBFGS(model.parameters(), line_search_fn="strong_wolfe")
-    ll = []
-    # Define a closure function for the optimizer
-    def closure():
-        optimizer.zero_grad()
-        loss = -model.elbo( D_train, R_train, D_test)
-        loss.backward()
+#     optimizer = torch.optim.LBFGS(model.parameters(), line_search_fn="strong_wolfe")
+#     ll = []
+#     # Define a closure function for the optimizer
+#     def closure():
+#         optimizer.zero_grad()
+#         loss = -model.elbo( D_train, R_train, D_test)
+#         loss.backward()
         
-        return loss
-    if n_steps:
-        for epoch in tqdm.tqdm(range(n_steps)):  
-            # print(epoch)
-            optimizer.step(closure)  # Update model
-            ll.append(model.elbo( D_train, R_train, D_test))
-    if to_convergence:
-        while ll[-1] - ll[-2] > 1:  
-            print(f"\r{ll[-1]}")
-            optimizer.step(closure)  # Update model
-            ll.append(model.elbo( D_train, R_train, D_test))
+#         return loss
+#     if n_steps:
+#         for epoch in tqdm.tqdm(range(n_steps)):  
+#             # print(epoch)
+#             optimizer.step(closure)  # Update model
+#             ll.append(model.elbo( D_train, R_train, D_test))
+#     if to_convergence:
+#         while ll[-1] - ll[-2] > 1:  
+#             print(f"\r{ll[-1]}")
+#             optimizer.step(closure)  # Update model
+#             ll.append(model.elbo( D_train, R_train, D_test))
 
-    if plot:
-        with torch.no_grad():
-            plt.figure()
-            plt.plot(ll)
-            plt.show()
-    return ll 
-def train_eiot_gd(model, D_train, R_train, D_test, n_steps = 200, plot = False):
-    optimizer = torch.optim.Rprop(model.parameters())
-    ll = []
-    # Define a closure function for the optimizer
+#     if plot:
+#         with torch.no_grad():
+#             plt.figure()
+#             plt.plot(ll)
+#             plt.show()
+#     return ll 
 
-    for epoch in tqdm.tqdm(range(n_steps)):  # Runs for 10 epochs
-        optimizer.zero_grad()
-        loss = -model.elbo( D_train, R_train, D_test)
-        loss.backward()
-        optimizer.step()  # Update model
-        ll.append(-loss)
-    if plot:
-        with torch.no_grad():
-            plt.figure()
-            plt.plot(ll)
-            plt.show()
-    return ll 
+# def train_eiot_gd(model, D_train, R_train, D_test, n_steps = 200, plot = False):
+#     optimizer = torch.optim.Rprop(model.parameters())
+#     ll = []
+#     # Define a closure function for the optimizer
+
+#     for epoch in tqdm.tqdm(range(n_steps)):  # Runs for 10 epochs
+#         optimizer.zero_grad()
+#         loss = -model.elbo( D_train, R_train, D_test)
+#         loss.backward()
+#         optimizer.step()  # Update model
+#         ll.append(-loss)
+#     if plot:
+#         with torch.no_grad():
+#             plt.figure()
+#             plt.plot(ll)
+#             plt.show()
+#     return ll 
 
 
-def train_eiot_sgd(model, D_train, R_train, batch_size=32, n_steps=200, plot=False):
-    optimizer = torch.optim.Adam(model.parameters())
-    ll = []
+# def train_eiot_sgd(model, D_train, R_train, batch_size=32, n_steps=200, plot=False):
+#     optimizer = torch.optim.Adam(model.parameters())
+#     ll = []
 
-    # Create DataLoader for mini-batching
-    train_dataset = torch.utils.data.TensorDataset(D_train, R_train)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+#     # Create DataLoader for mini-batching
+#     train_dataset = torch.utils.data.TensorDataset(D_train, R_train)
+#     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    # Training loop
-    for epoch in tqdm.tqdm(range(n_steps)):  # Runs for n_steps epochs
-        epoch_loss = 0
+#     # Training loop
+#     for epoch in tqdm.tqdm(range(n_steps)):  # Runs for n_steps epochs
+#         epoch_loss = 0
         
-        for batch_D, batch_R in train_loader:
-            optimizer.zero_grad()
-            loss = -model.elbo(batch_D, batch_R)
-            loss.backward()
-            optimizer.step()  # Update model
-            epoch_loss += -loss.item()  # Accumulate the loss for the epoch
+#         for batch_D, batch_R in train_loader:
+#             optimizer.zero_grad()
+#             loss = -model.elbo(batch_D, batch_R)
+#             loss.backward()
+#             optimizer.step()  # Update model
+#             epoch_loss += -loss.item()  # Accumulate the loss for the epoch
 
-        ll.append(epoch_loss / len(train_loader))  # Store average loss per epoch
+#         ll.append(epoch_loss / len(train_loader))  # Store average loss per epoch
 
-    if plot:
-        with torch.no_grad():
-            plt.figure()
-            plt.plot(ll)
-            plt.title("ELBO Loss over Epochs")
-            plt.xlabel("Epochs")
-            plt.ylabel("Loss")
-            plt.show()
+#     if plot:
+#         with torch.no_grad():
+#             plt.figure()
+#             plt.plot(ll)
+#             plt.title("ELBO Loss over Epochs")
+#             plt.xlabel("Epochs")
+#             plt.ylabel("Loss")
+#             plt.show()
     
-    return ll
+#     return ll
 
-
-def plot_preds(R_test, cond_preds: torch.distributions.Distribution = None, mf_preds = None, title=None) -> None: 
-    with torch.no_grad():
-        # samples = preds.sample((1000, )).reshape((1000*P, 150,  2))
-        plt.figure()
-        # plt.title(f"C = {C}")
-        plt.xlabel("True weights")
-        plt.ylabel("predicted weights")
-
-        plt.plot(R_test[:,0], R_test[:,0])
-        CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
-                  '#f781bf', '#a65628', '#984ea3',
-                  '#999999', '#e41a1c', '#dede00']
-        if title:
-            plt.title(title)
-        if cond_preds: 
-            means = cond_preds.mean[:,:,0]
-            vars = cond_preds.covariance_matrix[:,:,0,0]
-            cond_preds_1d = norm(cond_preds.mean[:,:,0].detach().numpy(), np.sqrt(cond_preds.covariance_matrix[:,:,0,0].detach().numpy()))
-            err = np.array([get_percentile(cond_preds_1d, 0.5) - get_percentile(cond_preds_1d, 0.025), get_percentile(cond_preds_1d, 0.975) - get_percentile(cond_preds_1d, 0.5)])
-            plt.errorbar(R_test[:,0], get_percentile(cond_preds_1d, 0.5), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
-        if mf_preds: 
-            mf_means = mf_preds.mean[:,0]
-            mf_var = mf_preds.covariance_matrix[:,0,0]
-            plt.errorbar(R_test[:,0], mf_means, 1.96*torch.sqrt(mf_var), marker = ".", markersize = 10, fillstyle = "none", ls = "None", capsize=5, color = CB_color_cycle[1], label = "mean field prediction")
-        # plt.scatter(R_test[:,0], y_hat[:,0], marker = "x",  color = CB_color_cycle[2], label = "PLS")        
-        plt.legend()
-        # plt.savefig(f"examples/eiot/figures/toy_eiot_M={M}_Ntrain={N_train}_Ntest={N_test}_Cobs={C_obs}_Cunobs={C_unobs}__P={P}_sigma={sigma}.pdf")
-        plt.show()
 
 
 

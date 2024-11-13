@@ -23,8 +23,8 @@ def snv_correction(spectra):
 spec_keys = 'spec70', 'spec30', 'spec40', 'spec50', 'spec60'
 tensors = [torch.tensor(data[key]) for key in spec_keys]
 d = torch.hstack(tensors).T
-d = snv_correction(d)
-d = d[:,300:450]
+d = d[:,300:440]
+# d = snv_correction(d)
 
 
 

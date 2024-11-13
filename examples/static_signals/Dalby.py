@@ -33,9 +33,9 @@ def main(args):
     mf_static_signals = MFStaticSignals(M=d_test.shape[1], C_obs=r_train.shape[1], C_unobs=args.num_unobs, sigma2=1, sum_to_one=args.sum_to_one)
     cond_eiot = ConditionalEIOT(M=d_test.shape[1], C_obs=r_train.shape[1], C_unobs=args.num_unobs, sigma2=1, P=args.num_samples, sum_to_one=args.sum_to_one)
 
- 
+    mf_ll = []
     # mf_ll = train_eiot_sgd(mf_eiot, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=1, plot=args.plot)
-    mf_ll = train_eiot_lbfgs(mf_static_signals, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=25, plot=args.plot, to_convergence=True)
+    mf_ll.append(train_eiot_lbfgs(mf_static_signals, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=25, plot=args.plot, to_convergence=True))
     # mf_ll = train_eiot_sgd(mf_eiot, d_train, r_train, batch_size=32, n_steps=10000, plot=True)
     # print("IMPORTANT: ", mf_eiot._log_priors_T)
     # cond_ll = train_eiot_sgd(cond_eiot, d_train, r_train, batch_size=8, n_steps=10, plot=True)
