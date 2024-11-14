@@ -9,11 +9,11 @@ import copy
 import numpy as np
 import pandas as pd
 from src.save_utils import save_parameters, save_results_csv
-from src.eiot import plot_preds
 
 from sklearn.cross_decomposition import PLSRegression
 
-from src.eiot import  ConditionalEIOT, train_eiot_lbfgs, train_eiot_gd, train_eiot_sgd
+from src.eiot import  ConditionalEIOT
+from src.utils import train_lbfgs, plot_preds
 from src.mf_methods import MFStaticSignals
 
 
@@ -35,36 +35,36 @@ def main(args):
 
     mf_ll = []
     # mf_ll = train_eiot_sgd(mf_eiot, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=1, plot=args.plot)
-    mf_ll.append(train_eiot_lbfgs(mf_static_signals, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=25, plot=args.plot, to_convergence=True))
+    mf_ll.append(train_lbfgs(mf_static_signals, D_test=d_test, D_train=d_train, R_train=r_train, steps=25, plot=args.plot, convergence_level=5))
     # mf_ll = train_eiot_sgd(mf_eiot, d_train, r_train, batch_size=32, n_steps=10000, plot=True)
     # print("IMPORTANT: ", mf_eiot._log_priors_T)
     # cond_ll = train_eiot_sgd(cond_eiot, d_train, r_train, batch_size=8, n_steps=10, plot=True)
     # cond_ll = train_eiot_gd(cond_eiot, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=500, plot=args.plot, )
-    cond_ll = train_eiot_lbfgs(cond_eiot, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=2, plot=args.plot, to_convergence=True)
+    # cond_ll = train_eiot_lbfgs(cond_eiot, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=2, plot=args.plot, to_convergence=True)
     # cond_ll = train_eiot_sgd(cond_eiot, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=1000, plot=args.plot)
 
     mf_preds = mf_static_signals.predict_weights(D_test=d_test)
-    cond_preds = cond_eiot.predict_weights(D_test=d_test)
+    # cond_preds = cond_eiot.predict_weights(D_test=d_test)
 
     mf_rmse = torch.sqrt(((r_test - mf_preds.mean[:, :2])**2).mean())
-    cond_rmse = torch.sqrt(((r_test - cond_preds.mean.mean(dim=[0])[:, :2])**2).mean())
+    # cond_rmse = torch.sqrt(((r_test - cond_preds.mean.mean(dim=[0])[:, :2])**2).mean())
 
 
 
     mf_log_prob = torch.distributions.MultivariateNormal(mf_preds.mean[:,:r_train.shape[1]], mf_preds.covariance_matrix[:, :r_train.shape[1], :r_train.shape[1]]).log_prob(r_test).sum()
-    cond_log_prob = torch.log(torch.exp(torch.distributions.MultivariateNormal(cond_preds.mean[:, :,:r_train.shape[1]], cond_preds.covariance_matrix[:,:, :r_train.shape[1], :r_train.shape[1]]).log_prob(r_test)).mean(dim=0)).sum()
+    # cond_log_prob = torch.log(torch.exp(torch.distributions.MultivariateNormal(cond_preds.mean[:, :,:r_train.shape[1]], cond_preds.covariance_matrix[:,:, :r_train.shape[1], :r_train.shape[1]]).log_prob(r_test)).mean(dim=0)).sum()
     # cond_log_prob = torch.log(torch.exp(torch.distributions.MultivariateNormal(cond_preds.mean[:, :,:r_train.shape[1]], cond_preds.covariance_matrix[:,:, :r_train.shape[1], :r_train.shape[1]]).log_prob(r_test)).mean(dim=0)).sum()
 
     print(mf_rmse)
-    print(cond_rmse) 
+    # print(cond_rmse) 
 
     print(mf_log_prob)
-    print(cond_log_prob)
+    # print(cond_log_prob)
     if args.plot: 
         plot_preds(
             R_test=r_test,  
             mf_preds=mf_preds,
-            cond_preds=cond_preds
+            # cond_preds=cond_preds
         )
 
     mf_results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "msep": mf_rmse.item(), "log_prob": mf_log_prob.item(), "elbo": mf_ll[-1].item()}
@@ -139,7 +139,7 @@ if __name__ == "__main__":
         "--num_unobs",
         "-nu",
 	    type=int,
-        default=1,
+        default=5,
         help="number of unobserved components",
     )
 

@@ -68,8 +68,8 @@ def train_lbfgs(model, D_train, R_train,D_test, steps = 3 , plot = False, params
             D_train=D_train,
             R_train=R_train, 
             D_test=D_test,
-            ))
-        iterator.set_postfix(loss=loss_list[-1].detach().item())
+            ).detach().item())
+        iterator.set_postfix(loss=loss_list[-1])
     if convergence_level is not None:
          while loss_list[-1] - loss_list[-2] > convergence_level:
             loss = -model.elbo(
@@ -101,6 +101,12 @@ def get_both_init_values_for_latent_variables(D_train, R_train, D_test, num_late
     E = D_combined - R_hat@S_hat
     # U, _, _ = torch.linalg.svd(D_combined)
     U, _, _ = torch.linalg.svd(E)
+    U_scaled = U[:,:num_latent_dimensions]/torch.sqrt(U[:, :num_latent_dimensions].var(axis = 0))
+    return U_scaled[:D_train.shape[0]], U_scaled[D_train.shape[0]:]
+
+def get_both_pca_values(D_train, R_train, D_test, num_latent_dimensions):
+    D_combined = torch.vstack((D_train,D_test))
+    U, _, _ = torch.linalg.svd(D_combined)
     U_scaled = U[:,:num_latent_dimensions]/torch.sqrt(U[:, :num_latent_dimensions].var(axis = 0))
     return U_scaled[:D_train.shape[0]], U_scaled[D_train.shape[0]:]
 

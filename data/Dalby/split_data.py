@@ -66,7 +66,7 @@ def random_train_test_split(tensors, test_size=0.2, random_seed=None):
     return train_tensors, test_tensors
 
 # %%
-test_size = 0.5
+test_size = 0.25
 for i in range(10):
     (r_train, d_train), (r_test, d_test) = random_train_test_split([r,d], test_size=test_size, random_seed=i)
     torch.save(r_train, f"data/Dalby/splits/no_snv_r_train_seed={i}_test_size={test_size}_trimmin={trim_min}_trimmax={trim_max}.pkl")

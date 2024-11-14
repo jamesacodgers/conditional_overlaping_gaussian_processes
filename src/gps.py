@@ -29,8 +29,8 @@ class WLIndependentGPs:
         # self._log_sigma2_s = torch.nn.Parameter(torch.abs(torch.randn(self.C))+1e-1)
         self._log_sigma2_s = torch.nn.Parameter( torch.log(torch.tensor(sigma2_s)))
         self.L = self.V.shape[0]
-        # self._mu_u = torch.nn.Parameter(torch.zeros(self.M, self.C*self.L ))
         self._mu_u = torch.nn.Parameter(torch.zeros(self.M, self.C*self.L ))
+        self._mu_u = torch.nn.Parameter(torch.randn(self.M, self.C*self.L )/100)
         # self._mu_u = torch.nn.Parameter(torch.range(1,self.C ).repeat_interleave(self.L)[None,:].repeat(self.M,1))
 
         assert self._log_beta.shape == torch.Size([self.C, self.input_dims])
@@ -149,7 +149,8 @@ class WLIndependentGPs:
     def get_kl_u(self):
         prior = self.get_u_prior()
         q_u = self.get_q_u_dist()
-        return torch.distributions.kl_divergence(q_u, prior).sum()
+        # return 0.5*torch.distributions.kl_divergence(q_u, prior).sum()
+        return 1*torch.distributions.kl_divergence(q_u, prior).sum()
     
     def get_gp_expectation(self, inputs):
         """

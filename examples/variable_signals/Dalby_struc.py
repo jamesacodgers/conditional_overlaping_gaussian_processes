@@ -24,11 +24,19 @@ def main(args):
     experiment_name = f"Dalby_test_size={args.test_size}_num_unobs={args.num_unobs}_sum_to_one={args.sum_to_one}_num_latent_dims={args.num_latent_dims}_num_inducing_points={args.num_inducing}_num_samples={args.num_samples}"
     work_dir = Path(args.work_dir)
     torch.manual_seed(args.random_seed)
-    D_test = torch.load(f"data/Dalby/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    D_train = torch.load(f"data/Dalby/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    
+    
+    
+    # D_test = torch.load(f"data/Dalby/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    # D_train = torch.load(f"data/Dalby/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
-    R_train = torch.load(f"data/Dalby/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    R_test = torch.load(f"data/Dalby/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    # R_train = torch.load(f"data/Dalby/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    # R_test = torch.load(f"data/Dalby/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+
+    R_train = torch.load(f"data/Dalby/splits/r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    R_test = torch.load(f"data/Dalby/splits/r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
 
     V = torch.randn(args.num_inducing,args.num_latent_dims)
@@ -41,7 +49,7 @@ def main(args):
     ll = []
 
 
-    ll.extend(train_gd(model, D_train, R_train, D_test, 400, plot=args.plot, lr = 2e-2))
+    ll.extend(train_gd(model, D_train, R_train, D_test, 500, plot=args.plot, lr = 1e-2))
     ll.extend(train_lbfgs(model, D_train, R_train, D_test, 10, plot=args.plot, convergence_level=5))
 
     preds = model.predict_weights(D_test)
@@ -166,7 +174,7 @@ if __name__ == "__main__":
         "--num_inducing",
         "-ni",
         type=int,
-        default=16,
+        default=4,
         help="number of inducing dimensions"
     )
 
@@ -174,7 +182,7 @@ if __name__ == "__main__":
         "--num_samples",
         "-ns",
         type=int,
-        default=32,
+        default=8,
         help="number of samples"
     )
 

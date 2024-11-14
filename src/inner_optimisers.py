@@ -59,7 +59,7 @@ class InnerTestSolver(ABC):
 class MultivariateNormalSolver(torch.nn.Module, InnerTestSolver):
     def __init__(self, C):
         super(MultivariateNormalSolver,self).__init__()
-        self._log_prior = torch.zeros(C)
+        self._log_prior = torch.zeros(C) + 1e2
         # self._log_prior = torch.nn.Parameter(torch.zeros(C))
 
     def __call__(self, A, b):

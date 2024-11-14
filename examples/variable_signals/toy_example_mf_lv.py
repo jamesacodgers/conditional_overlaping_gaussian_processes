@@ -28,8 +28,8 @@ import pandas as pd
 
 # %%
 torch.set_default_dtype(torch.float64)
-# torch.manual_seed(1234567890)
-# np.random.seed(1234567890)
+torch.manual_seed(0)
+np.random.seed(0)
 
 
 # %%
@@ -38,7 +38,7 @@ num_training_samples = 100
 
 num_test_samples=100
 
-wavelengths = torch.linspace(-15, 15, 500)
+wavelengths = torch.linspace(-15, 15, 101)
 sigma2 = torch.Tensor([1e-2])
 # %%
 # Define model parameters
@@ -79,18 +79,18 @@ x_train=x_train.reshape(-1,1)
 x_test=x_test.reshape(-1,1)
 
 # %%
-A = 2
+A = 3
 
 
 # mu_x_train = get_init_values_for_latent_variables(D_train, R_train, D_train, A)
 
 mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train, D_test, A)
 
-V = torch.randn(16,A)
+V = torch.randn(8,A)
 # V = torch.linspace(-2,2,).reshape(-1,1)
 
 # model = MFVariableSignals(C_obs=2, C_unobs=0, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
-model = MFVariableSignals(C_obs=1, C_unobs=3, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
+model = MFVariableSignals(C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
 
 
 
@@ -98,15 +98,50 @@ model = MFVariableSignals(C_obs=1, C_unobs=3, M = wavelengths.shape[0],V=V,sum_t
 
 
 
-train_gd(model, D_train, R_train, D_test, 100, lr = 1e-1)
-# train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=1)
+train_gd(model, D_train, R_train, D_test, 1000, lr = 1e-1)
+# %%
+# train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=5)
 
 
 preds = model.predict_weights(D_test)
 
-
+# %%
 plot_preds(R_test, mf_preds=preds)
 
 model.elbo(D_train=D_train,R_train=R_train,D_test=D_test)
+# %%
 
-print(model.beta, model.sigma2_s)
+# %%
+with torch.no_grad():
+    fig, axs = plt.subplots(3, figsize=(6,9))
+    axs[0].bar(["observed", "unobserved 1", "unobserved 2"], model.sigma2_s, label = "$\sigma^2_s$", width=0.4)
+    axs[0].xaxis.set_visible(False)
+    # axs[0].set_ylabel("$\\sigma^{\; s\;2}_c$")
+
+    for i in range(2):
+        axs[i+1].bar(["observed", "unobserved 1", "unobserved 2"], 1/model.beta[:,i], width=0.4)
+        axs[i+1].set_ylim(0,(1/model.beta).max()*1.1)
+        axs[i+1].set_ylabel("$1/\\beta_{c"+str(i+1)+"}$")
+
+        axs[i+1].xaxis.set_visible(False)
+    axs[-1].xaxis.set_visible(True)
+
+    axs[-1].set_xlabel("Component")
+    plt.savefig("figs/toy_example/mf_GP_hyperparameters.pdf")
+
+
+# %%
+S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
+
+
+with torch.no_grad():
+    # for p in range(16):
+    for i in range(100):
+        plt.plot(wavelengths,S[i,:,0], c = "orange", alpha = 0.5)
+        plt.plot(wavelengths,S[i,:,1], c = "blue", alpha=0.5)
+        plt.plot(wavelengths,S[i,:,2], c = "green", alpha=0.5)
+    plt.ylabel("pure component mean")
+    plt.xlabel("wavelength")
+    plt.savefig("figs/toy_example/mf_pure_components.pdf")
+    plt.show()
+# %%

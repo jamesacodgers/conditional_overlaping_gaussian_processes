@@ -10,6 +10,7 @@ class StrucVariableSignalsObservedInputs(MFVariableSignalsObservedInputs):
         super(StrucVariableSignalsObservedInputs, self). __init__(V, M, C_obs, C_unobs=C_unobs, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None)
         self.P = P
         self._samples = torch.distributions.Normal(0,1).icdf((torch.quasirandom.SobolEngine(self.L*self.C).draw(P)+1/P)*(1-2/P))
+        self._mu_u = torch.nn.Parameter(torch.zeros_like(self._mu_u))
 
     def get_u_samples(self):
         # dist = self.get_q_u_dist()

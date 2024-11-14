@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from src.save_utils import save_parameters, save_results_csv
 from src.utils import plot_preds
-from src.utils import get_both_init_values_for_latent_variables, train_gd, train_lbfgs
+from src.utils import get_both_init_values_for_latent_variables, train_gd, train_lbfgs, get_both_pca_values
 
 from sklearn.cross_decomposition import PLSRegression
 
@@ -21,17 +21,20 @@ torch.set_default_dtype(torch.float64)
 # %%
 
 def main(args):
-    # experiment_name = f"Dalby_test_size={args.test_size}_num_unobs={args.num_unobs}_covar_rank={args.covar_rank}_sum_to_one={args.sum_to_one}"
-    # work_dir = Path(args.work_dir)
-    # torch.manual_seed(args.random_seed)
+    print(args.plot, args.data_idx, args.random_seed)
+
+
+    experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_sto={args.sum_to_one}_L={args.num_inducing}_A={args.num_latent_dims}"
+    work_dir = Path(args.work_dir)
+    torch.manual_seed(args.random_seed)
+
+
     # D_test = torch.load(f"data/Dalby/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
     # D_train = torch.load(f"data/Dalby/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
     # R_train = torch.load(f"data/Dalby/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
     # R_test = torch.load(f"data/Dalby/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    experiment_name = f"Dalby_test_size={args.test_size}_num_unobs={args.num_unobs}_sum_to_one={args.sum_to_one}"
-    work_dir = Path(args.work_dir)
-    torch.manual_seed(args.random_seed)
+
     D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
     D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
@@ -49,7 +52,10 @@ def main(args):
 
     model = torch.compile(model)
 
-    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 20, plot=args.plot, convergence_level=1))
+    # ll.extend(train_gd(model, D_train, R_train, D_test, 1000, plot=args.plot,lr = 1e-2))
+    # ll.extend(train_lbfgs(model, D_train, R_train, D_test, 5, plot=args.plot, convergence_level=1))
+    ll.extend(train_gd(model, D_train, R_train, D_test, 1000, plot=False,lr = 1e-2))
+    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 5, plot=False, convergence_level=1))
 
     mf_preds = model.predict_weights(D_test)
 
@@ -62,12 +68,35 @@ def main(args):
     #     print(name, param)
 
     print(mf_log_prob)
+
     if args.plot: 
         plot_preds(
             R_test=R_test,  
             mf_preds=mf_preds,
             # cond_preds=cond_preds
         )
+
+        S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
+
+
+        with torch.no_grad():
+            # for p in range(16):
+            fig, axs = plt.subplots(model.C, figsize = (6, 1.5*model.C))
+            for c in range(model.C):
+                for i in range(R_train.shape[0]):
+                    axs[c].plot(S[i,:,c], alpha = 0.5)
+            plt.ylabel("pure component mean")
+            plt.xlabel("wavelength")
+
+            plt.show()
+        argmin_beta = torch.argsort(model.beta)
+        print(argmin_beta)
+        with torch.no_grad():
+            plt.figure()
+            plt.scatter(model.mu_x_train[:,0], model.mu_x_train[:,1])
+            plt.scatter(model.mu_x_test[:,0], model.mu_x_test[:,1])
+            plt.show()
+
 
     mf_results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "msep": mf_rmse.item(), "log_prob": mf_log_prob.item(), "elbo": ll[-1]}
 
@@ -110,15 +139,15 @@ if __name__ == "__main__":
         "--data_idx",
         "-d",
         type=int,
-        default=0,
+        default=9,
         help="Random seed.",
     )
 
     argparser.add_argument(
         "--plot",
         "-p",
-        type=bool,
-        default=True,
+        action=argparse.BooleanOptionalAction,
+        default=False,
         help="plots figures",
     )
 
@@ -134,7 +163,8 @@ if __name__ == "__main__":
         "--num_unobs",
         "-nu",
 	    type=int,
-        default=2,
+        # default=1,
+        default=1,
         help="number of unobserved components",
     )
 
@@ -165,7 +195,8 @@ if __name__ == "__main__":
         "--num_latent_dims",
         "-a",
 	type=int,
-        default=1,
+        # default=2,
+        default=2,
         help="number of latent dimensions",
     )
 
@@ -173,6 +204,8 @@ if __name__ == "__main__":
         "--num_inducing",
         "-ni",
         type=int,
+        # default=16,
+        # default=8,
         default=16,
         help="number of inducing dimensions"
     )
