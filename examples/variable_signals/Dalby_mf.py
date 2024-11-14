@@ -164,7 +164,7 @@ if __name__ == "__main__":
         "-nu",
 	    type=int,
         # default=1,
-        default=1,
+        default=3,
         help="number of unobserved components",
     )
 
@@ -206,7 +206,7 @@ if __name__ == "__main__":
         type=int,
         # default=16,
         # default=8,
-        default=16,
+        default=8,
         help="number of inducing dimensions"
     )
 
