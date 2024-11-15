@@ -46,8 +46,10 @@ def main(args):
     V = torch.randn(args.num_inducing,args.num_latent_dims)
 
     # mu_x_train, mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, R_train=R_train, D_test=D_test, num_latent_dimensions=args.num_latent_dims)
-    mu_x_train = torch.zeros(R_train.shape[0], args.num_latent_dims)
-    mu_x_test = torch.zeros(R_test.shape[0], args.num_latent_dims)
+    # mu_x_train = torch.zeros(R_train.shape[0], args.num_latent_dims)
+    # mu_x_test = torch.zeros(R_test.shape[0], args.num_latent_dims)
+    mu_x_train = torch.randn(R_train.shape[0], args.num_latent_dims)
+    mu_x_test = torch.randn(R_test.shape[0], args.num_latent_dims)
 
     model = StrucVariableSignals(P=args.num_samples,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, sum_to_one=args.sum_to_one)
     model = torch.compile(model)
@@ -124,7 +126,7 @@ if __name__ == "__main__":
         "--random_seed",
         "-rs",
         type=int,
-        default=0,
+        default=1,
         help="Random seed.",
     )
 

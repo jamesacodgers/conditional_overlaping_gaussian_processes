@@ -82,10 +82,10 @@ A = 2
 
 
 
-mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train, D_test, A)
+# mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train, D_test, A)
 
-# mu_x_train = torch.randn(num_training_samples, A)
-# mu_x_test = torch.randn(num_test_samples, A)
+mu_x_train = torch.zeros(num_training_samples, A)
+mu_x_test = torch.zeros(num_test_samples, A)
 
 V = torch.randn(6,A)
 # V = torch.linspace(-2,2,).reshape(-1,1)
@@ -135,11 +135,10 @@ with torch.no_grad():
 # %%
 
 with torch.no_grad():
-    for i in range(model.P):
-        plt.scatter(x_train, model.mu_x_train[i,:,0])
-    for i in range(model.P):
-        plt.scatter(x_test, model.mu_x_test[i,:,0], marker="o")
-    # plt.scatter(model.V[:,0], model.V[:,1], c="k", marker="x")
+    for i in range(R_train.shape[0]):
+        plt.scatter( model.mu_x_train[:,i,0], model.mu_x_train[:,i,1])
+    for i in range(R_test.shape[0]):
+        plt.scatter( model.mu_x_test[:,i,0], model.mu_x_test[:,i,1], marker="x")
 
     plt.show()
 

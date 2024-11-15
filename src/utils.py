@@ -25,7 +25,8 @@ def plot_preds(R_test, cond_preds: torch.distributions.Distribution = None, mf_p
             vars = cond_preds.covariance_matrix[:,:,0,0]
             cond_preds_1d = norm(cond_preds.mean[:,:,0].detach().numpy(), np.sqrt(cond_preds.covariance_matrix[:,:,0,0].detach().numpy()))
             err = np.array([get_percentile(cond_preds_1d, 0.5) - get_percentile(cond_preds_1d, 0.025), get_percentile(cond_preds_1d, 0.975) - get_percentile(cond_preds_1d, 0.5)])
-            plt.errorbar(R_test[:,0], get_percentile(cond_preds_1d, 0.5), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
+            plt.errorbar(R_test[:,0], means.mean(dim=0), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
+            # plt.errorbar(R_test[:,0], get_percentile(cond_preds_1d, 0.5), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
         if mf_preds: 
             mf_means = mf_preds.mean[:,0]
             mf_var = mf_preds.covariance_matrix[:,0,0]

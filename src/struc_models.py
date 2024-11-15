@@ -128,8 +128,10 @@ class StrucVariableSignals(MFVariableSignals):
 
         self._mu_u = torch.nn.Parameter(torch.zeros_like(self._mu_u))
 
-        self.mu_x_train = torch.nn.Parameter(self.mu_x_train[None,...].repeat(self.P,1,1))
-        self.mu_x_test = torch.nn.Parameter(self.mu_x_test[None,...].repeat(self.P,1,1))
+        # self.mu_x_train = torch.nn.Parameter(self.mu_x_train[None,...].repeat(self.P,1,1))
+        # self.mu_x_test = torch.nn.Parameter(self.mu_x_test[None,...].repeat(self.P,1,1))
+        self.mu_x_train = torch.nn.Parameter(torch.randn(self.P,self.mu_x_train.shape[0], self.A))
+        self.mu_x_test = torch.nn.Parameter(torch.randn(self.P,self.mu_x_test.shape[0], self.A))
         self._log_sigma_x_train = torch.nn.Parameter(self.Sigma_x_train[None,...].repeat(self.P,1,1))
         self._log_sigma_x_test = torch.nn.Parameter(self.Sigma_x_test[None,...].repeat(self.P,1,1))
 
