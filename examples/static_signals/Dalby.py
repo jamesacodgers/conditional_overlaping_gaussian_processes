@@ -139,7 +139,7 @@ if __name__ == "__main__":
         "--num_unobs",
         "-nu",
 	    type=int,
-        default=5,
+        default=1,
         help="number of unobserved components",
     )
 

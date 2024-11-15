@@ -126,6 +126,8 @@ class StrucVariableSignals(MFVariableSignals):
         self.P = P
         samples = torch.distributions.Normal(0,1).icdf((torch.quasirandom.SobolEngine(self.M*self.C).draw(P)+1/P)*(1-2/P))
 
+        self._mu_u = torch.nn.Parameter(torch.zeros_like(self._mu_u))
+
         self.mu_x_train = torch.nn.Parameter(self.mu_x_train[None,...].repeat(self.P,1,1))
         self.mu_x_test = torch.nn.Parameter(self.mu_x_test[None,...].repeat(self.P,1,1))
         self._log_sigma_x_train = torch.nn.Parameter(self.Sigma_x_train[None,...].repeat(self.P,1,1))

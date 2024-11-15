@@ -78,7 +78,7 @@ x_train=x_train.reshape(-1,1)
 x_test=x_test.reshape(-1,1)
 
 # %%
-A = 10
+A = 2
 
 
 
@@ -87,11 +87,11 @@ mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_tr
 # mu_x_train = torch.randn(num_training_samples, A)
 # mu_x_test = torch.randn(num_test_samples, A)
 
-V = torch.randn(16,A)
+V = torch.randn(6,A)
 # V = torch.linspace(-2,2,).reshape(-1,1)
 
 # model = MFVariableSignals(C_obs=2, C_unobs=0, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
-model = StrucVariableSignals(P=32,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
+model = StrucVariableSignals(P=16,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
 
 opt_model = torch.compile(model)
 # opt_train_gd = torch.compile(train_lbfgs)
@@ -101,12 +101,12 @@ opt_model = torch.compile(model)
 
 # %%
 
-train_gd(opt_model, D_train, R_train, D_test, 100, lr = 1e-1)
+train_gd(opt_model, D_train, R_train, D_test, 500, lr = 1e-1)
 
 
 # %%
 
-train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=10)
+train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=5)
 
 
 
@@ -126,7 +126,7 @@ print(model.beta, model.sigma2_s)
 S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
 
 with torch.no_grad():
-    for p in range(16):
+    for p in range(model.P):
         for i in range(100):
             plt.plot(S[p,i,:,0], c = "orange", alpha = 0.05)
             plt.plot(S[p,i,:,1], c = "blue", alpha=0.05)

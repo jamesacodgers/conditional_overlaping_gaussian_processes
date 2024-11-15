@@ -21,36 +21,41 @@ torch.set_default_dtype(torch.float64)
 # %%
 
 def main(args):
-    experiment_name = f"Dalby_test_size={args.test_size}_num_unobs={args.num_unobs}_sum_to_one={args.sum_to_one}_num_latent_dims={args.num_latent_dims}_num_inducing_points={args.num_inducing}_num_samples={args.num_samples}"
-    work_dir = Path(args.work_dir)
+    print(args.plot, args.data_idx, args.random_seed)
+
+
     torch.manual_seed(args.random_seed)
-    
-    
-    
-    # D_test = torch.load(f"data/Dalby/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    # D_train = torch.load(f"data/Dalby/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
-    # R_train = torch.load(f"data/Dalby/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    # R_test = torch.load(f"data/Dalby/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    if args.no_snv:
+        experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_sto={args.sum_to_one}_L={args.num_inducing}_A={args.num_latent_dims}_nosnv"
+        work_dir = Path(args.work_dir)
+        D_test = torch.load(f"data/Dalby/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+        D_train = torch.load(f"data/Dalby/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
-    R_train = torch.load(f"data/Dalby/splits/r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    R_test = torch.load(f"data/Dalby/splits/r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+        R_train = torch.load(f"data/Dalby/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+        R_test = torch.load(f"data/Dalby/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    else:
+        experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_sto={args.sum_to_one}_L={args.num_inducing}_A={args.num_latent_dims}"
+        work_dir = Path(args.work_dir)
+        D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+        D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
+        R_train = torch.load(f"data/Dalby/splits/r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+        R_test = torch.load(f"data/Dalby/splits/r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
     V = torch.randn(args.num_inducing,args.num_latent_dims)
 
-    mu_x_train, mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, R_train=R_train, D_test=D_test, num_latent_dimensions=args.num_latent_dims)
- 
+    # mu_x_train, mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, R_train=R_train, D_test=D_test, num_latent_dimensions=args.num_latent_dims)
+    mu_x_train = torch.zeros(R_train.shape[0], args.num_latent_dims)
+    mu_x_test = torch.zeros(R_test.shape[0], args.num_latent_dims)
 
     model = StrucVariableSignals(P=args.num_samples,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, sum_to_one=args.sum_to_one)
     model = torch.compile(model)
     ll = []
 
 
-    ll.extend(train_gd(model, D_train, R_train, D_test, 500, plot=args.plot, lr = 1e-2))
-    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 10, plot=args.plot, convergence_level=5))
+    ll.extend(train_gd(model, D_train, R_train, D_test, 2000, plot=False, lr = 1e-2))
+    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 10, plot=False, convergence_level=5))
 
     preds = model.predict_weights(D_test)
 
@@ -66,14 +71,38 @@ def main(args):
     if args.plot: 
         plot_preds(
             R_test=R_test,  
-            cond_preds=preds,
-            # cond_preds=cond_preds
+            # mf_preds=preds,
+            cond_preds=preds
         )
+
+        S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
+
+
+        with torch.no_grad():
+            # for p in range(16):
+            fig, axs = plt.subplots(model.C, figsize = (6, 1.5*model.C))
+            for c in range(model.C):
+                for i in range(R_train.shape[0]):
+                    for p in range(model.P):
+                        axs[c].plot(S[p,i,:,c], alpha = 0.5)
+            plt.ylabel("pure component mean")
+            plt.xlabel("wavelength")
+
+            plt.show()
+        argmin_beta = torch.argsort(model.beta)
+        print(argmin_beta)
+        with torch.no_grad():
+            plt.figure()
+            for i in range(R_train.shape[0]):
+                plt.scatter(model.mu_x_train[:,i,0], model.mu_x_train[:,i,1])
+            for i in range(R_test.shape[0]):
+                plt.scatter(model.mu_x_test[:,i,0], model.mu_x_test[:,i,1], marker = "x")
+            plt.show()
 
     results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "msep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1]}
 
     save_results_csv(file_name= f'{experiment_name}.csv', 
-                    path= work_dir / "results" / "Dalby"/ "struc_var_signals" / "csvs" / f'{experiment_name}.csv', 
+                    path=work_dir / "results" / "Dalby"/ "struc_var_signals" / "csvs" / f'{experiment_name}.csv', 
                     results_dict=results_dict)
     
 
@@ -135,7 +164,7 @@ if __name__ == "__main__":
         "--num_unobs",
         "-nu",
 	    type=int,
-        default=4,
+        default=1,
         help="number of unobserved components",
     )
 
@@ -174,7 +203,7 @@ if __name__ == "__main__":
         "--num_inducing",
         "-ni",
         type=int,
-        default=4,
+        default=8,
         help="number of inducing dimensions"
     )
 
@@ -184,6 +213,14 @@ if __name__ == "__main__":
         type=int,
         default=8,
         help="number of samples"
+    )
+
+    argparser.add_argument(
+        "--no_snv",
+        "-nsnv",
+        type=bool,
+        default=True,
+        help="number of inducing dimensions"
     )
 
     args = argparser.parse_args()

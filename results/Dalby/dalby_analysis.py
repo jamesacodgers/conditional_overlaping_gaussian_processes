@@ -19,7 +19,7 @@ plt.scatter(data["elbo"], data["msep"], c = data["data_set"])
 plt.show()
 
 plt.figure()
-plt.scatter(data["elbo"], data["log_prob"])
+plt.scatter(data["elbo"], data["log_prob"], c=data["random_seed"])
 plt.show()
 
 # %%
