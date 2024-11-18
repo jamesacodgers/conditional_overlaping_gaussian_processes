@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import cauchy
 from itertools import chain
-from src.utils import get_init_values_for_latent_variables, train_gd, get_both_init_values_for_latent_variables, train_lbfgs, plot_preds, get_both_pca_values
+from src.utils import get_init_values_for_latent_variables, train_gd, get_both_init_values_for_latent_variables, train_lbfgs, plot_preds, get_both_pca_values, train_conditional_model_gd, train_conditional_model_lbfgs
 
 
 # import multiprocessing
@@ -64,7 +64,6 @@ x_train = torch.randn(num_training_samples)
 S_train = get_pure_components(x_train)
 
 D_train = get_observations(R_train, S_train)
-R_train = R_train[:,0].reshape(-1,1) # To test unobserved components
 
 
 R_test = torch.distributions.Dirichlet(torch.ones(2)).sample((num_test_samples,))
@@ -82,31 +81,45 @@ A = 2
 
 
 
-# mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train, D_test, A)
+mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train, D_test, A)
 
-mu_x_train = torch.zeros(num_training_samples, A)
-mu_x_test = torch.zeros(num_test_samples, A)
+# mu_x_train = torch.zeros(num_training_samples, A)
+# mu_x_test = torch.zeros(num_test_samples, A) 
 
-V = torch.randn(6,A)
+V = torch.randn(8,A)
 # V = torch.linspace(-2,2,).reshape(-1,1)
 
+R_train = R_train[:,0].reshape(-1,1) # To test unobserved components
 # model = MFVariableSignals(C_obs=2, C_unobs=0, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
-model = StrucVariableSignals(P=16,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
+model = StrucVariableSignals(P=16,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,weight_distribution="sum_to_one", mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
 
 opt_model = torch.compile(model)
-# opt_train_gd = torch.compile(train_lbfgs)
 
 
 
 
 # %%
 
-train_gd(opt_model, D_train, R_train, D_test, 500, lr = 1e-1)
+# train_gd(opt_model, 
+#          D_train, 
+#          R_train,
+#          D_test=D_test, 
+#          n_steps=500, 
+#          lr = 1e-1
+#         )
+
+train_conditional_model_gd(opt_model, 
+         D_train, 
+         R_train,
+         D_test=D_test, 
+         n_steps=1000, 
+        )
 
 
-# %%
 
-train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=5)
+# # %%
+
+# train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=5)
 
 
 
@@ -127,28 +140,39 @@ S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
 
 with torch.no_grad():
     for p in range(model.P):
-        for i in range(100):
-            plt.plot(S[p,i,:,0], c = "orange", alpha = 0.05)
-            plt.plot(S[p,i,:,1], c = "blue", alpha=0.05)
-            plt.plot(S[p,i,:,2], c = "green", alpha=0.05)
+        for j in range(100):
+            plt.plot(S[p,j,:,0], c = "orange", alpha = 0.05)
+            plt.plot(S[p,j,:,1], c = "blue", alpha=0.05)
+            plt.plot(S[p,j,:,2], c = "green", alpha=0.05)
     plt.show()
 # %%
 
 with torch.no_grad():
-    for i in range(R_train.shape[0]):
-        plt.scatter( model.mu_x_train[:,i,0], model.mu_x_train[:,i,1])
-    for i in range(R_test.shape[0]):
-        plt.scatter( model.mu_x_test[:,i,0], model.mu_x_test[:,i,1], marker="x")
+    for j in range(R_train.shape[0]):
+        plt.scatter( model.mu_x_train[:,j,0], model.mu_x_train[:,j,1])
+    for j in range(R_test.shape[0]):
+        plt.scatter( model.mu_x_test[:,j,0], model.mu_x_test[:,j,1], marker="x")
 
     plt.show()
 
 
 # %%
 with torch.no_grad():
-    for i in range(101):
-        plt.scatter(model.get_u_vec_samples()[:,i,0], model.get_u_vec_samples()[:,i,1])
+    for j in range(1):
+        plt.scatter(model.get_u_vec_samples()[:,j,0], model.get_u_vec_samples()[:,j,1])
     plt.show()
 # %%
+a = torch.randn(2,model.L*model.C)
+b = model._samples@a.T
+
+
+with torch.no_grad():
+    plt.figure()
+    for j in range(10):
+        plt.scatter(b[:,j+10,0], b[:,j+10,1])
+    plt.show()
+
+# %%
 
 
 with torch.no_grad():
@@ -157,12 +181,12 @@ with torch.no_grad():
     axs[0].xaxis.set_visible(False)
     axs[0].set_ylabel("$\\sigma^{\; s\;2}_c$")
 
-    for i in range(2):
-        axs[i+1].bar(["observed", "unobserved 1", "unobserved 2"], 1/model.beta[:,i], width=0.4)
-        axs[i+1].set_ylim(0,(1/model.beta).max()*1.1)
-        axs[i+1].set_ylabel("$1/\\beta_{c"+str(i+1)+"}$")
+    for j in range(2):
+        axs[j+1].bar(["observed", "unobserved 1", "unobserved 2"], 1/model.beta[:,j], width=0.4)
+        axs[j+1].set_ylim(0,(1/model.beta).max()*1.1)
+        axs[j+1].set_ylabel("$1/\\beta_{c"+str(j+1)+"}$")
 
-        axs[i+1].xaxis.set_visible(False)
+        axs[j+1].xaxis.set_visible(False)
     axs[-1].xaxis.set_visible(True)
 
     axs[-1].set_xlabel("Component")

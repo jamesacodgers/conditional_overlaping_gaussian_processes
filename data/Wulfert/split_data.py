@@ -69,15 +69,36 @@ def random_train_test_split(tensors, test_size=0.2, random_seed=None):
     return train_tensors, test_tensors
 
 # %%
-test_size = 0.2
+test_size = 0.5
 for i in range(10):
     (r_train, d_train), (r_test, d_test) = random_train_test_split([r,d], test_size=test_size, random_seed=i)
-    torch.save(r_train, f"data/Wulfert/splits/r_train_seed={i}_test_size={test_size}.pkl")
-    torch.save(r_test, f"data/Wulfert/splits/r_test_seed={i}_test_size={test_size}.pkl")
-    torch.save(d_train, f"data/Wulfert/splits/d_train_seed={i}_test_size={test_size}.pkl")
-    torch.save(d_test, f"data/Wulfert/splits/d_test_seed={i}_test_size={test_size}.pkl")
+    torch.save(r_train, f"data/Wulfert/splits/no_snv_r_train_seed={i}_test_size={test_size}.pkl")
+    torch.save(r_test, f"data/Wulfert/splits/no_snv_r_test_seed={i}_test_size={test_size}.pkl")
+    torch.save(d_train, f"data/Wulfert/splits/no_snv_d_train_seed={i}_test_size={test_size}.pkl")
+    torch.save(d_test, f"data/Wulfert/splits/no_snv_d_test_seed={i}_test_size={test_size}.pkl")
 # %%
 
 
+# from sklearn.model_selection import KFold
+# k=10
+# kf = KFold(n_splits=k, shuffle=True, random_state=42)
 
-# %%
+# # Loop over each fold
+# for i, (train_index, test_index) in enumerate(kf.split(d)):
+#     print(f"Fold {i + 1}")
+#     print(f"Train indices: {train_index}")
+#     print(f"Test indices: {test_index}\n")
+    
+#     # Split the data into training and testing sets for this fold
+#     d_train, d_test = d[train_index], d[test_index]
+#     r_train, r_test = r[train_index], r[test_index]
+
+
+#     torch.save(r_train, f"data/Wulfert/splits/no_snv_r_train_seed={i}_test_size=0.1.pkl")
+#     torch.save(r_test, f"data/Wulfert/splits/no_snv_r_test_seed={i}_test_size=0.1.pkl")
+#     torch.save(d_train, f"data/Wulfert/splits/no_snv_d_train_seed={i}_test_size=0.1.pkl")
+#     torch.save(d_test, f"data/Wulfert/splits/no_snv_d_test_seed={i}_test_size=0.1.pkl")
+#     # torch.save(r_train, f"data/Wulfert/splits/r_train_seed={i}_test_size=0.1.pkl")
+#     # torch.save(r_test, f"data/Wulfert/splits/r_test_seed={i}_test_size=0.1.pkl")
+#     # torch.save(d_train, f"data/Wulfert/splits/d_train_seed={i}_test_size=0.1.pkl")
+#     # torch.save(d_test, f"data/Wulfert/splits/d_test_seed={i}_test_size=0.1.pkl")

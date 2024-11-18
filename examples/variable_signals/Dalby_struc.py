@@ -27,7 +27,7 @@ def main(args):
     torch.manual_seed(args.random_seed)
 
     if args.no_snv:
-        experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_sto={args.sum_to_one}_L={args.num_inducing}_A={args.num_latent_dims}_nosnv"
+        experiment_name = f"Structured_Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_nosnv"
         work_dir = Path(args.work_dir)
         D_test = torch.load(f"data/Dalby/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
         D_train = torch.load(f"data/Dalby/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
@@ -35,7 +35,7 @@ def main(args):
         R_train = torch.load(f"data/Dalby/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
         R_test = torch.load(f"data/Dalby/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
     else:
-        experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_sto={args.sum_to_one}_L={args.num_inducing}_A={args.num_latent_dims}"
+        experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}"
         work_dir = Path(args.work_dir)
         D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
         D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
@@ -46,36 +46,48 @@ def main(args):
     V = torch.randn(args.num_inducing,args.num_latent_dims)
 
     # mu_x_train, mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, R_train=R_train, D_test=D_test, num_latent_dimensions=args.num_latent_dims)
-    # mu_x_train = torch.zeros(R_train.shape[0], args.num_latent_dims)
-    # mu_x_test = torch.zeros(R_test.shape[0], args.num_latent_dims)
-    mu_x_train = torch.randn(R_train.shape[0], args.num_latent_dims)
-    mu_x_test = torch.randn(R_test.shape[0], args.num_latent_dims)
+    mu_x_train = torch.zeros(R_train.shape[0], args.num_latent_dims)
+    mu_x_test = torch.zeros(R_test.shape[0], args.num_latent_dims)
+    # mu_x_train = torch.randn(R_train.shape[0], args.num_latent_dims)
+    # mu_x_test = torch.randn(R_test.shape[0], args.num_latent_dims)
 
-    model = StrucVariableSignals(P=args.num_samples,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, sum_to_one=args.sum_to_one)
+    model = StrucVariableSignals(P=args.num_samples,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
     model = torch.compile(model)
     ll = []
 
 
-    ll.extend(train_gd(model, D_train, R_train, D_test, 2000, plot=False, lr = 1e-2))
-    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 10, plot=False, convergence_level=5))
+    ll.extend(train_gd(model, D_train, R_train, D_test=D_test, n_steps=1000, plot=False, lr = 2e-2))
+    ll.extend(train_lbfgs(model, D_train, R_train, D_test=D_test, n_steps=10, plot=False, convergence_level=5))
 
     preds = model.predict_weights(D_test)
 
     log_prob = torch.distributions.MultivariateNormal(preds.mean[...,:R_train.shape[1]], preds.covariance_matrix[..., :R_train.shape[1], :R_train.shape[1]]).log_prob(R_test).sum()
     rmse = torch.sqrt(((R_test - preds.mean[..., :2])**2).mean())
     
+    results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "msep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1]}
+
+
+    save_results_csv(file_name= f'{experiment_name}.csv', 
+                    path=work_dir / "results" / "Dalby"/ "struc_var_signals" / "csvs" / f'{experiment_name}.csv', 
+                    results_dict=results_dict)
+    
+
+    save_parameters(file_name= f'{experiment_name}.csv', 
+                    path=work_dir / "results" / "Dalby"/ "struc_var_signals" / "models", 
+                    model=model)
+    
+
+
+
     print("beta",model.beta)
     print("sigma2s",model.sigma2_s)
     # for name,param in model.named_parameters():
     #     print(name, param)
 
     print(log_prob)
+    print(rmse)
     if args.plot: 
-        plot_preds(
-            R_test=R_test,  
-            # mf_preds=preds,
-            cond_preds=preds
-        )
+        
 
         S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
 
@@ -101,17 +113,13 @@ def main(args):
                 plt.scatter(model.mu_x_test[:,i,0], model.mu_x_test[:,i,1], marker = "x")
             plt.show()
 
-    results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "msep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1]}
+        plot_preds(
+            R_test=R_test,  
+            # mf_preds=preds,
+            cond_preds=preds
+        )
 
-    save_results_csv(file_name= f'{experiment_name}.csv', 
-                    path=work_dir / "results" / "Dalby"/ "struc_var_signals" / "csvs" / f'{experiment_name}.csv', 
-                    results_dict=results_dict)
-    
 
-    save_parameters(file_name= f'{experiment_name}.csv', 
-                    path=work_dir / "results" / "Dalby"/ "struc_var_signals" / "models", 
-                    model=model)
-    
 
     
 
@@ -126,7 +134,7 @@ if __name__ == "__main__":
         "--random_seed",
         "-rs",
         type=int,
-        default=1,
+        default=0,
         help="Random seed.",
     )
 
@@ -171,14 +179,6 @@ if __name__ == "__main__":
     )
 
     argparser.add_argument(
-        "--sum_to_one",
-        "-sto",
-	type=bool,
-        default=True,
-        help="should the components sum to one",
-    )
-
-    argparser.add_argument(
         "--min_wavelength",
         "-minwl",
 	type=int,
@@ -205,7 +205,7 @@ if __name__ == "__main__":
         "--num_inducing",
         "-ni",
         type=int,
-        default=8,
+        default=4,
         help="number of inducing dimensions"
     )
 

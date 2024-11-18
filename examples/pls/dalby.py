@@ -83,7 +83,7 @@ if __name__ == "__main__":
         "--test_size",
         "-ts",
         type=int,
-        default=0.5,
+        default=0.1,
         help="Test size.",
     )
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=False,
         help="plots figures",
     )
 

@@ -121,10 +121,9 @@ class StrucVariableSignalsObservedInputs(MFVariableSignalsObservedInputs):
     
     
 class StrucVariableSignals(MFVariableSignals):
-    def __init__(self,P, V, M, C_obs, mu_x_train, mu_x_test, C_unobs=0, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None, ):
-        super(StrucVariableSignals,self).__init__(V, M, C_obs, mu_x_train, mu_x_test, C_unobs=C_unobs, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None, )
+    def __init__(self,P, V, M, C_obs, mu_x_train, mu_x_test, C_unobs=0, sigma2=1, weight_distribution="continuos", beta=None,sigma2_s=None, ):
+        super(StrucVariableSignals,self).__init__(V, M, C_obs, mu_x_train, mu_x_test, C_unobs=C_unobs, sigma2=sigma2, weight_distribution=weight_distribution, beta=None,sigma2_s=None, )
         self.P = P
-        samples = torch.distributions.Normal(0,1).icdf((torch.quasirandom.SobolEngine(self.M*self.C).draw(P)+1/P)*(1-2/P))
 
         self._mu_u = torch.nn.Parameter(torch.zeros_like(self._mu_u))
 
@@ -136,20 +135,32 @@ class StrucVariableSignals(MFVariableSignals):
         self._log_sigma_x_test = torch.nn.Parameter(self.Sigma_x_test[None,...].repeat(self.P,1,1))
 
         self.P = P
-        self._samples = torch.distributions.Normal(0,1).icdf((torch.quasirandom.SobolEngine(self.L*self.C, seed=1, scramble=True).draw(P*M).reshape(self.P, self.M, self.L*self.C)+1/P)*(1-2/P))
+        sample_generator = torch.quasirandom.SobolEngine(self.L*self.C, seed=1, )
+        _samples = torch.zeros(self.P, self.M, self.L*self.C)
+        for j in range(M):
+            _samples[:,j,:] = torch.distributions.Normal(0,1).icdf((sample_generator.draw(P)+1/(P))*(1-2/(P)))
+        self._samples = _samples
+        # sample_generator = torch.quasirandom.SobolEngine(self.L, seed=1, )
+        # _samples = torch.zeros(self.P, self.M, self.C,self.L)
+        # for j in range(M):
+        #     for c in range(self.C):
+        #         _samples[:,j,c] = torch.distributions.Normal(0,1).icdf((sample_generator.draw(P)+1/(P))*(1-2/(P)))
+        # self._samples = _samples.reshape(self.P, self.M, self.L*self.C)
+
+        # self._samples = torch.distributions.Normal(0,1).rsample([P*M*self.L*self.C,]).reshape(self.P, self.M, self.L*self.C)
+        # self._samples = torch.nn.Parameter(torch.randn(self.P, self.M, self.L*self.C))
 
     def get_u_samples(self):
         # dist = self.get_q_u_dist()
-        # samples = dist.sample((self.P,))
+        # samples = dist.rsample((self.P,))
         samples = self.get_u_vec_samples()
         return samples.reshape(self.P, self.M, self.C, self.L)
     
     def get_u_vec_samples(self):
         # dist = self.get_q_u_dist()
+        # samples = dist.rsample((self.P,))
         chol = torch.tril(self._raw_chol)
         samples = self.get_vector_mu_u()[None,:,:] + (chol[None,:,::]@self._samples[:,:,:,None])[...,0]
-        # chol = torch.tril(self._raw_chol)
-        # samples = self.get_vector_mu_u()[None,:,:] + (chol[None,:,::]@self._samples[:,None,:,None])[...,0]
         return samples
     
     def get_kl_x(self):

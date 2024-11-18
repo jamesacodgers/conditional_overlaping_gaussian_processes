@@ -25,13 +25,15 @@ class WLIndependentGPs:
 
         # store GP parameters
         self._log_beta = torch.nn.Parameter(torch.log(torch.tensor(beta)))
-        # self._log_beta = torch.nn.Parameter(torch.abs(torch.randn(self.C, self.input_dims))+1e-1)
-        # self._log_sigma2_s = torch.nn.Parameter(torch.abs(torch.randn(self.C))+1e-1)
         self._log_sigma2_s = torch.nn.Parameter( torch.log(torch.tensor(sigma2_s)))
         self.L = self.V.shape[0]
         self._mu_u = torch.nn.Parameter(torch.zeros(self.M, self.C*self.L ))
         self._mu_u = torch.nn.Parameter(torch.randn(self.M, self.C*self.L )/100)
-        # self._mu_u = torch.nn.Parameter(torch.range(1,self.C ).repeat_interleave(self.L)[None,:].repeat(self.M,1))
+        # self._log_beta = torch.log(torch.tensor(beta))
+        # self._log_sigma2_s = torch.log(torch.tensor(sigma2_s))
+        # self.L = self.V.shape[0]
+        # self._mu_u = torch.zeros(self.M, self.C*self.L )
+        # self._mu_u = torch.randn(self.M, self.C*self.L )/100
 
         assert self._log_beta.shape == torch.Size([self.C, self.input_dims])
         assert self.V.shape == torch.Size([self.L, self.input_dims])

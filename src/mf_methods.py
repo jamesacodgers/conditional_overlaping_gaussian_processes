@@ -6,101 +6,39 @@ from src.gps import WLIndependentGPs
 from abc import ABC, abstractmethod
 
 class MFModels(torch.nn.Module, ABC):
-    def __init__(self,M, C_obs, C_unobs=0, sigma2=1, sum_to_one = False):
+    def __init__(self,M, C_obs, C_unobs=0, sigma2=1, weight_distribution="continuos"):
         torch.nn.Module.__init__(self)
+        weight_distribution_options = {"continuos","sum_to_one","categorical"}
+        assert weight_distribution in weight_distribution_options
         self.M = M 
         self.C_obs = C_obs
         self.C_unobs = C_unobs
         self.C = self.C_obs + self.C_unobs
         self._log_sigma2 = torch.nn.Parameter(torch.log(torch.tensor(sigma2, dtype=torch.float)))
-        # self._log_sigma2 = torch.log(torch.tensor(sigma2, dtype=torch.float))
-        self.inner_train_solver = MultivariateNormalSolver(self.C_unobs)
-        if sum_to_one:
-            self.linear_map = torch.vstack([torch.zeros(self.C-1), torch.eye(self.C-1)])
-            self.linear_map[:self.C_obs, :self.C_obs-1] = generate_regular_simplex(self.C_obs-1)
-            self.linear_map[:-self.C_unobs, ]
-            self.h = torch.zeros(self.C)
-            self.h[:self.C_obs] = torch.ones(self.C_obs)/self.C_obs
-            self.inner_test_solver = MultivariateNormalSolver(self.C -1)
+        if weight_distribution=="continuos":
+            self.coordinator = NormalCoordinator(module=self,sum_to_one=False)
+        elif weight_distribution=="sum_to_one":
+            self.coordinator = NormalCoordinator(module=self,sum_to_one=True)
+        elif weight_distribution=="categorical":
+            assert self.C_unobs==0
+            self.coordinator = ClassificationCoordinator(module=self)
         else:
-            self.linear_map = None
-            self.inner_test_solver = MultivariateNormalSolver(self.C)
+            raise AssertionError("You should not be here")
 
     @property 
     def sigma2(self): 
         return torch.exp(self._log_sigma2)+1e-6
     
-    def get_A_test(self, s_outer_expectation):
-        if self.linear_map is not None:
-            return self.linear_map.T@(1/(self.sigma2)*(s_outer_expectation))@self.linear_map # [N] x (C-1) x (C-1) 
-        else:
-            return 1/(self.sigma2)*(s_outer_expectation) # [N] x C x C 
-        
-    def get_b_test(self, D_test, s_expectation: torch.Tensor):
-        if self.linear_map is not None: 
-            return 1/(self.sigma2)*((D_test - (self.h[None, None, :]*s_expectation).sum(dim=-1))[:, :, None, None]*s_expectation[:,:,:,None]*self.linear_map[None,None,:,:]).sum(dim=[1,2]) # N x (C-1)
-        else:
-            return 1/(self.sigma2)*(D_test[:,:,None]*s_expectation).sum(dim=-2) # N x C 
-
-                
-    def get_const_test(self, D_test, s_expectation: torch.Tensor, s_outer_expectation: torch.Tensor):
-        if self.linear_map is not None:
-            return -(self.M * D_test.shape[0])/2*torch.log(self.sigma2) - 1/(2*self.sigma2)*((D_test**2).sum() - 2 * (D_test[:, :, None] * s_expectation[:, :, :] *self.h[None,None,:]).sum()  + (self.h[None, None, :]*s_outer_expectation*self.h[None, :, None]).sum())
-        else: 
-            return -(self.M * D_test.shape[0] )/2*torch.log(self.sigma2)- 1/(2*self.sigma2)*(D_test**2).sum()
-        
-    def get_A_train(self, s_unobs_outer_expectation):
-        return 1/(self.sigma2)*(s_unobs_outer_expectation)
-    
-    def get_b_train(self, D_train, R_train, s_unobs_expectation, s_outer_cross_expectation):
-        # return 1/(self.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=1) - (R_train[:,:,None]*s_outer_cross_expectation).sum(dim=1))
-        return 1/(self.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=-2) - (R_train[:,:,None]*s_outer_cross_expectation).sum(dim=-2))
-                
-    def get_const_train(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
-        return -(self.M * D_train.shape[0])/2*torch.log(self.sigma2) - 1/(2*self.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
-               
-               # torch.einsum("nm, mc, cn", D_train, s_obs_expectation, R_train.T)                                                                          #    torch.einsum("nc, ncd, dn",R_train,s_obs_outer_expectation,R_train.T))
-    
     def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train,  s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
-        s_train_obs_expectation = s_train_expectation[...,:self.C_obs]
-        s_train_unobs_expectation = s_train_expectation[...,self.C_obs:]
-
-        s_train_obs_outer_expectation = s_train_outer_expectation[..., :self.C_obs,:self.C_obs]
-        s_train_cross_outer_expectation = s_train_outer_expectation[..., :self.C_obs,self.C_obs:]
-        s_train_unobs_outer_expectation = s_train_outer_expectation[..., self.C_obs:,self.C_obs:]
-
-        
-
-        A_train = self.get_A_train(s_train_unobs_outer_expectation) # C_unobs x C_unobs
-        b_train = self.get_b_train(D_train, R_train, s_train_unobs_expectation, s_train_cross_outer_expectation) # N x C_unobs
-        const_train = self.get_const_train(D_train, R_train, s_train_obs_expectation, s_train_obs_outer_expectation)
-        training_inner_elbo = self.inner_train_solver(A_train, b_train) + const_train
-        kl = self.get_kl()
-        if D_test is None: 
-            return training_inner_elbo.mean() - kl
-        else: 
-            assert s_test_expectation is not None
-            assert s_test_outer_expectation is not None
-            A_test = self.get_A_test(s_test_outer_expectation)
-            b_test = self.get_b_test(D_test, s_test_expectation)
-            const_test = self.get_const_test(D_test, s_test_expectation, s_test_outer_expectation)
-            test_inner_elbo = self.inner_test_solver(A_test, b_test) + const_test
-            return (training_inner_elbo.mean()
-                    + test_inner_elbo.mean()
-                    - kl)
-    
-    def predict_weights(self, D_test):
-        s_expectation = self.get_s_expectation(D_test.shape[0])
-        s_outer_expectation = self.get_s_outer_expectation(D_test.shape[0])
-        A_test = self.get_A_test(s_outer_expectation)
-        b_test = self.get_b_test(D_test, s_expectation)
-        if self.linear_map is not None:
-            mu_rho, Sigma_rho = self.inner_test_solver.get_weight_params(A_test, b_test)
-            mu_r = mu_rho @ self.linear_map.T + self.h
-            Sigma_r = self.linear_map@Sigma_rho@self.linear_map.T + 1e-8
-        else:
-            mu_r, Sigma_r = self.inner_test_solver.get_weight_params(A_test, b_test)
-        return torch.distributions.MultivariateNormal(mu_r,Sigma_r, validate_args=False)
+        return self.coordinator._elbo(
+                            s_train_expectation=s_train_expectation, 
+                            s_train_outer_expectation=s_train_outer_expectation, 
+                            D_train=D_train, 
+                            R_train=R_train,  
+                            s_test_expectation=s_test_expectation, 
+                            s_test_outer_expectation=s_test_outer_expectation,
+                            D_test=D_test
+                        )
     
     @abstractmethod
     def get_kl(self):
@@ -113,6 +51,129 @@ class MFModels(torch.nn.Module, ABC):
     @abstractmethod
     def get_s_outer_expectation(self):
         ...
+
+class ClassificationCoordinator:
+    def __init__(self, module:MFModels):
+        self.module = module 
+
+    def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train,  s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
+        assert R_train.shape == torch.Size([D_train.shape[0]])
+
+        s_outer_diag_expextation = s_train_outer_expectation[...,range(self.module.C), range(self.module.C)]
+        if len(s_train_expectation.shape)==3:
+            s_train_expectation_c = s_train_expectation.gather(dim=-1, index=R_train[:,None,None].expand(-1,self.module.M,-1)).squeeze(-1)
+            s_train_squared_expectation_c = s_outer_diag_expextation.gather(dim=-1, index=R_train[:,None]).squeeze(-1)
+        elif len(s_train_expectation.shape)==4:
+            s_train_expectation_c = s_train_expectation.gather(dim=-1, index=R_train[None,:,None,None].expand(s_train_expectation.shape[0],-1,self.module.M,-1)).squeeze(-1)
+            s_train_squared_expectation_c = s_outer_diag_expextation.gather(dim=-1, index=R_train[None,:,None].expand(s_train_expectation.shape[0],-1,-1)).squeeze(-1)
+        else:
+            raise AssertionError("I should not be here")
+        if D_test == None:
+            elbo = -1/(2*self.module.sigma2)*((D_train**2).sum() - (2*D_train[...,:,:]*s_train_expectation_c).sum(dim=[-1,-2]).mean() + s_train_squared_expectation_c.sum(dim=[-1]).mean())- self.module.M*D_train.shape[0]/2*torch.log(2*torch.pi*self.module.sigma2)
+            return elbo
+        else:
+            ...
+
+    def predict_weights(self, D_test, s_test_expectation, s_test_outer_expectation):
+        s_test_squared_expectation = torch.diag(s_test_outer_expectation)
+        -1/(2*self.module.sigma2)*((D_test**2).sum(dim=-2) - 2*D_test[:,:,None]*s_test_expectation + s_test_squared_expectation)
+
+class NormalCoordinator:
+    def __init__(self,module:MFModels,sum_to_one:bool):
+        self.module=module
+        self.inner_train_solver = MultivariateNormalSolver(self.module.C_unobs)
+        if sum_to_one:
+            self.linear_map = torch.vstack([torch.zeros(self.module.C-1), torch.eye(self.module.C-1)])
+            self.linear_map[:self.module.C_obs, :self.module.C_obs-1] = generate_regular_simplex(self.module.C_obs-1)
+            self.h = torch.zeros(self.module.C)
+            self.h[:self.module.C_obs] = torch.ones(self.module.C_obs)/self.module.C_obs
+            self.inner_test_solver = MultivariateNormalSolver(self.module.C -1)
+        else:
+            self.linear_map = None
+            self.inner_test_solver = MultivariateNormalSolver(self.module.C)
+
+    def get_A_test(self, s_outer_expectation):
+        if self.linear_map is not None:
+            return self.linear_map.T@(1/(self.module.sigma2)*(s_outer_expectation))@self.linear_map # [N] x (C-1) x (C-1) 
+        else:
+            return 1/(self.module.sigma2)*(s_outer_expectation) # [N] x C x C 
+        
+    def get_b_test(self, D_test, s_expectation: torch.Tensor):
+        if self.linear_map is not None: 
+            return 1/(self.module.sigma2)*((D_test - (self.h[..., :]*s_expectation).sum(dim=-1))[..., None, None]*s_expectation[...,None]*self.linear_map[...,None,None,:,:]).sum(dim=[-2,-3]) # N x (C-1)
+        else:
+            return 1/(self.module.sigma2)*(D_test[:,:,None]*s_expectation).sum(dim=-2) # N x C 
+
+                
+    def get_const_test(self, D_test, s_expectation: torch.Tensor, s_outer_expectation: torch.Tensor):
+        if self.linear_map is not None:
+            # If something breaks for structured VI, look here
+            return -(D_test.shape[1] * D_test.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_test**2).sum() - 2 * (D_test[..., None] * s_expectation *self.h[...,None,None,:]).sum(dim=[-3,-2,-1]).mean()  + (self.h[...,None, None, :]*s_outer_expectation*self.h[...,None, :, None]).sum(dim=[-3,-2,-1]).mean())
+        else: 
+            const_test= -(D_test.shape[1] * D_test.shape[0] )/2*torch.log(self.module.sigma2)- 1/(2*self.module.sigma2)*(D_test**2).sum()
+            if len(s_expectation.shape)==3:
+                return const_test
+            if len(s_expectation.shape)==4:
+                return const_test[None,...]
+            else:
+                raise AssertionError("I should never be here")
+
+    def get_A_train(self, s_unobs_outer_expectation):
+        return 1/(self.module.sigma2)*(s_unobs_outer_expectation)
+    
+    def get_b_train(self, D_train, R_train, s_unobs_expectation, s_outer_cross_expectation):
+        # return 1/(self.parent.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=1) - (R_train[:,:,None]*s_outer_cross_expectation).sum(dim=1))
+        return 1/(self.module.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=-2) - (R_train[:,:,None]*s_outer_cross_expectation).sum(dim=-2))
+                
+    def get_const_train(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
+        return -(D_train.shape[1] * D_train.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
+               
+               # torch.einsum("nm, mc, cn", D_train, s_obs_expectation, R_train.T)                                                                          #    torch.einsum("nc, ncd, dn",R_train,s_obs_outer_expectation,R_train.T))
+    
+    def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train,  s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
+        assert R_train.shape[1] == self.module.C_obs
+        s_train_obs_expectation = s_train_expectation[...,:self.module.C_obs]
+        s_train_unobs_expectation = s_train_expectation[...,self.module.C_obs:]
+
+        s_train_obs_outer_expectation = s_train_outer_expectation[..., :self.module.C_obs,:self.module.C_obs]
+        s_train_cross_outer_expectation = s_train_outer_expectation[..., :self.module.C_obs,self.module.C_obs:]
+        s_train_unobs_outer_expectation = s_train_outer_expectation[..., self.module.C_obs:,self.module.C_obs:]
+
+        
+
+        A_train = self.get_A_train(s_train_unobs_outer_expectation) # C_unobs x C_unobs
+        b_train = self.get_b_train(D_train, R_train, s_train_unobs_expectation, s_train_cross_outer_expectation) # N x C_unobs
+        const_train = self.get_const_train(D_train, R_train, s_train_obs_expectation, s_train_obs_outer_expectation)
+        training_inner_elbo = self.inner_train_solver(A_train, b_train).mean() + const_train.mean()
+        kl = self.module.get_kl()
+        if D_test is None: 
+            return training_inner_elbo.mean() - kl
+        else: 
+            assert s_test_expectation is not None
+            assert s_test_outer_expectation is not None
+            A_test = self.get_A_test(s_test_outer_expectation)
+            b_test = self.get_b_test(D_test, s_test_expectation)
+            const_test = self.get_const_test(D_test, s_test_expectation, s_test_outer_expectation)
+            test_inner_elbo = self.inner_test_solver(A_test, b_test).mean() + const_test
+            return (training_inner_elbo
+                    + test_inner_elbo
+                    - kl)
+    
+    def predict_weights(self, D_test):
+        s_expectation = self.module.get_s_expectation(D_test.shape[0])
+        s_outer_expectation = self.module.get_s_outer_expectation(D_test.shape[0])
+        A_test = self.get_A_test(s_outer_expectation)
+        b_test = self.get_b_test(D_test, s_expectation)
+        if self.linear_map is not None:
+            mu_rho, Sigma_rho = self.inner_test_solver.get_weight_params(A_test, b_test)
+            mu_r = mu_rho @ self.linear_map.T + self.h
+            Sigma_r = self.linear_map@Sigma_rho@self.linear_map.T + 1e-8
+        else:
+            mu_r, Sigma_r = self.inner_test_solver.get_weight_params(A_test, b_test)
+        return torch.distributions.MultivariateNormal(mu_r,Sigma_r, validate_args=False)
+
+
+
 
 class MFStaticSignals(MFModels):
     def __init__(self,M, C_obs, C_unobs=0, sigma2=1, sum_to_one = False):
@@ -224,19 +285,19 @@ class MFVariableSignalsObservedInputs(MFModels, WLIndependentGPs):
     def predict_weights(self, D_test, x_test):
         s_expectation = self.get_s_expectation(x_test)
         s_outer_expectation = self.get_s_outer_expectation(x_test)
-        A_test = self.get_A_test(s_outer_expectation)
-        b_test = self.get_b_test(D_test, s_expectation)
-        if self.linear_map is not None:
-            mu_rho, Sigma_rho = self.inner_test_solver.get_weight_params(A_test, b_test)
-            mu_r = mu_rho @ self.linear_map.T + self.h
-            Sigma_r = self.linear_map@Sigma_rho@self.linear_map.T + 1e-8
+        A_test = self.coordinator.get_A_test(s_outer_expectation)
+        b_test = self.coordinator.get_b_test(D_test, s_expectation)
+        if self.coordinator.linear_map is not None:
+            mu_rho, Sigma_rho = self.coordinator.inner_test_solver.get_weight_params(A_test, b_test)
+            mu_r = mu_rho @ self.coordinator.linear_map.T + self.h
+            Sigma_r = self.coordinator.linear_map@Sigma_rho@self.coordinator.linear_map.T + 1e-8
         else:
-            mu_r, Sigma_r = self.inner_test_solver.get_weight_params(A_test, b_test)
+            mu_r, Sigma_r = self.coordinator.inner_test_solver.get_weight_params(A_test, b_test)
         return torch.distributions.MultivariateNormal(mu_r,Sigma_r, validate_args=False)
     
 class MFVariableSignals(MFModels, WLIndependentGPs):
-    def __init__(self, V, M, C_obs, mu_x_train, mu_x_test, C_unobs=0, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None, ):
-        MFModels.__init__(self,M, C_obs, C_unobs, sigma2, sum_to_one)
+    def __init__(self, V, M, C_obs, mu_x_train, mu_x_test, C_unobs=0, sigma2=1, weight_distribution="continuos", beta=None,sigma2_s=None, ):
+        MFModels.__init__(self,M=M, C_obs=C_obs, C_unobs=C_unobs, sigma2=sigma2, weight_distribution=weight_distribution)
         WLIndependentGPs.__init__(self, self.C, M, V, beta = None, sigma2_s = None, trainable_V = True)
         self.A = self.input_dims
         assert mu_x_train.shape[1] == self.A
@@ -260,7 +321,6 @@ class MFVariableSignals(MFModels, WLIndependentGPs):
         return kl_train + kl_test
     
     def elbo(self,D_train, R_train, D_test=None):
-        assert R_train.shape[1] == self.C_obs
         s_train_expectation = self.get_s_expectation(self.mu_x_train, self.Sigma_x_train)
         s_train_outer_expectation = self.get_s_outer_expectation(self.mu_x_train, self.Sigma_x_train)
         if D_test is None: 
@@ -329,14 +389,14 @@ class MFVariableSignals(MFModels, WLIndependentGPs):
         """
         s_expectation = self.get_s_expectation(self.mu_x_test, self.Sigma_x_test)
         s_outer_expectation = self.get_s_outer_expectation(self.mu_x_test, self.Sigma_x_test)
-        A_test = self.get_A_test(s_outer_expectation)
-        b_test = self.get_b_test(D_test, s_expectation)
-        if self.linear_map is not None:
-            mu_rho, Sigma_rho = self.inner_test_solver.get_weight_params(A_test, b_test)
-            mu_r = mu_rho @ self.linear_map.T + self.h
-            Sigma_r = self.linear_map@Sigma_rho@self.linear_map.T + 1e-8
+        A_test = self.coordinator.get_A_test(s_outer_expectation)
+        b_test = self.coordinator.get_b_test(D_test, s_expectation)
+        if self.coordinator.linear_map is not None:
+            mu_rho, Sigma_rho = self.coordinator.inner_test_solver.get_weight_params(A_test, b_test)
+            mu_r = mu_rho @ self.coordinator.linear_map.T + self.coordinator.h
+            Sigma_r = self.coordinator.linear_map@Sigma_rho@self.coordinator.linear_map.T + 1e-8
         else:
-            mu_r, Sigma_r = self.inner_test_solver.get_weight_params(A_test, b_test)
+            mu_r, Sigma_r = self.coordinator.inner_test_solver.get_weight_params(A_test, b_test)
         return torch.distributions.MultivariateNormal(mu_r,Sigma_r, validate_args=False)
     
     @property 

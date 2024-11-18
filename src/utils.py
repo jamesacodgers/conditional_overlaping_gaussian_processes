@@ -6,6 +6,105 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 
 
+def train_conditional_model_lbfgs(model, D_train, R_train,  n_steps, D_test=None, plot = False, params = None, lr=None):
+    def closure():
+        optimizer.zero_grad()
+        _optimize_lvs(model=model,D_train=D_train,R_train=R_train, D_test=D_test)
+        optimizer.zero_grad()
+        loss = -model.elbo(
+            D_train=D_train,
+            R_train=R_train, 
+            D_test=D_test,
+            )
+        loss.backward()
+        return loss
+    if params is None:
+        params = model.parameters()
+    if lr:
+        optimizer = torch.optim.Adam(params, lr=lr)
+    else: 
+        optimizer = torch.optim.Adam(params)
+    # optimizer = torch.optim.Adam(params, lr=lr)
+    # optimizer = torch.optim.Rprop(params, lr=lr)
+    ll = []
+
+    iterator = tqdm.tqdm(range(n_steps))
+    for _ in iterator:
+        loss = -model.elbo(
+            D_train=D_train,
+            R_train=R_train, 
+            D_test=D_test,
+            )
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step(closure)
+        ll.append(model.elbo(
+            D_train=D_train,
+            R_train=R_train, 
+            D_test=D_test,
+            ).detach().item())
+        iterator.set_postfix(loss=ll[-1])
+    
+    if plot:
+        with torch.no_grad():
+            plt.figure()
+            plt.plot(ll)
+            plt.show()
+    return ll 
+
+def _optimize_lvs(model, D_train, R_train, D_test=None):
+    # model.mu_x_test = torch.nn.Parameter(torch.zeros_like(model.mu_x_test))
+    # model.mu_x_train = torch.nn.Parameter(torch.zeros_like(model.mu_x_train))
+    model.mu_x_test = torch.nn.Parameter(torch.randn_like(model.mu_x_test))
+    model.mu_x_train = torch.nn.Parameter(torch.randn_like(model.mu_x_train))
+    model._log_Sigma_x_test = torch.nn.Parameter(torch.zeros_like(model.mu_x_test))
+    model._log_Sigma_x_train = torch.nn.Parameter(torch.zeros_like(model.mu_x_train))
+    train_lbfgs(model, D_train=D_train, R_train=R_train, D_test=D_test, n_steps=2, convergence_level=2, params=[
+        model.mu_x_test, 
+        model.mu_x_train, 
+        model._log_Sigma_x_test, 
+        model._log_Sigma_x_train
+    ])
+
+def train_conditional_model_gd(model, D_train, R_train,  n_steps, D_test=None, plot = False, params = None, lr=None):
+    if params is None:
+        params = model.parameters()
+    if lr:
+        optimizer = torch.optim.Adam(params, lr=lr)
+    else: 
+        optimizer = torch.optim.Adam(params)
+    # optimizer = torch.optim.Adam(params, lr=lr)
+    # optimizer = torch.optim.Rprop(params, lr=lr)
+    ll = []
+
+
+
+    itterator = tqdm.tqdm(range(n_steps))
+    for epoch in itterator:  
+        
+        optimizer.zero_grad()
+        _optimize_lvs(model=model,D_train=D_train,R_train=R_train, D_test=D_test)
+        optimizer.zero_grad()
+        loss = - model.elbo(D_train=D_train,R_train=R_train, D_test=D_test)
+       
+        loss.backward()
+        optimizer.step()
+        # step()
+        ll.append(model.elbo( D_train=D_train, R_train=R_train, D_test=D_test).detach().item())
+        # if epoch % 10 == 0:
+        #     print("cache cleared ")
+        #     torch.cuda.empty_cache()
+        itterator.set_postfix(loss=-loss.item())
+    
+    if plot:
+        with torch.no_grad():
+            plt.figure()
+            plt.plot(ll)
+            plt.show()
+    return ll 
+    
+
+
 def plot_preds(R_test, cond_preds: torch.distributions.Distribution = None, mf_preds = None, title=None) -> None: 
     with torch.no_grad():
         # samples = preds.sample((1000, )).reshape((1000*P, 150,  2))
@@ -22,10 +121,13 @@ def plot_preds(R_test, cond_preds: torch.distributions.Distribution = None, mf_p
             plt.title(title)
         if cond_preds: 
             means = cond_preds.mean[:,:,0]
-            vars = cond_preds.covariance_matrix[:,:,0,0]
-            cond_preds_1d = norm(cond_preds.mean[:,:,0].detach().numpy(), np.sqrt(cond_preds.covariance_matrix[:,:,0,0].detach().numpy()))
-            err = np.array([get_percentile(cond_preds_1d, 0.5) - get_percentile(cond_preds_1d, 0.025), get_percentile(cond_preds_1d, 0.975) - get_percentile(cond_preds_1d, 0.5)])
-            plt.errorbar(R_test[:,0], means.mean(dim=0), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
+            # vars = cond_preds.covariance_matrix[:,:,0,0]
+            # cond_preds_1d = norm(cond_preds.mean[:,:,0].detach().numpy(), np.sqrt(cond_preds.covariance_matrix[:,:,0,0].detach().numpy()))
+            plt.scatter(R_test[:,0], means.mean(dim=0))
+            for mean in means:
+                plt.scatter(R_test[:,0], mean, c="green", alpha=0.1)
+            # err = np.array([get_percentile(cond_preds_1d, 0.5) - get_percentile(cond_preds_1d, 0.025), get_percentile(cond_preds_1d, 0.975) - get_percentile(cond_preds_1d, 0.5)])
+            # plt.errorbar(R_test[:,0], means.mean(dim=0), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
             # plt.errorbar(R_test[:,0], get_percentile(cond_preds_1d, 0.5), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
         if mf_preds: 
             mf_means = mf_preds.mean[:,0]
@@ -37,7 +139,7 @@ def plot_preds(R_test, cond_preds: torch.distributions.Distribution = None, mf_p
         plt.show()
 
 
-def train_lbfgs(model, D_train, R_train,D_test, steps = 3 , plot = False, params=None, convergence_level = None):
+def train_lbfgs(model, D_train, R_train,D_test=None, n_steps = 3 , plot = False, params=None, convergence_level = None):
     def closure():
         optimizer.zero_grad()
         loss = -model.elbo(
@@ -55,7 +157,7 @@ def train_lbfgs(model, D_train, R_train,D_test, steps = 3 , plot = False, params
     # optimizer = torch.optim.LBFGS([model._mu_u, model._raw_chol])
     # optimizer = torch.optim.LBFGS(model.parameters())
     optimizer = torch.optim.LBFGS(params=params, line_search_fn="strong_wolfe")
-    iterator = tqdm.tqdm(range(steps))
+    iterator = tqdm.tqdm(range(n_steps))
     for _ in iterator:
         loss = -model.elbo(
             D_train=D_train,
@@ -112,7 +214,7 @@ def get_both_pca_values(D_train, R_train, D_test, num_latent_dimensions):
     return U_scaled[:D_train.shape[0]], U_scaled[D_train.shape[0]:]
 
 
-def train_gd(model, D_train, R_train, D_test, n_steps, plot = False, params = None, lr=None):
+def train_gd(model, D_train, R_train,  n_steps, D_test=None, plot = False, params = None, lr=None):
     if params is None:
         params = model.parameters()
     if lr:
