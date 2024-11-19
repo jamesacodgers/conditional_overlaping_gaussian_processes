@@ -40,6 +40,9 @@ class MFModels(torch.nn.Module, ABC):
                             D_test=D_test
                         )
     
+    def predict_weights(self, D_test):
+        return self.coordinator.predict_weights(D_test)
+
     @abstractmethod
     def get_kl(self):
         ...
@@ -176,26 +179,12 @@ class NormalCoordinator:
 
 
 class MFStaticSignals(MFModels):
-    def __init__(self,M, C_obs, C_unobs=0, sigma2=1, sum_to_one = False):
-        super(MFStaticSignals, self).__init__(M, C_obs, C_unobs, sigma2, sum_to_one)
-        # self.M = M 
-        # self.C_obs = C_obs
-        # self.C_unobs = C_unobs
-        # self.C = self.C_obs + self.C_unobs
-        # self._log_sigma2 = torch.nn.Parameter(torch.log(torch.tensor(sigma2, dtype=torch.float)))
+    def __init__(self,M, C_obs, C_unobs=0, sigma2=1, weight_distribution = "sum_to_one"):
+        super(MFStaticSignals, self).__init__(M=M, C_obs=C_obs, C_unobs=C_unobs, sigma2=sigma2, weight_distribution=weight_distribution)
+   
         self.mu_S = torch.nn.Parameter(torch.randn(M, self.C))
         self._raw_chol_S = torch.nn.Parameter(torch.eye(self.C))
-        # self.inner_train_solver = MultivariateNormalSolver(self.C_unobs)
-        # if sum_to_one:
-        #     self.linear_map = torch.vstack([torch.zeros(self.C-1), torch.eye(self.C-1)])
-        #     self.linear_map[:self.C_obs, :self.C_obs-1] = generate_regular_simplex(self.C_obs-1)
-        #     self.linear_map[:-self.C_unobs, ]
-        #     self.omega = torch.zeros(self.C)
-        #     self.omega[:self.C_obs] = torch.ones(self.C_obs)/self.C_obs
-        #     self.inner_test_solver = MultivariateNormalSolver(self.C -1)
-        # else:
-        #     self.linear_map = None
-        #     self.inner_test_solver = MultivariateNormalSolver(self.C)
+ 
         self._log_priors_T = torch.nn.Parameter(torch.zeros(self.C_unobs))
 
 
@@ -217,6 +206,8 @@ class MFStaticSignals(MFModels):
     
     def get_s_outer_expectation(self,N):
         return (self.mu_S.T@ self.mu_S + self.M*self.Sigma_S)[None,...].repeat(N,1,1)
+    
+
         
     # def get_unobs_train_weights(self, D_train, R_train):
     #     b_train = 1/(self.sigma2)*(D_train - R_train@self.mu_S.T)@self.mu_T # N x C 
