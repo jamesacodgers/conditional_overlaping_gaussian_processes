@@ -24,7 +24,7 @@ class WLIndependentGPs:
             sigma2_s = [1]*self.C
 
         # store GP parameters
-        self._log_beta = torch.nn.Parameter(torch.log(torch.tensor(beta))) + 2
+        self._log_beta = torch.nn.Parameter(torch.log(torch.tensor(beta))) 
         self._log_sigma2_s = torch.nn.Parameter( torch.log(torch.tensor(sigma2_s)))
         self.L = self.V.shape[0]
         self._mu_u = torch.nn.Parameter(torch.zeros(self.M, self.C*self.L ))
