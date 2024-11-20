@@ -17,6 +17,7 @@ def save_results_csv(file_name, path, results_dict):
         df.to_csv(path, index = False)
 
 
+    print(f"results saved in {path}")
 
 
 
@@ -28,6 +29,7 @@ def save_model(path, experiment_name, seed, data_idx, model):
 
     file_name = f'{experiment_name}_rs={seed}_data_idx={data_idx}.pt'
     torch.save(model, path / file_name)
+    print(f"model saved in {path}")
 
     
 
@@ -36,4 +38,4 @@ def save_elbos(path, file_appendix, elbos):
 
     os.makedirs(path, exist_ok = True)
 
-    torch.save(elbos, path / f'elbo_{file_appendix}')
+    torch.save(elbos, path / f'elbo_{file_appendix}')    
