@@ -6,7 +6,7 @@ from scipy.stats.qmc import LatinHypercube
 from src.mf_methods import MFVariableSignalsObservedInputs, MFVariableSignals
 
 class StrucVariableSignalsObservedInputs(MFVariableSignalsObservedInputs):
-    def __init__(self, P, V, M, C_obs, C_unobs=0, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None):
+    def __init__(self, P, V, M, C_obs, C_unobs=0, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None,):
         super(StrucVariableSignalsObservedInputs, self). __init__(V, M, C_obs, C_unobs=C_unobs, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None)
         self.P = P
         self._samples = torch.distributions.Normal(0,1).icdf((torch.quasirandom.SobolEngine(self.L*self.C).draw(P)+1/P)*(1-2/P))
@@ -121,18 +121,24 @@ class StrucVariableSignalsObservedInputs(MFVariableSignalsObservedInputs):
     
     
 class StrucVariableSignals(MFVariableSignals):
-    def __init__(self,P, V, M, C_obs, mu_x_train, mu_x_test, C_unobs=0, sigma2=1, weight_distribution="continuos", beta=None,sigma2_s=None, ):
+    def __init__(self,P, V, M, C_obs, mu_x_train, mu_x_test, C_unobs=0, sigma2=1, weight_distribution="continuos", beta=None,sigma2_s=None, add_randn_to_lvs = False):
         super(StrucVariableSignals,self).__init__(V, M, C_obs, mu_x_train, mu_x_test, C_unobs=C_unobs, sigma2=sigma2, weight_distribution=weight_distribution, beta=None,sigma2_s=None, )
         self.P = P
 
         self._mu_u = torch.nn.Parameter(torch.zeros_like(self._mu_u))
 
-        # self.mu_x_train = torch.nn.Parameter(self.mu_x_train[None,...].repeat(self.P,1,1))
-        # self.mu_x_test = torch.nn.Parameter(self.mu_x_test[None,...].repeat(self.P,1,1))
-        self.mu_x_train = torch.nn.Parameter(torch.randn(self.P,self.mu_x_train.shape[0], self.A))
-        self.mu_x_test = torch.nn.Parameter(torch.randn(self.P,self.mu_x_test.shape[0], self.A))
+        self.mu_x_train = torch.nn.Parameter(self.mu_x_train[None,...].repeat(self.P,1,1))
+        self.mu_x_test = torch.nn.Parameter(self.mu_x_test[None,...].repeat(self.P,1,1))
+
+        if add_randn_to_lvs: 
+            self.mu_x_train = torch.nn.Parameter(self.mu_x_train + torch.randn_like(self.mu_x_train))
+            self.mu_x_test = torch.nn.Parameter(self.mu_x_test + torch.randn_like(self.mu_x_test))
+
+
         self._log_sigma_x_train = torch.nn.Parameter(self.Sigma_x_train[None,...].repeat(self.P,1,1))
         self._log_sigma_x_test = torch.nn.Parameter(self.Sigma_x_test[None,...].repeat(self.P,1,1))
+
+        
 
         self.P = P
         sample_generator = torch.quasirandom.SobolEngine(self.L*self.C, seed=1, )
