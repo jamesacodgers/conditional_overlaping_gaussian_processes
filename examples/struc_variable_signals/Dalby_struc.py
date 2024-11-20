@@ -37,11 +37,11 @@ def main(args):
     # else:
     experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}"
     work_dir = Path(args.work_dir)
-    D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin=150_trimmax=250.pkl")
+    D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin=150_trimmax=250.pkl")
 
-    R_train = torch.load(f"data/Dalby/splits/r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    R_test = torch.load(f"data/Dalby/splits/r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    R_train = torch.load(f"data/Dalby/splits/r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin=150_trimmax=250.pkl")
+    R_test = torch.load(f"data/Dalby/splits/r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin=150_trimmax=250.pkl")
 
     V = torch.randn(args.num_inducing,args.num_latent_dims)
 
@@ -173,21 +173,6 @@ if __name__ == "__main__":
 	    type=int,
         default=1,
         help="number of unobserved components",
-    )
-
-    argparser.add_argument(
-        "--min_wavelength",
-        "-minwl",
-	type=int,
-        default=150,
-        help="where to trim spectra below",
-    )
-    argparser.add_argument(
-        "--max_wavelength",
-        "-maxwl",
-	type=int,
-        default=250,
-        help="trim spectra above",
     )
 
     argparser.add_argument(
