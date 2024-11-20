@@ -146,7 +146,7 @@ if __name__ == "__main__":
         "--work_dir",
         "-wd",
 	type=str,
-        default="/Users/jo816/projects/conditional_overlaping_gaussian_processes",
+        default=".",
         help="working directory",
     )
     

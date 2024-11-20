@@ -1,0 +1,62 @@
+
+If the anaconda3/personal module is the only one you're using in your jobscripts, then you should consider moving to our newer cluster - CX3 Phase 2.
+It provides a number of improvements as well as new GPU's (NVIDIA L40S's). It runs off of the RDS, meaning all your work will remain as is.
+All you need to do is log in to the new cluster:
+https://icl-rcs-user-guide.readthedocs.io/en/latest/hpc/pilot/cx3-phase2/
+https://icl-rcs-user-guide.readthedocs.io/en/latest/hpc/pilot/cx3-phase2/#python-and-conda-environments
+
+As always, if you have any questions, please raise a ticket with us here:
+https://www.imperial.ac.uk/admin-services/ict/self-service/research-support/rcs/get-support/contact-us/
+
+  0%|          | 0/20 [00:00<?, ?it/s]  0%|          | 0/20 [00:02<?, ?it/s, loss=2.12e+4]  5%|▌         | 1/20 [00:02<00:48,  2.57s/it, loss=2.12e+4]  5%|▌         | 1/20 [00:05<00:48,  2.57s/it, loss=5.85e+4] 10%|█         | 2/20 [00:05<00:51,  2.84s/it, loss=5.85e+4] 10%|█         | 2/20 [00:08<01:12,  4.02s/it, loss=5.85e+4]
+Traceback (most recent call last):
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/examples/variable_signals/Dalby_mf.py", line 182, in <module>
+    main(args)
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/examples/variable_signals/Dalby_mf.py", line 52, in main
+    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 20, plot=args.plot, convergence_level=1))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/src/utils.py", line 66, in train_lbfgs
+    optimizer.step(closure)
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/.conda/lib/python3.11/site-packages/torch/optim/optimizer.py", line 391, in wrapper
+    out = func(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/.conda/lib/python3.11/site-packages/torch/_dynamo/eval_frame.py", line 451, in _fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/.conda/lib/python3.11/site-packages/torch/_dynamo/external_utils.py", line 36, in inner
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/.conda/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/.conda/lib/python3.11/site-packages/torch/optim/lbfgs.py", line 433, in step
+    loss, flat_grad, t, ls_func_evals = _strong_wolfe(
+                                        ^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/.conda/lib/python3.11/site-packages/torch/optim/lbfgs.py", line 98, in _strong_wolfe
+    f_new, g_new = obj_func(x, t, d)
+                   ^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/.conda/lib/python3.11/site-packages/torch/optim/lbfgs.py", line 431, in obj_func
+    return self._directional_evaluate(closure, x, t, d)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/.conda/lib/python3.11/site-packages/torch/optim/lbfgs.py", line 285, in _directional_evaluate
+    loss = float(closure())
+                 ^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/.conda/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/src/utils.py", line 42, in closure
+    loss = -model.elbo(
+            ^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/src/mf_methods.py", line 271, in elbo
+    return self._elbo(
+           ^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/src/mf_methods.py", line 87, in _elbo
+    test_inner_elbo = self.inner_test_solver(A_test, b_test) + const_test
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/src/inner_optimisers.py", line 66, in __call__
+    return self.get_inner_elbo(A,b)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/jo816/home/conditional_overlaping_gaussian_processes/src/inner_optimisers.py", line 70, in get_inner_elbo
+    Ma_chol = torch.linalg.cholesky(Ma)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+torch._C._LinAlgError: linalg.cholesky: (Batch element 0): The factorization could not be completed because the input is not positive-definite (the leading minor of order 1 is not positive-definite).
