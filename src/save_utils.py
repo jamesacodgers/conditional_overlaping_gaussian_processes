@@ -28,7 +28,7 @@ def save_model(path, experiment_name, seed, data_idx, model):
     os.makedirs(path, exist_ok = True)
 
     file_name = f'{experiment_name}_rs={seed}_data_idx={data_idx}.pt'
-    torch.save(model, path / file_name)
+    torch.save(model.state_dict(), path / file_name)
     print(f"model saved in {path}")
 
     

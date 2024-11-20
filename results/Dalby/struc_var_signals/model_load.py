@@ -1,6 +1,0 @@
-# %%
-
-import torch 
-
-
-torch.load()

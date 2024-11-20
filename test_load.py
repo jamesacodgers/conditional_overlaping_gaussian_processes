@@ -16,6 +16,7 @@ ts = 0.1
 
 # path_dict = {"Dalby": }
 
-model_loaded = torch.load(f"results/Dalby/mf_static_signals/models/Dalby_test_size={ts}_num_unobs=1_rs={seed}_data_idx={dataset}.pt")
+model_loaded = torch.load("results/Dalby/struc_var_signals/models/Dalby_test_size=0.5_c_unobs=1_L=4_A=2_P=8_rs=6_data_idx=2.pt")
+print(model_loaded)
 for name, param in model_loaded.named_parameters():
     print(name, param)

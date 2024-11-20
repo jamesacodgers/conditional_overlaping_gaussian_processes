@@ -31,6 +31,7 @@ def main(args):
     r_test = torch.load(f"data/Dalby/splits/r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
     mf_static_signals = MFStaticSignals(M=d_test.shape[1], C_obs=r_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
+    mf_static_signals = torch.compile(mf_static_signals)
 
     mf_ll = []
     # mf_ll = train_eiot_sgd(mf_eiot, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=1, plot=args.plot)
