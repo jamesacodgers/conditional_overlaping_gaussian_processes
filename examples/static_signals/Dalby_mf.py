@@ -8,7 +8,7 @@ from itertools import chain
 import copy
 import numpy as np
 import pandas as pd
-from src.save_utils import save_parameters, save_results_csv
+from src.save_utils import save_model, save_results_csv
 
 from sklearn.cross_decomposition import PLSRegression
 
@@ -63,10 +63,7 @@ def main(args):
                     path= work_dir / "results" / "Dalby"/ "mf_static_signals" / "csvs" / f'{experiment_name}.csv', 
                     results_dict=mf_results_dict)
     
-
-
-
-    save_parameters(file_name= f'{experiment_name}.csv', 
+    save_model(experiment_name=experiment_name, seed=args.random_seed, data_idx=args.data_idx, 
                     path=work_dir / "results" / "Dalby"/ "mf_static_signals" / "models", 
                     model=mf_static_signals)
     

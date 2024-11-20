@@ -8,7 +8,7 @@ from itertools import chain
 import copy
 import numpy as np
 import pandas as pd
-from src.save_utils import save_parameters, save_results_csv
+from src.save_utils import save_model, save_results_csv
 
 
 from sklearn.cross_decomposition import PLSRegression
@@ -29,11 +29,11 @@ def main(args):
     r_train = torch.load(f"data/Wulfert/splits/r_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
     r_test = torch.load(f"data/Wulfert/splits/r_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
 
-    mf_sto_eiot = MFStaticSignals(M=d_test.shape[1], C_obs=3, C_unobs=args.num_unobs, sigma2=1)
+    model = MFStaticSignals(M=d_test.shape[1], C_obs=3, C_unobs=args.num_unobs, sigma2=1)
 
-    mf_sto_ll = train_lbfgs(mf_sto_eiot, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=100, plot=args.plot, convergence_level=1)
+    mf_sto_ll = train_lbfgs(model, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=100, plot=args.plot, convergence_level=1)
 
-    mf_sto_preds = mf_sto_eiot.predict_weights(D_test=d_test)
+    mf_sto_preds = model.predict_weights(D_test=d_test)
 
     mf_sto_log_prob = torch.distributions.MultivariateNormal(mf_sto_preds.mean[:,:3], mf_sto_preds.covariance_matrix[:, :3, :3]).log_prob(r_test).sum()
 
@@ -52,9 +52,9 @@ def main(args):
                     results_dict=mf_sto_results_dict)
     
     
-    save_parameters(file_name= f'{experiment_name}.csv', 
-                    path=work_dir / "results" / "Wulfert" / "mf_static" /"models", 
-                    model=mf_sto_eiot)
+    save_model(experiment_name=experiment_name, seed=args.random_seed, data_idx=args.data_idx, 
+                    path=work_dir / "results" / "Wulfert"/ "mf_static_signals" / "models", 
+                    model=model)
 
 
 if __name__ == "__main__":
