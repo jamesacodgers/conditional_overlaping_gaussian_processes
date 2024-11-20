@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-name = "Dalby"
+name = "Wulfert"
 ts = "0.1"
 l = 8
 
@@ -25,15 +25,14 @@ rmse_idx = datas["rmsep"].idxmin()
 nll_idx = datas["log_prob"].idxmax()
 # %%
 print("msep")
-print(data["msep"].loc[elbo_idx].mean())
+print(data["msep"].loc[elbo_idx].mean()*1e4)
 # print(data["msep"].loc[elbo_idx].min())
-print(data["msep"].loc[elbo_idx].std())
-# %%
+print(data["msep"].loc[elbo_idx].std()*1e4)
 print("nll")
 print(data["log_prob"].loc[elbo_idx].mean())
 # print(data["msep"].loc[elbo_idx].min())
 print(data["log_prob"].loc[elbo_idx].std())
-
+# %%
 # plt.rcParams.update({
 #     "text.usetex": True,
 #     "font.family": "serif",  # Use LaTeX default font (Computer Modern)

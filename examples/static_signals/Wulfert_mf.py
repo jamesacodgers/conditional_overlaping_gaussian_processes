@@ -74,8 +74,8 @@ if __name__ == "__main__":
     argparser.add_argument(
         "--test_size",
         "-ts",
-        type=int,
-        default=0.5,
+        type=float,
+        default=0.1,
         help="Test size.",
     )
 

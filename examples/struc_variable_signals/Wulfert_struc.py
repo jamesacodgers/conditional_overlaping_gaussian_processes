@@ -24,7 +24,7 @@ def main(args):
     torch.manual_seed(args.random_seed)
 
     if args.no_snv:
-        experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_nosnv"
+        experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}_nosnv"
         work_dir = Path(args.work_dir)
         D_test = torch.load(f"data/Wulfert/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
         D_train = torch.load(f"data/Wulfert/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
@@ -32,7 +32,7 @@ def main(args):
         R_train = torch.load(f"data/Wulfert/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
         R_test = torch.load(f"data/Wulfert/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
     else:
-        experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}"
+        experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}"
         work_dir = Path(args.work_dir)
         D_test = torch.load(f"data/Wulfert/splits/d_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
         D_train = torch.load(f"data/Wulfert/splits/d_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
@@ -54,8 +54,8 @@ def main(args):
     model = torch.compile(model)
 
     ll = []
-    ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=True, n_steps=500, lr=0.02))
-    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 20, plot=True, convergence_level=5))
+    ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=False, n_steps=500, lr=0.02))
+    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 20, plot=False, convergence_level=5))
 
     preds = model.predict_weights(D_test)
 
@@ -108,12 +108,12 @@ def main(args):
 
 
     save_results_csv(file_name= f'{experiment_name}.csv', 
-                    path= work_dir / "results" / "mf_eiot" / "csvs" / f'{experiment_name}.csv', 
+                    path= work_dir / "results" / "Wulfert"/"struct_variable" / "csvs" / f'{experiment_name}.csv', 
                     results_dict=results_dict)
 
     
     save_parameters(file_name= f'{experiment_name}.csv', 
-                    path=work_dir / "results" / "Wulfert"/ "mf_eiot", 
+                    path=work_dir / "results" / "Wulfert"/ "struct_variable"/ "model", 
                     model=model)
     
 
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     argparser.add_argument(
         "--test_size",
         "-ts",
-        type=int,
+        type=float,
         default=0.5,
         help="Test size.",
     )
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         type=bool,
-        default=True,
+        default=False,
         help="plots figures",
     )
 
@@ -176,7 +176,7 @@ if __name__ == "__main__":
         "--num_latent_dims",
         "-nld",
 	type=int,
-        default=3,
+        default=4,
         help="number of latent dimensions",
     )
 
@@ -184,7 +184,7 @@ if __name__ == "__main__":
         "--num_inducing",
         "-ni",
         type=int,
-        default=12,
+        default=8,
         help="number of inducing dimensions"
     )
 
@@ -201,7 +201,7 @@ if __name__ == "__main__":
         "--num_samples",
         "-ns",
         type=int,
-        default=16,
+        default=32,
         help="number of samples"
     )
 

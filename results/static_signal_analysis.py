@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 name = "Wulfert"
-ts = "0.1"
+ts = "0.5"
 
 if name=="Dalby":
     data = pd.read_csv(f"results/Dalby/mf_static_signals/csvs/Dalby_test_size={ts}_num_unobs=1.csv")
     
 else: 
-    data = pd.read_csv(f"results/Wulfert/mf_static_signals/csvs/Wulfert_test_size={ts}_num_unobs=0.csv")
+    data = pd.read_csv(f"results/Wulfert/mf_static/csvs/Wulfertd_test_size={ts}_num_unobs=0_num_samples=16_covar_rank=1.csv")
 
 # %%
 data["msep"] = data["rmsep"]**2 # This is bad, but is the easiest way to do this 
@@ -24,14 +24,16 @@ rmse_idx = datas["rmsep"].idxmin()
 nll_idx = datas["log_prob"].idxmax()
 # %%
 print("msep")
-print(data["msep"].loc[elbo_idx].mean())
+print(data["msep"].loc[elbo_idx].mean()*10**4)
 # print(data["msep"].loc[elbo_idx].min())
-print(data["msep"].loc[elbo_idx].std())
-# %%
+print(data["msep"].loc[elbo_idx].std()*10**4)
+
 print("nll")
 print(data["log_prob"].loc[elbo_idx].mean())
 # print(data["msep"].loc[elbo_idx].min())
 print(data["log_prob"].loc[elbo_idx].std())
+
+# %%
 
 # plt.rcParams.update({
 #     "text.usetex": True,
