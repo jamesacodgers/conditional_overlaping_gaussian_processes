@@ -35,7 +35,7 @@ def main(args):
     #     R_train = torch.load(f"data/Dalby/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
     #     R_test = torch.load(f"data/Dalby/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
     # else:
-    experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}_an={args.add_noise_to_lvs}"
+    experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}_an={args.add_noise_to_lvs}_iz={args.init_zero}"
     work_dir = Path(args.work_dir)
     D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin=150_trimmax=250.pkl")
     D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin=150_trimmax=250.pkl")
@@ -45,8 +45,11 @@ def main(args):
 
     V = torch.randn(args.num_inducing,args.num_latent_dims)
 
-    mu_x_train = torch.zeros(R_train.shape[0], args.num_latent_dims)
-    mu_x_test = torch.zeros(R_test.shape[0], args.num_latent_dims)
+    if args.init_zero:
+        mu_x_train = torch.zeros(R_train.shape[0], args.num_latent_dims)
+        mu_x_test = torch.zeros(R_test.shape[0], args.num_latent_dims)
+    else: 
+        mu_x_train,mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, D_test=D_test, R_train=R_train, num_latent_dimensions=args.num_latent_dims)
 
     model = StrucVariableSignals(P=args.num_samples,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one", add_randn_to_lvs=args.add_noise_to_lvs)
     model = torch.compile(model)
@@ -199,6 +202,14 @@ if __name__ == "__main__":
         help="number of samples"
     )
     
+    argparser.add_argument(
+        "--init_zero",
+        "-iz",
+        type = bool,
+        default = False,
+        help = "lvs initialized with zero"
+    )
+
     argparser.add_argument(
         "--add_noise_to_lvs",
         "-an",

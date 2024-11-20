@@ -23,22 +23,22 @@ torch.set_default_dtype(torch.float64)
 def main(args):
     torch.manual_seed(args.random_seed)
 
-    if args.no_snv:
-        experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}_nosnv"
-        work_dir = Path(args.work_dir)
-        D_test = torch.load(f"data/Wulfert/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
-        D_train = torch.load(f"data/Wulfert/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
+    # if args.no_snv:
+    #     experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}_nosnv"
+    #     work_dir = Path(args.work_dir)
+    #     D_test = torch.load(f"data/Wulfert/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
+    #     D_train = torch.load(f"data/Wulfert/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
 
-        R_train = torch.load(f"data/Wulfert/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
-        R_test = torch.load(f"data/Wulfert/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
-    else:
-        experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}"
-        work_dir = Path(args.work_dir)
-        D_test = torch.load(f"data/Wulfert/splits/d_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
-        D_train = torch.load(f"data/Wulfert/splits/d_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
+    #     R_train = torch.load(f"data/Wulfert/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
+    #     R_test = torch.load(f"data/Wulfert/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
+    # else:
+    experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}_an={args.add_noise_to_lvs}_iz={args.init_zero}"
+    work_dir = Path(args.work_dir)
+    D_test = torch.load(f"data/Wulfert/splits/d_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
+    D_train = torch.load(f"data/Wulfert/splits/d_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
 
-        R_train = torch.load(f"data/Wulfert/splits/r_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
-        R_test = torch.load(f"data/Wulfert/splits/r_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
+    R_train = torch.load(f"data/Wulfert/splits/r_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
+    R_test = torch.load(f"data/Wulfert/splits/r_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
 
     V = torch.randn(args.num_inducing,args.num_latent_dims)
 
@@ -47,7 +47,11 @@ def main(args):
     #     plt.plot(D_test.T)
     #     plt.show()
 
-    mu_x_train, mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, R_train=R_train, D_test=D_test, num_latent_dimensions=args.num_latent_dims)
+    if args.init_zero:
+        mu_x_train = torch.zeros(R_train.shape[0], args.num_latent_dims)
+        mu_x_test = torch.zeros(R_test.shape[0], args.num_latent_dims)
+    else: 
+        mu_x_train,mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, D_test=D_test, R_train=R_train, num_latent_dimensions=args.num_latent_dims)
  
 
     model = StrucVariableSignals(P=args.num_samples,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
@@ -55,7 +59,7 @@ def main(args):
 
     ll = []
     ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=False, n_steps=500, lr=0.02))
-    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 20, plot=False, convergence_level=5))
+    ll.extend(train_lbfgs(model, D_train, R_train, D_test, 5, plot=False, convergence_level=5))
 
     preds = model.predict_weights(D_test)
 
@@ -113,7 +117,7 @@ def main(args):
 
     
     save_model(experiment_name=experiment_name, seed=args.random_seed, data_idx=args.data_idx, 
-                    path=work_dir / "results" / "Dalby"/ "struct_variable" / "models", 
+                    path=work_dir / "results" / "Wulfert"/ "struct_variable" / "models", 
                     model=model)
     
 
@@ -201,8 +205,24 @@ if __name__ == "__main__":
         "--num_samples",
         "-ns",
         type=int,
-        default=32,
+        default=8,
         help="number of samples"
+    )
+
+    argparser.add_argument(
+        "--init_zero",
+        "-iz",
+        type = bool,
+        default = False,
+        help = "lvs initialized with zero"
+    )
+
+    argparser.add_argument(
+        "--add_noise_to_lvs",
+        "-an",
+        type = bool,
+        default = True,
+        help = "should noise be added to the latent variables on init"
     )
 
     args = argparser.parse_args()
