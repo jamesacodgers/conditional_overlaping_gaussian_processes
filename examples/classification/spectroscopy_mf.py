@@ -19,7 +19,7 @@ def main(args):
     torch.set_default_dtype(torch.float64)
     work_dir = Path(args.work_dir)
 
-    experiment_name = f"spectroscopy_seed={args.random_seed}_data={args.data_idx}_L={args.num_inducing}_A={args.num_latent_dims}"
+    experiment_name = f"spectroscopy_seed_L={args.num_inducing}_A={args.num_latent_dims}"
 
 
     training_df = pd.read_csv(f"data/Hyperspectral/Rock_TRAIN_diff_fold_{args.data_idx}.tsv", delimiter="\t", header=None)
@@ -57,13 +57,13 @@ def main(args):
             )
     )
 
-    train_lbfgs(model=model, 
-                D_train=D_train, 
-                R_train=R_train_obs, 
-                D_test=D_test, 
-                n_steps=10, 
-                plot=False,
-                convergence_level=5)
+    # train_lbfgs(model=model, 
+    #             D_train=D_train, 
+    #             R_train=R_train_obs, 
+    #             D_test=D_test, 
+    #             n_steps=10, 
+    #             plot=False,
+    #             convergence_level=5)
 
 
     # %%
