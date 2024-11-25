@@ -75,7 +75,7 @@ def main(args):
     acc = torch.mean((torch.argmax(preds, dim=1) == R_test).type(torch.float))
 
 
-    log_prob = torch.log(torch.gather(preds, dim=1, index=R_test[:,None]).sum())
+    log_prob = torch.log(torch.gather(preds, dim=1, index=R_test[:,None])).sum()
     auc = BinaryAUROC()
     for c in range(model.C):
         class_vals = (R_test == c).type(torch.int)
@@ -142,7 +142,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         type=bool,
-        default=True,
+        default=False,
         help="plots figures",
     )
 
