@@ -9,18 +9,17 @@ ts = "0.1"
 
 
 
-name = "Wulfert"
-ts = "0.1"
+name = "Dalby"
 
 
-data = pd.read_csv(f"results/Wulfert/pls/csvs/Struc_Wulfert_test_size={ts}_c_unobs=0_L=8_A=4_P=32.csv")
+data = pd.read_csv(f"results/Dalby/pls/csvs/Dalby_test_size={ts}.csv")
 
 
 # %%
 data["msep"] = data["rmsep"]**2 # This is bad, but is the easiest way to do this 
 
 # %%
-print(data["msep"].mean()*1e4)
+print(data["msep"].mean())
 print(data["msep"].std())
 # %%
 # elbo_idx = datas["elbo"].idxmax()
@@ -28,3 +27,4 @@ print(data["msep"].std())
 # nll_idx = datas["log_prob"].idxmax()
 # %%
 
+plt.scatter(data["data_set"], data["msep"])

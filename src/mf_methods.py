@@ -174,11 +174,11 @@ class NormalCoordinator:
                     + test_inner_elbo
                     - kl)
     
-    def predict_weights(self, D_test, s_expectation, s_outer_expectation):
+    def predict_weights(self, D, s_expectation, s_outer_expectation):
         # s_expectation = self.module.get_s_expectation(D_test.shape[0])
         # s_outer_expectation = self.module.get_s_outer_expectation(D_test.shape[0])
         A_test = self.get_A_test(s_outer_expectation)
-        b_test = self.get_b_test(D_test, s_expectation)
+        b_test = self.get_b_test(D, s_expectation)
         if self.linear_map is not None:
             mu_rho, Sigma_rho = self.inner_test_solver.get_weight_params(A_test, b_test)
             mu_r = mu_rho @ self.linear_map.T + self.h
@@ -218,6 +218,11 @@ class MFStaticSignals(MFModels):
     
     def get_s_outer_expectation(self,N):
         return (self.mu_S.T@ self.mu_S + self.M*self.Sigma_S)[None,...].repeat(N,1,1)
+    
+    def predict_weights(self,D):
+        s_expectation = self.get_s_expectation(D.shape[0])
+        s_outer_expectation = self.get_s_outer_expectation(D.shape[0])
+        return self.coordinator.predict_weights(D=D, s_expectation=s_expectation, s_outer_expectation=s_outer_expectation)
     
 
         

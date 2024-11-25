@@ -3,7 +3,6 @@ import torch
 import tqdm
 
 from src.inner_optimisers import MultivariateNormalSolver
-from src.utils import get_percentile
 from scipy.stats import norm
 import numpy as np
 

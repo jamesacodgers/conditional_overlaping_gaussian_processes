@@ -199,7 +199,7 @@ if __name__ == "__main__":
         "--num_inducing",
         "-ni",
         type=int,
-        default=16,
+        default=8,
         help="number of inducing dimensions"
     )
 

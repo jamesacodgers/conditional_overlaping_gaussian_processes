@@ -175,3 +175,4 @@ lb = preds.mean[:,0] - 1.96*preds.stddev[:,0]
 ub = preds.mean[:,0] + 1.96*preds.stddev[:,0]
 
 torch.logical_and(lb < R_test[:,0], ub > R_test[:,0]).type(torch.float32).mean()
+

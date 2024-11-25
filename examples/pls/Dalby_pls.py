@@ -16,57 +16,72 @@ from src.eiot import  ConditionalEIOT
 from src.utils import train_lbfgs, plot_preds
 from src.mf_methods import MFStaticSignals
 
+from sklearn.model_selection import KFold
+
 
 torch.set_default_dtype(torch.float64)
 # %%
 
 def main(args):
-    experiment_name = f"Dalby_test_size={args.test_size}_num_unobs={args.num_unobs}"
+    experiment_name = f"Dalby_test_size={args.test_size}"
     work_dir = Path(args.work_dir)
     torch.manual_seed(args.random_seed)
+    np.random.seed(args.random_seed)
     d_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
     d_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
     r_train = torch.load(f"data/Dalby/splits/r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
     r_test = torch.load(f"data/Dalby/splits/r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
-    mf_static_signals = MFStaticSignals(M=d_test.shape[1], C_obs=r_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
-    mf_static_signals = torch.compile(mf_static_signals)
-
-    mf_ll = []
-    # mf_ll = train_eiot_sgd(mf_eiot, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=1, plot=args.plot)
-    mf_ll.extend(train_lbfgs(mf_static_signals, D_test=d_test, D_train=d_train, R_train=r_train, n_steps=25, plot=args.plot, convergence_level=5))
 
 
-    mf_preds = mf_static_signals.predict_weights(D_test=d_test)
-    # cond_preds = cond_eiot.predict_weights(D_test=d_test)
+    train_x = d_train
+    train_y = r_train
 
-    mf_rmse = torch.sqrt(((r_test - mf_preds.mean[:, :2])**2).mean())
-    # cond_rmse = torch.sqrt(((r_test - cond_preds.mean.mean(dim=[0])[:, :2])**2).mean())
+    test_x = d_test
+    test_y = r_test
+
+    nA = 10
+    msep = np.zeros([nA,3])
+
+    kf = KFold(n_splits=10, shuffle=True)
+
+    for i in range(nA):
+        for train_idx, test_idx in kf.split(train_x):
+            pls_reg = PLSRegression(i+1)
+            pls_reg.fit(train_x[train_idx], train_y[train_idx])
+            # y_hat = pls_reg.predict(test_spectra.spectra)
+            y_hat = pls_reg.predict(train_x[test_idx])
+            msep[i] += ((y_hat - train_y.numpy()[test_idx])**2).sum()
+
+    min_err_components = np.argmin(msep.sum(axis=1))
+
+    pls_reg = PLSRegression(min_err_components.item()+1)
+    pls_reg.fit(train_x, train_y)
+    y_hat = pls_reg.predict(test_x)
+
+    if args.plot:
+        fig, ax = plt.subplots(3)
+        for i in range(3):
+            ax[i].scatter(test_y, y_hat)
+        plt.show()
+    rmsep = np.sqrt(((y_hat - test_y.numpy())**2).mean())
+
+    print("msep:", )
+    print("cross val error:", min_err_components)
+
+    
 
 
 
-    mf_log_prob = torch.distributions.MultivariateNormal(mf_preds.mean[:,:r_train.shape[1]], mf_preds.covariance_matrix[:, :r_train.shape[1], :r_train.shape[1]]).log_prob(r_test).sum()
 
-    print(mf_rmse)
 
-    print(mf_log_prob)
-    if args.plot: 
-        plot_preds(
-            R_test=r_test,  
-            mf_preds=mf_preds,
-            # cond_preds=cond_preds
-        )
 
-    mf_results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": mf_rmse.item(), "log_prob": mf_log_prob.item(), "elbo": mf_ll[-1]}
+    mf_results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": rmsep}
 
     save_results_csv(file_name= f'{experiment_name}.csv', 
-                    path= work_dir / "results" / "Dalby"/ "mf_static_signals" / "csvs" / f'{experiment_name}.csv', 
+                    path= work_dir / "results" / "Dalby"/ "pls" / "csvs" / f'{experiment_name}.csv', 
                     results_dict=mf_results_dict)
-    
-    save_model(experiment_name=experiment_name, seed=args.random_seed, data_idx=args.data_idx, 
-                    path=work_dir / "results" / "Dalby"/ "mf_static_signals" / "models", 
-                    model=mf_static_signals)
     
 
     
@@ -89,7 +104,7 @@ if __name__ == "__main__":
     argparser.add_argument(
         "--test_size",
         "-ts",
-        type=int,
+        type=float,
         default=0.1,
         help="Test size.",
     )
@@ -106,7 +121,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         type=bool,
-        default=True,
+        default=False,
         help="plots figures",
     )
 
@@ -122,7 +137,7 @@ if __name__ == "__main__":
         "--num_unobs",
         "-nu",
 	    type=int,
-        default=3,
+        default=1,
         help="number of unobserved components",
     )
 
