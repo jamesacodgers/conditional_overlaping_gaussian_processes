@@ -6,7 +6,7 @@ class WLIndependentGPs:
     GPs provide a function estimate
     Note, cannot be initiated until either MF or overlapping module has been intiated
     """
-    def __init__(self, C, M, V, beta = None, sigma2_s = None, trainable_V = True):
+    def __init__(self, C, M, V, beta = None, sigma2_s = None, trainable_V = True, beta_regularizer = None):
         # torch.set_default_dtype(torch.float64)
         # super(MultiSparseGPs, self).__init__()
         # Store dimensions
@@ -22,6 +22,8 @@ class WLIndependentGPs:
             beta = [[1]*self.input_dims]*self.C
         if sigma2_s is None:
             sigma2_s = [1]*self.C
+
+        self.beta_regularizer = beta_regularizer
 
         # store GP parameters
         self._log_beta = torch.nn.Parameter(torch.log(torch.tensor(beta))) 
@@ -152,7 +154,10 @@ class WLIndependentGPs:
         prior = self.get_u_prior()
         q_u = self.get_q_u_dist()
         # return 0.5*torch.distributions.kl_divergence(q_u, prior).sum()
-        return 1*torch.distributions.kl_divergence(q_u, prior).sum()
+        kl = torch.distributions.kl_divergence(q_u, prior).sum()
+        if self.beta_regularizer is not None:
+            kl += self.beta.sum()*self.beta_regularizer
+        return kl
     
     def get_gp_expectation(self, inputs):
         """

@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import cauchy
 from itertools import chain
 from src.utils import get_init_values_for_latent_variables, train_gd, get_both_init_values_for_latent_variables, train_lbfgs, plot_preds, get_both_pca_values, train_conditional_model_gd, train_conditional_model_lbfgs
-
+from src.prob_utils import get_struc_ci
 
 # import multiprocessing
 # multiprocessing.set_start_method('spawn')
@@ -28,15 +28,24 @@ import pandas as pd
 
 # %%
 torch.set_default_dtype(torch.float64)
-torch.manual_seed(0)
-np.random.seed(0)
+torch.manual_seed(1234)
+np.random.seed(1234)
 
 
 # %%
 # Define the training set parameters
+
+
+independent_latents = True
+
+
 num_training_samples = 100
 
 num_test_samples=100
+
+
+
+
 
 wavelengths = torch.linspace(-15, 15, 101)
 sigma2 = torch.Tensor([1e-2])
@@ -44,8 +53,8 @@ sigma2 = torch.Tensor([1e-2])
 # Define model parameters
 
 def get_pure_components(latent_variable):
-    centroids = torch.vstack((latent_variable*2 - 7.5,  latent_variable*2 + 7.5))
-    amplitudes = torch.vstack((2*latent_variable + 15, 2 * latent_variable + 10))
+    centroids = torch.vstack((latent_variable[:,0]*2 - 7.5,  latent_variable[:,1]*2 + 7.5))
+    amplitudes = torch.vstack((2*latent_variable[:,0] + 15, 2 * latent_variable[:,1] + 10))
     return pure_component(centroids, amplitudes).permute(2,1,0).to(torch.float32)
 
 def pure_component(mu, a, wavelengths=wavelengths):
@@ -58,23 +67,23 @@ def get_observations(components, pure_component_spectra):
 
 choices = [[0.2,0.8]]*int(num_training_samples/4) + [[0.4,0.6]]*int(num_training_samples/4) +  [[0.6,0.4]]*int(num_training_samples/4) + [[0.8,0.2]]*int(num_training_samples/4)
 
+if independent_latents: 
+    x_train = torch.randn(num_training_samples,2)
+    x_test = torch.randn(num_test_samples,2) 
+else:
+    x_train = torch.randn(num_training_samples).reshape(-1,1).repeat(1,2)
+    x_test = torch.randn(num_test_samples).reshape(-1,1).repeat(1,2)
+
 R_train = torch.Tensor(choices)
-x_train = torch.randn(num_training_samples)
+R_test = torch.distributions.Dirichlet(torch.ones(2)).sample((num_test_samples,))
 
 S_train = get_pure_components(x_train)
+S_test = get_pure_components(x_test)
 
+D_test = get_observations(R_test, S_test)
 D_train = get_observations(R_train, S_train)
 
 
-R_test = torch.distributions.Dirichlet(torch.ones(2)).sample((num_test_samples,))
-x_test = torch.randn(num_test_samples) 
-
-
-S_test = get_pure_components(x_test)
-D_test = get_observations(R_test, S_test)
-
-x_train=x_train.reshape(-1,1)
-x_test=x_test.reshape(-1,1)
 
 # %%
 A = 2
@@ -82,16 +91,15 @@ A = 2
 
 
 mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train, D_test, A)
+# mu_x_train = torch.zeros_like(mu_x_train)
+# mu_x_test = torch.zeros_like(mu_x_test)
 
-# mu_x_train = torch.zeros(num_training_samples, A)
-# mu_x_test = torch.zeros(num_test_samples, A) 
 
-V = torch.randn(8,A)
+V = torch.randn(6,A)
 # V = torch.linspace(-2,2,).reshape(-1,1)
 
-R_train = R_train[:,0].reshape(-1,1) # To test unobserved components
-# model = MFVariableSignals(C_obs=2, C_unobs=0, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
-model = StrucVariableSignals(P=16,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,weight_distribution="continuos", mu_x_test=mu_x_test, mu_x_train=mu_x_train, add_randn_to_lvs=True)
+R_train = R_train[:,0].reshape(-1,1) # To test unobserved 
+model = StrucVariableSignals(P=16,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,weight_distribution="continuos", mu_x_test=mu_x_test, mu_x_train=mu_x_train, add_randn_to_lvs=False)
 
 opt_model = torch.compile(model)
 
@@ -108,53 +116,54 @@ train_gd(opt_model,
          lr = 1e-1
         )
 
-# train_conditional_model_gd(opt_model, 
-#          D_train, 
-#          R_train,
-#          D_test=D_test, 
-#          n_steps=1000, 
-#         )
 
 
 
-# # %%
+# %%
 
-train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=5)
+train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=1)
 
 
 
 # %%
 preds = model.predict_weights(D_test)
 
-
+lb,ub = get_struc_ci(preds)
+print(ub, lb)
 with torch.no_grad():
-    plot_preds(R_test=R_test, cond_preds=preds)
+    plot_preds(R_test=R_test, cond_preds=preds, save_path=f"figs/toy_example/structured_preds_i={independent_latents}.pdf")
 
 model.elbo(D_train=D_train,R_train=R_train,D_test=D_test)
 
 print(model.beta, model.sigma2_s)
-# %%
 
-
-S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
-
+# %%
 with torch.no_grad():
-    for p in range(model.P):
-        for j in range(100):
-            plt.plot(S[p,j,:,0], c = "orange", alpha = 0.02)
-            plt.plot(S[p,j,:,1], c = "blue", alpha=0.02)
-            plt.plot(S[p,j,:,2], c = "green", alpha=0.02)
-    plt.xlabel("wavelength")
-    plt.savefig("figs/toy_example/struc_pure_components.pdf")
-    plt.show()
-# %%
-
-with torch.no_grad():
+    # Plot R_train points
     for j in range(R_train.shape[0]):
-        plt.scatter( model.mu_x_train[:,j,0], model.mu_x_train[:,j,1])
+        plt.scatter(
+            model.mu_x_train[:, j, 0],  # X-coordinates
+            model.mu_x_train[:, j, 1],  # Y-coordinates
+            c=R_train[j, 0].repeat(model.P),  # Color based on R_train values
+            cmap="plasma",  # Choose a colormap
+            vmin=0,
+            vmax=1
+        )
+    # Plot R_test points
     for j in range(R_test.shape[0]):
-        plt.scatter( model.mu_x_test[:,j,0], model.mu_x_test[:,j,1], marker="x")
-
+        plt.scatter(
+            model.mu_x_test[:, j, 0],  # X-coordinates
+            model.mu_x_test[:, j, 1],  # Y-coordinates
+            marker="x",  # Use a different marker for test points
+            c=R_test[j, 0].repeat(model.P),  # Color based on R_test values
+            cmap="plasma",  # Choose a colormap
+            vmin=0,
+            vmax=1
+        )
+    # Add a colorbar to provide a scale for the colors
+    plt.colorbar(label="Component 1 fraction")
+    plt.savefig(f"figs/toy_example/structured_latent_space_i={independent_latents}.pdf")
+    # Display the plot
     plt.show()
 
 
@@ -192,8 +201,25 @@ with torch.no_grad():
     axs[-1].xaxis.set_visible(True)
 
     axs[-1].set_xlabel("Component")
-    plt.savefig("figs/toy_example/structured_GP_hyperparameters.pdf")
+    plt.savefig(f"figs/toy_example/structured_GP_hyperparameters_i={independent_latents}.pdf")
 # %%
 
 model.elbo(D_train, R_train, D_test)
+# %%
+
+
+S = model.get_gp_expectation(torch.zeros(1, model.A))
+S_cov = model.get_gp_covariance(torch.zeros(1, model.A))
+S_std = torch.sqrt(S_cov[:,:, range(model.C), range(model.C)])
+colours = ["orange", "blue", "green"]
+with torch.no_grad():
+    for i in range(1):
+        for c in range(model.C):
+            plt.plot(wavelengths, S[i,:,c], c = colours[c])
+            plt.fill_between(wavelengths,S[i,:,c] + 1.96*S_std[i,:,c], S[i,:,c] - 1.96*S_std[i,:,c], color = colours[c], alpha=0.5)
+
+    plt.savefig(f"figs/toy_example/structured_pure_component_estimates_i={independent_latents}.pdf")
+
+# %%
+print(S_std.mean())
 # %%

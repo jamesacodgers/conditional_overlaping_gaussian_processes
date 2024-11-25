@@ -4,6 +4,16 @@ from scipy.optimize import fsolve
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
+from src.prob_utils import get_struc_ci
+
+def snv_correction(spectra):
+    mean = spectra.mean(axis=1, keepdims=True)
+    std = spectra.std(axis=1, keepdims=True)
+
+    # Apply SNV correction
+    snv_corrected = (spectra - mean) / std
+
+    return snv_corrected
 
 
 def train_conditional_model_lbfgs(model, D_train, R_train,  n_steps, D_test=None, plot = False, params = None, lr=None):
@@ -66,7 +76,7 @@ def _optimize_lvs(model, D_train, R_train, D_test=None):
         model._log_Sigma_x_train
     ])
 
-def train_conditional_model_gd(model, D_train, R_train,  n_steps, D_test=None, plot = False, params = None, lr=None):
+def train_sgd_model(model, D_train, R_train,  n_steps, D_test=None, plot = False, params = None, lr=None):
     if params is None:
         params = model.parameters()
     if lr:
@@ -76,9 +86,6 @@ def train_conditional_model_gd(model, D_train, R_train,  n_steps, D_test=None, p
     # optimizer = torch.optim.Adam(params, lr=lr)
     # optimizer = torch.optim.Rprop(params, lr=lr)
     ll = []
-
-
-
     itterator = tqdm.tqdm(range(n_steps))
     for epoch in itterator:  
         
@@ -105,7 +112,7 @@ def train_conditional_model_gd(model, D_train, R_train,  n_steps, D_test=None, p
     
 
 
-def plot_preds(R_test, cond_preds: torch.distributions.Distribution = None, mf_preds = None, title=None) -> None: 
+def plot_preds(R_test, cond_preds: torch.distributions.Distribution = None, mf_preds = None, title=None, save_path = None) -> None: 
     with torch.no_grad():
         # samples = preds.sample((1000, )).reshape((1000*P, 150,  2))
         plt.figure()
@@ -121,21 +128,21 @@ def plot_preds(R_test, cond_preds: torch.distributions.Distribution = None, mf_p
             plt.title(title)
         if cond_preds: 
             means = cond_preds.mean[:,:,0]
-            # vars = cond_preds.covariance_matrix[:,:,0,0]
-            # cond_preds_1d = norm(cond_preds.mean[:,:,0].detach().numpy(), np.sqrt(cond_preds.covariance_matrix[:,:,0,0].detach().numpy()))
             plt.scatter(R_test[:,0], means.mean(dim=0))
-            for mean in means:
-                plt.scatter(R_test[:,0], mean, c="green", alpha=0.1)
-            # err = np.array([get_percentile(cond_preds_1d, 0.5) - get_percentile(cond_preds_1d, 0.025), get_percentile(cond_preds_1d, 0.975) - get_percentile(cond_preds_1d, 0.5)])
-            # plt.errorbar(R_test[:,0], means.mean(dim=0), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
-            # plt.errorbar(R_test[:,0], get_percentile(cond_preds_1d, 0.5), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
+            # for mean in means:
+            #     plt.scatter(R_test[:,0], mean, c="green", alpha=0.1)
+            lb,ub = get_struc_ci(cond_preds)
+            tot_mean = means.mean(dim=0).numpy()
+            err = np.array(np.vstack([tot_mean - lb,ub-tot_mean])) # technically this could fail if mean isn't inside 95% ci
+            plt.errorbar(R_test[:,0], means.mean(dim=0), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
         if mf_preds: 
             mf_means = mf_preds.mean[:,0]
             mf_var = mf_preds.covariance_matrix[:,0,0]
             plt.errorbar(R_test[:,0], mf_means, 1.96*torch.sqrt(mf_var), marker = ".", markersize = 10, fillstyle = "none", ls = "None", capsize=5, color = CB_color_cycle[1], label = "mean field prediction")
         # plt.scatter(R_test[:,0], y_hat[:,0], marker = "x",  color = CB_color_cycle[2], label = "PLS")        
         plt.legend()
-        # plt.savefig(f"examples/eiot/figures/toy_eiot_M={M}_Ntrain={N_train}_Ntest={N_test}_Cobs={C_obs}_Cunobs={C_unobs}__P={P}_sigma={sigma}.pdf")
+        if save_path is not None:
+            plt.savefig(save_path)
         plt.show()
 
 
@@ -197,9 +204,10 @@ def train_lbfgs(model, D_train, R_train,D_test=None, n_steps = 3 , plot = False,
 
 
 def get_both_init_values_for_latent_variables(D_train, R_train, D_test, num_latent_dimensions):
+    R_train_float = R_train.type(torch.float64)
     D_combined = torch.vstack((D_train,D_test))
     # U, _, _ = torch.linalg.svd(D_combined)
-    S_hat = (torch.linalg.inv((R_train.T @ R_train)) @ (R_train.T @ D_train))
+    S_hat = (torch.linalg.inv((R_train_float.T @ R_train_float)) @ (R_train_float.T @ D_train))
     R_hat = D_combined @ torch.linalg.pinv(S_hat)
     E = D_combined - R_hat@S_hat
     # U, _, _ = torch.linalg.svd(D_combined)
@@ -324,10 +332,7 @@ def train(model, training_targets, test_targets, training_inputs , test_inputs, 
 #     return loss_list
 
 
-def get_percentile(dists_1d, alpha):
-        def f(a):
-            return dists_1d.cdf(a).mean(axis = 0) - alpha
-        return fsolve(f,dists_1d.mean().mean(axis=0))
+
 
 import torch
 import tqdm

@@ -26,22 +26,14 @@ def main(args):
 
     torch.manual_seed(args.random_seed)
 
-    if args.no_snv:
-        experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_long_lengthscale"
-        work_dir = Path(args.work_dir)
-        D_test = torch.load(f"data/Dalby/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-        D_train = torch.load(f"data/Dalby/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
-        R_train = torch.load(f"data/Dalby/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-        R_test = torch.load(f"data/Dalby/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-    else:
-        experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_long_lengthscale"
-        work_dir = Path(args.work_dir)
-        D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-        D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}"
+    work_dir = Path(args.work_dir)
+    D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
-        R_train = torch.load(f"data/Dalby/splits/r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
-        R_test = torch.load(f"data/Dalby/splits/r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    R_train = torch.load(f"data/Dalby/splits/r_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
+    R_test = torch.load(f"data/Dalby/splits/r_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
 
 
     V = torch.randn(args.num_inducing,args.num_latent_dims)
@@ -88,10 +80,11 @@ def main(args):
 
         with torch.no_grad():
             # for p in range(16):
-            fig, axs = plt.subplots(model.C, figsize = (6, 1.5*model.C))
-            for c in range(model.C):
-                for i in range(R_train.shape[0]):
-                    axs[c].plot(S[i,:,c], alpha = 0.5)
+            fig, axs = plt.subplots(nrows=model.C_obs, ncols=model.C_unobs, figsize = (6, 6))
+            for c in range(model.C_obs):
+                for d in range(model.C_unobs):
+                    for i in range(R_train.shape[0]):
+                        axs[c,d].plot(S[i,:,c*2+d], alpha = 0.5)
             plt.ylabel("pure component mean")
             plt.xlabel("wavelength")
 
@@ -156,7 +149,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=False,
         help="plots figures",
     )
 
@@ -168,14 +161,6 @@ if __name__ == "__main__":
         help="working directory",
     )
     
-    argparser.add_argument(
-        "--num_unobs",
-        "-nu",
-	    type=int,
-        # default=1,
-        default=1,
-        help="number of unobserved components",
-    )
 
     argparser.add_argument(
         "--min_wavelength",
@@ -193,11 +178,20 @@ if __name__ == "__main__":
     )
 
     argparser.add_argument(
+        "--num_unobs",
+        "-nu",
+	    type=int,
+        # default=1,
+        default=2,
+        help="number of unobserved components",
+    )
+
+
+    argparser.add_argument(
         "--num_latent_dims",
         "-a",
-	type=int,
-        # default=2,
-        default=2,
+	    type=int,
+        default=4,
         help="number of latent dimensions",
     )
 
@@ -205,17 +199,7 @@ if __name__ == "__main__":
         "--num_inducing",
         "-ni",
         type=int,
-        # default=16,
-        # default=8,
-        default=8,
-        help="number of inducing dimensions"
-    )
-
-    argparser.add_argument(
-        "--no_snv",
-        "-nsnv",
-        type=bool,
-        default=False,
+        default=16,
         help="number of inducing dimensions"
     )
 

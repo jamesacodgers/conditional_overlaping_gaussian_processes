@@ -4,12 +4,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-name = "Wulfert"
+name = "Dalby"
 ts = "0.1"
-l = 8
+l = 4
+c_unobs = 2
 
 if name=="Dalby":
-    data = pd.read_csv(f"results/Dalby/mf_var_signals/csvs/Dalby_test_size={ts}_c_unobs=1_L={l}_A=2.csv")
+    data = pd.read_csv(f"results/Dalby/mf_var_signals/csvs/Dalby_test_size={ts}_c_unobs={c_unobs}_L={l}_A=2.csv")
     
 else: 
     data = pd.read_csv(f"results/{name}/mf_variable/csvs/MF_{name}_test_size={ts}_c_unobs=0_L={l}_A=4.csv")
@@ -28,7 +29,7 @@ print("msep")
 print(data["msep"].loc[elbo_idx].mean()*1e4)
 # print(data["msep"].loc[elbo_idx].min())
 print(data["msep"].loc[elbo_idx].std()*1e4)
-print("nll")
+print("log prob")
 print(data["log_prob"].loc[elbo_idx].mean())
 # print(data["msep"].loc[elbo_idx].min())
 print(data["log_prob"].loc[elbo_idx].std())
@@ -47,16 +48,16 @@ print(data["log_prob"].loc[elbo_idx].std())
 
 
 # %%
-# plt.figure()
-# plt.scatter(data["elbo"], data["rmsep"], marker="x", label="all runs")
-# plt.scatter(data["elbo"].loc[rmse_idx], data["rmsep"].loc[rmse_idx], marker="v", label="best MSE")
-# plt.scatter(data["elbo"].loc[nll_idx], data["rmsep"].loc[nll_idx], marker="^", label = "best NLL")
-# plt.scatter(data["elbo"].loc[elbo_idx], data["rmsep"].loc[elbo_idx], marker="o", label = "best ELBO", s=64)
-# plt.ylabel("MSEP")
-# plt.xlabel("ELBO")
-# plt.legend(loc="upper left")
-# plt.savefig(f"figs/{name}/elbo_vs_msep_ts={ts}_l={l}.pdf", bbox_inches="tight")
-# plt.show()
+plt.figure()
+plt.scatter(data["elbo"], data["rmsep"], marker="x", label="all runs")
+plt.scatter(data["elbo"].loc[rmse_idx], data["rmsep"].loc[rmse_idx], marker="v", label="best MSE")
+plt.scatter(data["elbo"].loc[nll_idx], data["rmsep"].loc[nll_idx], marker="^", label = "best NLL")
+plt.scatter(data["elbo"].loc[elbo_idx], data["rmsep"].loc[elbo_idx], marker="o", label = "best ELBO", s=64)
+plt.ylabel("MSEP")
+plt.xlabel("ELBO")
+plt.legend(loc="upper left")
+plt.savefig(f"figs/{name}/elbo_vs_msep_ts={ts}_l={l}.pdf", bbox_inches="tight")
+plt.show()
 
 
 # plt.figure()

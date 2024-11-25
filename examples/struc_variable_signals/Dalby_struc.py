@@ -158,7 +158,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         type=bool,
-        default=False,
+        default=True,
         help="plots figures",
     )
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         "--num_unobs",
         "-nu",
 	    type=int,
-        default=1,
+        default=5,
         help="number of unobserved components",
     )
 

@@ -1,91 +1,184 @@
-# %%
+# Toy example from the paper
 
-from sklearn.datasets import make_moons
-import matplotlib.pyplot as plt
+# %%
+import copy
 
-from src.mf_methods import MFVariableSignals
-from src.struc_models import StrucVariableSignals
-from src.utils import get_both_init_values_for_latent_variables
-
-from src.utils import train_lbfgs, train_gd, train_conditional_model_gd
-
+from matplotlib.lines import Line2D
 import torch
+import matplotlib.pyplot as plt
+import torch.optim as optim
+import numpy as np
+
+import matplotlib.pyplot as plt
+from scipy.stats import cauchy
+from itertools import chain
+from src.utils import get_init_values_for_latent_variables, train_gd, get_both_init_values_for_latent_variables, train_lbfgs, plot_preds
+
+
+from src.mf_methods import  MFVariableSignals
+from torcheval.metrics import BinaryAUROC
+
+
+
+# %%
 torch.set_default_dtype(torch.float64)
+torch.manual_seed(1234)
+np.random.seed(1234)
 
-D_train, R_train = make_moons(200, noise=0.1)
-D_test, R_test = make_moons(250, noise=0.1)
 
-A=2
- 
-# plt.figure()
-# plt.scatter(D_train[:,0], D_train[:,1], c = R_train)
-# plt.show()
+# %%
+# Define the training set parameters
 
-D_train = torch.tensor(D_train)
-D_test = torch.tensor(D_test)
-R_train = torch.tensor(R_train)
-R_test = torch.tensor(R_test)
+independent_latents=True
+num_training_samples = 100
+num_test_samples=100
 
-R_train_one_hot = torch.nn.functional.one_hot(R_train).type(torch.float64)
+wavelengths = torch.linspace(-15, 15, 101)
+sigma2 = torch.Tensor([1e-2])
+# %%
+# Define model parameters
 
-mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train_one_hot, D_test, A)
-# mu_x_train = torch.zeros_like(mu_x_train)
-# mu_x_test = torch.zeros_like(mu_x_test)
+def get_pure_components(latent_variable):
+    centroids = torch.vstack((latent_variable[:,0]*2 - 7.5,  latent_variable[:,1]*2 + 7.5))
+    amplitudes = torch.vstack((2*latent_variable[:,0] + 15, 2 * latent_variable[:,1] + 10))
+    return pure_component(centroids, amplitudes).permute(2,1,0).to(torch.float32)
 
-V = torch.randn(8, A)
+def pure_component(mu, a, wavelengths=wavelengths):
+    return a[:, None, : ] * cauchy.pdf((wavelengths[None, :, None] - mu[:, None, :]) / 3)
 
-# model = MFVariableSignals(V, C_obs=2,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=2, weight_distribution="categorical",C_unobs=0)
-model = StrucVariableSignals(V=V, P=8, C_obs=2,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=2, weight_distribution="categorical",C_unobs=0)
-model = torch.compile(model)
+def get_observations(components, pure_component_spectra):
+    noise_free_observations = (components[:, None, :] * pure_component_spectra[:, :, :]).sum(axis=-1) 
+    return noise_free_observations + torch.randn_like(noise_free_observations)*torch.sqrt(sigma2)
+
+
+choices = [[0,1]]*int(num_training_samples/2) +  [[1,0]]*int(num_training_samples/2)
+
+if independent_latents: 
+    x_train = torch.randn(num_training_samples,2)
+    x_test = torch.randn(num_test_samples,2) 
+else:
+    x_train = torch.randn(num_training_samples).reshape(-1,1).repeat(1,2)
+    x_test = torch.randn(num_test_samples).reshape(-1,1).repeat(1,2)
+
+# R_train = torch.tensor([1]*int(num_training_samples/2) + [0]*int(num_training_samples/2))
+# R_test = torch.tensor([1]*int(num_training_samples/2) + [0]*int(num_training_samples/2))
+R_sample_generator = torch.tensor(choices, dtype=torch.float64)
+R_train = R_sample_generator.argmax(dim=1)
+R_test = R_sample_generator.argmax(dim=1)
+S_train = get_pure_components(x_train)
+S_test = get_pure_components(x_test)
+
+D_test = get_observations(R_sample_generator, S_test)
+D_train = get_observations(R_sample_generator, S_train)
+
 
 # %%
-train_conditional_model_gd(model, D_train,R_train, n_steps=5000, lr = 2e-3)
-# train_gd(model, D_train,R_train, n_steps=1000, lr = 0.02)
+
+# with torch.no_grad():
+#     for i,c in enumerate(["red","blue","green"]):
+#         plt.plot(S_test[i,:,0], c= c )
+#         plt.plot(S_test[i,:,1], c = c)
+#     plt.show()
 
 # %%
-train_lbfgs(model, D_train,R_train, convergence_level=5)
+A = 2
+
+mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train,R_sample_generator, D_test, A)
+
+V = torch.randn(6,A)
+
+R_train_obs = R_train
+model = MFVariableSignals(C_obs=2, C_unobs=0, M = wavelengths.shape[0],V=V,weight_distribution="categorical", mu_x_test=mu_x_test, mu_x_train=mu_x_train)
+
+
+
+
+train_gd(model=model, 
+         D_train=D_train, 
+         R_train=R_train_obs, 
+         D_test=D_test, 
+         n_steps=100, 
+         lr = 1e-1,
+         plot=False
+         )
+
+# # %%
+
+train_lbfgs(model=model, 
+            D_train=D_train, 
+            R_train=R_train_obs, 
+            D_test=D_test, 
+            n_steps=10, 
+            plot=False,
+            convergence_level=5)
+
+
+preds = model.predict_weights(D_test, )
+
+print(preds)
+# %%
+with torch.no_grad():
+    plt.scatter(R_test, torch.argmax(preds,dim=1))
+    plt.show()
 
 # %%
 
-x_test = torch.linspace(-3,3,50).reshape(-1,1)
+model.elbo(
+        D_train=D_train,
+        R_train=R_train_obs,
+        #    D_test=D_test
+           )
+# %%
 
-mu_s = model.get_gp_expectation(x_test)
-print(mu_s.shape)
+# %%
+with torch.no_grad():
+    # Plot R_train points
+    plt.scatter(
+        model.mu_x_train[:, 0],  # X-coordinates
+        model.mu_x_train[:, 1],  # Y-coordinates
+        c=x_train[:, 0],  # Color based on R_train values
+        cmap="plasma",  # Choose a colormap
+        vmin=0,
+        vmax=1
+    )
+    # Plot R_test points
+    plt.scatter(
+        model.mu_x_test[:, 0],  # X-coordinates
+        model.mu_x_test[:, 1],  # Y-coordinates
+        marker="x",  # Use a different marker for test points
+        c=x_test[:, 0],  # Color based on R_test values
+        cmap="plasma",  # Choose a colormap
+        vmin=0,
+        vmax=1
+    )
+    # Add a colorbar to provide a scale for the colors
+    plt.colorbar(label="Component 1 fraction")
+    # plt.savefig(f"figs/toy_example/mf_latent_space_i={independent_latents}.pdf")
+    # Display the plot
+    plt.show()
+
+
+# %%
+
+S = model.get_gp_expectation(torch.zeros(1, model.A))
+S_cov = model.get_gp_covariance(torch.zeros(1, model.A))
+S_std = torch.sqrt(S_cov[:,:, range(model.C), range(model.C)])
+colours = ["orange", "blue", "green"]
 with torch.no_grad():
     plt.figure()
-    plt.scatter(D_train[:,0], D_train[:,1], c = R_train)
-    mu_u = model.get_mu_u()
-    for i in range(2):
-        plt.plot(mu_s[:,0,i], mu_s[:,1,i])
-        # u_samples = model.get_u_samples()
-        # plt.scatter(u_samples[:,0, i, :].flatten(), u_samples[:,1,i,:].flatten(), c="black", marker="x")
-        # plt.scatter(u_samples[:,0, i, :].flatten(), u_samples[:,1,i,:].flatten(), marker="x")
-        plt.scatter(mu_u[0, i, :], mu_u[1,i,:],marker="*")
+    for c in range(model.C):
+        plt.plot(wavelengths, S[0,:,c], c = colours[c])
+        # plt.fill_between(wavelengths,S[0,:,c] + 1.96*S_std[0,:,c], S[0,:,c] - 1.96*S_std[0,:,c], color = colours[c], alpha=0.5)
+        # plt.savefig(f"figs/toy_example/mf_pure_component_estimates_i={independent_latents}.pdf")
     plt.show()
-# %%
-# with torch.no_grad():
-#     plt.scatter(model._samples[:,0,:], model._samples[:,1,:])
-#     plt.show()
-# u_samples = model.get_u_samples()
-# with torch.no_grad():
-#     fig, axs = plt.subplots(2,2)
-#     for c in range(2):
-#         for m in range(2):
-#             axs[m,c].scatter(model.V.flatten(), model.get_mu_u()[m,c], color="k")
-#             axs[m,c].plot(x_test.flatten(),mu_s[:,m,c])
-#             for p in range(model.P):
-#                 axs[m,c].scatter(model.V.flatten(), u_samples[p,m,c,:], color="orange", alpha = 0.1)
-#     plt.show()
+# %%
 
-#%%
-
-model.elbo(D_train,R_train)
+acc = torch.mean((torch.argmax(preds, dim=1) == R_test).type(torch.float))
 
 
-# %%
+ll = torch.gather(preds, dim=1, index=R_test[:,None]).sum()
 
-with torch.no_grad():
-    plt.scatter(model.V[:,0], model.V[:,1])
-    plt.scatter(model.mu_x_train[:,0], model.mu_x_train[:,1])
-    # plt.scatter(model.mu_x_test[:,0], model.mu_x_test[:,1])
-    plt.show()
+auc = BinaryAUROC()
+
+auc.update(preds[:,1], R_test)
+auc.compute()

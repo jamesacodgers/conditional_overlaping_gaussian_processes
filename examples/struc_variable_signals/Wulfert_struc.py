@@ -104,11 +104,12 @@ def main(args):
         plot_preds(
             R_test=R_test,  
             # mf_preds=preds,
-            cond_preds=preds
+            cond_preds=preds,
+            save_path=experiment_name+f"rs={args.random_seed}_d={args.data_idx}.pdf"
         )
         
 
-    results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "msep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1]}
+    results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1]}
 
 
     save_results_csv(file_name= f'{experiment_name}.csv', 
