@@ -25,15 +25,7 @@ def main(args):
 
     torch.manual_seed(args.random_seed)
 
-    if args.no_snv:
-        experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}_nosnv"
-        work_dir = Path(args.work_dir)
-        D_test = torch.load(f"data/Wulfert/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
-        D_train = torch.load(f"data/Wulfert/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
 
-        R_train = torch.load(f"data/Wulfert/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
-        R_test = torch.load(f"data/Wulfert/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
-    else:
     experiment_name = f"Struc_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_P={args.num_samples}_an={args.add_noise_to_lvs}_iz={args.init_zero}"
 
     work_dir = Path(args.work_dir)
