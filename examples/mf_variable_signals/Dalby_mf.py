@@ -56,22 +56,22 @@ def main(args):
     ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, n_steps=1000, plot=False,lr = 0.01))
     ll.extend(train_lbfgs(model=model, D_train=D_train, R_train=R_train, D_test=D_test, n_steps=5, plot=False, convergence_level=1))
 
-    mf_preds = model.predict_weights(D_test)
+    preds = model.predict_weights(D_test)
 
-    mf_log_prob = torch.distributions.MultivariateNormal(mf_preds.mean[:,:R_train.shape[1]], mf_preds.covariance_matrix[:, :R_train.shape[1], :R_train.shape[1]]).log_prob(R_test).sum()
-    mf_rmse = torch.sqrt(((R_test - mf_preds.mean[:, :2])**2).mean())
+    log_prob = torch.distributions.MultivariateNormal(preds.mean[:,:R_train.shape[1]], preds.covariance_matrix[:, :R_train.shape[1], :R_train.shape[1]]).log_prob(R_test).sum()
+    rmse = torch.sqrt(((R_test - preds.mean[:, :2])**2).mean())
     
     print("beta",model.beta)
     print("sigma2s",model.sigma2_s)
     # for name,param in model.named_parameters():
     #     print(name, param)
 
-    print(mf_log_prob)
+    print(log_prob)
 
     if args.plot: 
         plot_preds(
             R_test=R_test,  
-            mf_preds=mf_preds,
+            mf_preds=preds,
             # cond_preds=cond_preds
         )
 
@@ -97,12 +97,22 @@ def main(args):
             plt.scatter(model.mu_x_test[:,0], model.mu_x_test[:,1])
             plt.show()
 
+    coverage = 0
+    for c in range(model.C_obs):
+        lb = preds.mean[:,c] - 1.96*preds.stddev[:,c]
+        ub = preds.mean[:,c] + 1.96*preds.stddev[:,c]
+        coverage += torch.logical_and(lb < R_test[:,c], ub > R_test[:,c]).type(torch.float32).sum()
+    coverage = coverage/(R_test.shape[0]*R_test.shape[1])
 
-    mf_results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": mf_rmse.item(), "log_prob": mf_log_prob.item(), "elbo": ll[-1]}
+    mean_interval_length = (1.96*2*preds.stddev[:,0]).mean()
+
+
+
+    results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1], "mean_interval_length": mean_interval_length.item(), "coverage": coverage.item() }
 
     save_results_csv(file_name= f'{experiment_name}.csv', 
                     path= work_dir / "results" / "Dalby"/ "mf_var_signals" / "csvs" / f'{experiment_name}.csv', 
-                    results_dict=mf_results_dict)
+                    results_dict=results_dict)
     
 
     save_model(experiment_name=experiment_name, seed=args.random_seed, data_idx=args.data_idx, 

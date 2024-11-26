@@ -11,6 +11,7 @@ import pandas as pd
 from src.save_utils import save_model, save_results_csv
 from src.utils import plot_preds
 from src.utils import get_both_init_values_for_latent_variables, train_gd, train_lbfgs
+from src.prob_utils import get_struc_ci
 
 from sklearn.cross_decomposition import PLSRegression
 
@@ -53,6 +54,7 @@ def main(args):
     model = torch.compile(model)
 
     ll = []
+    # ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=False, n_steps=1, lr=0.02))
     ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=False, n_steps=500, lr=0.02))
     ll.extend(train_lbfgs(model, D_train, R_train, D_test, 5, plot=False, convergence_level=5))
 
@@ -102,9 +104,21 @@ def main(args):
             cond_preds=preds,
             save_path=experiment_name+f"rs={args.random_seed}_d={args.data_idx}.pdf"
         )
-        
 
-    results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1]}
+    coverage = 0
+    interval_length = 0
+    for c in range(model.C_obs):
+        lb, ub = get_struc_ci(preds=preds, dim=c)
+        coverage += np.logical_and(lb < R_test[:,c].numpy(), ub > R_test[:,c].numpy()).sum()
+        interval_length = (ub - lb).sum()
+    coverage = coverage/(R_test.shape[0]*R_test.shape[1])
+
+    mean_interval_length = interval_length/(R_test.shape[0]*R_test.shape[1])
+
+
+
+    results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1], "mean_interval_length": mean_interval_length.item(), "coverage": coverage.item() }
+        
 
 
     save_results_csv(file_name= f'{experiment_name}.csv', 
@@ -151,7 +165,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         type=bool,
-        default=False,
+        default=True,
         help="plots figures",
     )
 
