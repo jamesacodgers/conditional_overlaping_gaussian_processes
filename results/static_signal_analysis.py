@@ -4,8 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-name = "Dalby"
-ts = "0.1"
+name = "Wulfert"
+ts = "0.5"
 
 if name=="Dalby":
     data = pd.read_csv(f"results/Dalby/mf_static_signals/csvs/Dalby_test_size={ts}_num_unobs=1.csv")

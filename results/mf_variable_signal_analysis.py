@@ -4,8 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-name = "Dalby"
-ts = "0.1"
+name = "Wulfert"
+ts = "0.5"
 l = 8
 c_unobs = 2
 
@@ -13,7 +13,7 @@ if name=="Dalby":
     data = pd.read_csv(f"results/Dalby/mf_var_signals/csvs/Dalby_test_size={ts}_c_unobs={c_unobs}_L={l}_A=4.csv")
     
 else: 
-    data = pd.read_csv(f"results/{name}/mf_variable/csvs/MF_{name}_test_size={ts}_c_unobs=0_L={l}_A=4.csv")
+    data = pd.read_csv(f"results/Wulfert/mf_variable/csvs/archive/MF_Wulfert_test_size={ts}_c_unobs=0_L=8_A=4.csv")
 
 # %%
 data["msep"] = data["rmsep"]**2 # This is bad, but is the easiest way to do this 
@@ -36,6 +36,8 @@ plt.rcParams.update({
     "xtick.labelsize": 10, # Font size for x-axis tick labels
     "ytick.labelsize": 10  # Font size for y-axis tick labels
 })
+
+
 
 
 

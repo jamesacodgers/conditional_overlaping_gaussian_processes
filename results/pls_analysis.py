@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-ts = "0.1"
+ts = "0.5"
 
 
 
-name = "Dalby"
 
 
-data = pd.read_csv(f"results/Dalby/pls/csvs/Dalby_test_size={ts}.csv")
+# data = pd.read_csv(f"results/Dalby/pls/csvs/Dalby_test_size={ts}.csv")
+data = pd.read_csv(f"results/Wulfert/pls/csvs/Struc_Wulfert_test_size={ts}_c_unobs=0_L=8_A=4_P=32.csv")
 
 
 # %%
