@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=1:mem=32gb
-#PBS -l walltime=24:00:00
-#PBS -N dalby32
+#PBS -l walltime=8:00:00
+#PBS -N dalby8_1
 
 # cd $PBS_O_WORKDIR
 
@@ -20,15 +20,15 @@ do
         for ts in 0.1 0.5
         do
             echo "Running dataset $i seed $j..."
-            python examples/struc_variable_signals/Dalby_struc.sh --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 32 --test_size $ts --add_noise_to_lvs  --init_zero
+            python examples/struc_variable_signals/Dalby_struc.sh --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 8 --test_size $ts --add_noise_to_lvs  --init_zero
 
-            echo "Running dataset $i seed $j..."
-            python examples/struc_variable_signals/Wulfert_struc.py --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 32 --test_size $ts --add_noise_to_lvs
+            # echo "Running dataset $i seed $j..."
+            # python examples/struc_variable_signals/Wulfert_struc.py --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 32 --test_size $ts --add_noise_to_lvs
 
-            python examples/struc_variable_signals/Wulfert_struc.py --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 32 --test_size $ts --init_zero
+            # python examples/struc_variable_signals/Wulfert_struc.py --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 32 --test_size $ts --init_zero
 
-            echo "Running dataset $i seed $j..."
-            python examples/struc_variable_signals/Wulfert_struc.py --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 32 --test_size $ts
+            # echo "Running dataset $i seed $j..."
+            # python examples/struc_variable_signals/Wulfert_struc.py --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 32 --test_size $ts
         done
     done
 done
