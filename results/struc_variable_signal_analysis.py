@@ -13,8 +13,10 @@ if name == "Dalby":
 else: 
     data = pd.read_csv(f"results/Wulfert/struct_variable/csvs/Struc_Wulfert_test_size={ts}_c_unobs=1_L=4_A=4_P=8_an=True_iz=False.csv")
 
+
+
 # %%
-data["msep"] = data["rmsep"]**2 # This is bad, but is the easiest way to do this 
+# data["msep"] = data["rmsep"]**2 # This is bad, but is the easiest way to do this 
 
 # %%
 datas= data.groupby("data_set")

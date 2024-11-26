@@ -19,34 +19,26 @@ data["msep"] = data["rmsep"]**2 # This is bad, but is the easiest way to do thi
 # %%
 datas= data.groupby("data_set")
 # %%
-elbo_idx = datas["elbo"].idxmax()
-rmse_idx = datas["rmsep"].idxmin()
-nll_idx = datas["log_prob"].idxmax()
-# %%
-print("msep")
-print(data["msep"].loc[elbo_idx].mean()*10**4)
-# print(data["msep"].loc[elbo_idx].min())
-print(data["msep"].loc[elbo_idx].std()*10**4)
 
-print("nll")
-print(data["log_prob"].loc[elbo_idx].mean())
-# print(data["msep"].loc[elbo_idx].min())
-print(data["log_prob"].loc[elbo_idx].std())
+
+
 
 # %%
 
-# plt.rcParams.update({
-#     "text.usetex": True,
-#     "font.family": "serif",  # Use LaTeX default font (Computer Modern)
-#     "font.serif": ["Computer Modern"],  # Alternatively, specify another font
-#     "axes.labelsize": 12,  # Font size for axis labels
-#     "font.size": 12,       # General font size
-#     "legend.fontsize": 10, # Font size for legends
-#     "xtick.labelsize": 10, # Font size for x-axis tick labels
-#     "ytick.labelsize": 10  # Font size for y-axis tick labels
-# })
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",  # Use LaTeX default font (Computer Modern)
+    "font.serif": ["Computer Modern"],  # Alternatively, specify another font
+    "axes.labelsize": 12,  # Font size for axis labels
+    "font.size": 12,       # General font size
+    "legend.fontsize": 10, # Font size for legends
+    "xtick.labelsize": 10, # Font size for x-axis tick labels
+    "ytick.labelsize": 10  # Font size for y-axis tick labels
+})
 
-
+elbo_idx = datas["elbo"].idxmax()
+rmse_idx = datas["rmsep"].idxmin()
+nll_idx = datas["log_prob"].idxmax()
 
 # %%
 plt.figure()
@@ -71,4 +63,27 @@ plt.show()
 # plt.xlabel("ELBO")
 
 # plt.show()
+
+
+
+# %%
+print("log prob")
+print(data["log_prob"].loc[elbo_idx].mean())
+# print(data["msep"].loc[elbo_idx].min())
+print(data["log_prob"].loc[elbo_idx].std())
+
+print("msep")
+print(data["msep"].loc[elbo_idx].mean())
+# print(data["msep"].loc[elbo_idx].min())
+print(data["msep"].loc[elbo_idx].std())
+
+print("coverage")
+print(data["coverage"].loc[elbo_idx].mean())
+# print(data["msep"].loc[elbo_idx].min())
+print(data["coverage"].loc[elbo_idx].std())
+
+print("interval")
+print(data["mean_interval_length"].loc[elbo_idx].mean())
+# print(data["msep"].loc[elbo_idx].min())
+print(data["mean_interval_length"].loc[elbo_idx].std())
 

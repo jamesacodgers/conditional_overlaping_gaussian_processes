@@ -12,8 +12,8 @@ def get_mf_ci(preds, dim = 0, alpha = 0.05 ):
 
 def get_struc_ci(preds, dim=0, alpha=0.05):
     with torch.no_grad():
-        mus = preds.mean[:,:,0].numpy()
-        sigma2s = preds.covariance_matrix[:,:,0,0].numpy()
+        mus = preds.mean[:,:,dim].numpy()
+        sigma2s = preds.covariance_matrix[:,:,dim,dim].numpy()
         def f_lb(a,dists):
             return dists.cdf(a).mean() - alpha/2
         def f_ub(a,dists):

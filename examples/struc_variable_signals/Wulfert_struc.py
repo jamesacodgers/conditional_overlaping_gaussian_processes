@@ -50,7 +50,7 @@ def main(args):
         mu_x_train,mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, D_test=D_test, R_train=R_train, num_latent_dimensions=args.num_latent_dims)
  
 
-    model = StrucVariableSignals(P=args.num_samples,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
+    model = StrucVariableSignals(P=args.num_samples,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one", add_randn_to_lvs=args.add_noise_to_lvs)
     model = torch.compile(model)
 
     ll = []
@@ -165,7 +165,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         type=bool,
-        default=True,
+        default=False,
         help="plots figures",
     )
 
