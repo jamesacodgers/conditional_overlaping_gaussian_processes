@@ -8,6 +8,7 @@ from itertools import chain
 import copy
 import numpy as np
 import pandas as pd
+from src.prob_utils import get_struc_ci
 from src.save_utils import save_model, save_results_csv
 from src.utils import plot_preds
 from src.utils import get_both_init_values_for_latent_variables, train_gd, train_lbfgs
@@ -64,7 +65,19 @@ def main(args):
     log_prob = torch.distributions.MultivariateNormal(preds.mean[...,:R_train.shape[1]], preds.covariance_matrix[..., :R_train.shape[1], :R_train.shape[1]]).log_prob(R_test).sum()
     rmse = torch.sqrt(((R_test - preds.mean[..., :2])**2).mean())
     
-    results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1]}
+    coverage = 0
+    interval_length = 0
+    for c in range(model.C_obs):
+        lb, ub = get_struc_ci(preds=preds, dim=c)
+        coverage += np.logical_and(lb < R_test[:,c].numpy(), ub > R_test[:,c].numpy()).sum()
+        interval_length = (ub - lb).sum()
+    coverage = coverage/(R_test.shape[0]*R_test.shape[1])
+
+    mean_interval_length = interval_length/(R_test.shape[0]*R_test.shape[1])
+
+
+
+    results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1], "mean_interval_length": mean_interval_length.item(), "coverage": coverage.item() }
 
 
     save_results_csv(file_name= f'{experiment_name}.csv', 
@@ -118,6 +131,8 @@ def main(args):
             # mf_preds=preds,
             cond_preds=preds
         )
+    
+    
 
 
 
