@@ -28,7 +28,7 @@ do
             # python examples/struc_variable_signals/Wulfert_struc.py --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 8 --test_size $ts --init_zero
 
             # echo "Running dataset $i seed $j..."
-            python examples/struc_variable_signals/Wulfert_struc.bash --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 8 --test_size $ts
+            python examples/struc_variable_signals/Wulfert_struc.py --data_idx $i --random_seed $j --num_unobs 0 --num_inducing 8 --num_samples 8 --test_size $ts
         done
     done
 done

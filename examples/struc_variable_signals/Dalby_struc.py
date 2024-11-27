@@ -59,7 +59,7 @@ def main(args):
 
     # ll.extend(train_gd(model, D_train, R_train, D_test=D_test, n_steps=10, plot=False, lr = 2e-2))
     ll.extend(train_gd(model, D_train, R_train, D_test=D_test, n_steps=1000, plot=False, lr = 2e-2))
-    ll.extend(train_lbfgs(model, D_train, R_train, D_test=D_test, n_steps=10, plot=False, convergence_level=1))
+    ll.extend(train_lbfgs(model, D_train, R_train, D_test=D_test, n_steps=10, plot=False, convergence_level=5))
 
     preds = model.predict_weights(D_test)
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         type=bool,
-        default=True,
+        default=False,
         help="plots figures",
     )
 
@@ -230,7 +230,7 @@ if __name__ == "__main__":
         "--add_noise_to_lvs",
         "-an",
         type = bool,
-        default = True,
+        default = False,
         help = "should noise be added to the latent variables on init"
     )
 
