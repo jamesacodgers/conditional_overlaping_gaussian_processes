@@ -57,9 +57,9 @@ def main(args):
     ll = []
 
 
-    ll.extend(train_gd(model, D_train, R_train, D_test=D_test, n_steps=10, plot=False, lr = 2e-2))
-    # ll.extend(train_gd(model, D_train, R_train, D_test=D_test, n_steps=1000, plot=False, lr = 2e-2))
-    # ll.extend(train_lbfgs(model, D_train, R_train, D_test=D_test, n_steps=10, plot=False, convergence_level=5))
+    # ll.extend(train_gd(model, D_train, R_train, D_test=D_test, n_steps=10, plot=False, lr = 2e-2))
+    ll.extend(train_gd(model, D_train, R_train, D_test=D_test, n_steps=1000, plot=False, lr = 2e-2))
+    ll.extend(train_lbfgs(model, D_train, R_train, D_test=D_test, n_steps=10, plot=False, convergence_level=1))
 
     preds = model.predict_weights(D_test)
 
