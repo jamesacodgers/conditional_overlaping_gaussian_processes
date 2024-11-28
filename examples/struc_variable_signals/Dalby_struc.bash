@@ -6,7 +6,7 @@ do
         for ts in 0.1 0.5
         do
             echo "Running dataset $i seed $j..."
-            python examples/struc_variable_signals/Dalby_struc.py --data_idx $i --random_seed $j --num_unobs 2 --num_inducing 4 --num_samples 8 --num_latent_dims 2 --test_size $ts 
+            python examples/struc_variable_signals/Dalby_struc.py --data_idx $i --random_seed $j --num_unobs 2 --num_inducing 4 --num_samples 8 --num_latent_dims 2 --test_size $ts --inti_zero --add_noise
         done
     done
 done
