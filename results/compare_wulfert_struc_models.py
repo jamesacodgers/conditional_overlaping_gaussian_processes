@@ -61,16 +61,34 @@ plt.show()
 
 
 plt.figure()
-plt.scatter(df_an_iz["elbo"], df_an_iz["log_prob"], marker="x", label="AN IZ")
-plt.scatter(df_an["elbo"], df_an["log_prob"], marker="x", label="Add Noise")
-plt.scatter(df_iz["elbo"], df_iz["log_prob"], marker="x", label="Init zero")
-plt.scatter(df["elbo"], df["log_prob"], marker="x", label="None")
+plt.scatter(df_an_iz["rmsep"], df_an_iz["coverage"], marker="x", label="AN IZ")
+plt.scatter(df_an["rmsep"], df_an["coverage"], marker="x", label="Add Noise")
+plt.scatter(df_iz["rmsep"], df_iz["coverage"], marker="x", label="Init zero")
+plt.scatter(df["rmsep"], df["coverage"], marker="x", label="None")
+# plt.scatter(df["elbo"], df["rmsep"], marker="x", label="None")
+plt.scatter(df_an_iz["rmsep"].loc[elbo_idx_an_iz], df_an_iz["coverage"].loc[elbo_idx_an_iz], marker="o", label="AN IZ",s=64)
+plt.scatter(df_an["rmsep"].loc[elbo_idx_an], df_an["coverage"].loc[elbo_idx_an], marker="o", label="Add Noise",s=64)
+plt.scatter(df_iz["rmsep"].loc[elbo_idx_iz], df_iz["coverage"].loc[elbo_idx_iz], marker="o", label="Init zero",s=64)
+plt.scatter(df["rmsep"].loc[elbo_idx], df["coverage"].loc[elbo_idx], marker="o", label="None",s=64)
 
 plt.ylabel("Coverage")
 plt.xlabel("ELBO")
 plt.legend(loc="lower left")
 # plt.savefig(f"figs/{name}/struc_elbo_vs_msep_ts={ts}_l={l}_p=.pdf", bbox_inches="tight")
 plt.show()
+
+
+# plt.figure()
+# plt.scatter(df_an_iz["elbo"], df_an_iz["log_prob"], marker="x", label="AN IZ")
+# plt.scatter(df_an["elbo"], df_an["log_prob"], marker="x", label="Add Noise")
+# plt.scatter(df_iz["elbo"], df_iz["log_prob"], marker="x", label="Init zero")
+# plt.scatter(df["elbo"], df["log_prob"], marker="x", label="None")
+
+# plt.ylabel("Coverage")
+# plt.xlabel("ELBO")
+# plt.legend(loc="lower left")
+# # plt.savefig(f"figs/{name}/struc_elbo_vs_msep_ts={ts}_l={l}_p=.pdf", bbox_inches="tight")
+# plt.show()
 
 # %%
 
