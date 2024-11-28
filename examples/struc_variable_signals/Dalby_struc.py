@@ -220,17 +220,18 @@ if __name__ == "__main__":
     
     argparser.add_argument(
         "--init_zero",
-        "-iz",
-        type = bool,
-        default = False,
+        # "-iz",
+        action= "store_true",
+        # default = False,
         help = "lvs initialized with zero"
     )
 
     argparser.add_argument(
         "--add_noise_to_lvs",
-        "-an",
-        type = bool,
-        default = False,
+        # "-an",
+        action="store_true",
+        # type = argparse.BooleanOptionalAction,
+        # default = True,
         help = "should noise be added to the latent variables on init"
     )
 

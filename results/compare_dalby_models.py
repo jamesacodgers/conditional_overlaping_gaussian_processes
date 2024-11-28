@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 ts = 0.1
 
 
-results = {"struc_l=4": "results/Dalby/struc_var_signals/csvs/Dalby_test_size=0.1_c_unobs=2_L=8_A=4_P=8_an=True_iz=False.csv", "struc_l8":"results/Dalby/struc_var_signals/csvs/Dalby_test_size=0.1_c_unobs=2_L=4_A=2_P=8_an=False_iz=False.csv", "mf_L4": "results/Dalby/mf_var_signals/csvs/Dalby_test_size=0.1_c_unobs=2_L=4_A=2.csv", "mf_L8": "results/Dalby/mf_var_signals/csvs/Dalby_test_size=0.1_c_unobs=2_L=8_A=4.csv"}
+results = {"struc_l=4_i": "results/Dalby/struc_var_signals/csvs/Dalby_test_size=0.1_c_unobs=2_L=8_A=4_P=8_an=True_iz=False.csv", "struc_l8":"results/Dalby/struc_var_signals/csvs/Dalby_test_size=0.1_c_unobs=2_L=4_A=2_P=8_an=False_iz=False.csv", "mf_L4": "results/Dalby/mf_var_signals/csvs/Dalby_test_size=0.1_c_unobs=2_L=4_A=2.csv", "mf_L8": "results/Dalby/mf_var_signals/csvs/Dalby_test_size=0.1_c_unobs=2_L=8_A=4.csv", "struc_L4_ii": "results/Dalby/struc_var_signals/csvs/Dalby_test_size=0.1_c_unobs=2_L=4_A=2_P=8_an=True_iz=True.csv"}
 
 
 
