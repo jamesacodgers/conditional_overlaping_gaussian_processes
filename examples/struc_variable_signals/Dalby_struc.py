@@ -63,15 +63,15 @@ def main(args):
 
     preds = model.predict_weights(D_test)
 
-    log_prob = torch.distributions.MultivariateNormal(preds.mean[...,:R_train.shape[1]], preds.covariance_matrix[..., :R_train.shape[1], :R_train.shape[1]]).log_prob(R_test).sum()
-    rmse = torch.sqrt(((R_test - preds.mean[..., :2])**2).mean())
+    log_prob = torch.distributions.MultivariateNormal(preds.mean[...,:R_train.shape[1]], preds.covariance_matrix[..., :R_train.shape[1], :R_train.shape[1]]).log_prob(R_test).sum() # Note: this is calculated incorrecly and is corrected inthe the analysis
+    rmse = torch.sqrt(((R_test - preds.mean[..., :2])**2).mean()) # Note: this is calculated incorrecly and is corrected inthe the analysis
     
     coverage = 0
     interval_length = 0
     for c in range(model.C_obs):
         lb, ub = get_struc_ci(preds=preds, dim=c)
         coverage += np.logical_and(lb < R_test[:,c].numpy(), ub > R_test[:,c].numpy()).sum()
-        interval_length = (ub - lb).sum()
+        interval_length = (ub - lb).sum() # Note: this is calculated incorrectly here but corrected in the analysis
     coverage = coverage/(R_test.shape[0]*R_test.shape[1])
 
     mean_interval_length = interval_length/(R_test.shape[0]*R_test.shape[1])

@@ -159,7 +159,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         action=argparse.BooleanOptionalAction,
-        default=False,
+        default=True,
         help="plots figures",
     )
 
@@ -192,7 +192,7 @@ if __name__ == "__main__":
         "-nu",
 	    type=int,
         # default=1,
-        default=2,
+        default=3,
         help="number of unobserved components",
     )
 

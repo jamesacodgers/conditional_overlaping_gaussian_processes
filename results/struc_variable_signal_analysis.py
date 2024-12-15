@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-name = "Dalby"
+name = "Wulfert"
 ts = "0.5"
 # l = 8
 
@@ -60,14 +60,5 @@ plt.savefig(f"figs/{name}/struc_elbo_vs_msep_ts={ts}_l={l}_p=.pdf", bbox_inches=
 plt.show()
 
 
-# plt.figure()
-# plt.scatter(data["elbo"], -data["log_prob"], marker="x")
-# plt.scatter(data["elbo"].loc[rmse_idx], data["log_prob"].loc[rmse_idx], marker="v")
-# plt.scatter(data["elbo"].loc[nll_idx], data["log_prob"].loc[nll_idx], marker="^")
-# plt.scatter(data["elbo"].loc[elbo_idx], -data["log_prob"].loc[elbo_idx], marker="o", s=64)
-# plt.savefig(f"figs/{name}/elbo_vs_nll_ts={ts}_l={l}.pdf")
-# plt.ylabel("NLL")
-# plt.xlabel("ELBO")
 
-# plt.show()
 

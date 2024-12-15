@@ -13,11 +13,19 @@ acc_idx = datas["acc"].idxmax()
 
 plt.figure()
 
-plt.scatter(df["elbo"], df["acc"], marker="x")
-plt.scatter(df["elbo"].loc[elbo_idx], df["acc"].loc[elbo_idx], marker="o", s=64)
-plt.scatter(df["elbo"].loc[acc_idx], df["acc"].loc[acc_idx], marker="o", s=64)
+plt.scatter(df["elbo"], df["acc"], marker="x", label = "models")
+plt.scatter(df["elbo"].loc[elbo_idx], df["acc"].loc[elbo_idx], marker="o", s=64, label = "maximum elbo")
+
+plt.scatter(df["elbo"].loc[acc_idx], df["acc"].loc[acc_idx], marker="^", s=64, label = "maximum accuracy")
 plt.ylabel("MSEP")
 plt.xlabel("ELBO")
 plt.legend(loc="upper left")
 # plt.savefig(f"figs/{name}/struc_elbo_vs_msep_ts={ts}_l={l}_p=.pdf", bbox_inches="tight")
 plt.show()
+
+# %%
+
+df["acc"].loc[elbo_idx].mean()
+# df["auc"].loc[elbo_idx].mean()
+# df["acc"].mean()
+

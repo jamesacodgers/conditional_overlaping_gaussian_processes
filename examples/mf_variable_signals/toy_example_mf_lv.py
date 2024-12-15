@@ -28,7 +28,7 @@ np.random.seed(1234)
 # %%
 # Define the training set parameters
 
-independent_latents=True
+independent_latents=False
 num_training_samples = 100
 num_test_samples=100
 
@@ -82,7 +82,7 @@ A = 2
 
 mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train, D_test, A)
 
-V = torch.randn(6,A)
+V = torch.randn(8,A)
 
 R_train_obs = R_train[:,0].reshape(-1,1)
 model = MFVariableSignals(C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,weight_distribution="continuos", mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
@@ -100,7 +100,7 @@ train_lbfgs(model=model, D_train=D_train, R_train=R_train_obs, D_test=D_test, n_
 preds = model.predict_weights(D_test, )
 
 # %%
-plot_preds(R_test, mf_preds=preds, save_path=f"figs/toy_example/mf_preds_i={independent_latents}.pdf" )
+plot_preds(R_test, mf_preds=preds, save_path=f"figs/toy_example/mf_preds_i={independent_latents}_v2.pdf" )
 
 model.elbo(D_train=D_train,R_train=R_train_obs,D_test=D_test)
 # %%
@@ -108,27 +108,48 @@ model.elbo(D_train=D_train,R_train=R_train_obs,D_test=D_test)
 # %%
 with torch.no_grad():
     # Plot R_train points
-    plt.scatter(
-        model.mu_x_train[:, 0],  # X-coordinates
-        model.mu_x_train[:, 1],  # Y-coordinates
-        c=R_train[:, 0],  # Color based on R_train values
-        cmap="plasma",  # Choose a colormap
-        vmin=0,
-        vmax=1
-    )
+    dist = torch.distributions.Normal(model.mu_x_train, model.Sigma_x_train)
+    samples = dist.sample((16**2,))
+    # for i in range(16**2):
+    #     plt.scatter(
+    #         # model.mu_x_train[:, 0],  # X-coordinates
+    #         # model.mu_x_train[:, 1],  # Y-coordinates
+    #         samples[i,:, 0],  # X-coordinates
+    #         samples[i,:, 1],  # Y-coordinates
+    #         c=R_train[:, 0],  # Color based on R_train values
+    #         cmap="plasma",  # Choose a colormap
+    #         vmin=0,
+    #         vmax=1,
+    #         alpha=1
+    #     )
+    dist = torch.distributions.Normal(model.mu_x_test, model.Sigma_x_test)
+    samples = dist.sample((16*32,))
+    for i in range(16**2):
+        plt.scatter(
+            # model.mu_x_train[:, 0],  # X-coordinates
+            # model.mu_x_train[:, 1],  # Y-coordinates
+            samples[i,:, 0],  # X-coordinates
+            samples[i,:, 1],  # Y-coordinates
+            c=R_test[:, 0],  # Color based on R_train values
+            # marker="x",
+            cmap="plasma",  # Choose a colormap
+            vmin=0,
+            vmax=1,
+            alpha=1
+        )
     # Plot R_test points
-    plt.scatter(
-        model.mu_x_test[:, 0],  # X-coordinates
-        model.mu_x_test[:, 1],  # Y-coordinates
-        marker="x",  # Use a different marker for test points
-        c=R_test[:, 0],  # Color based on R_test values
-        cmap="plasma",  # Choose a colormap
-        vmin=0,
-        vmax=1
-    )
+    # plt.scatter(
+    #     model.mu_x_test[:, 0],  # X-coordinates
+    #     model.mu_x_test[:, 1],  # Y-coordinates
+    #     marker="x",  # Use a different marker for test points
+    #     c=R_test[:, 0],  # Color based on R_test values
+    #     cmap="plasma",  # Choose a colormap
+    #     vmin=0,
+    #     vmax=1
+    # )
     # Add a colorbar to provide a scale for the colors
     plt.colorbar(label="Component 1 fraction")
-    plt.savefig(f"figs/toy_example/mf_latent_space_i={independent_latents}.pdf")
+    plt.savefig(f"figs/toy_example/mf_latent_space_i={independent_latents}_v2.pdf")
     # Display the plot
     plt.show()
 
@@ -152,7 +173,7 @@ with torch.no_grad():
     axs[-1].xaxis.set_visible(True)
 
     axs[-1].set_xlabel("Component")
-    plt.savefig(f"figs/toy_example/mf_GP_hyperparameters_i={independent_latents}.pdf")
+    plt.savefig(f"figs/toy_example/mf_GP_hyperparameters_i={independent_latents}_v2.pdf")
 # %%
 
 S = model.get_gp_expectation(torch.zeros(1, model.A))
@@ -163,7 +184,7 @@ with torch.no_grad():
     for c in range(model.C):
         plt.plot(wavelengths, S[0,:,c], c = colours[c])
         plt.fill_between(wavelengths.numpy(),S[0,:,c] + 1.96*S_std[0,:,c], S[0,:,c] - 1.96*S_std[0,:,c], color = colours[c], alpha=0.5)
-        plt.savefig(f"figs/toy_example/mf_pure_component_estimates_i={independent_latents}.pdf")
+        plt.savefig(f"figs/toy_example/mf_pure_component_estimates_i={independent_latents}_v2.pdf")
 # %%
 print(S_std.mean())
 

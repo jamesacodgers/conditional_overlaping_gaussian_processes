@@ -42,7 +42,7 @@ def main(args):
     test_y = r_test
 
     nA = 10
-    msep = np.zeros([nA,3])
+    msep = np.zeros([nA,2])
 
     kf = KFold(n_splits=10, shuffle=True)
 
@@ -61,13 +61,13 @@ def main(args):
     y_hat = pls_reg.predict(test_x)
 
     if args.plot:
-        fig, ax = plt.subplots(3)
-        for i in range(3):
-            ax[i].scatter(test_y, y_hat)
+        fig, ax = plt.subplots(1)
+
+        ax.scatter(test_y[:,0], y_hat[:,0])
         plt.show()
     rmsep = np.sqrt(((y_hat - test_y.numpy())**2).mean())
 
-    print("msep:", )
+    print("rmsep:", rmsep)
     print("cross val error:", min_err_components)
 
     
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         "--test_size",
         "-ts",
         type=float,
-        default=0.1,
+        default=0.5,
         help="Test size.",
     )
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         "--data_idx",
         "-d",
         type=int,
-        default=5,
+        default=3,
         help="Random seed.",
     )
 
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         type=bool,
-        default=False,
+        default=True,
         help="plots figures",
     )
 

@@ -11,6 +11,7 @@ import pandas as pd
 from src.save_utils import save_model, save_results_csv
 from src.utils import plot_preds
 from src.utils import get_both_init_values_for_latent_variables, train_gd, train_lbfgs
+import time 
 
 from sklearn.cross_decomposition import PLSRegression
 
@@ -53,9 +54,14 @@ def main(args):
 
     model = MFVariableSignals(mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
 
+    start = time.time()
+
     ll = []
     ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=False, n_steps=100, lr=0.1))
     ll.extend(train_lbfgs(model, D_train, R_train, D_test, 10, plot=False, convergence_level=1))
+
+    end = time.time()
+    print("TIME:", end-start)
 
     preds = model.predict_weights(D_test)
 
@@ -104,15 +110,17 @@ def main(args):
         
 
     coverage = 0
+    interval_length = 0
     for c in range(model.C_obs):
         lb = preds.mean[:,c] - 1.96*preds.stddev[:,c]
         ub = preds.mean[:,c] + 1.96*preds.stddev[:,c]
         coverage += torch.logical_and(lb < R_test[:,c], ub > R_test[:,c]).type(torch.float32).sum()
+        interval_length += (ub - lb).sum()
     coverage = coverage/(R_test.shape[0]*R_test.shape[1])
-
+    
     mean_interval_length = (1.96*2*preds.stddev[:,:model.C_obs]).mean()
 
-
+    mean_interval_length_v2 = interval_length/(R_test.shape[0]*R_test.shape[1])
 
     results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1], "mean_interval_length": mean_interval_length.item(), "coverage": coverage.item() }
 

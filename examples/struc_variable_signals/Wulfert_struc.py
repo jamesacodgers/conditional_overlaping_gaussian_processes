@@ -17,6 +17,8 @@ from sklearn.cross_decomposition import PLSRegression
 
 from src.struc_models import StrucVariableSignals
 
+import time
+
 
 torch.set_default_dtype(torch.float64)
 # %%
@@ -53,17 +55,22 @@ def main(args):
     model = StrucVariableSignals(P=args.num_samples,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one", add_randn_to_lvs=args.add_noise_to_lvs)
     model = torch.compile(model)
 
+    start = time.time()
+
     ll = []
     # ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=False, n_steps=1, lr=0.02))
     ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=False, n_steps=500, lr=0.02))
     ll.extend(train_lbfgs(model, D_train, R_train, D_test, 5, plot=False, convergence_level=5))
+
+    end = time.time()
+    print("TIME:", end-start)
 
     preds = model.predict_weights(D_test)
 
     
     rmse = torch.sqrt(((R_test - preds.mean[:,:, :3].mean(dim=0))**2).mean())
 
-    log_prob = torch.distributions.MultivariateNormal(preds.mean[...,:R_train.shape[1]], preds.covariance_matrix[..., :R_train.shape[1], :R_train.shape[1]]).log_prob(R_test).sum()
+    log_prob = torch.distributions.MultivariateNormal(preds.mean[...,:R_train.shape[1]], preds.covariance_matrix[..., :R_train.shape[1], :R_train.shape[1]]).log_prob(R_test).sum() # Note: this is calculated incorrectly, but is corrected in the analysis
 
 
     print(rmse)
@@ -110,7 +117,7 @@ def main(args):
     for c in range(model.C_obs):
         lb, ub = get_struc_ci(preds=preds, dim=c)
         coverage += np.logical_and(lb < R_test[:,c].numpy(), ub > R_test[:,c].numpy()).sum()
-        interval_length = (ub - lb).sum()
+        interval_length = (ub - lb).sum() # Note: this is incorrectly calculated here, but corrected in the analysis
     coverage = coverage/(R_test.shape[0]*R_test.shape[1])
 
     mean_interval_length = interval_length/(R_test.shape[0]*R_test.shape[1])

@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import cauchy
 from itertools import chain
-from src.utils import get_init_values_for_latent_variables, train_gd, get_both_init_values_for_latent_variables, train_lbfgs, plot_preds, get_both_pca_values, train_conditional_model_gd, train_conditional_model_lbfgs
+from src.utils import get_init_values_for_latent_variables, train_gd, get_both_init_values_for_latent_variables, train_lbfgs, plot_preds, get_both_pca_values, train_conditional_model_lbfgs
 from src.prob_utils import get_struc_ci
 
 # import multiprocessing
@@ -36,7 +36,7 @@ np.random.seed(1234)
 # Define the training set parameters
 
 
-independent_latents = True
+independent_latents = False
 
 
 num_training_samples = 100
@@ -95,11 +95,11 @@ mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_tr
 # mu_x_test = torch.zeros_like(mu_x_test)
 
 
-V = torch.randn(6,A)
+V = torch.randn(8,A)
 # V = torch.linspace(-2,2,).reshape(-1,1)
 
 R_train = R_train[:,0].reshape(-1,1) # To test unobserved 
-model = StrucVariableSignals(P=16,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,weight_distribution="continuos", mu_x_test=mu_x_test, mu_x_train=mu_x_train, add_randn_to_lvs=False)
+model = StrucVariableSignals(P=32,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,weight_distribution="continuos", mu_x_test=mu_x_test, mu_x_train=mu_x_train, add_randn_to_lvs=False)
 
 opt_model = torch.compile(model)
 
@@ -113,7 +113,7 @@ train_gd(opt_model,
          R_train,
          D_test=D_test, 
          n_steps=500, 
-         lr = 1e-1
+         lr = 1e-2
         )
 
 
@@ -121,7 +121,7 @@ train_gd(opt_model,
 
 # %%
 
-train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=1)
+train_lbfgs(model, D_train, R_train, D_test, 10, convergence_level=5)
 
 
 
@@ -139,27 +139,39 @@ print(model.beta, model.sigma2_s)
 
 # %%
 with torch.no_grad():
+    dist = torch.distributions.Normal(model.mu_x_train, model.Sigma_x_train)
+    samples = dist.sample((16,))
     # Plot R_train points
-    for j in range(R_train.shape[0]):
-        plt.scatter(
-            model.mu_x_train[:, j, 0],  # X-coordinates
-            model.mu_x_train[:, j, 1],  # Y-coordinates
-            c=R_train[j, 0].repeat(model.P),  # Color based on R_train values
-            cmap="plasma",  # Choose a colormap
-            vmin=0,
-            vmax=1
-        )
+    # for j in range(R_train.shape[0]):
+    #     for i in range(16):
+    #         plt.scatter(
+    #             # model.mu_x_train[:, j, 0],  # X-coordinates
+    #             # model.mu_x_train[:, j, 1],  # Y-coordinates
+    #             samples[i,:, j, 0],  # X-coordinates
+    #             samples[i,:, j, 1],  # Y-coordinates
+    #             c=R_train[j, 0].repeat(model.P),  # Color based on R_train values
+    #             cmap="plasma",  # Choose a colormap
+    #             vmin=0,
+    #             vmax=1,
+    #             alpha=1
+    #         )
     # Plot R_test points
+    dist = torch.distributions.Normal(model.mu_x_test, model.Sigma_x_test)
+    samples = dist.sample((8,))
     for j in range(R_test.shape[0]):
-        plt.scatter(
-            model.mu_x_test[:, j, 0],  # X-coordinates
-            model.mu_x_test[:, j, 1],  # Y-coordinates
-            marker="x",  # Use a different marker for test points
-            c=R_test[j, 0].repeat(model.P),  # Color based on R_test values
-            cmap="plasma",  # Choose a colormap
-            vmin=0,
-            vmax=1
-        )
+        for i in range(8):
+            plt.scatter(
+                    samples[i,:, j, 0],  # X-coordinates
+                    samples[i,:, j, 1],  # Y-coordinates
+                # model.mu_x_test[:, j, 0],  # X-coordinates
+                # model.mu_x_test[:, j, 1],  # Y-coordinates
+                # marker="x",  # Use a different marker for test points
+                c=R_test[j, 0].repeat(model.P),  # Color based on R_test values
+                cmap="plasma",  # Choose a colormap
+                vmin=0,
+                vmax=1,
+                alpha=1
+            )
     # Add a colorbar to provide a scale for the colors
     plt.colorbar(label="Component 1 fraction")
     plt.savefig(f"figs/toy_example/structured_latent_space_i={independent_latents}.pdf")
