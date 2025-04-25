@@ -26,7 +26,7 @@ def main(args):
     torch.manual_seed(args.random_seed)
 
     if args.no_snv:
-        experiment_name = f"MF_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}_nosnv"
+        experiment_name = f"MF_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_Lx={args.num_inducing}_Ll={args.num_inducing_l}_A={args.num_latent_dims}_nosnv"
         work_dir = Path(args.work_dir)
         D_test = torch.load(f"data/Wulfert/splits/no_snv_d_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
         D_train = torch.load(f"data/Wulfert/splits/no_snv_d_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
@@ -34,7 +34,7 @@ def main(args):
         R_train = torch.load(f"data/Wulfert/splits/no_snv_r_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
         R_test = torch.load(f"data/Wulfert/splits/no_snv_r_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
     else:
-        experiment_name = f"MF_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}"
+        experiment_name = f"MF_Wulfert_test_size={args.test_size}_c_unobs={args.num_unobs}_Lx={args.num_inducing}_Ll={args.num_inducing_l}_A={args.num_latent_dims}"
         work_dir = Path(args.work_dir)
         D_test = torch.load(f"data/Wulfert/splits/d_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
         D_train = torch.load(f"data/Wulfert/splits/d_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
@@ -42,22 +42,24 @@ def main(args):
         R_train = torch.load(f"data/Wulfert/splits/r_train_seed={args.data_idx}_test_size={args.test_size}.pkl")
         R_test = torch.load(f"data/Wulfert/splits/r_test_seed={args.data_idx}_test_size={args.test_size}.pkl")
 
-    V = torch.randn(args.num_inducing,args.num_latent_dims)
+    Vx = torch.randn(args.num_inducing,args.num_latent_dims)
     if args.plot:
         with torch.no_grad():
             plt.plot(D_train.T)
             plt.plot(D_test.T)
             plt.show()
+    
+    Vl = torch.linspace(0,1,32).reshape(-1,1)
 
     mu_x_train, mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, R_train=R_train, D_test=D_test, num_latent_dimensions=args.num_latent_dims)
  
 
-    model = MFVariableSignals(mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
+    model = MFVariableSignals(mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], Vx=Vx, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one", Vl=Vl)
 
     start = time.time()
 
     ll = []
-    ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=False, n_steps=100, lr=0.1))
+    ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, plot=False, n_steps=1000, lr=0.1))
     ll.extend(train_lbfgs(model, D_train, R_train, D_test, 10, plot=False, convergence_level=1))
 
     end = time.time()
@@ -73,13 +75,13 @@ def main(args):
 
 
     print(rmse)
-    print("scale",model.sigma2_s)
-    print("beta",model.beta)
+    print("scale",model.gp.sigma2_s)
+    print("beta",model.gp.beta)
 
     if args.plot: 
         
 
-        S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
+        S = model.gp.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
 
 
         with torch.no_grad():
@@ -92,7 +94,7 @@ def main(args):
             plt.xlabel("wavelength")
 
             plt.show()
-        argmin_beta = torch.argsort(model.beta)
+        argmin_beta = torch.argsort(model.gp.beta)
         print(argmin_beta)
         with torch.no_grad():
             plt.figure()
@@ -120,7 +122,7 @@ def main(args):
     
     mean_interval_length = (1.96*2*preds.stddev[:,:model.C_obs]).mean()
 
-    mean_interval_length_v2 = interval_length/(R_test.shape[0]*R_test.shape[1])
+    # mean_interval_length_v2 = interval_length/(R_test.shape[0]*R_test.shape[1])
 
     results_dict = {"random_seed": args.random_seed, "data_set": args.data_idx, "rmsep": rmse.item(), "log_prob": log_prob.item(), "elbo": ll[-1], "mean_interval_length": mean_interval_length.item(), "coverage": coverage.item() }
 
@@ -195,6 +197,14 @@ if __name__ == "__main__":
         "-ni",
         type=int,
         default=8,
+        help="number of inducing dimensions"
+    )
+
+    argparser.add_argument(
+        "--num_inducing_l",
+        "-nil",
+        type=int,
+        default=16,
         help="number of inducing dimensions"
     )
 

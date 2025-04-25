@@ -71,26 +71,27 @@ D_train = get_observations(R_train, S_train)
 
 # %%
 
-with torch.no_grad():
-    for i,c in enumerate(["red","blue","green"]):
-        plt.plot(S_test[i,:,0], c= c )
-        plt.plot(S_test[i,:,1], c = c)
-    plt.show()
+# with torch.no_grad():
+#     for i,c in enumerate(["red","blue","green"]):
+#         plt.plot(S_test[i,:,0], c= c )
+#         plt.plot(S_test[i,:,1], c = c)
+#     plt.show()
 
 # %%
 A = 2
 
 mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train, D_test, A)
 
-V = torch.randn(8,A)
+Vx = torch.randn(8,A)
+Vl = torch.linspace(0, 1, 16).reshape(-1,1)
 
 R_train_obs = R_train[:,0].reshape(-1,1)
-model = MFVariableSignals(C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,weight_distribution="continuos", mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
+model = MFVariableSignals(C_obs=1, C_unobs=2, M = wavelengths.shape[0],Vx=Vx,weight_distribution="continuous", mu_x_test=mu_x_test, mu_x_train=mu_x_train, Vl=Vl)
 
 
+print(model.named_parameters())
 
-
-train_gd(model=model, D_train=D_train, R_train=R_train_obs, D_test=D_test, n_steps=1000, lr = 1e-1)
+# train_gd(model=model, D_train=D_train, R_train=R_train_obs, D_test=D_test, n_steps=5000, lr = 1e-1)
 
 # %%
 
@@ -99,8 +100,12 @@ train_lbfgs(model=model, D_train=D_train, R_train=R_train_obs, D_test=D_test, n_
 
 preds = model.predict_weights(D_test, )
 
+
+
 # %%
-plot_preds(R_test, mf_preds=preds, save_path=f"figs/toy_example/mf_preds_i={independent_latents}_v2.pdf" )
+plot_preds(R_test, mf_preds=preds,
+            # save_path=f"figs/toy_example/mf_preds_i={independent_latents}_v2.pdf" 
+            )
 
 model.elbo(D_train=D_train,R_train=R_train_obs,D_test=D_test)
 # %%
@@ -149,44 +154,45 @@ with torch.no_grad():
     # )
     # Add a colorbar to provide a scale for the colors
     plt.colorbar(label="Component 1 fraction")
-    plt.savefig(f"figs/toy_example/mf_latent_space_i={independent_latents}_v2.pdf")
+    # plt.savefig(f"figs/toy_example/mf_latent_space_i={independent_latents}_v2.pdf")
     # Display the plot
     plt.show()
 
 
 # %%
-S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
+# S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
 
 
 with torch.no_grad():
     fig, axs = plt.subplots(3, figsize=(6,9))
-    axs[0].bar(["observed", "unobserved 1", "unobserved 2"], model.sigma2_s, label = "$\sigma^2_s$", width=0.4)
+    axs[0].bar(["observed", "unobserved 1", "unobserved 2"], model.gp.sigma2_s, label = "$\sigma^2_s$", width=0.4)
     axs[0].xaxis.set_visible(False)
-    axs[0].set_ylabel("$\\sigma^{\; s\;2}_c$")
+    axs[0].set_ylabel("$\\sigma^E{\; s\;2}_c$")
 
     for j in range(2):
-        axs[j+1].bar(["observed", "unobserved 1", "unobserved 2"], 1/model.beta[:,j], width=0.4)
-        axs[j+1].set_ylim(0,(1/model.beta).max()*1.1)
+        axs[j+1].bar(["observed", "unobserved 1", "unobserved 2"], 1/model.gp.beta[:,j], width=0.4)
+        axs[j+1].set_ylim(0,(1/model.gp.beta).max()*1.1)
         axs[j+1].set_ylabel("$1/\\beta_{c"+str(j+1)+"}$")
 
         axs[j+1].xaxis.set_visible(False)
     axs[-1].xaxis.set_visible(True)
 
     axs[-1].set_xlabel("Component")
-    plt.savefig(f"figs/toy_example/mf_GP_hyperparameters_i={independent_latents}_v2.pdf")
+    # plt.savefig(f"figs/toy_example/mf_GP_hyperparameters_i={independent_latents}_v2.pdf")
 # %%
-
-S = model.get_gp_expectation(torch.zeros(1, model.A))
-S_cov = model.get_gp_covariance(torch.zeros(1, model.A))
-S_std = torch.sqrt(S_cov[:,:, range(model.C), range(model.C)])
+plt.figure()
+S = model.gp.get_gp_expectation(torch.zeros(1, model.A))
+S_cov = model.gp.get_gp_covariance(torch.zeros(1, model.A))
+S_std = torch.sqrt(S_cov)
 colours = ["orange", "blue", "green"]
 with torch.no_grad():
     for c in range(model.C):
         plt.plot(wavelengths, S[0,:,c], c = colours[c])
         plt.fill_between(wavelengths.numpy(),S[0,:,c] + 1.96*S_std[0,:,c], S[0,:,c] - 1.96*S_std[0,:,c], color = colours[c], alpha=0.5)
-        plt.savefig(f"figs/toy_example/mf_pure_component_estimates_i={independent_latents}_v2.pdf")
+        # plt.savefig(f"figs/toy_example/mf_pure_component_estimates_i={independent_latents}_v2.pdf")
+plt.show()
 # %%
-print(S_std.mean())
+# print(S_std.mean())
 
 # %%
 

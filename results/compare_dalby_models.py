@@ -4,8 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 
-from src.prob_utils import get_struc_ci
-from src.struc_models import StrucVariableSignals
+# from src.prob_utils import get_struc_ci
+# from src.struc_models import StrucVariableSignals
 
 torch.set_default_dtype(torch.float64)
 
@@ -14,9 +14,10 @@ ts = 0.5
 
 
 paths = {
-    "static": f"results/Dalby/mf_static_signals/csvs/Dalby_test_size={ts}_num_unobs=1.csv",
-    "mf": f"results/Dalby/mf_var_signals/csvs/Dalby_test_size={ts}_c_unobs=2_L=4_A=2.csv",
-    "struc":f"results/Dalby/struc_var_signals/csvs/Dalby_test_size={ts}_c_unobs=2_L=4_A=2_P=8_an=False_iz=False.csv", 
+    # "static": f"results/Dalby/mf_static_signals/csvs/Dalby_test_size={ts}_num_unobs=1.csv",
+    # "mf": f"results/Dalby/mf_var_signals/csvs/Dalby_test_size={ts}_c_unobs=2_L=4_A=2.csv",
+    # "struc":f"results/Dalby/struc_var_signals/csvs/Dalby_test_size={ts}_c_unobs=2_L=4_A=2_P=8_an=False_iz=False.csv", 
+    "mf": "results/Dalby/mf_var_signals/csvs/Dalby_test_size=0.5_c_unobs=0_Lx=8_Ll=16_A=4.csv"
     }
 
 
@@ -69,19 +70,20 @@ for k,p in paths.items():
 
 
 # %%
-# plt.figure()
-# df = pd.read_csv(f"results/Dalby/struc_var_signals/models/Dalby_test_size=0.1_c_unobs=2_L=4_A=2_P=8_an=False_iz=False_rs=3_data_idx=6.pt")
-# df["msep"] = df["rmsep"]**2
+plt.figure()
+df = pd.read_csv(f"results/Dalby/mf_var_signals/csvs/Dalby_test_size=0.5_c_unobs=0_Lx=8_Ll=16_A=4.csv")
+df["msep"] = df["rmsep"]**2
 
-# datas= df.groupby("data_set")
-# elbo_idx = datas["elbo"].idxmax()
-# max_elbo = df[["log_prob","msep", "coverage", "mean_interval_length"]].loc[elbo_idx]
+datas= df.groupby("data_set")
+elbo_idx = datas["elbo"].idxmax()
+max_elbo = df[["log_prob","msep", "coverage", "mean_interval_length"]].loc[elbo_idx]
 
-# plt.scatter(df["elbo"].loc[elbo_idx], df["coverage"].loc[elbo_idx], marker="o",s=64)
+plt.scatter(df["elbo"].loc[elbo_idx], df["coverage"].loc[elbo_idx], marker="o",s=64)
 
-# plt.ylabel("Coverage")
-# plt.xlabel("ELBO")
-# plt.legend(loc="lower left")
-# # plt.savefig(f"figs/{name}/struc_elbo_vs_msep_ts={ts}_l={l}_p=.pdf", bbox_inches="tight")
-# plt.show()
+plt.ylabel("Coverage")
+plt.xlabel("ELBO")
+plt.legend(loc="lower left")
+# plt.savefig(f"figs/{name}/struc_elbo_vs_msep_ts={ts}_l={l}_p=.pdf", bbox_inches="tight")
+plt.show()
+
 

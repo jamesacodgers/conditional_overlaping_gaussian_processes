@@ -9,13 +9,13 @@ class StrucVariableSignalsObservedInputs(MFVariableSignalsObservedInputs):
     def __init__(self, P, V, M, C_obs, C_unobs=0, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None,):
         super(StrucVariableSignalsObservedInputs, self). __init__(V, M, C_obs, C_unobs=C_unobs, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None)
         self.P = P
-        self._samples = torch.distributions.Normal(0,1).icdf((torch.quasirandom.SobolEngine(self.L*self.C).draw(P)+1/P)*(1-2/P))
+        self._samples = torch.distributions.Normal(0,1).icdf((torch.quasirandom.SobolEngine(self.Lx*self.C).draw(P)+1/P)*(1-2/P))
         self._mu_u = torch.nn.Parameter(torch.zeros_like(self._mu_u))
 
     def get_u_samples(self):
         # dist = self.get_q_u_dist()
         samples = self.get_u_vector_samples()
-        return samples.reshape(self.P, self.M, self.C, self.L)
+        return samples.reshape(self.P, self.M, self.C, self.Lx)
     
     def get_u_vector_samples(self):
         # dist = self.get_q_u_dist()
@@ -29,8 +29,8 @@ class StrucVariableSignalsObservedInputs(MFVariableSignalsObservedInputs):
         Returns shape P x N x M x C
         """
         u_samples = self.get_u_samples() # P x M x C x L 
-        K_VV_inv = self.get_K_VV_inv() # C x L x L 
-        K_obsV = self.get_K_obsV(inputs) # N x C x L 
+        K_VV_inv = self.get_K_VV_x_inv() # C x L x L 
+        K_obsV = self.get_K_xVx(inputs) # N x C x L 
         
         # with torch.no_grad():
         #     plt.figure()
@@ -69,7 +69,7 @@ class StrucVariableSignalsObservedInputs(MFVariableSignalsObservedInputs):
         Ma = (K_VV_inv@Ma@ K_VV_inv.T)  # LC x LC 
         # Ma = (Ma + Ma.T)/2 # Trying to make Ma symetric 
         # Ma = Ma.reshape(self.C, self.L, self.C, self.L).transpose(1,2) # C x C x L x L
-        Ma = Ma.reshape(self.C, self.L, self.C, self.L).permute(0,1,3,2,4) # C x C x L x L
+        Ma = Ma.reshape(self.C, self.Lx, self.C, self.Lx).permute(0,1,3,2,4) # C x C x L x L
         # Z = self._get_kernel_outer_expectation(mu_x,sigma_x) # N x C x C x L x L
         Z = self._get_kernel_outer_expectation(mu_x,sigma_x)#.transpose(1,2) # N x C x C x L x L
         K_xx_expectation = torch.diag(self.sigma2_s)
@@ -91,13 +91,13 @@ class StrucVariableSignalsObservedInputs(MFVariableSignalsObservedInputs):
             + self.beta[None,None,:,None,:]*self.beta[None,None,None,:,:]
         ) # P x N x C x C x A 
         e = (
-              self.beta[None,None,None,:,None,None,:]*Sigma_x[None,:,None,None,None,None,:]*self.V[None,None,None,None,:,None,:]
-            + self.beta[None,None,:,None,None,None,:]*Sigma_x[None,:,None,None,None,None,:]*self.V[None,None,None,None,None,:,:]
+              self.beta[None,None,None,:,None,None,:]*Sigma_x[None,:,None,None,None,None,:]*self.Vx[None,None,None,None,:,None,:]
+            + self.beta[None,None,:,None,None,None,:]*Sigma_x[None,:,None,None,None,None,:]*self.Vx[None,None,None,None,None,:,:]
             + self.beta[None,None,:,None,None,None,:]*self.beta[None,None,None,:,None,None,:]*mu_x[None,:,None,None,None,None,:]
         ) # P x N x C x C x L x L x A
         f = (
-              self.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.V[None,None,None,None,:,None,:]**2)
-                + self.beta[None,None,:,None,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.V[None,None,None,None,None,:,:]**2)
+              self.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.Vx[None,None,None,None,:,None,:]**2)
+                + self.beta[None,None,:,None,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.Vx[None,None,None,None,None,:,:]**2)
                 + self.beta[None,None,:,None,None,None,:]*self.beta[None,None,None,:,None,None,:]*(mu_x[:,:,None,None,None,None,:]**2)
         ) # N x C x C x L x L x A
         g_intermediate = 1/(self.beta[None,None,:,None,None,None,:]*self.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:])*(-e**2/d[:,:,:,:,None,None,:] + f)
@@ -141,8 +141,8 @@ class StrucVariableSignals(MFVariableSignals):
         
 
         self.P = P
-        sample_generator = torch.quasirandom.SobolEngine(self.L*self.C, seed=1, )
-        _samples = torch.zeros(self.P, self.M, self.L*self.C)
+        sample_generator = torch.quasirandom.SobolEngine(self.Lx*self.C, seed=1, )
+        _samples = torch.zeros(self.P, self.M, self.Lx*self.C)
         for j in range(M):
             _samples[:,j,:] = torch.distributions.Normal(0,1).icdf((sample_generator.draw(P)+1/(P))*(1-2/(P)))
         self._samples = _samples
@@ -160,7 +160,7 @@ class StrucVariableSignals(MFVariableSignals):
         # dist = self.get_q_u_dist()
         # samples = dist.rsample((self.P,))
         samples = self.get_u_vec_samples()
-        return samples.reshape(self.P, self.M, self.C, self.L)
+        return samples.reshape(self.P, self.M, self.C, self.Lx)
     
     def get_u_vec_samples(self):
         # dist = self.get_q_u_dist()
@@ -185,9 +185,9 @@ class StrucVariableSignals(MFVariableSignals):
         # mu_u = self.get_mu_u() # M x C x L
         # kernel_expectation = self.get_kernel_expectation(mu_x,sigma_x)
         # return torch.einsum("nck,ckl,mcl->nmc", kernel_expectation, K_VV_inv, mu_u)
-        K_VV_inv = self.get_K_VV_inv() # C x L x L 
+        K_VV_inv = self.get_K_VV_x_inv() # C x L x L 
         u_samples = self.get_u_samples() # P x M x C x L
-        kernel_expectation = self._get_kernel_expectation(mu_x,sigma_x) # P x N x C x L 
+        kernel_expectation = self._get_lv_kernel_expectation(mu_x,sigma_x) # P x N x C x L 
         return (kernel_expectation[:,:,None,:,None,:]@K_VV_inv[None,None,None,:,:,:]@u_samples[:,None,:,:,:,None])[...,0,0] # P x N x M x C 
     
     def get_s_outer_expectation(self, mu_x, sigma_x):
@@ -208,14 +208,14 @@ class StrucVariableSignals(MFVariableSignals):
         Ma = (K_VV_inv@Ma@ K_VV_inv.T)  # LC x LC 
         # Ma = (Ma + Ma.T)/2 # Trying to make Ma symetric 
         # Ma = Ma.reshape(self.C, self.L, self.C, self.L).transpose(1,2) # C x C x L x L
-        Ma = Ma.reshape(self.P,self.C, self.L, self.C, self.L).permute(0,1,3,2,4) # C x C x L x L
+        Ma = Ma.reshape(self.P,self.C, self.Lx, self.C, self.Lx).permute(0,1,3,2,4) # C x C x L x L
         # Z = self._get_kernel_outer_expectation(mu_x,sigma_x) # N x C x C x L x L
-        Z = self._get_kernel_outer_expectation(mu_x,sigma_x) # P, N x C x C x L x L
+        Z = self._get_lv_kernel_outer_expectation(mu_x,sigma_x) # P, N x C x C x L x L
         K_xx_expectation = torch.diag(self.sigma2_s)
         A = K_xx_expectation*self.M + (Ma[:,None,:,:,:,:]*Z[:,:,:,:,:,:]).sum(dim=[-2,-1]) # + torch.eye(self.C)*1e-3
         return A # Px N x C x C 
     
-    def _get_kernel_expectation(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor) -> torch.Tensor:
+    def _get_lv_kernel_expectation(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor) -> torch.Tensor:
         """
         Returns object of shape P x N x C x L
         """
@@ -224,11 +224,11 @@ class StrucVariableSignals(MFVariableSignals):
             + self.beta[None,None,:,:]
         ) # P x N x C x A 
         e = (
-              Sigma_x[:,:,None,None,:]*self.V[None,None,None,:,:]
+              Sigma_x[:,:,None,None,:]*self.Vx[None,None,None,:,:]
             + self.beta[None,None,:,None,:]*mu_x[:,:,None, None,:]
         ) # P x N x C x L x A
         f = (
-              Sigma_x[:,:,None,None,:]*(self.V[None,None,None,:,:]**2)
+              Sigma_x[:,:,None,None,:]*(self.Vx[None,None,None,:,:]**2)
             + self.beta[None,None,:,None,:]*(mu_x[:,:,None,None,:]**2)
         ) # P x N x C x L x A
         g_intermediate = 1/(self.beta[None,None,:,None,:]*Sigma_x[:,:,None,None,:])*(-e**2/d[:,:,:,None,:] + f)
@@ -236,7 +236,7 @@ class StrucVariableSignals(MFVariableSignals):
         Z = self.sigma2_s[None, None,:,None]*torch.sqrt((self.beta[None,None,:,None,:]/d[:,:,:,None,:]).prod(dim=-1))*torch.exp(g) 
         return Z # P x N x C x L 
     
-    def _get_kernel_outer_expectation(self, mu_x, Sigma_x) -> torch.Tensor:
+    def _get_lv_kernel_outer_expectation(self, mu_x, Sigma_x) -> torch.Tensor:
         """
         returns P x N x C x C x L x L
         """
@@ -251,13 +251,13 @@ class StrucVariableSignals(MFVariableSignals):
             + self.beta[None,None,:,None,:]*self.beta[None,None,None,:,:]
         ) # P x N x C x C x A 
         e = (
-              self.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*self.V[None,None,None,None,:,None,:]
-            + self.beta[None,None,:,None,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*self.V[None,None,None,None,None,:,:]
+              self.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*self.Vx[None,None,None,None,:,None,:]
+            + self.beta[None,None,:,None,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*self.Vx[None,None,None,None,None,:,:]
             + self.beta[None,None,:,None,None,None,:]*self.beta[None,None,None,:,None,None,:]*mu_x[:,:,None,None,None,None,:]
         ) # P x N x C x C x L x L x A
         f = (
-              self.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.V[None,None,None,None,:,None,:]**2)
-                + self.beta[None,None,:,None,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.V[None,None,None,None,None,:,:]**2)
+              self.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.Vx[None,None,None,None,:,None,:]**2)
+                + self.beta[None,None,:,None,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.Vx[None,None,None,None,None,:,:]**2)
                 + self.beta[None,None,:,None,None,None,:]*self.beta[None,None,None,:,None,None,:]*(mu_x[:,:,None,None,None,None,:]**2)
         ) # P x N x C x C x L x L x A
         g_intermediate = 1/(self.beta[None,None,:,None,None,None,:]*self.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:])*(-e**2/d[:,:,:,:,None,None,:] + f)

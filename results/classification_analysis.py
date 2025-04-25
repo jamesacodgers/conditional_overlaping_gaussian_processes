@@ -4,11 +4,11 @@ import pandas as pd
 import numpy as np 
 import matplotlib.pyplot as plt 
 
-df = pd.read_csv("results/classification/mf_var_signals/csvs/spectroscopy_seed_L=12_A=3.csv")
+df = pd.read_csv("results/Dalby/mf_var_signals/csvs/Dalby_test_size=0.5_c_unobs=0_Lx=8_Ll=16_A=4.csv")
 
 datas = df.groupby("data_set")
 elbo_idx = datas["elbo"].idxmax()
-acc_idx = datas["acc"].idxmax()
+acc_idx = datas["rmsep"].idxmax()
 
 
 plt.figure()

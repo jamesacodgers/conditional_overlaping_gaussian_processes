@@ -185,7 +185,7 @@ with torch.no_grad():
         plt.scatter(model.get_u_vec_samples()[:,j,0], model.get_u_vec_samples()[:,j,1])
     plt.show()
 # %%
-a = torch.randn(2,model.L*model.C)
+a = torch.randn(2,model.Lx*model.C)
 b = model._samples@a.T
 
 

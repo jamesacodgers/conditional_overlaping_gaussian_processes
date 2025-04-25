@@ -27,7 +27,7 @@ def main(args):
     torch.manual_seed(args.random_seed)
 
 
-    experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_L={args.num_inducing}_A={args.num_latent_dims}"
+    experiment_name = f"Dalby_test_size={args.test_size}_c_unobs={args.num_unobs}_Lx={args.num_inducing}_Ll={args.num_wl_inducing}_A={args.num_latent_dims}"
     work_dir = Path(args.work_dir)
     D_test = torch.load(f"data/Dalby/splits/d_test_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
     D_train = torch.load(f"data/Dalby/splits/d_train_seed={args.data_idx}_test_size={args.test_size}_trimmin={args.min_wavelength}_trimmax={args.max_wavelength}.pkl")
@@ -48,21 +48,22 @@ def main(args):
             plt.show()
 
 
-    model = MFVariableSignals(mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
+    # model = MFVariableSignals(mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
+    model = MFVariableSignals(mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], Vx=V, Vl = torch.linspace(0,1,args.num_wl_inducing).reshape(-1,1), C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one")
     ll = []
 
     model = torch.compile(model)
 
     ll.extend(train_gd(model=model, D_train=D_train, R_train=R_train, D_test=D_test, n_steps=1000, plot=False,lr = 0.01))
-    ll.extend(train_lbfgs(model=model, D_train=D_train, R_train=R_train, D_test=D_test, n_steps=5, plot=False, convergence_level=1))
+    ll.extend(train_lbfgs(model=model, D_train=D_train, R_train=R_train, D_test=D_test, n_steps=5, plot=False, convergence_level=10))
 
     preds = model.predict_weights(D_test)
 
     log_prob = torch.distributions.MultivariateNormal(preds.mean[:,:R_train.shape[1]], preds.covariance_matrix[:, :R_train.shape[1], :R_train.shape[1]]).log_prob(R_test).sum()
     rmse = torch.sqrt(((R_test - preds.mean[:, :2])**2).mean())
     
-    print("beta",model.beta)
-    print("sigma2s",model.sigma2_s)
+    print("beta",model.gp.beta)
+    print("sigma2s",model.gp.sigma2_s)
     # for name,param in model.named_parameters():
     #     print(name, param)
 
@@ -75,27 +76,26 @@ def main(args):
             # cond_preds=cond_preds
         )
 
-        S = model.get_s_expectation(model.mu_x_train,model.Sigma_x_train)
+        # S = model.gp.get_gp_expectation(model.mu_x_train)
+        # with torch.no_grad():
+        #     # for p in range(16):
+        #     fig, axs = plt.subplots(nrows=model.C_obs, ncols=model.C_unobs, figsize = (6, 6))
+        #     for c in range(model.C_obs):
+        #         for d in range(model.C_unobs):
+        #             for i in range(R_train.shape[0]):
+        #                 axs[c,d].plot(S[i,:,c*2+d], alpha = 0.5)
+        #     plt.ylabel("pure component mean")
+        #     plt.xlabel("wavelength")
 
+        #     plt.show()
 
-        with torch.no_grad():
-            # for p in range(16):
-            fig, axs = plt.subplots(nrows=model.C_obs, ncols=model.C_unobs, figsize = (6, 6))
-            for c in range(model.C_obs):
-                for d in range(model.C_unobs):
-                    for i in range(R_train.shape[0]):
-                        axs[c,d].plot(S[i,:,c*2+d], alpha = 0.5)
-            plt.ylabel("pure component mean")
-            plt.xlabel("wavelength")
-
-            plt.show()
-        argmin_beta = torch.argsort(model.beta)
-        print(argmin_beta)
-        with torch.no_grad():
-            plt.figure()
-            plt.scatter(model.mu_x_train[:,0], model.mu_x_train[:,1])
-            plt.scatter(model.mu_x_test[:,0], model.mu_x_test[:,1])
-            plt.show()
+        # argmin_beta = torch.argsort(model.gp.beta)
+        # print(argmin_beta)
+        # with torch.no_grad():
+        #     plt.figure()
+        #     plt.scatter(model.mu_x_train[:,0], model.mu_x_train[:,1])
+        #     plt.scatter(model.mu_x_test[:,0], model.mu_x_test[:,1])
+        #     plt.show()
 
     coverage = 0
     for c in range(model.C_obs):
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         "--test_size",
         "-ts",
         type=float,
-        default=0.1,
+        default=0.5,
         help="Test size.",
     )
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         "--plot",
         "-p",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=False,
         help="plots figures",
     )
 
@@ -192,7 +192,7 @@ if __name__ == "__main__":
         "-nu",
 	    type=int,
         # default=1,
-        default=3,
+        default=0,
         help="number of unobserved components",
     )
 
@@ -210,6 +210,14 @@ if __name__ == "__main__":
         "-ni",
         type=int,
         default=8,
+        help="number of inducing dimensions"
+    )
+
+    argparser.add_argument(
+        "--num_wl_inducing",
+        "-nil",
+        type=int,
+        default=32,
         help="number of inducing dimensions"
     )
 
