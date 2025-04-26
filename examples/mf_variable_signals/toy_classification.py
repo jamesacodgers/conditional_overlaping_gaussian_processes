@@ -15,7 +15,7 @@ from itertools import chain
 from src.utils import get_init_values_for_latent_variables, train_gd, get_both_init_values_for_latent_variables, train_lbfgs, plot_preds
 
 
-from src.mf_methods import  MFVariableSignals
+from src.mf_methods import  MF_WS_GPLVM
 from torcheval.metrics import BinaryAUROC
 
 
@@ -88,7 +88,7 @@ mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train,R_sam
 V = torch.randn(6,A)
 
 R_train_obs = R_train
-model = MFVariableSignals(C_obs=2, C_unobs=0, M = wavelengths.shape[0],V=V,weight_distribution="categorical", mu_x_test=mu_x_test, mu_x_train=mu_x_train)
+model = MF_WS_GPLVM(C_obs=2, C_unobs=0, M = wavelengths.shape[0],V=V,weight_distribution="categorical", mu_x_test=mu_x_test, mu_x_train=mu_x_train)
 
 
 

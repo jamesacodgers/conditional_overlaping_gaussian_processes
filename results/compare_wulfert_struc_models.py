@@ -6,7 +6,7 @@ import torch
 import numpy as np
 
 from src.prob_utils import get_struc_ci
-from src.struc_models import StrucVariableSignals
+from src.struc_models import Struc_WS_GPLVM
 
 torch.set_default_dtype(torch.float64)
 
@@ -35,7 +35,7 @@ for k,p in paths.items():
             V = torch.randn(8,4)
             mu_x_train = torch.zeros(R_train.shape[0], 4)
             mu_x_test = torch.zeros(R_test.shape[0], 4)
-            model = StrucVariableSignals(P=8,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=0, sigma2=1, weight_distribution="sum_to_one", add_randn_to_lvs=False)
+            model = Struc_WS_GPLVM(P=8,mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], V=V, C_obs=R_train.shape[1], C_unobs=0, sigma2=1, weight_distribution="sum_to_one", add_randn_to_lvs=False)
             state_dict = torch.load(f"results/Wulfert/struct_variable/models/Struc_Wulfert_test_size={ts}_c_unobs=0_L=8_A=4_P=8_an=False_iz=False_rs={df["random_seed"].loc[elbo_idx.loc[i]]}_data_idx={i}.pt", weights_only=True)
             new_dic = {}
             for key, item in state_dict.items():

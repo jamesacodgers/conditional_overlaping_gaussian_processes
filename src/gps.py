@@ -123,14 +123,14 @@ class WLIndependentGPs(AbstractGP):
 
 
     
-    def get_K_obsV_matrix(self, temps):
+    def get_K_obsV_matrix(self, inputs):
         """
         Returns shape N x CL 
         """
-        K_obsV = self.get_K_xVx(temps)
-        K_obsV_matrix = torch.zeros(temps.shape[0],self.C, self.C, self.Lx)
+        K_obsV = self.get_K_xVx(inputs)
+        K_obsV_matrix = torch.zeros(inputs.shape[0],self.C, self.C, self.Lx)
         K_obsV_matrix[:, range(self.C), range(self.C), :] = K_obsV[:, range(self.C),:]
-        return K_obsV_matrix.reshape(temps.shape[0], self.C, self.Lx*self.C)
+        return K_obsV_matrix.reshape(inputs.shape[0], self.C, self.Lx*self.C)
     
 
     def get_mu_u(self):
@@ -215,7 +215,7 @@ class WLIndependentGPs(AbstractGP):
         """
         K_VV_inv = self.get_K_VV_x_inv() # C x L x L 
         mu_u = self.get_mu_u() # M x C x L
-        return (kernel_expectation[:,None,:,None,:]@K_VV_inv[None,None,:,:,:]@mu_u[None,:,:,:,None])[...,0,0] # N x M x C 
+        return (kernel_expectation[...,:,None,:,None,:]@K_VV_inv[...,None,None,:,:,:]@mu_u[...,None,:,:,:,None])[...,0,0] # N x M x C 
     
     def get_s_outer_expectation(self, kernel_outer_expectation):
         """

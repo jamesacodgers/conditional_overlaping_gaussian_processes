@@ -161,8 +161,6 @@ def train_lbfgs(model, D_train, R_train,D_test=None, n_steps = 3 , plot = False,
         params = list(model.parameters())
     for param in params:
         param.data = param.data.contiguous()
-    # optimizer = torch.optim.LBFGS([model._mu_u, model._raw_chol])
-    # optimizer = torch.optim.LBFGS(model.parameters())
     optimizer = torch.optim.LBFGS(params=params, line_search_fn="strong_wolfe")
     iterator = tqdm.tqdm(range(n_steps))
     for _ in iterator:
@@ -234,10 +232,6 @@ def train_gd(model, D_train, R_train,  n_steps, D_test=None, plot = False, param
     ll = []
     # Define a closure function for the optimizer
 
-    # @torch.compile(fullgraph=False)
-    # def step():
-    #     optimizer.step()
-
     itterator = tqdm.tqdm(range(n_steps))
     for epoch in itterator:  
         optimizer.zero_grad()
@@ -303,39 +297,11 @@ def train(model, training_targets, test_targets, training_inputs , test_inputs, 
         loss_list.append(loss)
     return loss_list
 
-# def train_lbfgs(model, D_train, D_test, R_train, steps = 3 ):
-#     def closure():
-#         optimizer.zero_grad()
-#         loss = -model.elbo(
-#             D_train=D_train,
-#             R_train=R_train, 
-#             D_test=D_test,
-#             )
-#         loss.backward()
-#         return loss
-#     loss_list = []
-#     for param in model.parameters():
-#         param.data = param.data.contiguous()
-#     optimizer = torch.optim.LBFGS(params=model.parameters())
-#     iterator = tqdm.tqdm(range(steps))
-#     for _ in iterator:
-#         loss = -model.elbo(
-#             D_train=D_train,
-#             R_train=R_train, 
-#             D_test=D_test,
-#             )
-#         optimizer.zero_grad()
-#         loss.backward()
-#         optimizer.step(closure)
-#         loss_list.append(loss)
-#         iterator.set_postfix(loss=loss_list[-1])
-#     return loss_list
 
 
 
 
-import torch
-import tqdm
+
 
 def trim_wavelengths(min_wavelengths, max_wavelengths, wavelengths, spectra):
     filter = torch.logical_and(wavelengths<max_wavelengths , min_wavelengths<wavelengths)

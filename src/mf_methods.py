@@ -134,7 +134,7 @@ class NormalCoordinator:
     
     def get_b_train(self, D_train, R_train, s_unobs_expectation, s_outer_cross_expectation):
         # return 1/(self.parent.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=1) - (R_train[:,:,None]*s_outer_cross_expectation).sum(dim=1))
-        return 1/(self.module.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=-2) - (R_train[:,:,None]*s_outer_cross_expectation).sum(dim=-2))
+        return 1/(self.module.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=-2) - (R_train[...,:,:,None]*s_outer_cross_expectation).sum(dim=-2))
                 
     def get_const_train(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
         return -(D_train.shape[1] * D_train.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
@@ -235,51 +235,9 @@ class MFStaticSignals(MFModels):
     def prior_Sigma_S(self): 
         return  torch.diag(torch.concat((torch.ones(self.C_obs), torch.exp(self._log_priors_T)+1e-6)))
     
-# class MFVariableSignalsObservedInputs(MFModels, WLIndependentGPs):
-#     def __init__(self, V, M, C_obs, C_unobs=0, sigma2=1, sum_to_one = False, beta=None,sigma2_s=None):
-#         MFModels.__init__(self,M, C_obs, C_unobs, sigma2, sum_to_one)
-#         WLIndependentGPs.__init__(self, self.C, M, V, beta = beta, sigma2_s = None, trainable_V = True)
-
-#     def get_kl(self):
-#         return self.get_kl_u()
-
     
-#     def elbo(self,D_train, R_train, D_test,x_train, x_test):
-#         assert R_train.shape[1] == self.C_obs
-#         s_train_expectation = self.get_gp_expectation(x_train)
-
-#         s_train_outer_expectation = self.get_s_outer_expectation(x_train)
-#         if D_test is None:
-#             return self._elbo(s_train_expectation=s_train_expectation, s_train_outer_expectation=s_train_outer_expectation,s_test_expectation=None, s_test_outer_expectation=None, D_train=D_train, R_train=R_train, D_test=None )
-#         else:
-#             s_test_expectation = self.get_gp_expectation(x_test)
-#             s_test_outer_expectation = self.get_s_outer_expectation(x_test)
-    
-#             return self._elbo(s_train_expectation=s_train_expectation, s_train_outer_expectation=s_train_outer_expectation,s_test_expectation=s_test_expectation, s_test_outer_expectation=s_test_outer_expectation, D_train=D_train, R_train=R_train, D_test=D_test )
-
-#     def get_s_expectation(self, inputs):
-#         return WLIndependentGPs.get_gp_expectation(self, inputs)
-    
-#     def get_s_outer_expectation(self,inputs):
-#         mu_s = WLIndependentGPs.get_gp_expectation(self, inputs)
-#         Sigma_s = WLIndependentGPs.get_gp_covariance(self, inputs)
-#         return torch.sum(mu_s[..., None]*mu_s[...,None,:] + Sigma_s, dim=1)
-    
-#     def predict_weights(self, D_test, x_test):
-#         s_expectation = self.get_s_expectation(x_test)
-#         s_outer_expectation = self.get_s_outer_expectation(x_test)
-#         A_test = self.coordinator.get_A_test(s_outer_expectation)
-#         b_test = self.coordinator.get_b_test(D_test, s_expectation)
-#         if self.coordinator.linear_map is not None:
-#             mu_rho, Sigma_rho = self.coordinator.inner_test_solver.get_weight_params(A_test, b_test)
-#             mu_r = mu_rho @ self.coordinator.linear_map.T + self.h
-#             Sigma_r = self.coordinator.linear_map@Sigma_rho@self.coordinator.linear_map.T + 1e-8
-#         else:
-#             mu_r, Sigma_r = self.coordinator.inner_test_solver.get_weight_params(A_test, b_test)
-#         return torch.distributions.MultivariateNormal(mu_r,Sigma_r, validate_args=False)
-    
-class MFVariableSignals(MFModels):
-    def __init__(self, Vx, M, C_obs, mu_x_train, mu_x_test, C_unobs=0, sigma2=1, weight_distribution="continuous", beta=None,sigma2_s=None, Vl=None, gamma=None, trainable_V = True):
+class MF_WS_GPLVM(MFModels):
+    def __init__(self, Vx, M, C_obs, mu_x_train, mu_x_test=None, C_unobs=0, sigma2=1, weight_distribution="continuous", beta=None,sigma2_s=None, Vl=None, gamma=None, trainable_V = True):
         MFModels.__init__(self,M=M, C_obs=C_obs, C_unobs=C_unobs, sigma2=sigma2, weight_distribution=weight_distribution)
         if Vl is None:
             self.gp = WLIndependentGPs(C = self.C, M = M, Vx=Vx, beta = beta, sigma2_s = sigma2_s, trainable_V = trainable_V)
@@ -288,13 +246,19 @@ class MFVariableSignals(MFModels):
         self.add_module('gp', self.gp)
 
         self.A = Vx.shape[-1]
-        assert mu_x_train.shape[1] == self.A
-        assert mu_x_test.shape[1] == self.A
         self.mu_x_train = torch.nn.Parameter(mu_x_train)
-        self.mu_x_test = torch.nn.Parameter(mu_x_test)
+
+        # If there are test points, register them 
+        if mu_x_test is None:
+            self.mu_x_test = None
+        else:
+            assert mu_x_train.shape[1] == self.A
+            self.mu_x_test = torch.nn.Parameter(mu_x_test)
+            self._log_sigma_x_test = torch.nn.Parameter(torch.zeros_like(mu_x_test))
 
         self._log_sigma_x_train = torch.nn.Parameter(torch.zeros_like(mu_x_train))
-        self._log_sigma_x_test = torch.nn.Parameter(torch.zeros_like(mu_x_test))
+
+
         
 
     def get_kl(self):
@@ -303,10 +267,13 @@ class MFVariableSignals(MFModels):
     def get_kl_x(self):
         x_prior = torch.distributions.Normal(torch.zeros(self.A), torch.ones(self.A))
         x_train = torch.distributions.Normal(self.mu_x_train, self.Sigma_x_train)
-        x_test = torch.distributions.Normal(self.mu_x_test, self.Sigma_x_test)
         kl_train = torch.distributions.kl_divergence(x_train, x_prior).sum()
-        kl_test = torch.distributions.kl_divergence(x_test, x_prior).sum()
-        return kl_train + kl_test
+        if self.mu_x_test is None:
+            return kl_train
+        else: 
+            x_test = torch.distributions.Normal(self.mu_x_test, self.Sigma_x_test)
+            kl_test = torch.distributions.kl_divergence(x_test, x_prior).sum()
+            return kl_train + kl_test
     
     def elbo(self,D_train, R_train, D_test=None):
         kernel_train_expectation = self._get_lv_kernel_expectation(self.mu_x_train, self.Sigma_x_train)
@@ -330,12 +297,18 @@ class MFVariableSignals(MFModels):
                     s_test_outer_expectation=s_test_outer_expectation 
                 )
     
-
-
     
-    
-    def get_prediction_observed_inputs(self,inputs):
-        return WLIndependentGPs.get_gp_expectation(self,inputs)
+    def get_mean_prediction_observed_inputs(self,inputs):
+        """
+        inputs: shape N x A
+
+        returns: shape N x M x C 
+        """
+        K_VV_x_inv = self.gp.get_K_VV_x_inv() # C x Lx x Lx 
+        K_obsV_x = self.gp.kernel_x(inputs, self.gp.Vx).transpose(0,1) # N x c x L
+        mu_u = self.gp.get_mu_u()
+        mu_s =  (K_obsV_x @ K_VV_x_inv)[:,None,:,None,:] @ mu_u[None,:,:,:,None]
+        return mu_s.squeeze(dim=[-1,-2])
 
     @property 
     def Sigma_x_train(self): 

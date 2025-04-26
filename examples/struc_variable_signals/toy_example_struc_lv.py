@@ -18,7 +18,7 @@ from src.prob_utils import get_struc_ci
 # import multiprocessing
 # multiprocessing.set_start_method('spawn')
 
-from src.struc_models import  StrucVariableSignals
+from src.struc_models import  Struc_WS_GPLVM
 
 import tqdm
 
@@ -99,7 +99,7 @@ V = torch.randn(8,A)
 # V = torch.linspace(-2,2,).reshape(-1,1)
 
 R_train = R_train[:,0].reshape(-1,1) # To test unobserved 
-model = StrucVariableSignals(P=32,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,weight_distribution="continuos", mu_x_test=mu_x_test, mu_x_train=mu_x_train, add_randn_to_lvs=False)
+model = Struc_WS_GPLVM(P=32,C_obs=1, C_unobs=2, M = wavelengths.shape[0],V=V,weight_distribution="continuos", mu_x_test=mu_x_test, mu_x_train=mu_x_train, add_randn_to_lvs=False)
 
 opt_model = torch.compile(model)
 

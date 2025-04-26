@@ -3,7 +3,7 @@ import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 
-from src.mf_methods import MFVariableSignals
+from src.mf_methods import MF_WS_GPLVM
 from src.save_utils import save_model, save_results_csv
 from src.utils import get_both_init_values_for_latent_variables, train_gd, train_lbfgs, snv_correction
 
@@ -42,7 +42,7 @@ def main(args):
     V = torch.randn(args.num_inducing,A)
 
     R_train_obs = R_train
-    model = MFVariableSignals(C_obs=4, C_unobs=0, M = D_test.shape[1],V=V,weight_distribution="categorical", mu_x_test=mu_x_test, mu_x_train=mu_x_train)
+    model = MF_WS_GPLVM(C_obs=4, C_unobs=0, M = D_test.shape[1],V=V,weight_distribution="categorical", mu_x_test=mu_x_test, mu_x_train=mu_x_train)
 
     ll = []
 

@@ -3,7 +3,7 @@ import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 
-from src.struc_models import StrucVariableSignals
+from src.struc_models import Struc_WS_GPLVM
 from src.utils import get_both_init_values_for_latent_variables, train_gd, train_lbfgs, snv_correction
 
 torch.set_default_dtype(torch.float64)
@@ -32,7 +32,7 @@ mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train,torch
 V = torch.randn(8,A)
 
 R_train_obs = R_train
-model = StrucVariableSignals(P=8,C_obs=4, C_unobs=0, M = D_test.shape[1],V=V,weight_distribution="categorical", mu_x_test=mu_x_test, mu_x_train=mu_x_train)
+model = Struc_WS_GPLVM(P=8,C_obs=4, C_unobs=0, M = D_test.shape[1],V=V,weight_distribution="categorical", mu_x_test=mu_x_test, mu_x_train=mu_x_train)
 
 
 

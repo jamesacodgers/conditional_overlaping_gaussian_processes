@@ -3,7 +3,7 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
-from src.mf_methods import MFModels, MFVariableSignals
+from src.mf_methods import MFModels, MF_WS_GPLVM
 from src.utils import get_both_init_values_for_latent_variables, train_gd, train_lbfgs, train_sgd_model
 
 
@@ -57,7 +57,7 @@ mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train=train
 V = torch.randn(6,A)
 
 
-model =MFVariableSignals(C_obs=10, C_unobs=0, M = train_images_vec.shape[-1],V=V,weight_distribution="categorical", mu_x_test=mu_x_test, mu_x_train=mu_x_train)
+model =MF_WS_GPLVM(C_obs=10, C_unobs=0, M = train_images_vec.shape[-1],V=V,weight_distribution="categorical", mu_x_test=mu_x_test, mu_x_train=mu_x_train)
 
 
 # cProfile.run("model.elbo(training_targets=train_images_vec, test_targets=test_images_vec, training_weights=train_labels)", sort="cumtime")

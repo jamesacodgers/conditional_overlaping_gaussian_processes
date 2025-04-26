@@ -15,7 +15,7 @@ import time
 
 from sklearn.cross_decomposition import PLSRegression
 
-from src.mf_methods import MFVariableSignals
+from src.mf_methods import MF_WS_GPLVM
 
 
 torch.set_default_dtype(torch.float64)
@@ -54,7 +54,7 @@ def main(args):
     mu_x_train, mu_x_test = get_both_init_values_for_latent_variables(D_train=D_train, R_train=R_train, D_test=D_test, num_latent_dimensions=args.num_latent_dims)
  
 
-    model = MFVariableSignals(mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], Vx=Vx, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one", Vl=Vl)
+    model = MF_WS_GPLVM(mu_x_train=mu_x_train, mu_x_test=mu_x_test,M=D_test.shape[1], Vx=Vx, C_obs=R_train.shape[1], C_unobs=args.num_unobs, sigma2=1, weight_distribution="sum_to_one", Vl=Vl)
 
     start = time.time()
 

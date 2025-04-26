@@ -15,7 +15,7 @@ from itertools import chain
 from src.utils import get_init_values_for_latent_variables, train_gd, get_both_init_values_for_latent_variables, train_lbfgs, plot_preds
 
 
-from src.mf_methods import  MFVariableSignals
+from src.mf_methods import  MF_WS_GPLVM
 
 
 
@@ -87,7 +87,7 @@ Vl = torch.linspace(0, 1, 16).reshape(-1,1)
 
 # R_train_obs = R_train[:,0].reshape(-1,1)
 R_train_obs = R_train
-model = MFVariableSignals(C_obs=2, C_unobs=0, M = wavelengths.shape[0],Vx=Vx,weight_distribution="continuous", mu_x_test=mu_x_test, mu_x_train=mu_x_train, Vl=Vl, 
+model = MF_WS_GPLVM(C_obs=2, C_unobs=0, M = wavelengths.shape[0],Vx=Vx,weight_distribution="continuous", mu_x_test=mu_x_test, mu_x_train=mu_x_train, Vl=Vl, 
                         #   gamma=25*torch.ones(1,1)
                           )
 # model = MFVariableSignals(C_obs=2, C_unobs=0, M = wavelengths.shape[0],Vx=Vx,weight_distribution="continuous", mu_x_test=mu_x_test, mu_x_train=mu_x_train)

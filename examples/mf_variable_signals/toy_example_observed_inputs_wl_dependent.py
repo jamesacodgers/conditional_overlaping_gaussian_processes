@@ -20,7 +20,7 @@ from src.utils import get_init_values_for_latent_variables, train_gd, get_both_i
 # import multiprocessing
 # multiprocessing.set_start_method('spawn')
 
-from src.mf_methods import  MFVariableSignals
+from src.mf_methods import  MF_WS_GPLVM
 
 import tqdm
 
@@ -93,7 +93,7 @@ V = torch.randn(16,A)
 # V = torch.linspace(-2,2,).reshape(-1,1)
 
 # model = MFVariableSignals(C_obs=2, C_unobs=0, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
-model = MFVariableSignals(C_obs=1, C_unobs=3, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
+model = MF_WS_GPLVM(C_obs=1, C_unobs=3, M = wavelengths.shape[0],V=V,sum_to_one=False, mu_x_test=mu_x_test, mu_x_train=mu_x_train, )
 
 
 
