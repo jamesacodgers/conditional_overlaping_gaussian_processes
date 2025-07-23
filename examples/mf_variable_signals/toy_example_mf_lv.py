@@ -78,24 +78,25 @@ D_train = get_observations(R_train, S_train)
 #     plt.show()
 
 # %%
-A = 2
+A = 10
 
 mu_x_train, mu_x_test =  get_both_init_values_for_latent_variables(D_train, R_train, D_test, A)
+mu_x_train, mu_x_test =  torch.zeros_like(mu_x_train), torch.zeros_like(mu_x_test)
 
-Vx = torch.randn(8,A)
+Vx = torch.randn(6,A)
 Vl = torch.linspace(0, 1, 16).reshape(-1,1)
 
 R_train_obs = R_train[:,0].reshape(-1,1)
-model = MF_WS_GPLVM(C_obs=1, C_unobs=2, M = wavelengths.shape[0],Vx=Vx,weight_distribution="continuous", mu_x_test=mu_x_test, mu_x_train=mu_x_train, Vl=Vl)
+model = MF_WS_GPLVM(C_obs=1, C_unobs=2, M = wavelengths.shape[0],Vx=Vx,weight_distribution="continuous", mu_x_test=mu_x_test, mu_x_train=mu_x_train, Vl=Vl, gamma =torch.tensor([[1e-1]]),)
 
 
 print(model.named_parameters())
 
-# train_gd(model=model, D_train=D_train, R_train=R_train_obs, D_test=D_test, n_steps=5000, lr = 1e-1)
+train_gd(model=model, D_train=D_train, R_train=R_train_obs, D_test=D_test, n_steps=1000, lr = 1e-1)
 
 # %%
 
-train_lbfgs(model=model, D_train=D_train, R_train=R_train_obs, D_test=D_test, n_steps=10, convergence_level=5)
+train_lbfgs(model=model, D_train=D_train, R_train=R_train_obs, D_test=D_test, n_steps=10, convergence_level=1)
 
 
 preds = model.predict_weights(D_test, )

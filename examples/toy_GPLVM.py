@@ -5,7 +5,7 @@ from src.mf_methods import MF_WS_GPLVM
 from src.struc_models import Struc_WS_GPLVM
 from src.utils import train_lbfgs
 
-n_train = 128
+n_train = 32
 x = torch.randn((n_train,1))
 
 y1 = x**3 + torch.randn_like(x)/10
@@ -60,9 +60,9 @@ class Struc_GPLVM(Struc_WS_GPLVM):
         R_train = torch.ones((y.shape[0],1))
         return super().elbo(y, R_train)
     
-mf_model = MF_GPLVM(M=2,Vx=Vx, mu_x=mu_x)
+# mf_model = MF_GPLVM(M=2,Vx=Vx, mu_x=mu_x)
 struc_model = Struc_GPLVM(M=2,Vx=Vx, mu_x=mu_x)
-print(mf_model.gplvm_elbo(y=y))
+# print(mf_model.gplvm_elbo(y=y))
 
 
 def train_gplvm(model,y,plot=False):
@@ -86,7 +86,7 @@ def train_gplvm(model,y,plot=False):
 ll = train_gplvm(struc_model,y,plot=True)
     
 x_test = torch.linspace(-4,4,100).reshape(-1,1)
-mu_f = mf_model.get_mean_prediction_observed_inputs(x_test)
+# mu_f = mf_model.get_mean_prediction_observed_inputs(x_test)
 
 # %%
 
@@ -99,4 +99,8 @@ with torch.no_grad():
 
 with torch.no_grad():
     for mu_x in struc_model.mu_x:
-        plt.scatter(mu_x[:,0], x)
+        for i in range(struc_model.P):
+            plt.scatter(struc_model.mu_x[i,:,0], x, )
+        plt.xlabel("True LV ")
+        plt.ylabel("Estimated LV ")
+        plt.show()

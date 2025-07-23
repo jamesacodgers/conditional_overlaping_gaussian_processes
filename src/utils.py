@@ -224,9 +224,11 @@ def train_gd(model, D_train, R_train,  n_steps, D_test=None, plot = False, param
     if params is None:
         params = model.parameters()
     if lr:
-        optimizer = torch.optim.Adam(params, lr=lr)
+        # optimizer = torch.optim.Adam(params, lr=lr)
+        optimizer = torch.optim.AdamW(params, lr=lr)
     else: 
-        optimizer = torch.optim.Adam(params)
+        # optimizer = torch.optim.Adam(params)
+        optimizer = torch.optim.AdamW(params)
     # optimizer = torch.optim.Adam(params, lr=lr)
     # optimizer = torch.optim.Rprop(params, lr=lr)
     ll = []
