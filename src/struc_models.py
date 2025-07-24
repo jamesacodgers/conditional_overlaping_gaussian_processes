@@ -126,6 +126,7 @@ class Struc_WS_GPLVM(MF_WS_GPLVM):
         self.P = P
 
         self._mu_u = torch.nn.Parameter(torch.zeros_like(self.gp._mu_u))
+        # self._mu_u = torch.nn.Parameter(torch.randn_like(self.gp._mu_u))/10
 
         self.mu_x_train = torch.nn.Parameter(self.mu_x_train[None,...].repeat(self.P,1,1))
         if mu_x_test is None:

@@ -5,7 +5,7 @@ from src.mf_methods import MF_WS_GPLVM
 from src.struc_models import Struc_WS_GPLVM
 from src.utils import train_lbfgs
 
-n_train = 32
+n_train = 256
 x = torch.randn((n_train,1))
 
 y1 = x**3 + torch.randn_like(x)/10
@@ -67,13 +67,24 @@ struc_model = Struc_GPLVM(M=2,Vx=Vx, mu_x=mu_x)
 
 def train_gplvm(model,y,plot=False):
     ll = []
+    optim_gp= torch.optim.Adam([model.gp._mu_u, model.gp._raw_chol, model.gp.Vx, model.gp._log_sigma2_s], lr=0.01)
     optim = torch.optim.Adam(model.parameters())
-    for i in range(10000):
+    for j in range(4000): 
+        optim_gp.zero_grad()
+        loss = -model.gplvm_elbo(y=y)
+        loss.backward()
+        optim_gp.step()
+        if j%100==0:
+            print(j)
+        ll.append(loss.detach().item())
+
+    for i in range(2000):
         optim.zero_grad()
+        ll.append(loss.detach().item())
         loss = -model.gplvm_elbo(y=y)
         loss.backward()
         optim.step()
-        if i%1000==0:
+        if i%100==0:
             print(i)
         ll.append(loss.detach().item())
 
@@ -94,13 +105,14 @@ mu_f = struc_model.get_mean_prediction_observed_inputs(x_test)
 with torch.no_grad():
     plt.scatter(y[:,0], y[:,1], c = x.flatten() )
     plt.plot(mu_f[:,0], mu_f[:,1])
+    plt.show()
 
 # %%
 
 with torch.no_grad():
-    for mu_x in struc_model.mu_x:
-        for i in range(struc_model.P):
-            plt.scatter(struc_model.mu_x[i,:,0], x, )
-        plt.xlabel("True LV ")
-        plt.ylabel("Estimated LV ")
-        plt.show()
+    for i in range(struc_model.P):
+        plt.scatter(x,struc_model.mu_x[i,:,0] )
+    plt.scatter(x, mu_x[:,0], marker="x", color="black" )
+    plt.xlabel("True LV ")
+    plt.ylabel("Estimated LV ")
+    plt.show()
