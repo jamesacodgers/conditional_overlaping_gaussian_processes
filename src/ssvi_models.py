@@ -370,15 +370,46 @@ class SSVI_GPLVM(MF_WS_GPLVM):
     
     def compute_curvature_correction(self, U_sample: torch.Tensor, j: int) -> torch.Tensor:
         """
-        Compute curvature correction matrix V(U^(t), Lambda^(t))
-        Following Algorithm 1, line 12: "V(U^(t), Lambda^(t)) Delta_eta_i"
+        Compute curvature correction matrix V(U^(t), Lambda^(t)) using closed form for Gaussian q(U)
+        Following the SSVI paper: V(U,lambda) Delta_eta = [r + 2*Q*(U-m), Q]
         
-        This is a simplification - full implementation would require the structured VI framework
+        For Gaussian q(U) = N(m, Sigma), this has a beautiful closed form!
+        Note: We use apply_curvature_correction() method instead of matrix multiplication
         """
-        # For now, return identity (no curvature correction)
-        # Full implementation would compute the Fisher information matrix
+        # Return identity for compatibility - actual correction is applied via apply_curvature_correction()
         D = self.gp.original_gp.Lx
         return torch.eye(D + D*D)
+    
+    def apply_curvature_correction(self, eta_i: torch.Tensor, U_sample: torch.Tensor, j: int) -> torch.Tensor:
+        """
+        Apply the closed-form curvature correction V(U,lambda) to natural parameter contribution
+        
+        V(U,lambda) * eta_i = [r + 2*Q*(U-m), Q] where eta_i = [r, vec(Q)]
+        """
+        # Get current mean m^(t) for component j
+        m_j = self.get_global_mu(j)  # Current mean from natural parameters
+        
+        # Current sample U^(t) for component j  
+        U_j = U_sample[j, :]  # Lx
+        
+        D = self.gp.original_gp.Lx
+        
+        # Split eta_i into linear (r) and quadratic (Q) parts
+        r = eta_i[:D]  # Linear part: Lx
+        Q_vec = eta_i[D:]  # Quadratic part vectorized: Lx^2
+        Q = Q_vec.reshape(D, D)  # Reshape to matrix: Lx x Lx
+        
+        # Apply V correction following the SSVI paper:
+        # r_tilde = r + 2*Q*(U-m)  ← This is the beautiful closed form!
+        r_tilde = r + 2.0 * Q @ (U_j - m_j)
+        
+        # Q_tilde = Q (unchanged)
+        Q_tilde = Q
+        
+        # Recombine into corrected natural parameter vector
+        eta_corrected = torch.cat([r_tilde, Q_tilde.reshape(-1)])
+        
+        return eta_corrected
     
     def ssvi_step(self, y_batch: torch.Tensor, batch_indices: torch.Tensor) -> torch.Tensor:
         """
@@ -420,14 +451,14 @@ class SSVI_GPLVM(MF_WS_GPLVM):
                 # Algorithm 1, line 11: Set local contribution Delta_eta_i := eta_hat_i
                 Delta_eta_i = eta_i
                 
-                # Apply curvature correction (simplified)
-                V_matrix = self.compute_curvature_correction(U_sample, j)
-                corrected_delta = V_matrix @ Delta_eta_i
+                # Apply closed-form curvature correction V(U,lambda) for Gaussian q(U)
+                # This implements: r_tilde = r + 2*Q*(U-m), Q_tilde = Q
+                corrected_delta = self.apply_curvature_correction(Delta_eta_i, U_sample, j)
                 
                 # Split back into Lambda and nu components
                 D = self.gp.original_gp.Lx
-                delta_nu_j = corrected_delta[:D]  # First D elements
-                delta_Lambda_j = corrected_delta[D:].reshape(D, D)  # Remaining elements as matrix
+                delta_nu_j = corrected_delta[:D]  # First D elements (r_tilde)
+                delta_Lambda_j = corrected_delta[D:].reshape(D, D)  # Remaining elements as matrix (Q_tilde)
                 
                 # Accumulate updates
                 Delta_nu[j] += delta_nu_j
