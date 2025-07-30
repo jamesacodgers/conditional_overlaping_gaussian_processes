@@ -238,7 +238,6 @@ class SSVI_GPLVM(MF_WS_GPLVM):
                           S_x_i: torch.Tensor, U_sample: torch.Tensor) -> torch.Tensor:
         """
         Compute local ELBO L_i(U) for data point i
-        Following LaTeX equations (195-200)
         
         L_i(U) = sum_j E_q(x_i) E_p(f_j(x_i)|U,x_i) [log p(y_ij | f_j(x_i))] - KL(q(x_i) || p(x_i))
         """
@@ -346,8 +345,9 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         Compute local natural parameter eta_hat_i(x_i) 
         Following Algorithm 1, line 10 and the LaTeX formulation in Section 3
         
-        From the LaTeX: eta_hat_i(x_i) = [beta y_ij psi_1_i^(j) K_ZZ^(-1), 
-                                         beta/2 vec(-K_ZZ^(-1) psi_2_i^(j) K_ZZ^(-1))]
+        From the LaTeX: eta_hat_i(x_i) = [h_i(x_i), vec(H_i(x_i))]
+        where h_i = beta y_ij psi_1_i^(j) K_ZZ^(-1)
+              H_i = beta/2 vec(-K_ZZ^(-1) psi_2_i^(j) K_ZZ^(-1))
         """
         # Compute psi-statistics for this data point and component
         psi_0, psi_1, psi_2 = self.compute_psi_statistics_single(mu_n, S_n, j)
@@ -356,17 +356,17 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         beta = 1.0 / self.sigma2  # Precision parameter beta
         K_ZZ_inv = self.gp.get_K_VV_x_inv()[j]  # K_ZZ^(-1), shape: Lx x Lx
         
-        # Compute h_i(x_i) = beta y_ij psi_1_i^(j) K_ZZ^(-1)
+        # Compute h_i(x_i) = beta y_ij psi_1_i^(j) K_ZZ^(-1)  
         h_i = beta * y_nj * (psi_1 @ K_ZZ_inv)  # Shape: Lx
         
-        # Compute H_i(x_i) = beta/2 vec(-K_ZZ^(-1) psi_2_i^(j) K_ZZ^(-1))
-        H_matrix = -beta / 2 * (K_ZZ_inv @ psi_2 @ K_ZZ_inv)  # Shape: Lx x Lx
-        H_i = H_matrix.reshape(-1)  # Vectorize: Lx^2
+        # Compute H_i(x_i) = beta/2 * (-K_ZZ^(-1) psi_2_i^(j) K_ZZ^(-1))
+        H_i_matrix = -beta / 2 * (K_ZZ_inv @ psi_2 @ K_ZZ_inv)  # Shape: Lx x Lx, symmetric
+        H_i_vec = H_i_matrix.reshape(-1)  # Vectorize: vec(H_i) ∈ R^(Lx^2)
         
-        # Combine into natural parameter vector [h_i, H_i]
-        eta_i = torch.cat([h_i, H_i])  # Shape: Lx + Lx^2
+        # Combine into natural parameter vector eta_hat_i = [h_i, vec(H_i)]
+        eta_hat_i = torch.cat([h_i, H_i_vec])  # Shape: Lx + Lx^2
         
-        return eta_i
+        return eta_hat_i
     
     def compute_curvature_correction(self, U_sample: torch.Tensor, j: int) -> torch.Tensor:
         """
@@ -384,30 +384,30 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         """
         Apply the closed-form curvature correction V(U,lambda) to natural parameter contribution
         
-        V(U,lambda) * eta_i = [r + 2*Q*(U-m), Q] where eta_i = [r, vec(Q)]
+        Following LaTeX: V(U,Lambda) * eta_i = [h_i + 2*H_i*(U-mu), H_i] where eta_i = [h_i, vec(H_i)]
         """
-        # Get current mean m^(t) for component j
-        m_j = self.get_global_mu(j)  # Current mean from natural parameters
+        # Get current mean mu^(t) for component j
+        mu_j = self.get_global_mu(j)  # Current mean from natural parameters
         
         # Current sample U^(t) for component j  
         U_j = U_sample[j, :]  # Lx
         
         D = self.gp.original_gp.Lx
         
-        # Split eta_i into linear (r) and quadratic (Q) parts
-        r = eta_i[:D]  # Linear part: Lx
-        Q_vec = eta_i[D:]  # Quadratic part vectorized: Lx^2
-        Q = Q_vec.reshape(D, D)  # Reshape to matrix: Lx x Lx
+        # Split eta_i into h_i (linear) and H_i (quadratic) parts following LaTeX notation
+        h_i = eta_i[:D]  # Linear part: h_i ∈ R^M (Lx in our case)
+        H_i_vec = eta_i[D:]  # Quadratic part vectorized: vec(H_i) ∈ R^(M^2)
+        H_i = H_i_vec.reshape(D, D)  # Reshape to matrix: H_i ∈ R^(M×M), symmetric
         
-        # Apply V correction following the SSVI paper:
-        # r_tilde = r + 2*Q*(U-m)  ← This is the beautiful closed form!
-        r_tilde = r + 2.0 * Q @ (U_j - m_j)
+        # Apply V correction following LaTeX formulation:
+        # h_i_tilde = h_i + 2*H_i*(U-mu)
+        h_i_tilde = h_i + 2.0 * H_i @ (U_j - mu_j)
         
-        # Q_tilde = Q (unchanged)
-        Q_tilde = Q
+        # H_i_tilde = H_i (unchanged)
+        H_i_tilde = H_i
         
-        # Recombine into corrected natural parameter vector
-        eta_corrected = torch.cat([r_tilde, Q_tilde.reshape(-1)])
+        # Recombine into corrected natural parameter vector [h_i_tilde, vec(H_i_tilde)]
+        eta_corrected = torch.cat([h_i_tilde, H_i_tilde.reshape(-1)])
         
         return eta_corrected
     
@@ -451,27 +451,34 @@ class SSVI_GPLVM(MF_WS_GPLVM):
                 # Algorithm 1, line 11: Set local contribution Delta_eta_i := eta_hat_i
                 Delta_eta_i = eta_i
                 
-                # Apply closed-form curvature correction V(U,lambda) for Gaussian q(U)
-                # This implements: r_tilde = r + 2*Q*(U-m), Q_tilde = Q
+                # Apply closed-form curvature correction V(U,Lambda) for Gaussian q(U)
+                # This implements LaTeX equations: h_i_tilde = h_i + 2*H_i*(U-mu), H_i_tilde = H_i
                 corrected_delta = self.apply_curvature_correction(Delta_eta_i, U_sample, j)
                 
-                # Split back into Lambda and nu components
+                # Split back into nu (h_i_tilde) and Lambda (H_i_tilde) components
                 D = self.gp.original_gp.Lx
-                delta_nu_j = corrected_delta[:D]  # First D elements (r_tilde)
-                delta_Lambda_j = corrected_delta[D:].reshape(D, D)  # Remaining elements as matrix (Q_tilde)
+                delta_nu_j = corrected_delta[:D]  # First D elements: h_i_tilde
+                delta_Lambda_j = corrected_delta[D:].reshape(D, D)  # Remaining elements as matrix: H_i_tilde
                 
-                # Accumulate updates
-                Delta_nu[j] += delta_nu_j
-                Delta_Lambda[j] += delta_Lambda_j
+                # Accumulate updates: sum h_i_tilde and H_i_tilde over mini-batch
+                Delta_nu[j] += delta_nu_j      # Accumulate h_i_tilde terms  
+                Delta_Lambda[j] += delta_Lambda_j  # Accumulate H_i_tilde terms
         
-        # Algorithm 1, line 12: Global update
-        # lambda^(t+1) = (1 - rho_t) lambda^(t) + rho_t * (N/|B|) * sum_{n in B} V(U^(t), Lambda^(t)) Delta_eta_i
+        # Algorithm 1, line 12: Global update with prior natural parameters
+        # nu^(t+1) = (1 - rho_t) nu^(t) + rho_t * (nu^prior + N/|B| * sum h_i_tilde)
+        # Lambda^(t+1) = (1 - rho_t) Lambda^(t) + rho_t * (Lambda^prior + N/|B| * sum H_i_tilde)
         scaling = N_total / batch_size
         for j in range(self.C):
+            # Prior natural parameters from LaTeX
+            nu_prior = torch.zeros_like(self._nu[j])  # nu^prior = 0
+            K_ZZ_inv = self.gp.get_K_VV_x_inv()[j]  # K_ZZ^(-1)
+            Lambda_prior = K_ZZ_inv  # Lambda^prior = K_ZZ^(-1)
+            
+            # Natural parameter updates with prior terms
             self._Lambda[j].data = ((1 - rho_t) * self._Lambda[j].data + 
-                                  rho_t * scaling * Delta_Lambda[j])
+                                  rho_t * (Lambda_prior + scaling * Delta_Lambda[j]))
             self._nu[j].data = ((1 - rho_t) * self._nu[j].data + 
-                              rho_t * scaling * Delta_nu[j])
+                              rho_t * (nu_prior + scaling * Delta_nu[j]))
         
         # Now compute ELBO using existing framework - the SSVI_GP will handle parameter routing
         elbo = self.elbo(y_batch, torch.ones(batch_size, 1))
