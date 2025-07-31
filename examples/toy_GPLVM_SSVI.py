@@ -27,11 +27,23 @@ mu_x = mu_x/mu_x.std(dim=0)
 class SSVI_GPLVM_Wrapper(SSVI_GPLVM):
     """Wrapper class to match interface of other models"""
     def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, step_size_params=None, trainable_V=True):
+        N, latent_dim = mu_x.shape
+        D = 2  # For the toy example (y has 2 dimensions)
+        Y_shape = (N, D)
+        
         super().__init__(
-            Vx=Vx, M=M, mu_x_train=mu_x, mu_x_test=None, C_obs=1, C_unobs=0, 
-            sigma2=sigma2, beta=beta, sigma2_s=sigma2_s, 
-            step_size_params=step_size_params, trainable_V=trainable_V
+            Y_shape=Y_shape, 
+            latent_dim=latent_dim, 
+            Vx=Vx, 
+            sigma2=sigma2, 
+            beta=beta, 
+            sigma2_s=sigma2_s, 
+            step_size_params=step_size_params, 
+            trainable_V=trainable_V
         )
+        
+        # Override with provided initial latent variables
+        self.mu_x_train.data = mu_x
 
     @property 
     def mu_x(self): 
