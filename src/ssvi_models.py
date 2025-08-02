@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.distributions as dist
-from typing import Tuple, Optional
-import math
+from typing import Optional
 from src.mf_methods import MF_WS_GPLVM
 
 
@@ -64,9 +62,6 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         
         # Initialize from GP's initial _mu_u
         self._initialize_natural_parameters_from_gp()
-        
-        # Store current global sample U^(t) for consistency  
-        self.current_U_sample = None
         
     def _initialize_natural_parameters_from_gp(self):
         """
@@ -138,14 +133,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         # Should never reach here, but safety fallback
         return 1e-3 * torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
     
-    def override_gp_parameters(self):
-        """
-        Override GP's inducing point parameters with SSVI values
-        NOTE: This might break the natural parameter structure - consider using SSVI-specific prediction
-        """
-        # For compatibility, but maintains SSVI natural parameter structure
-        pass  # Don't override to preserve natural parameter structure
-    
+
     def get_ssvi_mean_prediction(self, inputs):
         """
         SSVI-specific prediction that works directly with natural parameters
@@ -240,9 +228,6 @@ class SSVI_GPLVM(MF_WS_GPLVM):
                                   rho_t * (Lambda_prior + scaling * Delta_Lambda[j]))
             self._nu[j].data = ((1 - rho_t) * self._nu[j].data + 
                               rho_t * (nu_prior + scaling * Delta_nu[j]))
-        
-        # Override GP parameters and compute ELBO using custom GP-LVM computation
-        self.override_gp_parameters()
         
         # Use custom GP-LVM ELBO computation to avoid tensor dimension issues
         return self.compute_gplvm_elbo(Y_batch)
