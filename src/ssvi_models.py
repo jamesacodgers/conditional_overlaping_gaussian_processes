@@ -329,14 +329,8 @@ class SSVI_GPLVM(MF_WS_GPLVM):
     
     def apply_curvature_correction(self, h_i: torch.Tensor, H_i: torch.Tensor, U_j: torch.Tensor, output_dim: int):
         """
-        Apply curvature correction V(U, Lambda) * Delta_eta_i 
-        Following tex document: h~i = h_i + 2H_i(U - mu), H~i = H_i
+        Mock function for curvature correction in SSVI-A
+        In SSVI-A, curvature correction is not used, so we return original values unchanged
         """
-        # Get current global mean
-        mu_j = self.get_global_mu(output_dim)
-        
-        # Apply correction from tex document 
-        h_i_corrected = h_i + 2 * H_i @ (U_j - mu_j)
-        H_i_corrected = H_i
-        
-        return h_i_corrected, H_i_corrected
+        # SSVI-A: No curvature correction applied
+        return h_i, H_i
