@@ -164,29 +164,31 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         
         return predictions
     
-    def ssvi_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor) -> torch.Tensor:
+    def ssvi_local_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor) -> None:
         """
-        Perform one SSVI step following Algorithm 1 from tex document
+        SSVI Algorithm Steps 1-3:
+        1. Use provided mini-batch B in {1,...,N}
+        2. Compute global variational parameters mu^(t), Sigma^(t) and sample U^(t) ~ N(mu^(t), Sigma^(t))  
+        3. For each n in B: optimize local q(x_i) and compute local natural parameters
         
         Args:
-            Y_batch: Mini-batch of observations [batch_size, D]
-            batch_indices: Indices of data points in batch
-            
-        Returns:
-            ELBO value for the batch
+            Y_batch: Mini-batch of observations [batch_size x D]
+            batch_indices: Indices of data points in the batch [batch_size]
         """
         batch_size = Y_batch.shape[0]
-        N_total = self.mu_x_train.shape[0]
+        N = self.mu_x_train.shape[0]  # Total dataset size
         
-        # Step size: rho_t = s * t^(-kappa) (Algorithm 1, line 3)
+        # Compute step size: rho_t = s * t^(-kappa) (Algorithm 1, line 3)
         self.iteration += 1
         rho_t = self.step_size_params['s'] * (self.iteration ** (-self.step_size_params['kappa']))
         
-        # Sample global variables: U^(t) ~ q(U) (Algorithm 1, line 6)
+        # SSVI Step 2: Compute global variational parameters and sample U^(t) (Algorithm 1, lines 5-6)
+        # mu^(t) = (Lambda^(t))^(-1) nu^(t), Sigma^(t) = (Lambda^(t))^(-1)
+        # Sample U^(t) ~ N(mu^(t), Sigma^(t))
         U_samples = []
         for j in range(self.C):  # C = D (output dimensions)
-            mu_j = self.get_global_mu(j)
-            Sigma_j = self.get_global_Sigma(j)
+            mu_j = self.get_global_mu(j)      # mu_j^(t) = (Lambda_j^(t))^(-1) nu_j^(t)
+            Sigma_j = self.get_global_Sigma(j) # Sigma_j^(t) = (Lambda_j^(t))^(-1)
             U_j = torch.distributions.MultivariateNormal(mu_j, Sigma_j).rsample()
             U_samples.append(U_j)
         U_samples = torch.stack(U_samples, dim=0)  # C x L
@@ -215,8 +217,23 @@ class SSVI_GPLVM(MF_WS_GPLVM):
                 Delta_nu[j] += h_i_corrected
                 Delta_Lambda[j] += H_i_corrected
         
+        # Store local contributions for later natural parameter update
+        scaling = N / batch_size
+        self._pending_Delta_Lambda = Delta_Lambda
+        self._pending_Delta_nu = Delta_nu
+        self._pending_rho_t = rho_t
+        self._pending_scaling = scaling
+
+
+    def update_natural_parameters(self):
+        """
+        Update natural parameters using accumulated local contributions
+        Called after GP hyperparameter update
+        """
+        if not hasattr(self, '_pending_Delta_Lambda'):
+            return  # No pending updates
+            
         # Global update (Algorithm 1, line 12)
-        scaling = N_total / batch_size
         for j in range(self.C):
             # Prior natural parameters  
             nu_prior = torch.zeros_like(self._nu[j])  # nu^prior = 0
@@ -224,29 +241,18 @@ class SSVI_GPLVM(MF_WS_GPLVM):
             Lambda_prior = K_ZZ_inv  # Lambda^prior = K_ZZ^(-1)
             
             # Natural parameter updates with prior terms
-            self._Lambda[j].data = ((1 - rho_t) * self._Lambda[j].data + 
-                                  rho_t * (Lambda_prior + scaling * Delta_Lambda[j]))
-            self._nu[j].data = ((1 - rho_t) * self._nu[j].data + 
-                              rho_t * (nu_prior + scaling * Delta_nu[j]))
+            self._Lambda[j].data = ((1 - self._pending_rho_t) * self._Lambda[j].data + 
+                                  self._pending_rho_t * (Lambda_prior + self._pending_scaling * self._pending_Delta_Lambda[j]))
+            self._nu[j].data = ((1 - self._pending_rho_t) * self._nu[j].data + 
+                              self._pending_rho_t * (nu_prior + self._pending_scaling * self._pending_Delta_nu[j]))
         
-        # Use custom GP-LVM ELBO computation to avoid tensor dimension issues
-        return self.compute_gplvm_elbo(Y_batch)
+        # Clean up pending updates
+        delattr(self, '_pending_Delta_Lambda')
+        delattr(self, '_pending_Delta_nu')
+        delattr(self, '_pending_rho_t') 
+        delattr(self, '_pending_scaling')
     
-    def gplvm_elbo(self, Y: torch.Tensor, batch_size: Optional[int] = None) -> torch.Tensor:
-        """
-        Compute GP-LVM ELBO using SSVI with mini-batches or custom ELBO computation
-        """
-        N = Y.shape[0]
-        
-        if batch_size is None or batch_size >= N:
-            # Full batch - use custom GP-LVM ELBO computation
-            return self.compute_gplvm_elbo(Y)
-        else:
-            # Mini-batch SSVI step - updates natural parameters AND computes ELBO
-            indices = torch.randperm(N)[:batch_size]
-            y_batch = Y[indices]
-            return self.ssvi_step(y_batch, indices)
-    
+
     def get_ssvi_kl_u(self):
         """
         Compute KL divergence for SSVI using natural parameters
@@ -426,7 +432,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         K_ZZ_inv = self.gp.get_K_VV_x_inv()[output_dim]  # L x L
         beta = 1.0 / self.sigma2  # precision
         
-        # Compute local natural parameters (tex Eq. 349-352)
+        # Compute local natural parameters
         h_i = beta * y_ij * psi_1 @ K_ZZ_inv  # L
         H_i = -(beta / 2) * (K_ZZ_inv @ psi_2 @ K_ZZ_inv)  # L x L 
         

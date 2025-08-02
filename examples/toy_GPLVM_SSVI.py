@@ -31,8 +31,7 @@ class SSVIConfig:
     
     # === Learning Rates ===
     lr_gp: float = 0.01              # GP hyperparameters (beta, sigma^2, etc.)
-    lr_latent: float = 0.01          # Latent variables mu_x, sigma_x
-    lr_local: float = 0.01           # Local variational optimization
+    lr_local: float = 0.01           # Local variational optimization in SSVI
     
     # === GP Hyperparameters ===
     sigma2: float = 1.0              # Observation noise variance
@@ -59,7 +58,7 @@ class SSVIConfig:
         print(f"Model: {self.n_inducing_points} inducing points, latent_dim={self.latent_dim}")
         print(f"SSVI: s={self.step_size_s}, kappa={self.step_size_kappa}, local_iter={self.local_opt_iterations}")
         print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")
-        print(f"Learning rates: GP={self.lr_gp}, latent={self.lr_latent}, local={self.lr_local}")
+        print(f"Learning rates: GP={self.lr_gp}, local={self.lr_local}")
         print("=" * 35)
 
 def generate_toy_data(config: SSVIConfig):
@@ -106,7 +105,7 @@ def get_high_quality_config():
         batch_size=64,
         local_opt_iterations=3,
         lr_gp=0.005,
-        lr_latent=0.01
+        lr_local=0.005
     )
 
 def get_ablation_config():
@@ -150,6 +149,7 @@ class SSVI_GPLVM_Wrapper(SSVI_GPLVM):
         # Set local optimization parameters from config
         self.local_opt_iterations = config.local_opt_iterations
         self.lr_local = config.lr_local
+        self.batch_size = config.batch_size
         
         # Override with provided initial latent variables
         self.mu_x_train.data = mu_x
@@ -161,23 +161,16 @@ class SSVI_GPLVM_Wrapper(SSVI_GPLVM):
     @property 
     def Sigma_x(self): 
         return self.Sigma_x_train
-    
-    def gplvm_elbo(self, y, batch_size=None):
-        """SSVI ELBO with mini-batch support using config batch size"""
-        if batch_size is None:
-            batch_size = self.config.batch_size
-        return super().gplvm_elbo(y, batch_size=batch_size)
-
-
-
 
 
 def train_ssvi_gplvm(model, y, config: SSVIConfig):
     """Training function for SSVI GP-LVM with configuration"""
     ll = []
     
-    # IMPORTANT: SSVI natural parameters (Lambda, nu) are NOT optimized with gradient descent
-    # They are updated internally via the SSVI algorithm in ssvi_step()
+    # IMPORTANT: Three-level optimization structure:
+    # 1. Local optimization: x_i updated via Adam (inside SSVI)
+    # 2. GP hyperparameters: updated via gradient descent  
+    # 3. Natural parameters (Lambda, nu): updated via SSVI algorithm
     
     # Only optimize GP hyperparameters and latent variables with gradient descent
     # Access GP parameters correctly from WLIndependentGPs
@@ -192,29 +185,30 @@ def train_ssvi_gplvm(model, y, config: SSVIConfig):
     if hasattr(model.gp, 'Vx') and isinstance(model.gp.Vx, torch.nn.Parameter):
         gp_params.append(model.gp.Vx)
         
-    latent_params = [
-        model.mu_x_train, 
-        model._log_sigma_x_train
-    ]
     
     # Use learning rates from configuration  
-    optim_gp = torch.optim.Adam(gp_params, lr=config.lr_gp) 
-    optim_latent = torch.optim.Adam(latent_params, lr=config.lr_latent)
+    optim_gp = torch.optim.Adam(gp_params, lr=config.lr_gp)
     
     print(f"Training for {config.training_iterations} iterations (batch_size={config.batch_size})")
     
     for i in range(config.training_iterations):
-        # Zero gradients for gradient-optimized parameters
+        # Sample batch indices for this iteration (consistent across steps)
+        N = y.shape[0]
+        batch_indices = torch.randperm(N)[:config.batch_size]
+        y_batch = y[batch_indices]
+        
+        # Steps 1-3: Core SSVI algorithm (sample batch, compute local params)
+        model.ssvi_local_step(y_batch, batch_indices)
+        
+        # Step 4: Full ELBO computation for hyperparameter optimization (one step)
+        # Use SAME batch for consistent gradients
         optim_gp.zero_grad()
-        optim_latent.zero_grad()
-        
-        # SSVI step: updates natural parameters (Lambda, nu) internally + computes ELBO
-        loss = -model.gplvm_elbo(y)  # Uses config.batch_size internally
+        loss = -model.compute_gplvm_elbo(y_batch)  # Same batch ELBO for hyperparams
         loss.backward()
-        
-        # Step gradient-based optimizers (natural parameters updated in gplvm_elbo via SSVI)
         optim_gp.step()
-        optim_latent.step()
+        
+        # Step 5: Global natural parameter update (SSVI formula)
+        model.update_natural_parameters()
         
         # Progress reporting
         if i % max(1, config.training_iterations // 10) == 0:
