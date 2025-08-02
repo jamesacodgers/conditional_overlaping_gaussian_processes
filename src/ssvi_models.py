@@ -333,7 +333,6 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         Following Algorithm 1, line 7: "Compute local variational distribution q(x_i | U^(t))"
         
         Optimizes local ELBO L_i(U) w.r.t. mu_i, Sigma_i using gradient ascent
-        REUSES existing ELBO infrastructure
         """
         # Create local parameters for this data point (detached from main params)
         mu_x_i = self.mu_x_train[data_idx].clone().detach().requires_grad_(True)
@@ -372,7 +371,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         mu_x_i_batch = mu_x_i.unsqueeze(0)  # 1 x latent_dim
         sigma_x_i_batch = sigma_x_i.unsqueeze(0)  # 1 x latent_dim (diagonal format)
         
-        # Compute ψ-statistics using existing infrastructure  
+        # Compute psi-statistics using existing infrastructure  
         kernel_expectation_i = self._get_lv_kernel_expectation(mu_x_i_batch, sigma_x_i_batch)  # 1 x C x L
         kernel_outer_expectation_i = self._get_lv_kernel_outer_expectation(mu_x_i_batch, sigma_x_i_batch)  # 1 x C x C x L x L
         
@@ -383,10 +382,10 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         for j in range(D):  # For each output dimension
             y_ij = y_i[j]
             
-            # ψ-statistics for dimension j
-            psi_1_ij = kernel_expectation_i[0, j, :]  # L (corresponds to ψ₁ᵢ⁽ʲ⁾)
-            psi_2_ij = kernel_outer_expectation_i[0, j, j, :, :]  # L x L (corresponds to ψ₂ᵢ⁽ʲ⁾)
-            psi_0_ij = self.gp.sigma2_s[j]  # scalar (corresponds to ψ₀ᵢ⁽ʲ⁾)
+            # psi-statistics for dimension j
+            psi_1_ij = kernel_expectation_i[0, j, :]  # L (corresponds to psi_1_i^(j))
+            psi_2_ij = kernel_outer_expectation_i[0, j, j, :, :]  # L x L (corresponds to psi_2_i^(j))
+            psi_0_ij = self.gp.sigma2_s[j]  # scalar (corresponds to psi_0_i^(j))
             
             # Get u_j and K_ZZ^(-1) from SSVI natural parameters
             u_j = self.get_global_mu(j)  # L (current mean from natural parameters)

@@ -22,7 +22,7 @@ class SSVIConfig:
     
     # === SSVI Algorithm Parameters ===
     step_size_s: float = 0.1         # SSVI step size parameter 's'
-    step_size_kappa: float = 0.75    # SSVI step size decay 'κ' ∈ (0.5, 1]
+    step_size_kappa: float = 0.75    # SSVI step size decay 'kappa' in (0.5, 1]
     local_opt_iterations: int = 1    # Inner optimization iterations for q(x_i)
     
     # === Training Configuration ===
@@ -30,8 +30,8 @@ class SSVIConfig:
     batch_size: int = 64
     
     # === Learning Rates ===
-    lr_gp: float = 0.01              # GP hyperparameters (β, σ², etc.)
-    lr_latent: float = 0.01          # Latent variables μ_x, σ_x
+    lr_gp: float = 0.01              # GP hyperparameters (beta, sigma^2, etc.)
+    lr_latent: float = 0.01          # Latent variables mu_x, sigma_x
     lr_local: float = 0.01           # Local variational optimization
     
     # === GP Hyperparameters ===
@@ -57,7 +57,7 @@ class SSVIConfig:
         print("=== SSVI GP-LVM Configuration ===")
         print(f"Data: {self.n_train} points, noise={self.data_noise}")
         print(f"Model: {self.n_inducing_points} inducing points, latent_dim={self.latent_dim}")
-        print(f"SSVI: s={self.step_size_s}, κ={self.step_size_kappa}, local_iter={self.local_opt_iterations}")
+        print(f"SSVI: s={self.step_size_s}, kappa={self.step_size_kappa}, local_iter={self.local_opt_iterations}")
         print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")
         print(f"Learning rates: GP={self.lr_gp}, latent={self.lr_latent}, local={self.lr_local}")
         print("=" * 35)
