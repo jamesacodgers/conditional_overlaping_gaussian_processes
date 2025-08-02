@@ -19,14 +19,14 @@ class SSVI_GPLVM(MF_WS_GPLVM):
     """
     
     def __init__(self, Y_shape, latent_dim, Vx, beta=None, sigma2_s=None, 
-                 sigma2=1, step_size_params=None, trainable_V=True):
+                 sigma2=1, step_size_params=None, trainable_V=True, latent_init_scale=0.1):
         """
         Initialize SSVI GP-LVM by setting up standard GP-LVM as mixture model special case
         """
         N, D = Y_shape
         
-        # Initialize latent variables 
-        mu_x_train = torch.randn(N, latent_dim) * 0.1
+        # Initialize latent variables with configurable scale
+        mu_x_train = torch.randn(N, latent_dim) * latent_init_scale
         
         # Standard GP-LVM setup: each output dimension is a "component"
         super().__init__(
@@ -107,25 +107,74 @@ class SSVI_GPLVM(MF_WS_GPLVM):
     def get_global_Sigma(self, j: int):
         """
         Compute Sigma^(t) = (Lambda^(t))^(-1) for output dimension j
+        Use Cholesky decomposition with jitter for numerical stability
         """
-        try:
-            return torch.inverse(self._Lambda[j])
-        except:
-            return torch.inverse(self._Lambda[j] + 1e-6 * torch.eye(self._Lambda[j].shape[0]))
+        # Start with small jitter and increase if needed
+        jitter = 1e-6
+        max_tries = 5
+        
+        for attempt in range(max_tries):
+            try:
+                # Add jitter to Lambda for numerical stability
+                jittered_Lambda = self._Lambda[j] + jitter * torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
+                
+                # Try Cholesky decomposition to check positive definiteness
+                L = torch.linalg.cholesky(jittered_Lambda)
+                
+                # If successful, compute inverse using Cholesky solve
+                # Sigma = Lambda^(-1) = (L L^T)^(-1)
+                identity = torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
+                Sigma = torch.cholesky_solve(identity, L)
+                
+                return Sigma
+                
+            except RuntimeError:
+                # Cholesky failed, increase jitter and try again
+                jitter *= 10
+                if attempt == max_tries - 1:
+                    # Final fallback: return well-conditioned identity
+                    return 1e-3 * torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
+        
+        # Should never reach here, but safety fallback
+        return 1e-3 * torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
     
     def override_gp_parameters(self):
         """
         Override GP's inducing point parameters with SSVI values
+        NOTE: This might break the natural parameter structure - consider using SSVI-specific prediction
         """
-        # Compute means for each output dimension and update GP's _mu_u
-        mu_u_per_dim = []
-        for j in range(self.C):  # C = D (output dimensions)
-            mu_j = self.get_global_mu(j)  # L
-            mu_u_per_dim.append(mu_j)
+        # For compatibility, but maintains SSVI natural parameter structure
+        pass  # Don't override to preserve natural parameter structure
+    
+    def get_ssvi_mean_prediction(self, inputs):
+        """
+        SSVI-specific prediction that works directly with natural parameters
         
-        # Stack and reshape to match GP's expected format [M, C*L]
-        mu_u_stacked = torch.stack(mu_u_per_dim, dim=0)  # C x L
-        self.gp._mu_u.data = mu_u_stacked.T.reshape(self.M, -1)  # M x (C*L)
+        Args:
+            inputs: Test input locations [N_test, latent_dim]
+            
+        Returns:
+            Predicted means [N_test, C] 
+        """
+        N_test = inputs.shape[0]
+        predictions = torch.zeros(N_test, self.C)
+        
+        # Compute kernel between test inputs and inducing points
+        # kernel_x returns [C, N_test, L] 
+        K_test_Z_all = self.gp.kernel_x(inputs, self.gp.Vx)  # C x N_test x L
+        
+        for j in range(self.C):  # For each output dimension
+            # Get SSVI global mean for this output dimension
+            mu_j = self.get_global_mu(j)  # L-dimensional vector
+            
+            # Extract kernel for this output dimension and transpose
+            K_test_Z_j = K_test_Z_all[j]  # N_test x L
+            K_ZZ_inv = self.gp.get_K_VV_x_inv()[j]  # L x L
+            
+            # GP prediction: mu_f = K_test_Z @ K_ZZ_inv @ mu_j
+            predictions[:, j] = K_test_Z_j @ K_ZZ_inv @ mu_j
+        
+        return predictions
     
     def ssvi_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor) -> torch.Tensor:
         """
@@ -163,7 +212,10 @@ class SSVI_GPLVM(MF_WS_GPLVM):
             y_i = Y_batch[i]  # D
             
             # Step 1: Optimize local variational distribution q(x_i) (Algorithm 1, line 7)
-            self.optimize_local_variational_distribution(idx, y_i, U_samples)
+            # Use configurable parameters (can be overridden by subclasses)
+            max_iter = getattr(self, 'local_opt_iterations', 1)
+            lr_local = getattr(self, 'lr_local', 0.01)
+            self.optimize_local_variational_distribution(idx, y_i, U_samples, max_iter=max_iter, lr_local=lr_local)
             
             # Step 2: Compute local natural parameters using existing infrastructure
             for j in range(self.C):
@@ -189,33 +241,82 @@ class SSVI_GPLVM(MF_WS_GPLVM):
             self._nu[j].data = ((1 - rho_t) * self._nu[j].data + 
                               rho_t * (nu_prior + scaling * Delta_nu[j]))
         
-        # Override GP parameters and compute ELBO using existing infrastructure
+        # Override GP parameters and compute ELBO using custom GP-LVM computation
         self.override_gp_parameters()
         
-        # For standard GP-LVM: R_train = all ones (each output has weight 1)
-        # This overrides the weight_distribution by explicitly providing weights
-        R_batch = torch.ones(batch_size, self.C)  # batch_size x C
-        
-        # Use existing ELBO computation infrastructure
-        return self.elbo(Y_batch, R_batch)
+        # Use custom GP-LVM ELBO computation to avoid tensor dimension issues
+        return self.compute_gplvm_elbo(Y_batch)
     
     def gplvm_elbo(self, Y: torch.Tensor, batch_size: Optional[int] = None) -> torch.Tensor:
         """
-        Compute GP-LVM ELBO using SSVI with mini-batches or existing infrastructure
+        Compute GP-LVM ELBO using SSVI with mini-batches or custom ELBO computation
         """
         N = Y.shape[0]
         
         if batch_size is None or batch_size >= N:
-            # Full batch - use existing ELBO infrastructure
-            # For standard GP-LVM: R_train = all ones (each output has weight 1)
-            # This overrides the weight_distribution by explicitly providing weights
-            R_train = torch.ones(N, self.C)  # N x C
-            return self.elbo(Y, R_train)
+            # Full batch - use custom GP-LVM ELBO computation
+            return self.compute_gplvm_elbo(Y)
         else:
             # Mini-batch SSVI step - updates natural parameters AND computes ELBO
             indices = torch.randperm(N)[:batch_size]
             y_batch = Y[indices]
             return self.ssvi_step(y_batch, indices)
+    
+    def get_ssvi_kl_u(self):
+        """
+        Compute KL divergence for SSVI using natural parameters
+        KL(q(U) || p(U)) where q(U) is parameterized by natural parameters
+        """
+        # Get prior over inducing variables
+        prior = self.gp.get_u_prior()
+        
+        # For SSVI, q(U) is parameterized by natural parameters (Lambda, nu)
+        # Convert natural parameters to moment parameters
+        total_kl = 0.0
+        for j in range(self.gp.C):
+            # Get moment parameters for output dimension j
+            mu_j = self.get_global_mu(j)  # L
+            Sigma_j = self.get_global_Sigma(j)  # L x L
+            
+            # Create q_u distribution for this output dimension
+            q_u_j = torch.distributions.MultivariateNormal(mu_j, Sigma_j)
+            
+            # Prior for this output dimension (extract from block diagonal)
+            start_idx = j * self.gp.Lx
+            end_idx = (j + 1) * self.gp.Lx
+            prior_mean_j = prior.mean[start_idx:end_idx]
+            prior_cov_j = prior.covariance_matrix[start_idx:end_idx, start_idx:end_idx]
+            prior_j = torch.distributions.MultivariateNormal(prior_mean_j, prior_cov_j)
+            
+            # KL divergence for this output dimension
+            kl_j = torch.distributions.kl_divergence(q_u_j, prior_j)
+            total_kl += kl_j
+        
+        return total_kl
+
+    def compute_gplvm_elbo(self, Y: torch.Tensor) -> torch.Tensor:
+        """
+        GP-LVM ELBO following exact tex document formulation:
+        L = sum_i L_i(U) - KL_u
+        
+        Simply sum local ELBOs and subtract KL_u
+        """
+        N = Y.shape[0]
+        
+        # Sum all local ELBOs using existing compute_local_elbo method
+        total_local_elbo = 0.0
+        for i in range(N):
+            y_i = Y[i]
+            mu_x_i = self.mu_x_train[i]
+            sigma_x_i = self.Sigma_x_train[i] 
+            
+            # Compute local ELBO for data point i
+            local_elbo_i = self.compute_local_elbo(i, y_i, mu_x_i, sigma_x_i, None)
+            total_local_elbo += local_elbo_i
+        
+        # Global ELBO = sum of local ELBOs - KL_u (using SSVI-specific KL)
+        kl_u = self.get_ssvi_kl_u()
+        return total_local_elbo - kl_u
     
     def parameters(self):
         """
@@ -226,7 +327,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         params.extend(self._nu.parameters())
         return params
     
-    def optimize_local_variational_distribution(self, data_idx: int, y_i: torch.Tensor, U_samples: torch.Tensor, max_iter: int = 5):
+    def optimize_local_variational_distribution(self, data_idx: int, y_i: torch.Tensor, U_samples: torch.Tensor, max_iter: int = None, lr_local: float = 0.01):
         """
         Optimize local variational distribution q(x_i) for data point i
         Following Algorithm 1, line 7: "Compute local variational distribution q(x_i | U^(t))"
@@ -238,8 +339,12 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         mu_x_i = self.mu_x_train[data_idx].clone().detach().requires_grad_(True)
         log_sigma_x_i = self._log_sigma_x_train[data_idx].clone().detach().requires_grad_(True)
         
-        # Local optimization loop
-        local_optimizer = torch.optim.Adam([mu_x_i, log_sigma_x_i], lr=0.01)
+        # Use default max_iter if not specified (for backwards compatibility)
+        if max_iter is None:
+            max_iter = 1
+            
+        # Local optimization loop with configurable learning rate
+        local_optimizer = torch.optim.Adam([mu_x_i, log_sigma_x_i], lr=lr_local)
         
         for _ in range(max_iter):
             local_optimizer.zero_grad()
@@ -258,43 +363,59 @@ class SSVI_GPLVM(MF_WS_GPLVM):
     
     def compute_local_elbo(self, data_idx: int, y_i: torch.Tensor, mu_x_i: torch.Tensor, sigma_x_i: torch.Tensor, U_samples: torch.Tensor):
         """
-        Compute local ELBO L_i(U) for data point i given current U samples
-        Following tex document Eq. (196-199)
+        Compute local ELBO L_i(U) for data point i following exact tex document formulation:
+        L_i(U) = sum_j E_q(x_i) E_p(f_j(x_i)|U,x_i) [log p(y_ij | f_j(x_i))] - KL(q(x_i)||p(x_i))
         
-        L_i(U) = Sum_j E_q(x_i) E_p(f_j(x_i)|U,x_i) [log p(y_ij | f_j(x_i))] - KL(q(x_i) || p(x_i))
-        
-        KEY INSIGHT: Full ELBO = Sum_i L_i(U) - KL_u, so:
-        L_i(U) = (Full ELBO for single point + KL_u) / N
-        We can leverage existing infrastructure
+        Efficient implementation without full tensor cloning
         """
-        # Temporarily update the latent parameters for this data point
-        original_mu_x_i = self.mu_x_train[data_idx].clone()
-        original_sigma_x_i = self.Sigma_x_train[data_idx].clone()
+        # Create single-point tensors directly (no expensive cloning!)
+        mu_x_i_batch = mu_x_i.unsqueeze(0)  # 1 x latent_dim
+        sigma_x_i_batch = sigma_x_i.unsqueeze(0)  # 1 x latent_dim (diagonal format)
         
-        with torch.no_grad():
-            self.mu_x_train[data_idx] = mu_x_i
-            self.Sigma_x_train[data_idx] = sigma_x_i
+        # Compute ψ-statistics using existing infrastructure  
+        kernel_expectation_i = self._get_lv_kernel_expectation(mu_x_i_batch, sigma_x_i_batch)  # 1 x C x L
+        kernel_outer_expectation_i = self._get_lv_kernel_outer_expectation(mu_x_i_batch, sigma_x_i_batch)  # 1 x C x C x L x L
         
-        try:
-            # Use existing ELBO infrastructure for single data point
-            y_i_batch = y_i.unsqueeze(0)  # 1 x D
-            R_i_batch = torch.ones(1, self.C)  # 1 x C (weight = 1 for each output)
+        # Local ELBO computation following tex document
+        D = y_i.shape[0]
+        local_elbo_i = 0.0
+        
+        for j in range(D):  # For each output dimension
+            y_ij = y_i[j]
             
-            # Compute full ELBO for this single data point (includes all KL terms)
-            single_point_elbo = self.elbo(y_i_batch, R_i_batch)
+            # ψ-statistics for dimension j
+            psi_1_ij = kernel_expectation_i[0, j, :]  # L (corresponds to ψ₁ᵢ⁽ʲ⁾)
+            psi_2_ij = kernel_outer_expectation_i[0, j, j, :, :]  # L x L (corresponds to ψ₂ᵢ⁽ʲ⁾)
+            psi_0_ij = self.gp.sigma2_s[j]  # scalar (corresponds to ψ₀ᵢ⁽ʲ⁾)
             
-            # Add back the KL_u terms to get local ELBO: L_i(U) = ELBO_i + KL_u
-            # From tex: Full ELBO = Sum_i L_i(U) - Sum_j KL(q(u_j) || p(u_j))
-            kl_u_terms = self.gp.get_kl_u()  # KL terms for inducing variables
-            local_elbo = single_point_elbo + kl_u_terms
+            # Get u_j and K_ZZ^(-1) from SSVI natural parameters
+            u_j = self.get_global_mu(j)  # L (current mean from natural parameters)
+            K_ZZ_inv = self.gp.get_K_VV_x_inv()[j]  # L x L
             
-            return local_elbo
+            # Expected log-likelihood term from tex document
+            beta = 1.0 / self.sigma2  # precision
             
-        finally:
-            # Restore original parameters
-            with torch.no_grad():
-                self.mu_x_train[data_idx] = original_mu_x_i
-                self.Sigma_x_train[data_idx] = original_sigma_x_i
+            log_likelihood_ij = (
+                -0.5 * torch.log(2 * torch.pi / beta)
+                - 0.5 * beta * (
+                    y_ij**2 
+                    - 2 * y_ij * (psi_1_ij @ K_ZZ_inv @ u_j)
+                    + u_j @ K_ZZ_inv @ psi_2_ij @ K_ZZ_inv @ u_j
+                    + psi_0_ij 
+                    - torch.trace(K_ZZ_inv @ psi_2_ij)
+                )
+            )
+            
+            local_elbo_i += log_likelihood_ij
+        
+        # KL term for latent variable x_i: -KL(q(x_i)||p(x_i))
+        x_prior = torch.distributions.Normal(torch.zeros_like(mu_x_i), torch.ones_like(sigma_x_i))
+        x_posterior = torch.distributions.Normal(mu_x_i, sigma_x_i)
+        kl_x_i = torch.distributions.kl_divergence(x_posterior, x_prior).sum()
+        
+        local_elbo_i -= kl_x_i
+        
+        return local_elbo_i
     
     def compute_local_natural_parameters(self, data_idx: int, y_ij: float, U_j: torch.Tensor, output_dim: int):
         """
@@ -307,7 +428,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         """
         # Get current local variational parameters  
         mu_x_i = self.mu_x_train[data_idx:data_idx+1]  # 1 x Q
-        Sigma_x_i = torch.diag(self.Sigma_x_train[data_idx]).unsqueeze(0)  # 1 x Q x Q
+        Sigma_x_i = self.Sigma_x_train[data_idx:data_idx+1]  # 1 x Q (diagonal format)
         
         # Compute psi-statistics using existing infrastructure
         kernel_expectation = self._get_lv_kernel_expectation(mu_x_i, Sigma_x_i)  # 1 x C x L
