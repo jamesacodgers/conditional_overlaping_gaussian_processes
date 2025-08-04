@@ -391,7 +391,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
             
             # Compute log-likelihood: average over multiple U samples (Monte Carlo)
             if U_samples is None:
-                # For compute_gplvm_elbo, use current mean from natural parameters
+                # For compute_gplvm_elbo (full elbo), use current mean from natural parameters
                 u_j = self.get_global_mu(j)  # L
                 log_likelihood_ij = (
                     -0.5 * torch.log(2 * torch.pi / beta)
