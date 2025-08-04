@@ -184,14 +184,18 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         
         # SSVI Step 2: Compute global variational parameters and sample U^(t) (Algorithm 1, lines 5-6)
         # mu^(t) = (Lambda^(t))^(-1) nu^(t), Sigma^(t) = (Lambda^(t))^(-1)
-        # Sample U^(t) ~ N(mu^(t), Sigma^(t))
+        # Sample U^(t) ~ N(mu^(t), Sigma^(t)) - multiple samples for Monte Carlo approximation
+        num_samples = getattr(self, 'num_u_samples', 1)
         U_samples = []
-        for j in range(self.C):  # C = D (output dimensions)
-            mu_j = self.get_global_mu(j)      # mu_j^(t) = (Lambda_j^(t))^(-1) nu_j^(t)
-            Sigma_j = self.get_global_Sigma(j) # Sigma_j^(t) = (Lambda_j^(t))^(-1)
-            U_j = torch.distributions.MultivariateNormal(mu_j, Sigma_j).rsample()
-            U_samples.append(U_j)
-        U_samples = torch.stack(U_samples, dim=0)  # C x L
+        for s in range(num_samples):  # Multiple U samples 
+            U_sample_s = []
+            for j in range(self.C):  # C = D (output dimensions)
+                mu_j = self.get_global_mu(j)      # mu_j^(t) = (Lambda_j^(t))^(-1) nu_j^(t)
+                Sigma_j = self.get_global_Sigma(j) # Sigma_j^(t) = (Lambda_j^(t))^(-1)
+                U_j = torch.distributions.MultivariateNormal(mu_j, Sigma_j).rsample()
+                U_sample_s.append(U_j)
+            U_samples.append(torch.stack(U_sample_s, dim=0))  # C x L
+        U_samples = torch.stack(U_samples, dim=0)  # num_samples x C x L
         
         # Accumulate local contributions (proper implementation)
         Delta_Lambda = [torch.zeros_like(self._Lambda[j]) for j in range(self.C)]
@@ -205,17 +209,30 @@ class SSVI_GPLVM(MF_WS_GPLVM):
             # Use configurable parameters (can be overridden by subclasses)
             max_iter = getattr(self, 'local_opt_iterations', 1)
             lr_local = getattr(self, 'lr_local', 0.01)
-            self.optimize_local_variational_distribution(idx, y_i, U_samples, max_iter=max_iter, lr_local=lr_local)
+            # Detach U_samples for local optimization to avoid gradient graph conflicts
+            U_samples_detached = U_samples.detach()
+            self.optimize_local_variational_distribution(idx, y_i, U_samples_detached, max_iter=max_iter, lr_local=lr_local)
             
             # Step 2: Compute local natural parameters using existing infrastructure
+            # Average over multiple U samples for Monte Carlo approximation
             for j in range(self.C):
-                h_i, H_i = self.compute_local_natural_parameters(idx, y_i[j], U_samples[j], j)
+                h_i_total = torch.zeros_like(self._nu[j])
+                H_i_total = torch.zeros_like(self._Lambda[j])
                 
-                # Step 3: Apply curvature correction V(U, Lambda) * Delta_eta_i  
-                h_i_corrected, H_i_corrected = self.apply_curvature_correction(h_i, H_i, U_samples[j], j)
+                # Average over multiple U samples
+                for s in range(num_samples):
+                    u_j_s = U_samples[s, j, :]  # L
+                    h_i_s, H_i_s = self.compute_local_natural_parameters(idx, y_i[j], u_j_s, j)
+                    
+                    # Step 3: Apply curvature correction V(U, Lambda) * Delta_eta_i  
+                    h_i_s_corrected, H_i_s_corrected = self.apply_curvature_correction(h_i_s, H_i_s, u_j_s, j)
+                    
+                    h_i_total += h_i_s_corrected
+                    H_i_total += H_i_s_corrected
                 
-                Delta_nu[j] += h_i_corrected
-                Delta_Lambda[j] += H_i_corrected
+                # Average the contributions
+                Delta_nu[j] += h_i_total / num_samples
+                Delta_Lambda[j] += H_i_total / num_samples
         
         # Store local contributions for later natural parameter update
         scaling = N / batch_size
@@ -378,23 +395,45 @@ class SSVI_GPLVM(MF_WS_GPLVM):
             psi_2_ij = kernel_outer_expectation_i[0, j, j, :, :]  # L x L (corresponds to psi_2_i^(j))
             psi_0_ij = self.gp.sigma2_s[j]  # scalar (corresponds to psi_0_i^(j))
             
-            # Get u_j and K_ZZ^(-1) from SSVI natural parameters
-            u_j = self.get_global_mu(j)  # L (current mean from natural parameters)
             K_ZZ_inv = self.gp.get_K_VV_x_inv()[j]  # L x L
-            
-            # Expected log-likelihood term from tex document
             beta = 1.0 / self.sigma2  # precision
             
-            log_likelihood_ij = (
-                -0.5 * torch.log(2 * torch.pi / beta)
-                - 0.5 * beta * (
-                    y_ij**2 
-                    - 2 * y_ij * (psi_1_ij @ K_ZZ_inv @ u_j)
-                    + u_j @ K_ZZ_inv @ psi_2_ij @ K_ZZ_inv @ u_j
-                    + psi_0_ij 
-                    - torch.trace(K_ZZ_inv @ psi_2_ij)
+            # Compute log-likelihood: average over multiple U samples (Monte Carlo)
+            if U_samples is None:
+                # For compute_gplvm_elbo, use current mean from natural parameters
+                u_j = self.get_global_mu(j)  # L
+                log_likelihood_ij = (
+                    -0.5 * torch.log(2 * torch.pi / beta)
+                    - 0.5 * beta * (
+                        y_ij**2 
+                        - 2 * y_ij * (psi_1_ij @ K_ZZ_inv @ u_j)
+                        + u_j @ K_ZZ_inv @ psi_2_ij @ K_ZZ_inv @ u_j
+                        + psi_0_ij 
+                        - torch.trace(K_ZZ_inv @ psi_2_ij)
+                    )
                 )
-            )
+            else:
+                # For local optimization: compute log-likelihood for each U sample, then average
+                num_samples = U_samples.shape[0]
+                log_likelihood_contributions = []
+                
+                for s in range(num_samples):
+                    u_j_s = U_samples[s, j, :]  # L (individual U sample)
+                    
+                    log_likelihood_ij_s = (
+                        -0.5 * torch.log(2 * torch.pi / beta)
+                        - 0.5 * beta * (
+                            y_ij**2 
+                            - 2 * y_ij * (psi_1_ij @ K_ZZ_inv @ u_j_s)
+                            + u_j_s @ K_ZZ_inv @ psi_2_ij @ K_ZZ_inv @ u_j_s
+                            + psi_0_ij 
+                            - torch.trace(K_ZZ_inv @ psi_2_ij)
+                        )
+                    )
+                    log_likelihood_contributions.append(log_likelihood_ij_s)
+                
+                # Average the log-likelihood contributions (Monte Carlo approximation)
+                log_likelihood_ij = torch.mean(torch.stack(log_likelihood_contributions))
             
             local_elbo_i += log_likelihood_ij
         

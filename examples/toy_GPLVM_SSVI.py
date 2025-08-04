@@ -24,6 +24,7 @@ class SSVIConfig:
     step_size_s: float = 0.1         # SSVI step size parameter 's'
     step_size_kappa: float = 0.75    # SSVI step size decay 'kappa' in (0.5, 1]
     local_opt_iterations: int = 1    # Inner optimization iterations for q(x_i)
+    num_u_samples: int = 2           # Number of U samples for Monte Carlo approximation
     
     # === Training Configuration ===
     training_iterations: int = 100
@@ -150,6 +151,7 @@ class SSVI_GPLVM_Wrapper(SSVI_GPLVM):
         self.local_opt_iterations = config.local_opt_iterations
         self.lr_local = config.lr_local
         self.batch_size = config.batch_size
+        self.num_u_samples = config.num_u_samples
         
         # Override with provided initial latent variables
         self.mu_x_train.data = mu_x
