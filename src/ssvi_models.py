@@ -223,7 +223,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
                 h_i_corrected, H_i_corrected = self.apply_curvature_correction(h_i, H_i, None, j)
                 
                 Delta_nu[j] += h_i_corrected
-                Delta_Lambda[j] += H_i_corrected
+                Delta_Lambda[j] += (-2.0) * H_i_corrected
         
         # Store local contributions for later natural parameter update
         scaling = N / batch_size
