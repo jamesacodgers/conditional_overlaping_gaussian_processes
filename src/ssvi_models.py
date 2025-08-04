@@ -223,7 +223,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
                 h_i_corrected, H_i_corrected = self.apply_curvature_correction(h_i, H_i, None, j)
                 
                 Delta_nu[j] += h_i_corrected
-                Delta_Lambda[j] += (-2.0) * H_i_corrected
+                Delta_Lambda[j] += H_i_corrected
         
         # Store local contributions for later natural parameter update
         scaling = N / batch_size
@@ -442,7 +442,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         Compute local natural parameters h_i, H_i following tex document Eq. (349-352)
         
         From tex: h_i = beta * y_ij * psi_1i * K_ZZ^(-1)
-                 H_i = (beta/2) * vec(-K_ZZ^(-1) * psi_2i * K_ZZ^(-1))
+                 H_i = beta * vec(K_ZZ^(-1) * psi_2i * K_ZZ^(-1))
         
         Uses existing kernel expectation infrastructure
         """
@@ -464,7 +464,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         
         # Compute local natural parameters
         h_i = beta * y_ij * psi_1 @ K_ZZ_inv  # L
-        H_i = -(beta / 2) * (K_ZZ_inv @ psi_2 @ K_ZZ_inv)  # L x L 
+        H_i = beta * (K_ZZ_inv @ psi_2 @ K_ZZ_inv)  # L x L 
         
         return h_i, H_i
     
