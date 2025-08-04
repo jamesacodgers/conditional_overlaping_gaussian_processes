@@ -214,25 +214,16 @@ class SSVI_GPLVM(MF_WS_GPLVM):
             self.optimize_local_variational_distribution(idx, y_i, U_samples_detached, max_iter=max_iter, lr_local=lr_local)
             
             # Step 2: Compute local natural parameters using existing infrastructure
-            # Average over multiple U samples for Monte Carlo approximation
             for j in range(self.C):
-                h_i_total = torch.zeros_like(self._nu[j])
-                H_i_total = torch.zeros_like(self._Lambda[j])
+                # Natural parameters don't depend on U, so compute once per data point
+                h_i, H_i = self.compute_local_natural_parameters(idx, y_i[j], j)
                 
-                # Average over multiple U samples
-                for s in range(num_samples):
-                    u_j_s = U_samples[s, j, :]  # L
-                    h_i_s, H_i_s = self.compute_local_natural_parameters(idx, y_i[j], u_j_s, j)
-                    
-                    # Step 3: Apply curvature correction V(U, Lambda) * Delta_eta_i  
-                    h_i_s_corrected, H_i_s_corrected = self.apply_curvature_correction(h_i_s, H_i_s, u_j_s, j)
-                    
-                    h_i_total += h_i_s_corrected
-                    H_i_total += H_i_s_corrected
+                # Step 3: Apply curvature correction V(U, Lambda) * Delta_eta_i  
+                # In SSVI-A, curvature correction is identity, so no averaging needed
+                h_i_corrected, H_i_corrected = self.apply_curvature_correction(h_i, H_i, None, j)
                 
-                # Average the contributions
-                Delta_nu[j] += h_i_total / num_samples
-                Delta_Lambda[j] += H_i_total / num_samples
+                Delta_nu[j] += h_i_corrected
+                Delta_Lambda[j] += H_i_corrected
         
         # Store local contributions for later natural parameter update
         scaling = N / batch_size
@@ -446,7 +437,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         
         return local_elbo_i
     
-    def compute_local_natural_parameters(self, data_idx: int, y_ij: float, U_j: torch.Tensor, output_dim: int):
+    def compute_local_natural_parameters(self, data_idx: int, y_ij: float, output_dim: int):
         """
         Compute local natural parameters h_i, H_i following tex document Eq. (349-352)
         
@@ -477,7 +468,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         
         return h_i, H_i
     
-    def apply_curvature_correction(self, h_i: torch.Tensor, H_i: torch.Tensor, U_j: torch.Tensor, output_dim: int):
+    def apply_curvature_correction(self, h_i: torch.Tensor, H_i: torch.Tensor, U_j: torch.Tensor = None, output_dim: int = None):
         """
         Mock function for curvature correction in SSVI-A
         In SSVI-A, curvature correction is not used, so we return original values unchanged
