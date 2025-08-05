@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from typing import Optional
+from typing import Optional, Dict
 from src.mf_methods import MF_WS_GPLVM
 
 
@@ -475,3 +475,138 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         """
         # SSVI-A: No curvature correction applied
         return h_i, H_i
+    
+    @torch.no_grad()
+    def log_gradient_stats(self, step: int, prefix: str = "") -> Dict[str, float]:
+        """
+        Log gradient and parameter update statistics for monitoring training dynamics
+        
+        Args:
+            step: Current training step
+            prefix: Optional prefix for logging (e.g., "epoch_5_")
+            
+        Returns:
+            Dictionary with gradient and update statistics
+        """
+        stats = {}
+        
+        # 1. Local variational parameters (x_i)
+        if hasattr(self, 'mu_x_train') and self.mu_x_train.grad is not None:
+            mu_x_grad_norm = torch.norm(self.mu_x_train.grad).item()
+            mu_x_param_norm = torch.norm(self.mu_x_train).item()
+            stats[f"{prefix}mu_x_grad_norm"] = mu_x_grad_norm
+            stats[f"{prefix}mu_x_param_norm"] = mu_x_param_norm
+            stats[f"{prefix}mu_x_grad_to_param_ratio"] = mu_x_grad_norm / (mu_x_param_norm + 1e-8)
+        
+        if hasattr(self, 'log_sigma_x_train') and self.log_sigma_x_train.grad is not None:
+            sigma_x_grad_norm = torch.norm(self.log_sigma_x_train.grad).item()
+            sigma_x_param_norm = torch.norm(self.log_sigma_x_train).item()
+            stats[f"{prefix}log_sigma_x_grad_norm"] = sigma_x_grad_norm
+            stats[f"{prefix}log_sigma_x_param_norm"] = sigma_x_param_norm
+            stats[f"{prefix}log_sigma_x_grad_to_param_ratio"] = sigma_x_grad_norm / (sigma_x_param_norm + 1e-8)
+        
+        # 2. GP hyperparameters
+        if hasattr(self.gp, '_raw_chol') and self.gp._raw_chol.grad is not None:
+            chol_grad_norm = torch.norm(self.gp._raw_chol.grad).item()
+            chol_param_norm = torch.norm(self.gp._raw_chol).item()
+            stats[f"{prefix}chol_grad_norm"] = chol_grad_norm
+            stats[f"{prefix}chol_param_norm"] = chol_param_norm
+            stats[f"{prefix}chol_grad_to_param_ratio"] = chol_grad_norm / (chol_param_norm + 1e-8)
+        
+        if hasattr(self.gp, '_log_sigma2_s') and self.gp._log_sigma2_s.grad is not None:
+            sigma2_s_grad_norm = torch.norm(self.gp._log_sigma2_s.grad).item()
+            sigma2_s_param_norm = torch.norm(self.gp._log_sigma2_s).item()
+            stats[f"{prefix}log_sigma2_s_grad_norm"] = sigma2_s_grad_norm
+            stats[f"{prefix}log_sigma2_s_param_norm"] = sigma2_s_param_norm
+            stats[f"{prefix}log_sigma2_s_grad_to_param_ratio"] = sigma2_s_grad_norm / (sigma2_s_param_norm + 1e-8)
+        
+        if hasattr(self.gp, '_log_beta') and self.gp._log_beta.grad is not None:
+            beta_grad_norm = torch.norm(self.gp._log_beta.grad).item()
+            beta_param_norm = torch.norm(self.gp._log_beta).item()
+            stats[f"{prefix}log_beta_grad_norm"] = beta_grad_norm
+            stats[f"{prefix}log_beta_param_norm"] = beta_param_norm
+            stats[f"{prefix}log_beta_grad_to_param_ratio"] = beta_grad_norm / (beta_param_norm + 1e-8)
+        
+        if hasattr(self.gp, 'Vx') and self.gp.Vx.grad is not None:
+            vx_grad_norm = torch.norm(self.gp.Vx.grad).item()
+            vx_param_norm = torch.norm(self.gp.Vx).item()
+            stats[f"{prefix}Vx_grad_norm"] = vx_grad_norm
+            stats[f"{prefix}Vx_param_norm"] = vx_param_norm
+            stats[f"{prefix}Vx_grad_to_param_ratio"] = vx_grad_norm / (vx_param_norm + 1e-8)
+        
+        # 3. Natural parameters (Lambda, nu) - track their update norms
+        if hasattr(self, '_Lambda'):
+            total_lambda_norm = 0.0
+            for j in range(len(self._Lambda)):
+                lambda_norm = torch.norm(self._Lambda[j]).item()
+                total_lambda_norm += lambda_norm
+                stats[f"{prefix}Lambda_{j}_norm"] = lambda_norm
+            stats[f"{prefix}Lambda_total_norm"] = total_lambda_norm
+        
+        if hasattr(self, '_nu'):
+            total_nu_norm = 0.0
+            for j in range(len(self._nu)):
+                nu_norm = torch.norm(self._nu[j]).item()
+                total_nu_norm += nu_norm
+                stats[f"{prefix}nu_{j}_norm"] = nu_norm
+            stats[f"{prefix}nu_total_norm"] = total_nu_norm
+        
+        # 4. Natural parameter update norms (if available)
+        if hasattr(self, '_pending_Delta_Lambda'):
+            total_delta_lambda_norm = 0.0
+            for j in range(len(self._pending_Delta_Lambda)):
+                delta_lambda_norm = torch.norm(self._pending_Delta_Lambda[j]).item()
+                total_delta_lambda_norm += delta_lambda_norm
+                stats[f"{prefix}Delta_Lambda_{j}_norm"] = delta_lambda_norm
+            stats[f"{prefix}Delta_Lambda_total_norm"] = total_delta_lambda_norm
+        
+        if hasattr(self, '_pending_Delta_nu'):
+            total_delta_nu_norm = 0.0
+            for j in range(len(self._pending_Delta_nu)):
+                delta_nu_norm = torch.norm(self._pending_Delta_nu[j]).item()
+                total_delta_nu_norm += delta_nu_norm
+                stats[f"{prefix}Delta_nu_{j}_norm"] = delta_nu_norm
+            stats[f"{prefix}Delta_nu_total_norm"] = total_delta_nu_norm
+        
+        # 5. Step size parameters
+        if hasattr(self, '_pending_rho_t'):
+            stats[f"{prefix}rho_t"] = self._pending_rho_t
+        
+        if hasattr(self, '_pending_scaling'):
+            stats[f"{prefix}scaling_factor"] = self._pending_scaling
+        
+        return stats
+    
+    def print_gradient_stats(self, stats: Dict[str, float], step: int):
+        """
+        Print gradient statistics for debugging
+        """
+        print(f"\n=== Gradient Stats (Step {step}) ===")
+        
+        # Group by parameter type
+        local_params = {k: v for k, v in stats.items() if 'mu_x' in k or 'sigma_x' in k}
+        gp_params = {k: v for k, v in stats.items() if any(x in k for x in ['chol', 'sigma2_s', 'beta', 'Vx'])}
+        natural_params = {k: v for k, v in stats.items() if 'Lambda' in k or 'nu' in k}
+        update_params = {k: v for k, v in stats.items() if 'Delta' in k or 'rho' in k or 'scaling' in k}
+        
+        if local_params:
+            print("Local Variational Parameters:")
+            for k, v in local_params.items():
+                print(f"  {k}: {v:.6f}")
+        
+        if gp_params:
+            print("GP Hyperparameters:")
+            for k, v in gp_params.items():
+                print(f"  {k}: {v:.6f}")
+        
+        if natural_params:
+            print("Natural Parameters:")
+            for k, v in natural_params.items():
+                print(f"  {k}: {v:.6f}")
+        
+        if update_params:
+            print("Update Statistics:")
+            for k, v in update_params.items():
+                print(f"  {k}: {v:.6f}")
+        
+        print("=" * 40)

@@ -16,7 +16,7 @@ class SSVIConfig:
     random_seed: int = 42
     
     # === Model Architecture ===
-    n_inducing_points: int = 6
+    n_inducing_points: int = 32
     inducing_range: tuple = (-4, 4)
     latent_dim: int = 1
     
@@ -47,6 +47,11 @@ class SSVIConfig:
     n_test_points: int = 100
     test_range: tuple = (-4, 4)
     plot_results: bool = True
+    
+    # === Debugging & Monitoring ===
+    log_gradients: bool = False      # Enable gradient logging
+    log_frequency: int = 10          # Log every N steps
+    verbose_logging: bool = False    # Print detailed gradient stats
     
     def get_step_size_params(self) -> Dict[str, float]:
         """Get SSVI step size parameters"""
@@ -212,6 +217,17 @@ def train_ssvi_gplvm(model, y, config: SSVIConfig):
         # Step 5: Global natural parameter update (SSVI formula)
         model.update_natural_parameters()
         
+        # Gradient and parameter monitoring
+        if config.log_gradients and i % config.log_frequency == 0:
+            stats = model.log_gradient_stats(i, prefix=f"step_{i}_")
+            if config.verbose_logging:
+                model.print_gradient_stats(stats, i)
+            else:
+                # Compact logging
+                total_grad_norm = sum([v for k, v in stats.items() if k.endswith('_grad_norm')])
+                total_param_norm = sum([v for k, v in stats.items() if k.endswith('_param_norm')])
+                print(f"Step {i}: Total grad norm: {total_grad_norm:.4f}, Total param norm: {total_param_norm:.4f}")
+        
         # Progress reporting
         if i % max(1, config.training_iterations // 10) == 0:
             print(f"Iteration {i}/{config.training_iterations}, ELBO: {-loss.item():.2f}")
@@ -298,14 +314,26 @@ if __name__ == "__main__":
     #main()
     
     # 2. Fast configuration for debugging
-    main(get_fast_config())
+    #main(get_fast_config())
+    
+    # 3. Gradient monitoring configuration
+    debug_config = SSVIConfig(
+        training_iterations=20,
+        log_gradients=True,
+        log_frequency=5,
+        verbose_logging=True,  # Set to False for compact logging
+        lr_gp=0.001,
+        lr_local=0.001,
+        batch_size=128
+    )
+    main(debug_config)
     
     # 3. High-quality configuration for best results  
     # main(get_high_quality_config())
     
     # 4. Custom configuration
     # custom_config = SSVIConfig(
-    #     n_inducing_points=10,
+    #     n_inducing_points=32,
     #     step_size_s=0.2,
     #     local_opt_iterations=3,
     #     training_iterations=150
