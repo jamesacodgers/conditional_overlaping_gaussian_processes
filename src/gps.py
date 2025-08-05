@@ -18,7 +18,6 @@ class AbstractGP(ABC, torch.nn.Module):
             beta = [[1]*self.input_dims]*self.C
         if sigma2_s is None:
             sigma2_s = [1]*self.C
-
         self._log_beta = torch.nn.Parameter(torch.log(torch.tensor(beta))) 
         self._log_sigma2_s = torch.nn.Parameter( torch.log(torch.tensor(sigma2_s)))
         self.Lx = self.Vx.shape[0]

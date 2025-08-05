@@ -170,8 +170,8 @@ class Struc_WS_GPLVM(MF_WS_GPLVM):
     def get_u_vec_samples(self):
         # dist = self.get_q_u_dist()
         # samples = dist.rsample((self.P,))
-        chol = torch.tril(self._raw_chol)
-        samples = self.get_vector_mu_u()[None,:,:] + (chol[None,:,::]@self._samples[:,:,:,None])[...,0]
+        chol = torch.tril(self.gp._raw_chol)
+        samples = self.gp.get_vector_mu_u()[None,:,:] + (chol[None,:,::]@self._samples[:,:,:,None])[...,0]
         return samples
     
     def get_kl_x(self):
@@ -185,7 +185,7 @@ class Struc_WS_GPLVM(MF_WS_GPLVM):
             kl_test = torch.distributions.kl_divergence(x_test, x_prior).mean(dim=0).sum()
             return kl_train + kl_test
     
-    def get_s_expectation(self, mu_x, sigma_x):
+    def get_s_expectation(self, kernel_expectation):
         """
         returns P x N x M x C 
         """
@@ -193,14 +193,13 @@ class Struc_WS_GPLVM(MF_WS_GPLVM):
         # mu_u = self.get_mu_u() # M x C x L
         # kernel_expectation = self.get_kernel_expectation(mu_x,sigma_x)
         # return torch.einsum("nck,ckl,mcl->nmc", kernel_expectation, K_VV_inv, mu_u)
-        K_VV_inv = self.get_K_VV_x_inv() # C x L x L 
+        K_VV_inv = self.gp.get_K_VV_x_inv() # C x L x L 
         u_samples = self.get_u_samples() # P x M x C x L
-        kernel_expectation = self._get_lv_kernel_expectation(mu_x,sigma_x) # P x N x C x L 
         return (kernel_expectation[:,:,None,:,None,:]@K_VV_inv[None,None,None,:,:,:]@u_samples[:,None,:,:,:,None])[...,0,0] # P x N x M x C 
     
-    def get_s_outer_expectation(self, mu_x, sigma_x):
-        K_VV = self.get_K_VV_matrix()
-        K_VV_inv = self.get_K_VV_inv_matrix()
+    def get_s_outer_expectation(self, kernel_outer_expectation):
+        K_VV = self.gp.get_K_VV_matrix()
+        K_VV_inv = self.gp.get_K_VV_x_inv()
 
         u_samples = self.get_u_vec_samples()
 
@@ -213,13 +212,14 @@ class Struc_WS_GPLVM(MF_WS_GPLVM):
         #     (mu_u[:,:,None]*mu_u[:,None,:]).sum(dim=0)
         #      - (K_VV[None,:,:]  - Sigma_u[:,:,:])*self.M
         #      )
-        Ma = (K_VV_inv@Ma@ K_VV_inv.T)  # LC x LC 
+        Ma = (K_VV_inv@Ma@ K_VV_inv.transpose(-2,-1))  # LC x LC 
         # Ma = (Ma + Ma.T)/2 # Trying to make Ma symetric 
         # Ma = Ma.reshape(self.C, self.L, self.C, self.L).transpose(1,2) # C x C x L x L
         Ma = Ma.reshape(self.P,self.C, self.Lx, self.C, self.Lx).permute(0,1,3,2,4) # C x C x L x L
         # Z = self._get_kernel_outer_expectation(mu_x,sigma_x) # N x C x C x L x L
-        Z = self._get_lv_kernel_outer_expectation(mu_x,sigma_x) # P, N x C x C x L x L
-        K_xx_expectation = torch.diag(self.sigma2_s)
+        # Z = self._get_lv_kernel_outer_expectation(mu_x,sigma_x) # P, N x C x C x L x L
+        Z = kernel_outer_expectation # P, N x C x C x L x L
+        K_xx_expectation = torch.diag(self.gp.sigma2_s)
         A = K_xx_expectation*self.M + (Ma[:,None,:,:,:,:]*Z[:,:,:,:,:,:]).sum(dim=[-2,-1]) # + torch.eye(self.C)*1e-3
         return A # Px N x C x C 
     

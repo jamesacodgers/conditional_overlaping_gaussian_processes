@@ -5,7 +5,7 @@ from src.gps import WLIndependentGPs, WLDependentGPs
 
 from abc import ABC, abstractmethod
 
-class MFModels(torch.nn.Module, ABC):
+class   MFModels(torch.nn.Module, ABC):
     def __init__(self,M, C_obs, C_unobs=0, sigma2=1, weight_distribution="continuous"):
         torch.nn.Module.__init__(self)
         weight_distribution_options = {"continuous","sum_to_one","categorical"}
@@ -278,8 +278,8 @@ class MF_WS_GPLVM(MFModels):
     def elbo(self,D_train, R_train, D_test=None):
         kernel_train_expectation = self._get_lv_kernel_expectation(self.mu_x_train, self.Sigma_x_train)
         kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(self.mu_x_train,self.Sigma_x_train)
-        s_train_expectation = self.gp.get_s_expectation(kernel_expectation=kernel_train_expectation)
-        s_train_outer_expectation = self.gp.get_s_outer_expectation(kernel_outer_expectation=kernel_train_outer_expectation)
+        s_train_expectation = self.get_s_expectation(kernel_expectation=kernel_train_expectation)
+        s_train_outer_expectation = self.get_s_outer_expectation(kernel_outer_expectation=kernel_train_outer_expectation)
         if D_test is None: 
             return self._elbo(s_train_expectation, s_train_outer_expectation, D_train, R_train )
         else:

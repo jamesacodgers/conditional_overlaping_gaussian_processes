@@ -5,7 +5,7 @@ from src.mf_methods import MF_WS_GPLVM
 from src.struc_models import Struc_WS_GPLVM
 from src.utils import train_lbfgs
 
-n_train = 256
+n_train = 64
 x = torch.randn((n_train,1))
 
 y1 = x**3 + torch.randn_like(x)/10
@@ -17,7 +17,7 @@ y = (y - y.mean(dim=0))/y.std(dim=0)
 
 R_train = torch.ones(n_train,1)
 
-Vx = torch.linspace(-4,4,6).reshape(-1,1)
+Vx = torch.linspace(-4,4,8).reshape(-1,1)
 mu_x,_,_ =  torch.pca_lowrank(y,1)
 mu_x = mu_x/mu_x.std(dim=0)
 
@@ -58,34 +58,35 @@ class Struc_GPLVM(Struc_WS_GPLVM):
     
     def gplvm_elbo(self, y):
         R_train = torch.ones((y.shape[0],1))
-        return super().elbo(y, R_train)
+        return super(Struc_GPLVM,self).elbo(y, R_train)
     
 # mf_model = MF_GPLVM(M=2,Vx=Vx, mu_x=mu_x)
-struc_model = Struc_GPLVM(M=2,Vx=Vx, mu_x=mu_x)
+struc_model = Struc_GPLVM(M=2,Vx=Vx, mu_x=mu_x, P=8)
+# struc_model._log_sigma2 = torch.nn.Parameter(torch.tensor([-2.]))
 # print(mf_model.gplvm_elbo(y=y))
 
 
 def train_gplvm(model,y,plot=False):
     ll = []
-    optim_gp= torch.optim.Adam([model.gp._mu_u, model.gp._raw_chol, model.gp.Vx, model.gp._log_sigma2_s], lr=0.01)
-    optim = torch.optim.Adam(model.parameters())
-    for j in range(4000): 
-        optim_gp.zero_grad()
-        loss = -model.gplvm_elbo(y=y)
-        loss.backward()
-        optim_gp.step()
-        if j%100==0:
-            print(j)
-        ll.append(loss.detach().item())
+    # optim_gp= torch.optim.Adam([model.gp._mu_u, model.gp._raw_chol, model.gp.Vx, model.gp._log_sigma2_s], lr=0.01)
+    optim = torch.optim.Adam(model.parameters(), lr=0.01)
+    # for j in range(4000): 
+    #     optim_gp.zero_grad()
+    #     loss = -model.gplvm_elbo(y=y)
+    #     loss.backward()
+    #     optim_gp.step()
+    #     if j%100==0:
+    #         print(j)
+    #     ll.append(loss.detach().item())
 
     for i in range(2000):
         optim.zero_grad()
-        ll.append(loss.detach().item())
         loss = -model.gplvm_elbo(y=y)
         loss.backward()
         optim.step()
         if i%100==0:
             print(i)
+            print("Loss: ", loss.detach().item())
         ll.append(loss.detach().item())
 
     if plot:
@@ -94,6 +95,8 @@ def train_gplvm(model,y,plot=False):
             plt.show()
     return ll
 # ll = train_gplvm(mf_model,y,plot=True)
+
+# %%
 ll = train_gplvm(struc_model,y,plot=True)
     
 x_test = torch.linspace(-4,4,100).reshape(-1,1)
@@ -111,8 +114,9 @@ with torch.no_grad():
 
 with torch.no_grad():
     for i in range(struc_model.P):
-        plt.scatter(x,struc_model.mu_x[i,:,0] )
+        plt.scatter(x,struc_model.mu_x[i,:,0], color="orange", alpha=0.1 )
     plt.scatter(x, mu_x[:,0], marker="x", color="black" )
     plt.xlabel("True LV ")
     plt.ylabel("Estimated LV ")
     plt.show()
+# %%

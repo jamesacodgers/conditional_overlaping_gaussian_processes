@@ -31,8 +31,8 @@ class SSVIConfig:
     batch_size: int = 64
     
     # === Learning Rates ===
-    lr_gp: float = 0.01              # GP hyperparameters (beta, sigma^2, etc.)
-    lr_local: float = 0.01           # Local variational optimization in SSVI
+    lr_gp: float = 0.001              # GP hyperparameters (beta, sigma^2, etc.)
+    lr_local: float = 0.001           # Local variational optimization in SSVI
     
     # === GP Hyperparameters ===
     sigma2: float = 1.0              # Observation noise variance
@@ -41,7 +41,7 @@ class SSVIConfig:
     trainable_V: bool = True         # Whether inducing points are trainable
     
     # === Initialization ===
-    latent_init_scale: float = 0.1   # Scale for random latent variable initialization
+    latent_init_scale: float = 0.3   # Scale for random latent variable initialization
     
     # === Visualization ===
     n_test_points: int = 100
@@ -95,21 +95,21 @@ def generate_toy_data(config: SSVIConfig):
 def get_fast_config():
     """Fast configuration for debugging"""
     return SSVIConfig(
-        n_train=128,
-        n_inducing_points=4,
-        training_iterations=20,
+        n_train=64,
+        n_inducing_points=8,
+        training_iterations=200,
         batch_size=32,
-        local_opt_iterations=1
+        local_opt_iterations=50
     )
 
 def get_high_quality_config():
     """High-quality configuration for best results"""
     return SSVIConfig(
         n_train=512,
-        n_inducing_points=12,
+        n_inducing_points=8,
         training_iterations=200,
-        batch_size=64,
-        local_opt_iterations=3,
+        batch_size=16,
+        local_opt_iterations=50,
         lr_gp=0.005,
         lr_local=0.005
     )
