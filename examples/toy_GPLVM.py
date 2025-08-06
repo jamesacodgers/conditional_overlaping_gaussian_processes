@@ -5,7 +5,7 @@ from src.mf_methods import MF_WS_GPLVM
 from src.struc_models import Struc_WS_GPLVM
 from src.utils import train_lbfgs
 
-n_train = 64
+n_train = 128
 x = torch.randn((n_train,1))
 
 y1 = x**3 + torch.randn_like(x)/10
@@ -45,8 +45,8 @@ def train_GPLVM_lbgfs(model, y, plot=False):
 
     
 class Struc_GPLVM(Struc_WS_GPLVM):
-    def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64):
-        super().__init__(P=P, V=Vx, M=M, C_obs=1, mu_x_train=mu_x, mu_x_test=None, C_unobs=0, sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s)
+    def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True):
+        super().__init__(P=P, V=Vx, M=M, C_obs=1, mu_x_train=mu_x, mu_x_test=None, C_unobs=0, sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s, trainable_V=trainable_V)
 
     @property 
     def mu_x(self): 
@@ -60,8 +60,8 @@ class Struc_GPLVM(Struc_WS_GPLVM):
         R_train = torch.ones((y.shape[0],1))
         return super(Struc_GPLVM,self).elbo(y, R_train)
     
-# mf_model = MF_GPLVM(M=2,Vx=Vx, mu_x=mu_x)
-struc_model = Struc_GPLVM(M=2,Vx=Vx, mu_x=mu_x, P=8)
+mf_model = MF_GPLVM(M=2,Vx=Vx, mu_x=mu_x)
+struc_model = Struc_GPLVM(M=2,Vx=Vx, mu_x=mu_x, P=8, trainable_V=False)
 # struc_model._log_sigma2 = torch.nn.Parameter(torch.tensor([-2.]))
 # print(mf_model.gplvm_elbo(y=y))
 
@@ -69,7 +69,7 @@ struc_model = Struc_GPLVM(M=2,Vx=Vx, mu_x=mu_x, P=8)
 def train_gplvm(model,y,plot=False):
     ll = []
     # optim_gp= torch.optim.Adam([model.gp._mu_u, model.gp._raw_chol, model.gp.Vx, model.gp._log_sigma2_s], lr=0.01)
-    optim = torch.optim.Adam(model.parameters(), lr=0.01)
+    optim = torch.optim.Adam(model.parameters(), lr=0.005)
     # for j in range(4000): 
     #     optim_gp.zero_grad()
     #     loss = -model.gplvm_elbo(y=y)
@@ -113,9 +113,10 @@ with torch.no_grad():
 # %%
 
 with torch.no_grad():
+    plt.hlines(struc_model.gp.Vx[:,0], -3,3, color="blue", alpha=1 )
     for i in range(struc_model.P):
         plt.scatter(x,struc_model.mu_x[i,:,0], color="orange", alpha=0.1 )
-    plt.scatter(x, mu_x[:,0], marker="x", color="black" )
+    # plt.scatter(x, mu_x[:,0], marker="x", color="black" )
     plt.xlabel("True LV ")
     plt.ylabel("Estimated LV ")
     plt.show()
