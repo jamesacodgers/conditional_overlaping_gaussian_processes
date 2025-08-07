@@ -240,7 +240,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
         """
         if not hasattr(self, '_pending_Delta_Lambda'):
             return  # No pending updates
-            
+        
         # Global update (Algorithm 1, line 12)
         for j in range(self.C):
             # Prior natural parameters  
@@ -313,8 +313,8 @@ class SSVI_GPLVM(MF_WS_GPLVM):
             local_elbo_i = self.compute_local_elbo(i, y_i, mu_x_i, sigma_x_i, None)
             total_local_elbo += local_elbo_i
         
-        # Global ELBO = sum of local ELBOs - KL_u (using SSVI-specific KL)
-        kl_u = self.get_ssvi_kl_u()
+        # Global ELBO = sum of local ELBOs - KL_u
+        kl_u = self.gp.get_kl_u()
         return total_local_elbo - kl_u
     
     def parameters(self):
@@ -391,8 +391,9 @@ class SSVI_GPLVM(MF_WS_GPLVM):
             
             # Compute log-likelihood: average over multiple U samples (Monte Carlo)
             if U_samples is None:
-                # For compute_gplvm_elbo (full elbo), use current mean from natural parameters
-                u_j = self.get_global_mu(j)  # L
+                # For ELBO comparison: use GP's _mu_u directly 
+                mu_u = self.gp._mu_u  # M x (C*L)
+                u_j = mu_u.reshape(self.M, self.C, self.gp.Lx).mean(dim=0)[j, :]  # L
                 log_likelihood_ij = (
                     -0.5 * torch.log(2 * torch.pi / beta)
                     - 0.5 * beta * (
@@ -404,7 +405,7 @@ class SSVI_GPLVM(MF_WS_GPLVM):
                     )
                 )
             else:
-                # For local optimization: compute log-likelihood for each U sample, then average
+                # Compute log-likelihood for each U sample, then average
                 num_samples = U_samples.shape[0]
                 log_likelihood_contributions = []
                 
