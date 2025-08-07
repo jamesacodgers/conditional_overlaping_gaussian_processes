@@ -195,32 +195,29 @@ def oil_flow_vs_ssvi_v7_test():
     with torch.no_grad():
         oil_elbo = oil_model.gplvm_elbo(y)
         print(f"Oil Flow GPLVM ELBO: {oil_elbo.item():.8f}")
-    
-    # Extract parameters for SSVI v7
+        oil_kl_total = oil_model.get_kl().item()
+        oil_likelihood = oil_elbo.item() + oil_kl_total
+        print(f"Oil Flow Likelihood (approx): {oil_likelihood:.6f}")
+        print(f"Oil Flow Total KL:            {oil_kl_total:.6f}")
+
+    # Extract parameters from Struc model directly (NOT from sample)
     with torch.no_grad():
-        # Latent variables (take first P sample)
-        mu_x_v7 = oil_model.mu_x[0].detach()  # [N, Q]
-        sigma_x_v7 = oil_model.Sigma_x[0].detach()  # [N, Q]
-        log_s2x_v7 = torch.log(sigma_x_v7 ** 2)
-        
-        # GP parameters
+        # Latent variables (first structured sample)
+        mu_x_v7 = oil_model.mu_x_train[0].detach()  # shape: [N, Q]
+        sigma_x_v7 = oil_model._log_sigma_x_train[0].exp().detach()  # shape: [N, Q]
+        log_s2x_v7 = 2 * torch.log(sigma_x_v7)  # log(σ²)
+
+        # GP kernel parameters
         Z_v7 = oil_model.gp.Vx.detach()
-        log_sf2_v7 = oil_model.gp._log_sigma2_s.detach().mean()  # Average over D dimensions
-        log_alpha_v7 = oil_model.gp.beta.detach().mean(dim=0)    # Average over D dimensions
-        log_beta_inv_v7 = oil_model._log_sigma2.detach()
-        
-        # Inducing variables - extract from Oil Flow format
-        mu_u_raw = oil_model.gp._mu_u.detach()  # [M * C * L] format
-        # Oil Flow: M=1, C=D=1, L=n_inducing=4 -> size = 1*1*4 = 4
-        m_u_v7 = mu_u_raw.reshape(D, n_inducing)  # [D, n_inducing]
-        
-        # Extract proper covariance from Oil Flow's Cholesky factor
-        chol_raw = oil_model.gp._raw_chol.detach()  # [M, C*L, C*L]
-        chol = torch.tril(chol_raw[0])  # Take first M, apply tril [C*L, C*L]
-        # For Oil Flow: C=D=1, L=n_inducing=4, so this is [4, 4]
-        # We need to reshape to [D, L, L] = [1, 4, 4]
-        C_u_v7 = chol.reshape(D, n_inducing, n_inducing)  # [D, L, L]
-    
+        log_sf2_v7 = oil_model.gp._log_sigma2_s.detach().view(-1)[0]  # scalar
+        log_alpha_v7 = oil_model.gp.beta.detach().view(-1)  # [Q]
+        log_beta_inv_v7 = oil_model._log_sigma2.detach()  # scalar
+
+        # Inducing variables: proper m_u and C_u
+        m_u_v7 = oil_model.gp.get_vector_mu_u().reshape(1, n_inducing).detach()  # [D=1, L]
+        C_u_raw = torch.tril(oil_model.gp._raw_chol[0]).detach()  # [L, L]
+        C_u_v7 = C_u_raw.reshape(1, n_inducing, n_inducing)  # [D=1, L, L]
+
     # Debug: Print extracted parameters
     print(f"\nDEBUG Parameter Extraction:")
     print(f"mu_x_v7 range: [{mu_x_v7.min():.4f}, {mu_x_v7.max():.4f}]")
@@ -253,12 +250,13 @@ def oil_flow_vs_ssvi_v7_test():
     print(f"SSVI v7 ELBO:     {v7_elbo.item():.8f}")
     print(f"Absolute Diff:    {diff:.8f}")
     print(f"Relative Diff:    {rel_diff:.4f}%")
-    
-    print(f"\nSSVI v7 Components:")
-    print(f"  Likelihood: {v7_ll.item():.6f}")
-    print(f"  KL(X): {v7_kl_x.item():.6f}")
-    print(f"  KL(U): {v7_kl_u.item():.6f}")
-    
+
+    print(f"\nOil Flow Likelihood (approx): {oil_likelihood:.6f}")
+    print(f"Oil Flow Total KL:            {oil_kl_total:.6f}")
+
+    print(f"\nSSVI Likelihood: {v7_ll.item():.6f}")
+    print(f"SSVI Total KL:   {(v7_kl_x + v7_kl_u).item():.6f}")
+
     # Success check
     if rel_diff < 5.0:
         print(f"\n SUCCESS: Implementations are consistent (< 5% difference)")
