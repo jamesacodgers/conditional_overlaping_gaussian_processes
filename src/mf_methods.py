@@ -44,7 +44,11 @@ class   MFModels(torch.nn.Module, ABC):
     @abstractmethod
     def get_kl(self):
         ...
-
+    
+    @abstractmethod
+    def get_kl_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
+        ...
+    
 
 
 
@@ -274,6 +278,32 @@ class MF_WS_GPLVM(MFModels):
             x_test = torch.distributions.Normal(self.mu_x_test, self.Sigma_x_test)
             kl_test = torch.distributions.kl_divergence(x_test, x_prior).sum()
             return kl_train + kl_test
+        
+    def get_kl_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
+        return self.gp.get_kl_u() + self.get_kl_x_from(mu_x, Sigma_x)
+        
+    def get_kl_x_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor) -> torch.Tensor:
+        """
+        KL_x for diagonal Gaussian q(x) from passed parameters.
+        Expects Sigma_x to be the *variance* (diag), not std.
+        Supports shapes (N, Q) or (Q,).
+        """
+        # normalize to (N, Q)
+        if mu_x.dim() == 1:
+            mu_x = mu_x.unsqueeze(0)
+            Sigma_x = Sigma_x.unsqueeze(0)
+
+        # prior N(0, I)
+        Q = mu_x.shape[-1]
+        prior = torch.distributions.Normal(
+            torch.zeros(Q, device=mu_x.device, dtype=mu_x.dtype),
+            torch.ones(Q,  device=mu_x.device, dtype=mu_x.dtype),
+        )
+        # q(x) with std = sqrt(variance)
+        post = torch.distributions.Normal(mu_x, Sigma_x.clamp_min(1e-12).sqrt())
+
+        return torch.distributions.kl_divergence(post, prior).sum()
+
     
     def elbo(self,D_train, R_train, D_test=None):
         kernel_train_expectation = self._get_lv_kernel_expectation(self.mu_x_train, self.Sigma_x_train)
