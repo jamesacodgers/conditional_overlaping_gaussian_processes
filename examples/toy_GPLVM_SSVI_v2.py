@@ -201,17 +201,18 @@ def train_ssvi_gplvm(model, y, config: SSVIConfig):
         batch_indices = torch.randperm(N)[:config.batch_size]
         y_batch = y[batch_indices]
         
-        # Steps 1-3: Core SSVI algorithm (sample batch, compute local params)
-        model.ssvi_local_step(y_batch, batch_indices)
+        # Steps 1-3: Core SSVI algorithm (sample U, sample batch, compute local params)
+        U_samples = model.sample_U(model.P)
+        model.ssvi_local_step(y_batch, batch_indices, U_samples=U_samples)
         
         # Step 4: Full ELBO computation for hyperparameter optimization (one step)
-        # Use SAME batch for consistent gradients
+        # Use SAME batch and SAME U_samples as local step
         optim_gp.zero_grad()
         R_batch = torch.ones((y_batch.shape[0], 1), dtype=y_batch.dtype, device=y_batch.device)
-        # Use current local variational params for the batch indices
         mu_x_batch = model.mu_x_train[:, batch_indices, :]
         Sigma_x_batch = model.Sigma_x_train[:, batch_indices, :]
-        loss = -model.elbo(y_batch, R_batch, mu_x_train=mu_x_batch, Sigma_x_train=Sigma_x_batch)
+        # Reuse same U_samples for global step
+        loss = -model.elbo(y_batch, R_batch, mu_x_train=mu_x_batch, Sigma_x_train=Sigma_x_batch, U_samples=U_samples)
         loss.backward()
         optim_gp.step()
         

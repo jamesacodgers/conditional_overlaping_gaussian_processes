@@ -25,7 +25,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         self.step_size_params = {"s": self.ssvi_s, "kappa": self.ssvi_kappa}
 
         # SSVI uses natural parameters to define q(u); we sync them into gp's (mu, Sigma)
-        # No explicit sampling of U here; existing gp methods will handle expectations/sampling.
+        # We can optionally draw explicit U samples per-iteration (P samples) for ELBOs
         
         self.coordinator = NormalCoordinatorCustom(module=self,sum_to_one=False)
         
@@ -105,6 +105,46 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
             return mu_s[..., 0]
         return mu_s
 
+    # -- U sampling and expectations conditioned on U --
+    def sample_U(self, num_samples: int) -> torch.Tensor:
+        """
+        Synchronize gp q(u) from (Lambda, nu), then sample U ~ q(u).
+        Returns U_samples of shape [P=num_samples, M, C, L].
+        """
+        self.synchronize_gp_from_natural_params()
+        q_u = self.gp.get_q_u_dist()  # batch M MVNs over LC
+        u_vec = q_u.rsample((num_samples,))  # [P, M, LC]
+        return u_vec.reshape(num_samples, self.M, self.C, self.L)
+
+
+    def _s_expectation_given_U(self, kernel_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
+        """
+        kernel_expectation: [P, N, C, L]
+        U_samples: [P, M, C, L]
+        Returns: [P, N, M, C]
+        """
+        K_VV_inv = self.gp.get_K_VV_x_inv()  # [C, L, L]
+        return (kernel_expectation[:, :, None, :, None, :] @
+                K_VV_inv[None, None, None, :, :, :] @
+                U_samples[:, None, :, :, :, None])[..., 0, 0]
+
+    def _s_outer_expectation_given_U(self, kernel_outer_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
+        """
+        kernel_outer_expectation: [P, N, C, C, L, L]
+        U_samples: [P, M, C, L]
+        Returns: [P, N, C, C]
+        """
+        K_VV = self.gp.get_K_VV_matrix()      # (C*L) x (C*L)
+        K_VV_inv = self.gp.get_K_VV_x_inv()   # C x L x L
+
+        Pn = U_samples.shape[0]
+        u_vec = U_samples.reshape(Pn, self.M, self.C * self.L)  # [P, M, CL]
+        Ma = (u_vec[:, :, :, None] * u_vec[:, :, None, :] - K_VV[None, :, :]).sum(dim=1)  # [P, CL, CL]
+        Kinv_flat = K_VV_inv.transpose(-2, -1).reshape(self.C * self.L, self.C * self.L)
+        Ma = (Kinv_flat @ Ma @ Kinv_flat.T).reshape(Pn, self.C, self.L, self.C, self.L).permute(0, 1, 3, 2, 4)
+        K_xx_expectation = torch.diag(self.gp.sigma2_s)
+        return K_xx_expectation * self.M + (Ma[:, None, :, :, :, :] * kernel_outer_expectation).sum(dim=[-2, -1])
+
     def synchronize_gp_from_natural_params(self):
         """
         Update gp variational parameters (mu_u, Sigma_u) to match current
@@ -135,7 +175,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
                 chol_Sigma = torch.linalg.cholesky(Sigma_m + 1e-9 * eye_L)
                 self.gp._raw_chol.data[m, :self.L, :self.L] = chol_Sigma
     
-    def ssvi_local_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor) -> None:
+    def ssvi_local_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor) -> None:
         """
         SSVI Algorithm Steps 1-3:
         1. Use provided mini-batch B in {1,...,N}
@@ -153,8 +193,12 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         self.iteration += 1
         rho_t = self.step_size_params['s'] * (self.iteration ** (-self.step_size_params['kappa']))
         
-        # Sync gp's q(u) parameters (mu, Sigma) from natural params (Lambda, nu)
-        self.synchronize_gp_from_natural_params()
+        # Require externally provided U_samples each iteration (no silent sampling)
+        assert U_samples is not None, "U_samples must be provided for ssvi_local_step"
+        assert U_samples.dim() == 4, "U_samples must be [P, M, C, L]"
+        P_u, M_u, C_u, L_u = U_samples.shape
+        assert M_u == self.M and C_u == self.C and L_u == self.L, "U_samples dims must match model (M, C, L)"
+        self._pending_U_samples = U_samples
         
         # Accumulate local contributions per measurement m (since C_obs=1)
         Delta_Lambda = [torch.zeros_like(self._Lambda[m]) for m in range(self.M)]
@@ -169,7 +213,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
             max_iter = getattr(self, 'local_opt_iterations', 1)
             lr_local = getattr(self, 'lr_local', 0.01)
             # Optimize local q(x_i | U) using current gp params (no explicit U sampling here)
-            self.optimize_local_variational_distribution(idx, y_i, None, max_iter=max_iter, lr_local=lr_local)
+            self.optimize_local_variational_distribution(idx, y_i, U_samples.detach(), max_iter=max_iter, lr_local=lr_local)
             
             # Step 2: Compute local natural parameters for each measurement m
             for m in range(self.M):
@@ -234,15 +278,18 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         # Local optimization loop with configurable learning rate
         local_optimizer = torch.optim.Adam([mu_x_i, log_sigma_x_i], lr=lr_local)
         
+        assert U_samples.dim() == 4, "U_samples must be [P, M, C, L]"
+        U_samples = U_samples.detach()
+        P_u = U_samples.shape[0]
         for _ in range(max_iter):
             local_optimizer.zero_grad()
             
             # Single-point local ELBO (exclude KL_u): ELBO_i + KL_u
             y_i_batch = y_i.unsqueeze(0)  # [1, M]
             # Repeat local q(x_i) across P (structured model uses P samples)
-            mu_x_local = mu_x_i.unsqueeze(0).unsqueeze(0).repeat(self.P, 1, 1)           # [P, 1, Q]
-            Sigma_x_local = torch.exp(log_sigma_x_i).unsqueeze(0).unsqueeze(0).repeat(self.P, 1, 1)  # [P, 1, Q]
-            local_elbo_full = self.gplvm_elbo(y_i_batch, mu_x_local, Sigma_x_local)
+            mu_x_local = mu_x_i.unsqueeze(0).unsqueeze(0).repeat(P_u, 1, 1)           # [P_u, 1, Q]
+            Sigma_x_local = torch.exp(log_sigma_x_i).unsqueeze(0).unsqueeze(0).repeat(P_u, 1, 1)  # [P_u, 1, Q]
+            local_elbo_full = self.gplvm_elbo(y_i_batch, mu_x_local, Sigma_x_local, U_samples=U_samples)
             local_elbo = local_elbo_full + self.gp.get_kl_u()
             
             # Maximize ELBO (minimize negative ELBO)
@@ -254,13 +301,17 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
             self.mu_x_train[:, data_idx, :] = mu_x_i.detach()
             self._log_sigma_x_train[:, data_idx, :] = log_sigma_x_i.detach()
     
-    def elbo(self,D_train, R_train, D_test=None, mu_x_train=None, Sigma_x_train=None):
+    def elbo(self,D_train, R_train, D_test=None, mu_x_train=None, Sigma_x_train=None, U_samples: torch.Tensor = None):
         # needed to override to make the inputs configurable for the local elbo to pass single x_i if needed
         # so changed only using mu_x_train, Sigma_x_train instead of self.mu_x_train, self.Sigma_x_train
         kernel_train_expectation = self._get_lv_kernel_expectation(mu_x_train, Sigma_x_train)
         kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x_train,Sigma_x_train)
-        s_train_expectation = self.get_s_expectation(kernel_expectation=kernel_train_expectation)
-        s_train_outer_expectation = self.get_s_outer_expectation(kernel_outer_expectation=kernel_train_outer_expectation)
+        assert U_samples is not None, "U_samples must be provided for ELBO computation"
+        # Replaced _s_expectation and _s_outer_expectation with _s_expectation_given_U and _s_outer_expectation_given_U
+        s_train_expectation = self._s_expectation_given_U(kernel_expectation=kernel_train_expectation,
+                                                         U_samples=U_samples)
+        s_train_outer_expectation = self._s_outer_expectation_given_U(kernel_outer_expectation=kernel_train_outer_expectation,
+                                                                     U_samples=U_samples)
         if D_test is None: 
             return self._elbo(
                 s_train_expectation,
@@ -301,9 +352,9 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
                             D_test=D_test
                         )
     
-    def gplvm_elbo(self, y, mu_x_train, Sigma_x_train):
+    def gplvm_elbo(self, y, mu_x_train, Sigma_x_train, U_samples: torch.Tensor = None):
         R_train = torch.ones((y.shape[0],1), device=y.device, dtype=y.dtype)
-        return self.elbo(y, R_train, mu_x_train=mu_x_train, Sigma_x_train=Sigma_x_train)
+        return self.elbo(y, R_train, mu_x_train=mu_x_train, Sigma_x_train=Sigma_x_train, U_samples=U_samples)
     
     def compute_local_natural_parameters(self, data_idx: int, y_ij: float, output_dim: int):
         """
