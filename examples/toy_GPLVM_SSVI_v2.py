@@ -2,7 +2,7 @@
 import torch 
 import matplotlib.pyplot as plt
 from src.mf_methods import MF_WS_GPLVM
-from src.ssvi_models import SSVI_GPLVM
+from src.ssvi_models_v2 import GPLVM_SSVI
 from dataclasses import dataclass
 from typing import Dict, Any
 
@@ -129,25 +129,24 @@ def get_ablation_config():
 
 
 
-class SSVI_GPLVM_Wrapper(SSVI_GPLVM):
+class SSVI_GPLVM_Wrapper(GPLVM_SSVI):
     """Wrapper class for SSVI GP-LVM with configuration support"""
     def __init__(self, config: SSVIConfig, Vx, mu_x):
         N, latent_dim = mu_x.shape
         D = 2  # For the toy example (y has 2 dimensions)
-        Y_shape = (N, D)
-        
-        # Initialize with configuration parameters
+        # Initialize underlying SSVI GP-LVM
         super().__init__(
-            Y_shape=Y_shape, 
-            latent_dim=latent_dim, 
-            Vx=Vx, 
-            sigma2=config.sigma2, 
-            beta=config.beta, 
-            sigma2_s=config.sigma2_s, 
-            step_size_params=config.get_step_size_params(), 
+            Vx=Vx,
+            M=D,
+            mu_x=mu_x,
+            sigma2=config.sigma2,
+            beta=config.beta,
+            sigma2_s=config.sigma2_s,
+            P=64,
             trainable_V=config.trainable_V,
-            latent_init_scale=config.latent_init_scale
         )
+        # Sync step-size schedule from config
+        self.step_size_params = config.get_step_size_params()
         
         # Store config for local optimization
         self.config = config
@@ -156,10 +155,8 @@ class SSVI_GPLVM_Wrapper(SSVI_GPLVM):
         self.local_opt_iterations = config.local_opt_iterations
         self.lr_local = config.lr_local
         self.batch_size = config.batch_size
-        self.num_u_samples = config.num_u_samples
         
-        # Override with provided initial latent variables
-        self.mu_x_train.data = mu_x
+        # Latent variables already initialized from mu_x in super().__init__
 
     @property 
     def mu_x(self): 
@@ -210,23 +207,16 @@ def train_ssvi_gplvm(model, y, config: SSVIConfig):
         # Step 4: Full ELBO computation for hyperparameter optimization (one step)
         # Use SAME batch for consistent gradients
         optim_gp.zero_grad()
-        loss = -model.compute_gplvm_elbo(y_batch)  # Same batch ELBO for hyperparams
+        R_batch = torch.ones((y_batch.shape[0], 1), dtype=y_batch.dtype, device=y_batch.device)
+        # Use current local variational params for the batch indices
+        mu_x_batch = model.mu_x_train[:, batch_indices, :]
+        Sigma_x_batch = model.Sigma_x_train[:, batch_indices, :]
+        loss = -model.elbo(y_batch, R_batch, mu_x_train=mu_x_batch, Sigma_x_train=Sigma_x_batch)
         loss.backward()
         optim_gp.step()
         
         # Step 5: Global natural parameter update (SSVI formula)
         model.update_natural_parameters()
-        
-        # Gradient and parameter monitoring
-        if config.log_gradients and i % config.log_frequency == 0:
-            stats = model.log_gradient_stats(i, prefix=f"step_{i}_")
-            if config.verbose_logging:
-                model.print_gradient_stats(stats, i)
-            else:
-                # Compact logging
-                total_grad_norm = sum([v for k, v in stats.items() if k.endswith('_grad_norm')])
-                total_param_norm = sum([v for k, v in stats.items() if k.endswith('_param_norm')])
-                print(f"Step {i}: Total grad norm: {total_grad_norm:.4f}, Total param norm: {total_param_norm:.4f}")
         
         # Progress reporting
         if i % max(1, config.training_iterations // 10) == 0:
@@ -292,7 +282,9 @@ def main(config: SSVIConfig = None):
             
             # Plot 3: Latent space recovery
             plt.subplot(1, 3, 3)
-            plt.scatter(x_true.flatten(), ssvi_model.mu_x[:,0].detach(), 
+            # ssvi_model.mu_x is [P, N, Q]; average across P for plotting
+            mu_x_mean = ssvi_model.mu_x.mean(dim=0)  # [N, Q]
+            plt.scatter(x_true.flatten(), mu_x_mean[:,0].detach(), 
                        color='blue', label='SSVI', alpha=0.7, s=20)
             plt.scatter(x_true.flatten(), mu_x[:,0], marker="x", color="black", 
                        label='PCA init', s=30)
