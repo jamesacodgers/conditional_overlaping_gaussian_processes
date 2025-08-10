@@ -179,8 +179,6 @@ def train_ssvi_gplvm(model, y, config: SSVIConfig):
     # Only optimize GP hyperparameters and latent variables with gradient descent
     # Access GP parameters correctly from WLIndependentGPs
     gp_params = [
-        model.gp._raw_chol,         # Covariance parameters
-        model.gp._mu_u,             # Inducing point means (but SSVI will override these)
         model.gp._log_sigma2_s,     # Signal variances  
         model.gp._log_beta          # Lengthscales
     ]
@@ -311,12 +309,12 @@ if __name__ == "__main__":
     
     # 3. Gradient monitoring configuration
     debug_config = SSVIConfig(
-        training_iterations=20,
+        training_iterations=4,
         log_gradients=True,
         log_frequency=5,
         verbose_logging=True,  # Set to False for compact logging
-        lr_gp=0.001,
-        lr_local=0.001,
+        lr_gp=0.01,
+        lr_local=0.01,
         batch_size=128
     )
     main(debug_config)

@@ -339,7 +339,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
             )
             
     def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train, mu_x_train, Sigma_x_train,  s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
-    # Same reason to override as in elbo     
+    # Same reason to override as in elbo - to have mu_x_train, Sigma_x_train as arguments    
         return self.coordinator._elbo(
                             s_train_expectation=s_train_expectation, 
                             s_train_outer_expectation=s_train_outer_expectation, 
