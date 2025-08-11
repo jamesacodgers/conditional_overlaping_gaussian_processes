@@ -14,9 +14,11 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         self.L = self.gp.Vx.shape[-2]     # #inducing, expects Vx: (L, Q) or (1, L, Q)
         self.Q = self.gp.Vx.shape[-1]
 
-        # Natural params per output m=1..M (each u_m is L-dim)
-        self._Lambda = nn.ParameterList([nn.Parameter(torch.eye(self.L)) for _ in range(M)])
-        self._nu     = nn.ParameterList([nn.Parameter(torch.zeros(self.L))   for _ in range(M)])
+        # Natural params per measurement m=1..M (each u_m is L-dim)
+        # Initialize Lambda to prior precision K_ZZ^{-1}, nu to zeros
+        K_ZZ_inv_0 = self.gp.get_K_VV_x_inv()[0].detach()
+        self._Lambda = nn.ParameterList([nn.Parameter(K_ZZ_inv_0.clone()) for _ in range(M)])
+        self._nu     = nn.ParameterList([nn.Parameter(torch.zeros(self.L, device=K_ZZ_inv_0.device, dtype=K_ZZ_inv_0.dtype)) for _ in range(M)])
 
         # Robbins-Monro schedule rho_t = s * t^{-kappa}
         self.ssvi_s = 1.0

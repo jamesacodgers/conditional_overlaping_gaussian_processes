@@ -23,8 +23,8 @@ class SSVIConfig:
     # === SSVI Algorithm Parameters ===
     step_size_s: float = 0.1         # SSVI step size parameter 's'
     step_size_kappa: float = 0.75    # SSVI step size decay 'kappa' in (0.5, 1]
-    local_opt_iterations: int = 1    # Inner optimization iterations for q(x_i)
-    num_u_samples: int = 2           # Number of U samples for Monte Carlo approximation
+    local_opt_iterations: int = 20    # Inner optimization iterations for q(x_i)
+    num_u_samples: int = 10           # Number of U samples for Monte Carlo approximation
     
     # === Training Configuration ===
     training_iterations: int = 100
@@ -309,12 +309,12 @@ if __name__ == "__main__":
     
     # 3. Gradient monitoring configuration
     debug_config = SSVIConfig(
-        training_iterations=4,
+        training_iterations=5,
         log_gradients=True,
         log_frequency=5,
         verbose_logging=True,  # Set to False for compact logging
-        lr_gp=0.01,
-        lr_local=0.01,
+        lr_gp=0.001,
+        lr_local=0.001,
         batch_size=128
     )
     main(debug_config)
