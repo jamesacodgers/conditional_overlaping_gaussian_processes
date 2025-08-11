@@ -136,14 +136,14 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         U_samples: [P, M, C, L]
         Returns: [P, N, C, C]
         """
-        K_VV = self.gp.get_K_VV_matrix()      # (C*L) x (C*L)
-        K_VV_inv = self.gp.get_K_VV_x_inv()   # C x L x L
+        K_VV = self.gp.get_K_VV_matrix()              # (C*L) x (C*L)
+        K_VV_inv_matrix = self.gp.get_K_VV_inv_matrix()  # (C*L) x (C*L)
 
         Pn = U_samples.shape[0]
         u_vec = U_samples.reshape(Pn, self.M, self.C * self.L)  # [P, M, CL]
         Ma = (u_vec[:, :, :, None] * u_vec[:, :, None, :] - K_VV[None, :, :]).sum(dim=1)  # [P, CL, CL]
-        Kinv_flat = K_VV_inv.transpose(-2, -1).reshape(self.C * self.L, self.C * self.L)
-        Ma = (Kinv_flat @ Ma @ Kinv_flat.T).reshape(Pn, self.C, self.L, self.C, self.L).permute(0, 1, 3, 2, 4)
+        Ma = (K_VV_inv_matrix @ Ma @ K_VV_inv_matrix.transpose(-2, -1))
+        Ma = Ma.reshape(Pn, self.C, self.L, self.C, self.L).permute(0, 1, 3, 2, 4)
         K_xx_expectation = torch.diag(self.gp.sigma2_s)
         return K_xx_expectation * self.M + (Ma[:, None, :, :, :, :] * kernel_outer_expectation).sum(dim=[-2, -1])
 

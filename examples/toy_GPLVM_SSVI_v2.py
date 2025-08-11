@@ -23,7 +23,7 @@ class SSVIConfig:
     # === SSVI Algorithm Parameters ===
     step_size_s: float = 0.1         # SSVI step size parameter 's'
     step_size_kappa: float = 0.75    # SSVI step size decay 'kappa' in (0.5, 1]
-    local_opt_iterations: int = 20    # Inner optimization iterations for q(x_i)
+    local_opt_iterations: int = 10    # Inner optimization iterations for q(x_i)
     num_u_samples: int = 10           # Number of U samples for Monte Carlo approximation
     
     # === Training Configuration ===
