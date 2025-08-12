@@ -200,7 +200,7 @@ def train_ssvi_gplvm(model, y, config: SSVIConfig):
         y_batch = y[batch_indices]
         
         # Steps 1-3: Core SSVI algorithm (sample U, sample batch, compute local params)
-        U_samples = model.sample_U(model.P)
+        U_samples = model.get_u_samples_ssvi(model.P)
         model.ssvi_local_step(y_batch, batch_indices, U_samples=U_samples)
         
         # Step 4: Full ELBO computation for hyperparameter optimization (one step)

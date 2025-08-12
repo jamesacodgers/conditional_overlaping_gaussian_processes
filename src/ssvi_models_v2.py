@@ -48,6 +48,17 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
     def nu(self):
         """Natural parameter nu (precision-weighted means)"""
         return [param for param in self._nu]
+    
+    def get_kl_x_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
+        x_prior = torch.distributions.Normal(torch.zeros(self.A), torch.ones(self.A))
+        x_train = torch.distributions.Normal(mu_x, Sigma_x)
+        kl_train = torch.distributions.kl_divergence(x_train, x_prior).mean(dim=0).sum()
+        if self.mu_x_test is None:
+            return kl_train
+        else:
+            x_test = torch.distributions.Normal(self.mu_x_test, self.Sigma_x_test)
+            kl_test = torch.distributions.kl_divergence(x_test, x_prior).mean(dim=0).sum()
+            return kl_train + kl_test
         
     def get_global_mu(self, j: int):
         """
@@ -108,15 +119,14 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         return mu_s
 
     # -- U sampling and expectations conditioned on U --
-    def sample_U(self, num_samples: int) -> torch.Tensor:
+    def get_u_samples_ssvi(self, num_samples: int) -> torch.Tensor:
         """
         Synchronize gp q(u) from (Lambda, nu), then sample U ~ q(u).
         Returns U_samples of shape [P=num_samples, M, C, L].
         """
         self.synchronize_gp_from_natural_params()
-        q_u = self.gp.get_q_u_dist()  # batch M MVNs over LC
-        u_vec = q_u.rsample((num_samples,))  # [P, M, LC]
-        return u_vec.reshape(num_samples, self.M, self.C, self.L)
+        samples = self.get_u_vec_samples()
+        return samples.reshape(self.P, self.M, self.C, self.Lx)
 
 
     def _s_expectation_given_U(self, kernel_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
@@ -125,10 +135,12 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         U_samples: [P, M, C, L]
         Returns: [P, N, M, C]
         """
-        K_VV_inv = self.gp.get_K_VV_x_inv()  # [C, L, L]
-        return (kernel_expectation[:, :, None, :, None, :] @
-                K_VV_inv[None, None, None, :, :, :] @
-                U_samples[:, None, :, :, :, None])[..., 0, 0]
+        K_VV_inv = self.gp.get_K_VV_x_inv()  # C x L x L
+        return (
+            kernel_expectation[:, :, None, :, None, :] @
+            K_VV_inv[None, None, None, :, :, :] @
+            U_samples[:, None, :, :, :, None]
+        )[..., 0, 0]
 
     def _s_outer_expectation_given_U(self, kernel_outer_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
         """
@@ -136,16 +148,21 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         U_samples: [P, M, C, L]
         Returns: [P, N, C, C]
         """
-        K_VV = self.gp.get_K_VV_matrix()              # (C*L) x (C*L)
-        K_VV_inv_matrix = self.gp.get_K_VV_inv_matrix()  # (C*L) x (C*L)
+        K_VV = self.gp.get_K_VV_matrix()               # (C*L) x (C*L)
+        K_VV_inv_matrix = self.gp.get_K_VV_inv_matrix() # (C*L) x (C*L)
 
+        # Reshape U from [P, M, C, L] to [P, M, C*L]
         Pn = U_samples.shape[0]
-        u_vec = U_samples.reshape(Pn, self.M, self.C * self.L)  # [P, M, CL]
+        u_vec = U_samples.reshape(Pn, self.M, self.C * self.Lx)
+
         Ma = (u_vec[:, :, :, None] * u_vec[:, :, None, :] - K_VV[None, :, :]).sum(dim=1)  # [P, CL, CL]
         Ma = (K_VV_inv_matrix @ Ma @ K_VV_inv_matrix.transpose(-2, -1))
-        Ma = Ma.reshape(Pn, self.C, self.L, self.C, self.L).permute(0, 1, 3, 2, 4)
+        Ma = Ma.reshape(Pn, self.C, self.Lx, self.C, self.Lx).permute(0, 1, 3, 2, 4)      # [P, C, C, L, L]
+
+        Z = kernel_outer_expectation  # [P, N, C, C, L, L]
         K_xx_expectation = torch.diag(self.gp.sigma2_s)
-        return K_xx_expectation * self.M + (Ma[:, None, :, :, :, :] * kernel_outer_expectation).sum(dim=[-2, -1])
+        A = K_xx_expectation * self.M + (Ma[:, None, :, :, :, :] * Z).sum(dim=[-2, -1])
+        return A
 
     def synchronize_gp_from_natural_params(self):
         """
@@ -467,6 +484,8 @@ class NormalCoordinatorCustom:
         const_train = self.get_const_train(D_train, R_train, s_train_obs_expectation, s_train_obs_outer_expectation)
         training_inner_elbo = self.inner_train_solver(A_train, b_train).mean() + const_train.mean()
         # HERE IS THE CORRECTION TO USE mu_x_train, Sigma_x_train FROM THE ARGUMETNS
+        #kl = self.module.get_kl_from(mu_x_train, Sigma_x_train)
+        # Match Struc_WS_GPLVM: KL_u + KL_x (averaged over P if provided)
         kl = self.module.get_kl_from(mu_x_train, Sigma_x_train)
         if D_test is None: 
             return training_inner_elbo.mean() - kl
