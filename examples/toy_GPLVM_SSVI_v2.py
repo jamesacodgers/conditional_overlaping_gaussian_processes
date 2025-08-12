@@ -309,7 +309,7 @@ if __name__ == "__main__":
     
     # 3. Gradient monitoring configuration
     debug_config = SSVIConfig(
-        training_iterations=5,
+        training_iterations=1,
         log_gradients=True,
         log_frequency=5,
         verbose_logging=True,  # Set to False for compact logging

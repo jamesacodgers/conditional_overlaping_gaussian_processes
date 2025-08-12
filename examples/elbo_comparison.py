@@ -1,4 +1,5 @@
 import torch
+import types
 
 # Local wrapper to mirror examples/toy_GPLVM.Struc_GPLVM without importing that file (which has side effects)
 from src.struc_models import Struc_WS_GPLVM
@@ -55,7 +56,7 @@ def main():
     # Inducing inputs and initial variational x
     Vx = torch.linspace(-3, 3, 8).reshape(-1, Q)
     mu_x_base = x_true.clone()
-    sigma_x_base = 0.5 * torch.ones_like(mu_x_base)  # variance (diag)
+    # We will use each model's internal Sigma_x (default exp(0)=1) to mirror toy_GPLVM
 
     # Instantiate both models with identical hyperparameters
     struc = Struc_GPLVM(Vx=Vx, M=M, mu_x=mu_x_base, sigma2=1.0, P=P, trainable_V=False)
@@ -66,17 +67,18 @@ def main():
         ssvi.gp._mu_u.copy_(struc.gp._mu_u)
         ssvi.gp._raw_chol.copy_(struc.gp._raw_chol)
 
-    # Set Struc model Sigma_x to our chosen values
-    with torch.no_grad():
-        struc._log_sigma_x_train.copy_(sigma_x_base.log()[None, ...].repeat(P, 1, 1))
-
     # Generate identical inputs for both ELBOs using the same random base for q(u)
-    # Draw U from the same q(u) (as per Struc sampling) and feed to SSVI explicitly
+    # Draw U from Struc sampling and feed the SAME fixed samples to both models
     U_samples = struc.get_u_samples().detach()  # [P, M, C, L]
     mu_x_P = struc.mu_x_train.detach()          # [P, N, Q]
     Sigma_x_P = struc.Sigma_x_train.detach()    # [P, N, Q]
 
-    # ELBO via Struc (internal sampling path)
+    # Force Struc to use the SAME fixed U_samples under the hood
+    U_vec_fixed = U_samples.reshape(U_samples.shape[0], U_samples.shape[1], -1)
+    struc.get_u_samples = types.MethodType(lambda self: U_samples, struc)
+    struc.get_u_vec_samples = types.MethodType(lambda self: U_vec_fixed, struc)
+
+    # ELBO via Struc (uses fixed U_samples now)
     elbo_struc = struc.gplvm_elbo(y)
 
     # ELBO via SSVI with explicit inputs
