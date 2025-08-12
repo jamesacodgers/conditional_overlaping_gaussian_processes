@@ -101,9 +101,6 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
                 if attempt == max_tries - 1:
                     # Final fallback: return well-conditioned identity
                     return 1e-3 * torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
-        
-        # Should never reach here, but safety fallback
-        return 1e-3 * torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
     
     
     def get_ssvi_mean_prediction(self, inputs):
@@ -323,6 +320,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
     def elbo(self,D_train, R_train, D_test=None, mu_x_train=None, Sigma_x_train=None, U_samples: torch.Tensor = None):
         # needed to override to make the inputs configurable for the local elbo to pass single x_i if needed
         # so changed only using mu_x_train, Sigma_x_train instead of self.mu_x_train, self.Sigma_x_train
+    def elbo(self,D_train, R_train, D_test=None, mu_x_train=None, Sigma_x_train=None, U_samples: torch.Tensor = None):
         kernel_train_expectation = self._get_lv_kernel_expectation(mu_x_train, Sigma_x_train)
         kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x_train,Sigma_x_train)
         assert U_samples is not None, "U_samples must be provided for ELBO computation"
