@@ -317,7 +317,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
             self.mu_x_train[:, data_idx, :] = mu_x_i.detach()
             self._log_sigma_x_train[:, data_idx, :] = log_sigma_x_i.detach()
     
-    def elbo(self,D_train, R_train, D_test=None, mu_x_train=None, Sigma_x_train=None, U_samples: torch.Tensor = None):
+    # def elbo(self,D_train, R_train, D_test=None, mu_x_train=None, Sigma_x_train=None, U_samples: torch.Tensor = None):
         # needed to override to make the inputs configurable for the local elbo to pass single x_i if needed
         # so changed only using mu_x_train, Sigma_x_train instead of self.mu_x_train, self.Sigma_x_train
     def elbo(self,D_train, R_train, D_test=None, mu_x_train=None, Sigma_x_train=None, U_samples: torch.Tensor = None):

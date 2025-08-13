@@ -1,10 +1,12 @@
 # %% 
 import torch 
 import matplotlib.pyplot as plt
-from src.mf_methods import MF_WS_GPLVM
 from src.ssvi_models_v2 import GPLVM_SSVI
 from dataclasses import dataclass
 from typing import Dict, Any
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+torch.set_default_device(device)
 
 @dataclass
 class SSVIConfig:
@@ -308,19 +310,19 @@ if __name__ == "__main__":
     #main(get_fast_config())
     
     # 3. Gradient monitoring configuration
-    debug_config = SSVIConfig(
-        training_iterations=1,
-        log_gradients=True,
-        log_frequency=5,
-        verbose_logging=True,  # Set to False for compact logging
-        lr_gp=0.001,
-        lr_local=0.001,
-        batch_size=128
-    )
-    main(debug_config)
+    # debug_config = SSVIConfig(
+    #     training_iterations=1,
+    #     log_gradients=True,
+    #     log_frequency=5,
+    #     verbose_logging=True,  # Set to False for compact logging
+    #     lr_gp=0.001,
+    #     lr_local=0.001,
+    #     batch_size=128
+    # )
+    # main(debug_config)
     
     # 3. High-quality configuration for best results  
-    # main(get_high_quality_config())
+    main(get_high_quality_config())
     
     # 4. Custom configuration
     # custom_config = SSVIConfig(
