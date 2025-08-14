@@ -104,49 +104,6 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
             x_test = torch.distributions.Normal(self.mu_x_test, self.Sigma_x_test)
             kl_test = torch.distributions.kl_divergence(x_test, x_prior).mean(dim=0).sum()
             return kl_train + kl_test
-        
-    def get_global_mu(self, j: int):
-        """
-        Compute mu^(t) = (Lambda^(t))^(-1) nu^(t) for output dimension j
-        Following Algorithm 1, line 5
-        """
-        try:
-            return torch.solve(self._nu[j].unsqueeze(-1), self._Lambda[j])[0].squeeze(-1)
-        except:
-            # Numerical fallback
-            return torch.inverse(self._Lambda[j] + 1e-6 * torch.eye(self._Lambda[j].shape[0])) @ self._nu[j]
-    
-    def get_global_Sigma(self, j: int):
-        """
-        Compute Sigma^(t) = (Lambda^(t))^(-1) for output dimension j
-        Use Cholesky decomposition with jitter for numerical stability
-        """
-        # Start with small jitter and increase if needed
-        jitter = 1e-6
-        max_tries = 5
-        
-        for attempt in range(max_tries):
-            try:
-                # Add jitter to Lambda for numerical stability
-                jittered_Lambda = self._Lambda[j] + jitter * torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
-                
-                # Try Cholesky decomposition to check positive definiteness
-                L = torch.linalg.cholesky(jittered_Lambda)
-                
-                # If successful, compute inverse using Cholesky solve
-                # Sigma = Lambda^(-1) = (L L^T)^(-1)
-                identity = torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
-                Sigma = torch.cholesky_solve(identity, L)
-                
-                return Sigma
-                
-            except RuntimeError:
-                # Cholesky failed, increase jitter and try again
-                jitter *= 10
-                if attempt == max_tries - 1:
-                    # Final fallback: return well-conditioned identity
-                    return 1e-3 * torch.eye(self._Lambda[j].shape[0], device=self._Lambda[j].device)
-    
     
     def get_ssvi_mean_prediction(self, inputs):
         """
@@ -385,7 +342,11 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
     def gplvm_elbo(self, y, mu_x_train, Sigma_x_train, U_samples: torch.Tensor = None):
         R_train = torch.ones((y.shape[0],1), device=y.device, dtype=y.dtype)
         return self.elbo(y, R_train, mu_x_train=mu_x_train, Sigma_x_train=Sigma_x_train, U_samples=U_samples)
-    
+
+
+    # legacy function
+    # refactored code around and created compute_batch_local_natural_parameters instead
+    # can remove compute_local_natural_parameters if compute_batch_local_natural_parameters is fine
     def compute_local_natural_parameters(self, data_idx: int, y_ij: float, output_dim: int):
         """
         Compute local natural parameters h_i, H_i following tex document Eq. (349-352)
@@ -447,7 +408,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         Delta_Lambda_base = H_meanP.sum(dim=0) # [L, L]
         Delta_Lambda = Delta_Lambda_base.expand(self.M, -1, -1)  # [M, L, L]
 
-        # Curvature correction V(U, Lambda) · Δη (SSVI-A: identity), applied in a vectorized manner
+        # Curvature correction V(U, Lambda) · η (SSVI-A: identity), applied in a vectorized manner
         Delta_nu_corr, Delta_Lambda_corr = self.apply_curvature_correction(Delta_nu, Delta_Lambda, None, output_dim=0)
         return Delta_nu_corr, Delta_Lambda_corr
     
