@@ -23,33 +23,58 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         self.iteration = 0
         self.step_size_params = {"s": self.ssvi_s, "kappa": self.ssvi_kappa}
 
-        # SSVI uses natural parameters to define q(u); we sync them into gp's (mu, Sigma)
-        # We can optionally draw explicit U samples per-iteration (P samples) for ELBOs
+        # Natural parameters for q(u): vectorized over measurements m (C_obs = 1)
+        K_ZZ_inv_0 = self.gp.get_K_VV_x_inv()[0].detach()  # [Lx, Lx]
+        self._Lambda_param = nn.Parameter(K_ZZ_inv_0.expand(M, -1, -1).clone())  # [M, Lx, Lx]
+        self._nu_param = nn.Parameter(torch.zeros(M, self.L, device=K_ZZ_inv_0.device, dtype=K_ZZ_inv_0.dtype))  # [M, Lx]
+
+        # SSVI uses natural parameters to define q(u); setters will keep gp's (mu, Sigma) in sync
         
         self.coordinator = NormalCoordinatorCustom(module=self,sum_to_one=False)
         
     @property 
-    def _Lambda(self): 
-        return  self.gp.get_K_VV_x_inv()
+    def _Lambda(self):
+        """Natural precision matrices for q(u): [M, L, L]."""
+        return self._Lambda_param
+    
+    @_Lambda.setter
+    def _Lambda(self, value: torch.Tensor):
+        """Set Lambda and update gp's q(u) covariance accordingly."""
+        assert value.shape == self._Lambda_param.shape
+        with torch.no_grad():
+            self._Lambda_param.data.copy_(value)
+            # Sigma = Lambda^{-1}
+            eye = torch.eye(self.L, device=value.device, dtype=value.dtype)
+            Sigma = torch.linalg.inv(self._Lambda_param + 1e-6 * eye)
+            # chol(Sigma)
+            chol_Sigma = torch.linalg.cholesky(Sigma + 1e-9 * eye)
+            # Write into gp parameters (C=1 so CL=L)
+            self.gp._raw_chol.data[:, :self.L, :self.L] = chol_Sigma
+            # Update mu = Sigma @ nu
+            mu = (Sigma @ self._nu_param.unsqueeze(-1)).squeeze(-1)
+            self.gp._mu_u.data[:, :self.L] = mu
     
     @property 
-    def _nu(self): 
-        return  self.gp.get_K_VV_x() @ self.gp._mu_u
-
-
-    @_Lambda.setter
-    def _Lambda(self, value):
-        raise NotImplementedError("TODO")
+    def _nu(self):
+        """Natural mean parameters for q(u): [M, L]."""
+        return self._nu_param
     
+    @_nu.setter
+    def _nu(self, value: torch.Tensor):
+        """Set nu and update gp's q(u) mean accordingly using current Lambda."""
+        assert value.shape == self._nu_param.shape
+        with torch.no_grad():
+            self._nu_param.data.copy_(value)
+            # mu = Sigma @ nu with Sigma = Lambda^{-1}
+            eye = torch.eye(self.L, device=value.device, dtype=value.dtype)
+            Sigma = torch.linalg.inv(self._Lambda_param + 1e-6 * eye)
+            mu = (Sigma @ self._nu_param.unsqueeze(-1)).squeeze(-1)
+            self.gp._mu_u.data[:, :self.L] = mu
+
+
     # self._nu_u = self._nu_u + \epsilon
     # -> call _nu_setter()  
     # -> self.mu_u  = self._Lambda @ self._nu_u ? Please check
-
-    @_nu.setter
-    def _nu(self, value):
-        raise NotImplementedError("TODO")
-
-
 
     @property 
     def mu_x(self): 
@@ -128,8 +153,6 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         Mean prediction for GP-LVM using synchronized q(u).
         Returns [N_test, M] for C_obs=1 by squeezing the last dimension.
         """
-        # Ensure gp variational params reflect current natural params
-        self.synchronize_gp_from_natural_params()
         mu_s = self.get_mean_prediction_observed_inputs(inputs)  # [N_test, M, C]
         if mu_s.shape[-1] == 1:
             return mu_s[..., 0]
@@ -137,11 +160,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
 
     # -- U sampling and expectations conditioned on U --
     def get_u_samples_ssvi(self, num_samples: int) -> torch.Tensor:
-        """
-        Synchronize gp q(u) from (Lambda, nu), then sample U ~ q(u).
-        Returns U_samples of shape [P=num_samples, M, C, L].
-        """
-        self.synchronize_gp_from_natural_params()
+        """Sample U from current q(u) in gp (already kept in sync by setters)."""
         samples = self.get_u_vec_samples()
         return samples.reshape(self.P, self.M, self.C, self.Lx)
 
@@ -181,36 +200,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         A = K_xx_expectation * self.M + (Ma[:, None, :, :, :, :] * Z).sum(dim=[-2, -1])
         return A
 
-    # This function should not exist. 
-    def synchronize_gp_from_natural_params(self):
-        """
-        Update gp variational parameters (mu_u, Sigma_u) to match current
-        natural parameters (Lambda, nu). Assumes C == 1 (GP-LVM case).
-        """
-        if self.C != 1:
-            raise NotImplementedError("Synchronization currently implemented for C==1 (GP-LVM) only.")
-        device = self._Lambda[0].device
-        eye_L = torch.eye(self.L, device=device)
-        # Update each measurement block m
-        for m in range(self.M):
-            # Sigma = Lambda^{-1}
-            jitter = 1e-6
-            max_tries = 5
-            for _ in range(max_tries):
-                try:
-                    Lchol = torch.linalg.cholesky(self._Lambda[m] + jitter * eye_L)
-                    Sigma_m = torch.cholesky_solve(eye_L, Lchol)
-                    break
-                except RuntimeError:
-                    jitter *= 10
-            else:
-                Sigma_m = 1e-3 * eye_L
-            mu_m = Sigma_m @ self._nu[m]
-            # Write into gp parameters (C==1 -> CL == L)
-            with torch.no_grad():
-                self.gp._mu_u.data[m, :self.L] = mu_m
-                chol_Sigma = torch.linalg.cholesky(Sigma_m + 1e-9 * eye_L)
-                self.gp._raw_chol.data[m, :self.L, :self.L] = chol_Sigma
+    # Synchronization function no longer needed; setters ensure consistency.
     
     def ssvi_local_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor) -> None:
         """
@@ -237,34 +227,18 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         assert M_u == self.M and C_u == self.C and L_u == self.L, "U_samples dims must match model (M, C, L)"
         self._pending_U_samples = U_samples
         
-        # Accumulate local contributions per measurement m (since C_obs=1)
-        # Delta_Lambda = [torch.zeros_like(self._Lambda[m]) for m in range(self.M)]
-        # Delta_nu = [torch.zeros_like(self._nu[m]) for m in range(self.M)]
-        Delta_Lambda = [torch.zeros_like(self._Lambda[m]) for m in range(self.M)]
-        Delta_nu = [torch.zeros_like(self._nu[m]) for m in range(self.M)]
-        
-        # For each data point in mini-batch (Algorithm 1, lines 7-10)
-        
-        # Step 1: Optimize local variational distribution q(x_i) (Algorithm 1, line 7)
-        # Use configurable parameters (can be overridden by subclasses)
+        # Step 1: Optimize local variational distribution q(x_i) over the whole batch
         max_iter = getattr(self, 'local_opt_iterations', 1)
         lr_local = getattr(self, 'lr_local', 0.01)
-        # Optimize local q(x_i | U) using current gp params (no explicit U sampling here)
         self.optimize_local_variational_distribution(batch_indices, Y_batch, U_samples.detach(), max_iter=max_iter, lr_local=lr_local)
-        
-        # Step 2: Compute local natural parameters for each measurement m
-        
-        h_batch, H_batch = self.compute_local_natural_parameters(batch_indices, Y_batch, output_dim=0)
-        h_batch_corrected, H_batch_corrected = self.apply_curvature_correction(h_batch, H_batch, None, output_dim=0)
-        # Delta_nu[m] += h_batch_corrected
-        # Delta_Lambda[m] += H_batch_corrected
-        Delta_nu[m] = h_batch_corrected
-        Delta_Lambda[m] = H_batch_corrected
+
+        # Step 2: Compute vectorized local natural parameter contributions Delta (aggregated over batch)
+        Delta_nu, Delta_Lambda = self.compute_batch_local_natural_parameters(batch_indices, Y_batch)
         
         # Store local contributions for later natural parameter update
         scaling = N / batch_size
-        self._pending_Delta_Lambda = Delta_Lambda
-        self._pending_Delta_nu = Delta_nu
+        self._pending_Delta_Lambda = Delta_Lambda  # [M, L, L]
+        self._pending_Delta_nu = Delta_nu          # [M, L]
         self._pending_rho_t = rho_t
         self._pending_scaling = scaling
 
@@ -276,21 +250,30 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         """
         if not hasattr(self, '_pending_Delta_Lambda'):
             return  # No pending updates
-            
-        # Global update (Algorithm 1, line 12) over measurements m (C_obs=1)
-        K_ZZ_inv_0 = self.gp.get_K_VV_x_inv()[0]
-        for m in range(self.M):
-            nu_prior = torch.zeros_like(self._nu[m])  # nu^prior = 0
-            Lambda_prior = K_ZZ_inv_0                 # Lambda^prior = K_ZZ^(-1)
 
-            self._Lambda[m].data = (
-                (1 - self._pending_rho_t) * self._Lambda[m].data
-                + self._pending_rho_t * (Lambda_prior + self._pending_scaling * self._pending_Delta_Lambda[m])
-            )
-            self._nu[m].data = (
-                (1 - self._pending_rho_t) * self._nu[m].data
-                + self._pending_rho_t * (nu_prior + self._pending_scaling * self._pending_Delta_nu[m])
-            )
+        # Vectorized global update (Algorithm 1):
+        # lambda^{t+1} = (1 - rho) lambda^{t} + rho * (lambda_prior + scaling * sum_i Delta_eta_i)
+        rho = self._pending_rho_t
+        scaling = self._pending_scaling
+        Delta_Lambda = self._pending_Delta_Lambda  # [M, L, L]
+        Delta_nu = self._pending_Delta_nu          # [M, L]
+
+        # Priors
+        K_ZZ_inv_0 = self.gp.get_K_VV_x_inv()[0]     # [L, L]
+        Lambda_prior = K_ZZ_inv_0.expand(self.M, -1, -1)
+        nu_prior = torch.zeros_like(Delta_nu)
+
+        # Current params
+        Lambda_t = self._Lambda                       # [M, L, L]
+        nu_t = self._nu                               # [M, L]
+
+        # Updates
+        Lambda_tp1 = (1 - rho) * Lambda_t + rho * (Lambda_prior + scaling * Delta_Lambda)
+        nu_tp1 = (1 - rho) * nu_t + rho * (nu_prior + scaling * Delta_nu)
+
+        # Set via setters to keep q(u) in sync
+        self._Lambda = Lambda_tp1
+        self._nu = nu_tp1
         
         # Clean up pending updates
         delattr(self, '_pending_Delta_Lambda')
@@ -433,14 +416,48 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         H_i = beta * (K_ZZ_inv @ kernel_outer_expectation @ K_ZZ_inv)  # L x L -> [P x B x C x C x L x L]
         
         return h_i, H_i
+
+    def compute_batch_local_natural_parameters(self, batch_indices: torch.Tensor, Y_batch: torch.Tensor):
+        """Vectorized local natural parameters aggregated over a mini-batch.
+        Returns (Delta_nu, Delta_Lambda) with shapes [M, L] and [M, L, L].
+        """
+        # Current local variational parameters for the batch: [P, B, Q]
+        mu_x_b = self.mu_x_train[:, batch_indices, :]
+        Sigma_x_b = self.Sigma_x_train[:, batch_indices, :]
+        # Kernel expectations: [P, B, C, L] and [P, B, C, C, L, L]
+        ker_exp = self._get_lv_kernel_expectation(mu_x_b, Sigma_x_b)
+        ker_outer = self._get_lv_kernel_outer_expectation(mu_x_b, Sigma_x_b)
+        # In GP-LVM with C_obs=1, use output_dim = 0 at use-time
+        K_ZZ_inv = self.gp.get_K_VV_x_inv()[0] # [L, L]
+        beta = 1.0 / self.sigma2
+        # h_batch: [P, B, M, L]
+        # from latex h_i = beta * y_ij * psi_1i * K_ZZ^(-1)
+        phi_pbL = ker_exp[:, :, 0, :] @ K_ZZ_inv   # [P, B, L]
+        h_batch = beta * (Y_batch[None, :, :, None] * phi_pbL[:, :, None, :])  # [P, B, M, L]
+        # H_i: [P, B, C, C, L, L] -> for C_obs=1 this is [P, B, 1, 1, L, L]
+        # Compute K_inv @ psi_2 @ K_inv per (P, B)
+        # from latex H_i = beta * vec(K_ZZ^(-1) * psi_2i * K_ZZ^(-1))
+        psi2_pbLL = ker_outer[:, :, 0, 0, :, :]                        # [P,B,L,L]
+        tmp_pbLL = K_ZZ_inv[None, None, :, :] @ psi2_pbLL              # [P,B,L,L]
+        H_batch = beta * (tmp_pbLL @ K_ZZ_inv)                          # [P,B,L,L]
+        # Aggregate over samples P (mean) and batch B (sum), per measurement m
+        h_meanP = h_batch.mean(dim=0)           # [B, M, L]
+        H_meanP = H_batch.mean(dim=0)           # [B, L, L]
+        Delta_nu = h_meanP.sum(dim=0)          # [M, L]
+        Delta_Lambda_base = H_meanP.sum(dim=0) # [L, L]
+        Delta_Lambda = Delta_Lambda_base.expand(self.M, -1, -1)  # [M, L, L]
+
+        # Curvature correction V(U, Lambda) · Δη (SSVI-A: identity), applied in a vectorized manner
+        Delta_nu_corr, Delta_Lambda_corr = self.apply_curvature_correction(Delta_nu, Delta_Lambda, None, output_dim=0)
+        return Delta_nu_corr, Delta_Lambda_corr
     
-    def apply_curvature_correction(self, h_i: torch.Tensor, H_i: torch.Tensor, U_j: torch.Tensor = None, output_dim: int = None):
+    def apply_curvature_correction(self, Delta_nu: torch.Tensor, Delta_Lambda: torch.Tensor, U_j: torch.Tensor = None, output_dim: int = None):
         """
         Mock function for curvature correction in SSVI-A
         In SSVI-A, curvature correction is not used, so we return original values unchanged
         """
         # SSVI-A: No curvature correction applied
-        return h_i, H_i
+        return Delta_nu, Delta_Lambda
     
     
 class NormalCoordinatorCustom:
