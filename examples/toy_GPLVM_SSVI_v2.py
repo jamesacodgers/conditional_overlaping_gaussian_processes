@@ -107,13 +107,13 @@ def get_fast_config():
 def get_high_quality_config():
     """High-quality configuration for best results"""
     return SSVIConfig(
-        n_train=512,
+        n_train=128,
         n_inducing_points=8,
         training_iterations=200,
-        batch_size=16,
+        batch_size=32,
         local_opt_iterations=50,
         lr_gp=0.005,
-        lr_local=0.005
+        lr_local=0.1
     )
 
 def get_ablation_config():

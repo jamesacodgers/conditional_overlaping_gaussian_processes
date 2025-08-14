@@ -1,5 +1,7 @@
+from matplotlib import pyplot as plt
 import torch 
 import torch.nn as nn
+from tqdm import tqdm
 from src.struc_models import Struc_WS_GPLVM
 from src.mf_methods import MFModels
 from src.inner_optimisers import MultivariateNormalSolver
@@ -14,11 +16,6 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         self.L = self.gp.Vx.shape[-2]     # #inducing, expects Vx: (L, Q) or (1, L, Q)
         self.Q = self.gp.Vx.shape[-1]
 
-        # Natural params per measurement m=1..M (each u_m is L-dim)
-        # Initialize Lambda to prior precision K_ZZ^{-1}, nu to zeros
-        K_ZZ_inv_0 = self.gp.get_K_VV_x_inv()[0].detach()
-        self._Lambda = nn.ParameterList([nn.Parameter(K_ZZ_inv_0.clone()) for _ in range(M)])
-        self._nu     = nn.ParameterList([nn.Parameter(torch.zeros(self.L, device=K_ZZ_inv_0.device, dtype=K_ZZ_inv_0.dtype)) for _ in range(M)])
 
         # Robbins-Monro schedule rho_t = s * t^{-kappa}
         self.ssvi_s = 1.0
@@ -31,6 +28,29 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         
         self.coordinator = NormalCoordinatorCustom(module=self,sum_to_one=False)
         
+    @property 
+    def _Lambda(self): 
+        return  self.gp.get_K_VV_x_inv()
+    
+    @property 
+    def _nu(self): 
+        return  self.gp.get_K_VV_x() @ self.gp._mu_u
+
+
+    @_Lambda.setter
+    def _Lambda(self, value):
+        raise NotImplementedError("TODO")
+    
+    # self._nu_u = self._nu_u + \epsilon
+    # -> call _nu_setter()  
+    # -> self.mu_u  = self._Lambda @ self._nu_u ? Please check
+
+    @_nu.setter
+    def _nu(self, value):
+        raise NotImplementedError("TODO")
+
+
+
     @property 
     def mu_x(self): 
         return  self.mu_x_train
@@ -161,6 +181,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         A = K_xx_expectation * self.M + (Ma[:, None, :, :, :, :] * Z).sum(dim=[-2, -1])
         return A
 
+    # This function should not exist. 
     def synchronize_gp_from_natural_params(self):
         """
         Update gp variational parameters (mu_u, Sigma_u) to match current
@@ -217,26 +238,28 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         self._pending_U_samples = U_samples
         
         # Accumulate local contributions per measurement m (since C_obs=1)
+        # Delta_Lambda = [torch.zeros_like(self._Lambda[m]) for m in range(self.M)]
+        # Delta_nu = [torch.zeros_like(self._nu[m]) for m in range(self.M)]
         Delta_Lambda = [torch.zeros_like(self._Lambda[m]) for m in range(self.M)]
         Delta_nu = [torch.zeros_like(self._nu[m]) for m in range(self.M)]
         
         # For each data point in mini-batch (Algorithm 1, lines 7-10)
-        for i, idx in enumerate(batch_indices):
-            y_i = Y_batch[i]  # D
-            
-            # Step 1: Optimize local variational distribution q(x_i) (Algorithm 1, line 7)
-            # Use configurable parameters (can be overridden by subclasses)
-            max_iter = getattr(self, 'local_opt_iterations', 1)
-            lr_local = getattr(self, 'lr_local', 0.01)
-            # Optimize local q(x_i | U) using current gp params (no explicit U sampling here)
-            self.optimize_local_variational_distribution(idx, y_i, U_samples.detach(), max_iter=max_iter, lr_local=lr_local)
-            
-            # Step 2: Compute local natural parameters for each measurement m
-            for m in range(self.M):
-                h_i, H_i = self.compute_local_natural_parameters(idx, y_i[m], output_dim=0)
-                h_i_corrected, H_i_corrected = self.apply_curvature_correction(h_i, H_i, None, output_dim=0)
-                Delta_nu[m] += h_i_corrected
-                Delta_Lambda[m] += H_i_corrected
+        
+        # Step 1: Optimize local variational distribution q(x_i) (Algorithm 1, line 7)
+        # Use configurable parameters (can be overridden by subclasses)
+        max_iter = getattr(self, 'local_opt_iterations', 1)
+        lr_local = getattr(self, 'lr_local', 0.01)
+        # Optimize local q(x_i | U) using current gp params (no explicit U sampling here)
+        self.optimize_local_variational_distribution(batch_indices, Y_batch, U_samples.detach(), max_iter=max_iter, lr_local=lr_local)
+        
+        # Step 2: Compute local natural parameters for each measurement m
+        
+        h_batch, H_batch = self.compute_local_natural_parameters(batch_indices, Y_batch, output_dim=0)
+        h_batch_corrected, H_batch_corrected = self.apply_curvature_correction(h_batch, H_batch, None, output_dim=0)
+        # Delta_nu[m] += h_batch_corrected
+        # Delta_Lambda[m] += H_batch_corrected
+        Delta_nu[m] = h_batch_corrected
+        Delta_Lambda[m] = H_batch_corrected
         
         # Store local contributions for later natural parameter update
         scaling = N / batch_size
@@ -297,21 +320,28 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         assert U_samples.dim() == 4, "U_samples must be [P, M, C, L]"
         U_samples = U_samples.detach()
         P_u = U_samples.shape[0]
-        for _ in range(max_iter):
-            local_optimizer.zero_grad()
-            
-            # Single-point local ELBO (exclude KL_u): ELBO_i + KL_u
-            y_i_batch = y_i.unsqueeze(0)  # [1, M]
-            # Repeat local q(x_i) across P (structured model uses P samples)
-            mu_x_local = mu_x_i.unsqueeze(0).unsqueeze(0).repeat(P_u, 1, 1)           # [P_u, 1, Q]
-            Sigma_x_local = torch.exp(log_sigma_x_i).unsqueeze(0).unsqueeze(0).repeat(P_u, 1, 1)  # [P_u, 1, Q]
-            local_elbo_full = self.gplvm_elbo(y_i_batch, mu_x_local, Sigma_x_local, U_samples=U_samples)
-            local_elbo = local_elbo_full + self.gp.get_kl_u()
-            
-            # Maximize ELBO (minimize negative ELBO)
-            (-local_elbo).backward()
-            local_optimizer.step()
+        ll= []
+        # for _ in tqdm(range(max_iter), desc=f"Local opt for idx {data_idx}"):
+        local_optimizer.zero_grad()
         
+        # Single-point local ELBO (exclude KL_u): ELBO_i + KL_u
+        y_i_batch = y_i  # [1, M] -> [B, M]
+        # Repeat local q(x_i) across P (structured model uses P samples)
+        mu_x_local = mu_x_i.unsqueeze(0).repeat(P_u, 1, 1)           # [P_u, 1, Q] -> [P, B, Q]
+        Sigma_x_local = torch.exp(log_sigma_x_i).unsqueeze(0).repeat(P_u, 1, 1)  # [P_u, 1, Q] -> [P, B, Q]
+        local_elbo_full = self.gplvm_elbo(y_i_batch, mu_x_local, Sigma_x_local, U_samples=U_samples)
+        local_elbo = local_elbo_full + self.gp.get_kl_u()
+        
+        # Maximize ELBO (minimize negative ELBO)
+        (-local_elbo).backward()
+        local_optimizer.step()
+
+        # Debugging plot
+        ll.append(local_elbo.item())
+
+        # import matplotlib.pyplot as plt
+        # plt.plot(ll)
+        # plt.show()
         # Update the main parameters with optimized values
         with torch.no_grad():
             self.mu_x_train[:, data_idx, :] = mu_x_i.detach()
@@ -383,24 +413,24 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         Uses existing kernel expectation infrastructure
         """
         # Get current local variational parameters across P samples: [P, 1, Q]
-        mu_x_i = self.mu_x_train[:, data_idx:data_idx+1, :]
-        Sigma_x_i = self.Sigma_x_train[:, data_idx:data_idx+1, :]
+        mu_x_i = self.mu_x_train[:, data_idx, :]
+        Sigma_x_i = self.Sigma_x_train[:, data_idx, :]
         
         # Compute psi-statistics using existing infrastructure
-        kernel_expectation = self._get_lv_kernel_expectation(mu_x_i, Sigma_x_i)  # P x 1 x C x L
-        kernel_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x_i, Sigma_x_i)  # P x 1 x C x C x L x L
+        kernel_expectation = self._get_lv_kernel_expectation(mu_x_i, Sigma_x_i)  # P x 1 x C x L -> P x B x C x L 
+        kernel_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x_i, Sigma_x_i)  # P x 1 x C x C x L x L -> P x B x C x C x L x L 
         
         # Extract for this output dimension, average across P
-        psi_1 = kernel_expectation[:, 0, output_dim, :].mean(dim=0)  # L
-        psi_2 = kernel_outer_expectation[:, 0, output_dim, output_dim, :, :].mean(dim=0)  # L x L  
+        # psi_1 = kernel_expectation[:, 0, output_dim, :].mean(dim=0)  # L
+        # psi_2 = kernel_outer_expectation[:, 0, output_dim, output_dim, :, :].mean(dim=0)  # L x L  
         
         # Get kernel matrices
         K_ZZ_inv = self.gp.get_K_VV_x_inv()[output_dim]  # L x L
         beta = 1.0 / self.sigma2  # precision
         
         # Compute local natural parameters
-        h_i = beta * y_ij * psi_1 @ K_ZZ_inv  # L
-        H_i = beta * (K_ZZ_inv @ psi_2 @ K_ZZ_inv)  # L x L 
+        h_i = beta * y_ij[None,:,:,None] * kernel_expectation @ K_ZZ_inv  # L -> [P x B x M x L]
+        H_i = beta * (K_ZZ_inv @ kernel_outer_expectation @ K_ZZ_inv)  # L x L -> [P x B x C x C x L x L]
         
         return h_i, H_i
     
