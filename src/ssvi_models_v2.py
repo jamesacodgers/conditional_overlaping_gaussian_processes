@@ -409,7 +409,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         # so that any non-linear transformation acts on each eta_i rather than the batch-summed delta.
         h_meanP_corr, H_meanP_corr = self.apply_curvature_correction(h_meanP, H_meanP, None, output_dim=0)
 
-        # Aggregate corrected contsributions over the batch B
+        # Aggregate corrected contributions over the batch B
         Delta_nu = h_meanP_corr.sum(dim=0)          # [M, L]
         Delta_Lambda_base = H_meanP_corr.sum(dim=0) # [L, L]
         Delta_Lambda = Delta_Lambda_base.expand(self.M, -1, -1)  # [M, L, L]
