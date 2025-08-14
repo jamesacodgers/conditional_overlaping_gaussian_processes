@@ -404,21 +404,26 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         # Aggregate over samples P (mean) and batch B (sum), per measurement m
         h_meanP = h_batch.mean(dim=0)           # [B, M, L]
         H_meanP = H_batch.mean(dim=0)           # [B, L, L]
-        Delta_nu = h_meanP.sum(dim=0)          # [M, L]
-        Delta_Lambda_base = H_meanP.sum(dim=0) # [L, L]
+
+        # Apply curvature correction on per-item contributions before summation over the batch
+        # so that any non-linear transformation acts on each eta_i rather than the batch-summed delta.
+        h_meanP_corr, H_meanP_corr = self.apply_curvature_correction(h_meanP, H_meanP, None, output_dim=0)
+
+        # Aggregate corrected contsributions over the batch B
+        Delta_nu = h_meanP_corr.sum(dim=0)          # [M, L]
+        Delta_Lambda_base = H_meanP_corr.sum(dim=0) # [L, L]
         Delta_Lambda = Delta_Lambda_base.expand(self.M, -1, -1)  # [M, L, L]
 
-        # Curvature correction V(U, Lambda) · η (SSVI-A: identity), applied in a vectorized manner
-        Delta_nu_corr, Delta_Lambda_corr = self.apply_curvature_correction(Delta_nu, Delta_Lambda, None, output_dim=0)
-        return Delta_nu_corr, Delta_Lambda_corr
-    
-    def apply_curvature_correction(self, Delta_nu: torch.Tensor, Delta_Lambda: torch.Tensor, U_j: torch.Tensor = None, output_dim: int = None):
-        """
-        Mock function for curvature correction in SSVI-A
-        In SSVI-A, curvature correction is not used, so we return original values unchanged
-        """
-        # SSVI-A: No curvature correction applied
         return Delta_nu, Delta_Lambda
+    
+    def apply_curvature_correction(self, h_meanP: torch.Tensor, H_meanP: torch.Tensor, U_j: torch.Tensor = None, output_dim: int = None):
+        """
+        Curvature correction placeholder.
+        Accepts batch-wise contributions [B, M, L] and [B, L, L]
+
+        SSVI-A: No curvature correction applied; return inputs unchanged.
+        """
+        return h_meanP, H_meanP
     
     
 class NormalCoordinatorCustom:
