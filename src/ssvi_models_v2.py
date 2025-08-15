@@ -42,10 +42,10 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         """Set Lambda and update gp's q(u) covariance accordingly."""
         assert value.shape == self._Lambda_param.shape
         with torch.no_grad():
-            self._Lambda_param.data.copy_(value)
+            self._Lambda_param.data.copy_(value) # optimizer safe copy
             # Sigma = Lambda^{-1}
-            eye = torch.eye(self.L, device=value.device, dtype=value.dtype)
-            Sigma = torch.linalg.inv(self._Lambda_param + 1e-6 * eye)
+            eye = torch.eye(self.L, device=value.device, dtype=value.dtype) # L x L
+            Sigma = torch.linalg.inv(self._Lambda_param + 1e-6 * eye) # M x L x L
             # chol(Sigma)
             chol_Sigma = torch.linalg.cholesky(Sigma + 1e-9 * eye)
             # Write into gp parameters (C=1 so CL=L)
@@ -83,16 +83,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
     @property 
     def Sigma_x(self): 
         return  self.Sigma_x_train
-    
-    @property
-    def Lambda(self):
-        """Natural parameter Lambda (precision matrices)"""
-        return [param for param in self._Lambda]
-    
-    @property  
-    def nu(self):
-        """Natural parameter nu (precision-weighted means)"""
-        return [param for param in self._nu]
+
     
     def get_kl_x_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
         x_prior = torch.distributions.Normal(torch.zeros(self.A), torch.ones(self.A))
