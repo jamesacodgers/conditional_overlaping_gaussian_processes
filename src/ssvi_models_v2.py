@@ -398,7 +398,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
 
         # Apply curvature correction on per-item contributions before summation over the batch
         # so that any non-linear transformation acts on each eta_i rather than the batch-summed delta.
-        h_meanP_corr, H_meanP_corr = self.apply_curvature_correction(h_meanP, H_meanP, None, output_dim=0)
+        h_meanP_corr, H_meanP_corr = self.apply_curvature_correction(h_meanP, H_meanP, None)
 
         # Aggregate corrected contributions over the batch B
         Delta_nu = h_meanP_corr.sum(dim=0)          # [M, L]
@@ -406,17 +406,21 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         Delta_Lambda = Delta_Lambda_base.expand(self.M, -1, -1)  # [M, L, L]
 
         return Delta_nu, Delta_Lambda
-    
-    def apply_curvature_correction(self, h_meanP: torch.Tensor, H_meanP: torch.Tensor, U_j: torch.Tensor = None, output_dim: int = None):
-        """
-        Curvature correction placeholder.
-        Accepts batch-wise contributions [B, M, L] and [B, L, L]
 
-        SSVI-A: No curvature correction applied; return inputs unchanged.
+    def apply_curvature_correction(self, h_meanP: torch.Tensor, H_meanP: torch.Tensor, U_j: torch.Tensor = None):
+        """
+        Curvature correction placeholder for all outputs at once.
+        Accepts:
+            h_meanP: [B, M, L]
+            H_meanP: [B, M, L, L]
+        Returns:
+            h_corr:  [B, M, L]
+            H_corr:  [B, M, L, L]
+        SSVI-A: no curvature correction applied; return unchanged.
         """
         return h_meanP, H_meanP
-    
-    
+
+
 class NormalCoordinatorCustom:
     def __init__(self, module:MFModels, sum_to_one:bool):
         self.module=module
