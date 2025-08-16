@@ -238,8 +238,8 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         Optimizes local ELBO L_i(U) w.r.t. mu_i, Sigma_i using gradient ascent
         """
         # Create local parameters for this data point (shared across P replicates)
-        mu_x_i = self.mu_x_train[:, data_idx, :].mean(dim=0).clone().detach().requires_grad_(True)
-        log_sigma_x_i = self._log_sigma_x_train[:, data_idx, :].mean(dim=0).clone().detach().requires_grad_(True)
+        mu_x_i = self.mu_x_train[:, data_idx, :].clone().detach().requires_grad_(True)
+        log_sigma_x_i = self._log_sigma_x_train[:, data_idx, :].clone().detach().requires_grad_(True)
         
         # Use default max_iter if not specified (for backwards compatibility)
         if max_iter is None:
@@ -250,25 +250,26 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         
         assert U_samples.dim() == 4, "U_samples must be [P, M, C, L]"
         U_samples = U_samples.detach()
-        P_u = U_samples.shape[0]
         ll= []
-        # for _ in tqdm(range(max_iter), desc=f"Local opt for idx {data_idx}"):
-        local_optimizer.zero_grad()
-        
-        # Single-point local ELBO (exclude KL_u): ELBO_i + KL_u
-        y_i_batch = y_i  # [1, M] -> [B, M]
-        # Repeat local q(x_i) across P (structured model uses P samples)
-        mu_x_local = mu_x_i.unsqueeze(0).repeat(P_u, 1, 1)           # [P_u, 1, Q] -> [P, B, Q]
-        Sigma_x_local = torch.exp(log_sigma_x_i).unsqueeze(0).repeat(P_u, 1, 1)  # [P_u, 1, Q] -> [P, B, Q]
-        local_elbo_full = self.gplvm_elbo(y_i_batch, mu_x_local, Sigma_x_local, U_samples=U_samples)
-        local_elbo = local_elbo_full + self.gp.get_kl_u()
-        
-        # Maximize ELBO (minimize negative ELBO)
-        (-local_elbo).backward()
-        local_optimizer.step()
 
-        # Debugging plot
-        ll.append(local_elbo.item())
+        for _ in tqdm(range(max_iter)):
+        # for _ in range(max_iter):
+            local_optimizer.zero_grad()
+            
+            # Single-point local ELBO (exclude KL_u): ELBO_i + KL_u
+            y_i_batch = y_i  # [1, M] -> [B, M]
+            # Repeat local q(x_i) across P (structured model uses P samples)
+            mu_x_local = mu_x_i     # [P_u, 1, Q] -> [P, B, Q]
+            Sigma_x_local = torch.exp(log_sigma_x_i)  # [P_u, 1, Q] -> [P, B, Q]
+            local_elbo_full = self.gplvm_elbo(y_i_batch, mu_x_local, Sigma_x_local, U_samples=U_samples)
+            local_elbo = local_elbo_full + self.gp.get_kl_u()
+            
+            # Maximize ELBO (minimize negative ELBO)
+            (-local_elbo).backward()
+            local_optimizer.step()
+
+            # Debugging plot
+            ll.append(local_elbo.item())
 
         # import matplotlib.pyplot as plt
         # plt.plot(ll)

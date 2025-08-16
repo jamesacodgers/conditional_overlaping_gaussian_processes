@@ -107,13 +107,14 @@ def get_fast_config():
 def get_high_quality_config():
     """High-quality configuration for best results"""
     return SSVIConfig(
-        n_train=128,
+        n_train=256,
         n_inducing_points=8,
         training_iterations=200,
-        batch_size=32,
-        local_opt_iterations=50,
+        batch_size=64,
+        local_opt_iterations=256,
         lr_gp=0.005,
-        lr_local=0.1
+        lr_local=0.1,
+        num_u_samples=8
     )
 
 def get_ablation_config():
@@ -125,7 +126,8 @@ def get_ablation_config():
         batch_size=64,
         step_size_s=0.05,      # Smaller step size
         step_size_kappa=0.8,   # Slower decay
-        local_opt_iterations=2
+        local_opt_iterations=2,
+        lr_gp=0.1
     )
 
 
@@ -296,6 +298,11 @@ def main(config: SSVIConfig = None):
             
             plt.tight_layout()
             plt.show()
+
+    for name, param in ssvi_model.named_parameters():
+        print(name, param.shape)
+
+    print("diff check", ssvi_model.mu_x_train[0] - ssvi_model.mu_x_train[1])
     
     return ssvi_model, ll_ssvi, config
 
@@ -332,3 +339,4 @@ if __name__ == "__main__":
     #     training_iterations=150
     # )
     # main(custom_config) 
+
