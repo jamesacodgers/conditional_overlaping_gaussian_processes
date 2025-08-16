@@ -16,60 +16,74 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         self.L = self.gp.Vx.shape[-2]     # #inducing, expects Vx: (L, Q) or (1, L, Q)
         self.Q = self.gp.Vx.shape[-1]
 
-
         # Robbins-Monro schedule rho_t = s * t^{-kappa}
         self.ssvi_s = 1.0
         self.ssvi_kappa = 0.75
         self.iteration = 0
         self.step_size_params = {"s": self.ssvi_s, "kappa": self.ssvi_kappa}
 
-        # Natural parameters for q(u): vectorized over measurements m (C_obs = 1)
-        K_ZZ_inv_0 = self.gp.get_K_VV_x_inv()[0].detach()  # [Lx, Lx]
-        self._Lambda_param = nn.Parameter(K_ZZ_inv_0.expand(M, -1, -1).clone())  # [M, Lx, Lx]
-        self._nu_param = nn.Parameter(torch.zeros(M, self.L, device=K_ZZ_inv_0.device, dtype=K_ZZ_inv_0.dtype))  # [M, Lx]
-
-        # SSVI uses natural parameters to define q(u); setters will keep gp's (mu, Sigma) in sync
+        # SSVI uses GP parameters (mu_u, chol_Sigma_u) as the primary storage
+        # Natural parameters (nu, Lambda) are computed on-the-fly using mathematical relationships
         
         self.coordinator = NormalCoordinatorCustom(module=self,sum_to_one=False)
         
+
+        
     @property 
     def _Lambda(self):
-        """Natural precision matrices for q(u): [M, L, L]."""
-        return self._Lambda_param
+        """Natural precision matrices for q(u): [M, L, L]. Computed from GP parameters."""
+        # Lambda = Sigma^{-1} where Sigma = chol_Sigma @ chol_Sigma^T
+        chol_Sigma = self.gp._raw_chol[:, :self.L, :self.L]  # [M, L, L]
+        Sigma = chol_Sigma @ chol_Sigma.transpose(-2, -1) + 1e-9 * torch.eye(self.L, device=chol_Sigma.device, dtype=chol_Sigma.dtype)
+        Lambda = torch.linalg.inv(Sigma)
+        return Lambda
     
     @_Lambda.setter
     def _Lambda(self, value: torch.Tensor):
         """Set Lambda and update gp's q(u) covariance accordingly."""
-        assert value.shape == self._Lambda_param.shape
+        assert value.shape == (self.M, self.L, self.L)
         with torch.no_grad():
-            self._Lambda_param.data.copy_(value) # optimizer safe copy
             # Sigma = Lambda^{-1}
             eye = torch.eye(self.L, device=value.device, dtype=value.dtype) # L x L
-            Sigma = torch.linalg.inv(self._Lambda_param + 1e-6 * eye) # M x L x L
+            Sigma = torch.linalg.inv(value + 1e-6 * eye) # M x L x L
             # chol(Sigma)
             chol_Sigma = torch.linalg.cholesky(Sigma + 1e-9 * eye)
             # Write into gp parameters (C=1 so CL=L)
             self.gp._raw_chol.data[:, :self.L, :self.L] = chol_Sigma
-            # Update mu = Sigma @ nu
-            mu = (Sigma @ self._nu_param.unsqueeze(-1)).squeeze(-1)
+            # Update mu = Sigma @ nu (nu is computed from current mu and Sigma)
+            # Avoid recursive call by computing nu directly from current GP parameters
+            current_mu = self.gp._mu_u[:, :self.L]  # [M, L]
+            nu = torch.linalg.solve(Sigma, current_mu)  # nu = Sigma^{-1} @ mu
+            mu = (Sigma @ nu.unsqueeze(-1)).squeeze(-1)
             self.gp._mu_u.data[:, :self.L] = mu
+            # Also update parent class's _mu_u parameter to keep them in sync
+            if hasattr(self, '_mu_u'):
+                self._mu_u.data[:, :self.L] = mu
     
     @property 
     def _nu(self):
-        """Natural mean parameters for q(u): [M, L]."""
-        return self._nu_param
+        """Natural mean parameters for q(u): [M, L]. Computed from GP parameters."""
+        # nu = Sigma^{-1} @ mu where Sigma = chol_Sigma @ chol_Sigma^T
+        chol_Sigma = self.gp._raw_chol[:, :self.L, :self.L]  # [M, L, L]
+        Sigma = chol_Sigma @ chol_Sigma.transpose(-2, -1) + 1e-9 * torch.eye(self.L, device=chol_Sigma.device, dtype=chol_Sigma.dtype)
+        mu = self.gp._mu_u[:, :self.L]  # [M, L]
+        nu = torch.linalg.solve(Sigma, mu)  # Sigma @ nu = mu -> nu = Sigma^{-1} @ mu
+        return nu
     
     @_nu.setter
     def _nu(self, value: torch.Tensor):
         """Set nu and update gp's q(u) mean accordingly using current Lambda."""
-        assert value.shape == self._nu_param.shape
+        assert value.shape == (self.M, self.L)
         with torch.no_grad():
-            self._nu_param.data.copy_(value)
-            # mu = Sigma @ nu with Sigma = Lambda^{-1}
-            eye = torch.eye(self.L, device=value.device, dtype=value.dtype)
-            Sigma = torch.linalg.inv(self._Lambda_param + 1e-6 * eye)
-            mu = (Sigma @ self._nu_param.unsqueeze(-1)).squeeze(-1)
+            # Get current Sigma from chol_Sigma
+            chol_Sigma = self.gp._raw_chol[:, :self.L, :self.L]  # [M, L, L]
+            Sigma = chol_Sigma @ chol_Sigma.transpose(-2, -1) + 1e-9 * torch.eye(self.L, device=value.device, dtype=value.dtype)
+            # mu = Sigma @ nu
+            mu = (Sigma @ value.unsqueeze(-1)).squeeze(-1)
             self.gp._mu_u.data[:, :self.L] = mu
+            # Also update parent class's _mu_u parameter to keep them in sync
+            if hasattr(self, '_mu_u'):
+                self._mu_u.data[:, :self.L] = mu
 
 
     # self._nu_u = self._nu_u + \epsilon
@@ -211,7 +225,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         Lambda_prior = K_ZZ_inv_0.expand(self.M, -1, -1)
         nu_prior = torch.zeros_like(Delta_nu)
 
-        # Current params
+        # Current params (computed from GP parameters)
         Lambda_t = self._Lambda                       # [M, L, L]
         nu_t = self._nu                               # [M, L]
 
@@ -219,7 +233,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         Lambda_tp1 = (1 - rho) * Lambda_t + rho * (Lambda_prior + scaling * Delta_Lambda)
         nu_tp1 = (1 - rho) * nu_t + rho * (nu_prior + scaling * Delta_nu)
 
-        # Set via setters to keep q(u) in sync
+        # Set via setters to keep q(u) in sync (this updates GP parameters)
         self._Lambda = Lambda_tp1
         self._nu = nu_tp1
         
