@@ -100,12 +100,12 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
     # -- U sampling and expectations conditioned on U --
     def get_u_samples_ssvi(self, num_samples: int) -> torch.Tensor:
         """Sample U from current q(u) in gp (already kept in sync by setters)."""
-        # samples = self.get_u_vec_samples()
-        # return samples.reshape(self.P, self.M, self.C, self.Lx)
-        mu_u = self.gp.get_vector_mu_u()
-        Sigma_u = self.gp.get_matrix_Sigma_u()
-        dist = torch.distributions.MultivariateNormal(mu_u, covariance_matrix=Sigma_u)
-        return dist.rsample((self.P,)).unsqueeze(-2)
+        samples = self.get_u_vec_samples()
+        return samples.reshape(self.P, self.M, self.C, self.Lx)
+        # mu_u = self.gp.get_vector_mu_u()
+        # Sigma_u = self.gp.get_matrix_Sigma_u()
+        # dist = torch.distributions.MultivariateNormal(mu_u, covariance_matrix=Sigma_u)
+        # return dist.rsample((self.P,)).unsqueeze(-2)
 
 
     def _s_expectation_given_U(self, kernel_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
@@ -167,7 +167,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         assert U_samples is not None, "U_samples must be provided for ssvi_local_step"
         assert U_samples.dim() == 4, "U_samples must be [P, M, C, L]"
         P_u, M_u, C_u, L_u = U_samples.shape
-        assert M_u == self.M and C_u == self.C and L_u == self.L, "U_samples dims must match model (M, C, L)"
+        assert self.P == P_u and M_u == self.M and C_u == self.C and L_u == self.L, "U_samples dims must match model (P, M, C, L)"
         self._pending_U_samples = U_samples
         
         # Step 1: Optimize local variational distribution q(x_i) over the whole batch
@@ -256,8 +256,8 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
             # Repeat local q(x_i) across P (structured model uses P samples)
             mu_x_local = mu_x_i     # [P_u, 1, Q] -> [P, B, Q]
             Sigma_x_local = torch.exp(log_sigma_x_i)  # [P_u, 1, Q] -> [P, B, Q]
-            local_elbo_full = self.gplvm_elbo(y_i_batch, mu_x_local, Sigma_x_local, U_samples=U_samples)
-            local_elbo = local_elbo_full + self.gp.get_kl_u()
+            local_elbo = self.gplvm_elbo(y_i_batch, mu_x_local, Sigma_x_local, U_samples=U_samples)
+
             
             # Maximize ELBO (minimize negative ELBO)
             (-local_elbo).backward()
