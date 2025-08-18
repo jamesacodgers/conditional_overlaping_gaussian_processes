@@ -161,7 +161,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         
         # Compute step size: rho_t = s * t^(-kappa) (Algorithm 1, line 3)
         self.iteration += 1
-        rho_t = self.step_size_params['s'] * (self.iteration ** (-self.step_size_params['kappa']))
+        rho_t = self.step_size_params['s'] # * (self.iteration ** (-self.step_size_params['kappa']))
         
         # Require externally provided U_samples each iteration (no silent sampling)
         assert U_samples is not None, "U_samples must be provided for ssvi_local_step"
@@ -245,7 +245,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         
         assert U_samples.dim() == 4, "U_samples must be [P, M, C, L]"
         U_samples = U_samples.detach()
-        ll= []
+        ll = []
 
         for _ in tqdm(range(max_iter)):
         # for _ in range(max_iter):

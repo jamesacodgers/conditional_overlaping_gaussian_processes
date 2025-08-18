@@ -109,12 +109,12 @@ def get_high_quality_config():
     return SSVIConfig(
         n_train=128,
         n_inducing_points=8,
-        training_iterations=200,
+        training_iterations=2000,
         batch_size=128,
         local_opt_iterations=75,
         lr_gp=0.005,
         lr_local=0.1,
-        num_u_samples=8
+        num_u_samples=64
     )
 
 def get_ablation_config():
@@ -289,8 +289,9 @@ def main(config: SSVIConfig = None):
             mu_x_mean = ssvi_model.mu_x.mean(dim=0)  # [N, Q]
             plt.scatter(x_true.flatten(), mu_x_mean[:,0].detach(), 
                        color='blue', label='SSVI', alpha=0.7, s=20)
-            plt.scatter(x_true.flatten(), mu_x[:,0], marker="x", color="black", 
-                       label='PCA init', s=30)
+            for p in range(ssvi_model.P):
+                plt.scatter(x_true.flatten(), ssvi_model.mu_x[p,:,0].detach(), marker="x", color="black", 
+                           s=30)
             plt.xlabel('True LV')
             plt.ylabel('Estimated LV')
             plt.title('SSVI Latent Variable Recovery')
