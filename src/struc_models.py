@@ -146,13 +146,13 @@ class Struc_WS_GPLVM(MF_WS_GPLVM):
         
 
         self.P = P
-        sample_generator = torch.quasirandom.SobolEngine(self.Lx*self.C, seed=1, )
-        _samples = torch.zeros(self.P, self.M, self.Lx*self.C)
-        for j in range(M):
-            sample_values = (sample_generator.draw(P)+1/(P))*(1-2/(P))
-            sample_values = sample_values.to(_samples.device)
-            _samples[:,j,:] = torch.distributions.Normal(0,1).icdf(sample_values)
-        self._samples = _samples
+        # sample_generator = torch.quasirandom.SobolEngine(self.Lx*self.C, seed=1, )
+        self._samples = torch.randn(self.P, self.M, self.Lx*self.C)
+        # for j in range(M):
+        #     sample_values = (sample_generator.draw(P)+1/(P))*(1-2/(P))
+        #     sample_values = sample_values.to(_samples.device)
+        #     _samples[:,j,:] = torch.distributions.Normal(0,1).icdf(sample_values)
+        # self._samples = _samples
         # sample_generator = torch.quasirandom.SobolEngine(self.L, seed=1, )
         # _samples = torch.zeros(self.P, self.M, self.C,self.L)
         # for j in range(M):
