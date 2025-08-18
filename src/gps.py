@@ -155,6 +155,11 @@ class WLIndependentGPs(AbstractGP):
         chol = self.get_chol_Sigma_u()
         # return chol @ chol.transpose(-2,-1)[None, :,:] # + (1e-3*torch.eye(self.L*self.C))
         return chol @ chol.transpose(-2,-1)[:, :,:] + (1e-5*torch.eye(self.Lx*self.C))
+    
+    def get_matrix_Sigma_u_inv(self):
+        chol = self.get_chol_Sigma_u()
+        # return chol @ chol.transpose(-2,-1)[None, :,:] # + (1e-3*torch.eye(self.L*self.C))
+        return torch.linalg.cholesky_inverse(chol)
 
     def get_chol_Sigma_u(self):
         return torch.tril(self._raw_chol) 

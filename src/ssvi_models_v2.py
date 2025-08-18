@@ -31,8 +31,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
 
     @property
     def _Lambda(self):
-        # Lambda = Sigma^{-1} where Sigma = chol_Sigma @ chol_Sigma^T
-        chol = self.gp._raw_chol[:, :self.L, :self.L]
+        chol = self.gp.get_chol_Sigma_u()
         return torch.cholesky_inverse(chol)         # == Sigma^{-1}
 
     @_Lambda.setter
@@ -41,30 +40,27 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         with torch.no_grad():
             # Sigma = Lambda^{-1}
             I = torch.eye(self.L, device=value.device, dtype=value.dtype)
-            chol_prec = torch.linalg.cholesky(value + 1e-6 * I)
+            chol_prec = torch.linalg.cholesky(value)
             # Sigma = Lambda^{-1}:
             Sigma = torch.cholesky_inverse(chol_prec)
-            chol_Sigma = torch.linalg.cholesky(Sigma + 1e-9 * I)
+            chol_Sigma = torch.linalg.cholesky(Sigma)
             self.gp._raw_chol[:, :self.L, :self.L].copy_(chol_Sigma)
 
     @property
     def _nu(self):
         """Natural mean parameters for q(u): [M, L]. Computed from GP parameters."""
-        # nu = Sigma^{-1} @ mu where Sigma = chol_Sigma @ chol_Sigma^T
-        chol_Sigma = self.gp._raw_chol[:, :self.L, :self.L]  # [M, L, L]
-        Sigma = chol_Sigma @ chol_Sigma.transpose(-2, -1) + 1e-9 * torch.eye(self.L, device=chol_Sigma.device, dtype=chol_Sigma.dtype)
-        mu = self.gp._mu_u[:, :self.L]  # [M, L]
-        nu = torch.linalg.solve(Sigma, mu)  # Sigma @ nu = mu -> nu = Sigma^{-1} @ mu
-        return nu
+        nu_unsqueezed = self._Lambda @ self.gp.get_vector_mu_u().unsqueeze(-1)  # [M, L, 1]
+        return nu_unsqueezed.squeeze(-1)  # [M, L]
 
     @_nu.setter
     def _nu(self, value: torch.Tensor):
         assert value.shape == (self.M, self.L)
         with torch.no_grad():
-            chol_Sigma = self.gp._raw_chol[:, :self.L, :self.L]
-            Sigma = chol_Sigma @ chol_Sigma.transpose(-2, -1) + 1e-9 * torch.eye(self.L, device=chol_Sigma.device, dtype=chol_Sigma.dtype)
-            # mu = Sigma @ nu
-            mu = (Sigma @ value.unsqueeze(-1)).squeeze(-1)
+            # chol_Sigma = self.gp._raw_chol[:, :self.L, :self.L]
+            # Sigma = chol_Sigma @ chol_Sigma.transpose(-2, -1) 
+            # # mu = Sigma @ nu
+            # mu = (Sigma @ value.unsqueeze(-1)).squeeze(-1)
+            mu = (self.gp.get_matrix_Sigma_u()@value.unsqueeze(-1)).squeeze(-1)
             self.gp._mu_u.data[:, :self.L] = mu
 
     # self._nu_u = self._nu_u + \epsilon
