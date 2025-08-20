@@ -484,6 +484,13 @@ class NormalCoordinatorCustom:
         A_train = self.get_A_train(s_train_unobs_outer_expectation) # C_unobs x C_unobs
         b_train = self.get_b_train(D_train, R_train, s_train_unobs_expectation, s_train_cross_outer_expectation) # N x C_unobs
         const_train = self.get_const_train(D_train, R_train, s_train_obs_expectation, s_train_obs_outer_expectation)
+        
+        # Scale const_train for mini-batches to represent full dataset contribution
+        batch_size = D_train.shape[0]
+        total_size = mu_x_train.shape[0] if mu_x_train.dim() == 2 else mu_x_train.shape[1]
+        if batch_size != total_size:
+            const_train = const_train * (total_size / batch_size)
+        
         training_inner_elbo = self.inner_train_solver(A_train, b_train).mean() + const_train.mean()
         # HERE IS THE CORRECTION TO USE mu_x_train, Sigma_x_train FROM THE ARGUMETNS
         #kl = self.module.get_kl_from(mu_x_train, Sigma_x_train)
