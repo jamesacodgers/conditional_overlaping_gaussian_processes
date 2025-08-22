@@ -1,0 +1,462 @@
+from matplotlib import pyplot as plt
+import torch 
+import torch.nn as nn
+from tqdm import tqdm
+from src.struc_models import Struc_WS_GPLVM
+from src.mf_methods import MFModels
+from src.inner_optimisers import MultivariateNormalSolver
+from src.utils import train_lbfgs, generate_regular_simplex
+import numpy as np
+
+class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
+    def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, 
+                 encoder_hidden_dims=[64, 32], num_inner_steps=5):
+        super().__init__(P=P, V=Vx, M=M, C_obs=1, mu_x_train=mu_x, mu_x_test=None, C_unobs=0, 
+                        sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s, 
+                        trainable_V=trainable_V)
+        
+        # Inducing size and latent dim
+        self.L = self.gp.Vx.shape[-2]     # #inducing, expects Vx: (L, Q) or (1, L, Q)
+        self.Q = self.gp.Vx.shape[-1]
+
+        # Amortized inference encoder network
+        # Input: y_n (observation) + mu^u, Sigma^u (global variational parameters)
+        # Output: mu_n (Q) + log_sigma_n (Q) = 2*Q total
+        self.encoder = self._build_encoder(encoder_hidden_dims, 2 * self.Q)
+        
+        # Number of inner optimization steps for local update (like in original SSVI)
+        self.num_inner_steps = num_inner_steps
+        
+        # Separate optimizers for different parameter groups
+        self._setup_optimizers()
+        
+        self.coordinator = NormalCoordinatorCustom(module=self, sum_to_one=False)
+
+    def _build_encoder(self, hidden_dims, output_dim):
+        """Build amortized inference encoder network"""
+        layers = []
+        # Calculate correct input dimension:
+        # y_n: [M] + mu_u: [M*L] + vech(Sigma_u): [M * L*(L+1)/2]
+        input_dim = self.M + self.M * self.L + self.M * self.L * (self.L + 1) // 2
+        
+        prev_dim = input_dim
+        for hidden_dim in hidden_dims:
+            layers.extend([
+                nn.Linear(prev_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Dropout(0.1)
+            ])
+            prev_dim = hidden_dim
+        
+        # Output layer: mu_n (Q) + log_sigma_n (Q)
+        layers.append(nn.Linear(prev_dim, output_dim))
+        
+        return nn.Sequential(*layers)
+
+    def _setup_optimizers(self):
+        """Setup separate optimizers for different parameter groups"""
+        # Local parameters (amortized inference encoder)
+        local_params = list(self.encoder.parameters())
+        self.optimizer_local = torch.optim.Adam(local_params, lr=0.001)
+        
+        # Global parameters (GP hyperparameters, inducing points, and U distribution)
+        global_params = [
+            self.gp._log_sigma2_s,     # Signal variances  
+            self.gp._log_beta,         # Lengthscales
+            self.gp._mu_u,             # U distribution mean
+            self.gp._raw_chol          # U distribution covariance (Cholesky)
+        ]
+        
+        # Add inducing inputs if trainable
+        if hasattr(self.gp, 'Vx') and isinstance(self.gp.Vx, torch.nn.Parameter):
+            global_params.append(self.gp.Vx)
+            
+        self.optimizer_global = torch.optim.Adam(global_params, lr=0.001)
+
+    def encode_local_params(self, y_n, mu_u, Sigma_u):
+        """
+        Amortized inference: encode observation y_n and global params to local variational parameters
+        
+        Uses efficient batch vectorization of symmetric matrices (vech operation).
+        
+        Args:
+            y_n: [batch_size, M] - observations
+            mu_u: [M, L] - global variational mean (from self.gp.get_vector_mu_u().reshape(M, L))
+            Sigma_u: [M, L, L] - global variational covariance (from self.gp.get_matrix_Sigma_u())
+            
+        Returns:
+            mu_n: [batch_size, Q] - local variational means
+            sigma_n: [batch_size, Q] - local variational standard deviations
+        """
+        batch_size = y_n.shape[0]
+        
+
+        
+        # Flatten Sigma_u to vector form (upper triangular part) - batch operation
+        # Use vech(Sigma_u) for symmetric matrix representation
+        # Sigma_u has shape [M, L, L], vectorize all matrices at once
+        i, j = torch.triu_indices(self.L, self.L, device=Sigma_u.device)
+        Sigma_u_vech = Sigma_u[:, i, j].reshape(self.M, -1)  # [M, L*(L+1)/2]
+        
+        # Flatten to [M * L*(L+1)/2] for concatenation
+        Sigma_u_vech = Sigma_u_vech.reshape(-1)
+        
+        # Expand to batch size
+        Sigma_u_flat = Sigma_u_vech.unsqueeze(0).expand(batch_size, -1)
+        
+        # Concatenate inputs: [y_n, mu_u, vech(Sigma_u)]
+        mu_u_expanded = mu_u.unsqueeze(0).expand(batch_size, -1, -1).reshape(batch_size, -1)
+        
+        encoder_input = torch.cat([y_n, mu_u_expanded, Sigma_u_flat], dim=1)
+        
+        # Encode to local parameters
+        encoder_output = self.encoder(encoder_input)
+        
+        # Split output into mu_n and log_sigma_n
+        mu_n = encoder_output[:, :self.Q]
+        log_sigma_n = encoder_output[:, self.Q:]
+        
+        # Ensure positive standard deviations
+        sigma_n = torch.exp(log_sigma_n)
+        
+        return mu_n, sigma_n
+
+
+
+
+    @property 
+    def mu_x(self): 
+        return self.mu_x_train
+    
+    @property 
+    def Sigma_x(self): 
+        return self.Sigma_x_train
+    
+    def get_kl_x_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
+        x_prior = torch.distributions.Normal(torch.zeros(self.A), torch.ones(self.A))
+        x_train = torch.distributions.Normal(mu_x, Sigma_x)
+        kl_train = torch.distributions.kl_divergence(x_train, x_prior).mean(dim=0).sum()
+        if self.mu_x_test is None:
+            return kl_train
+        else:
+            x_test = torch.distributions.Normal(self.mu_x_test, self.Sigma_x_test)
+            kl_test = torch.distributions.kl_divergence(x_test, x_prior).mean(dim=0).sum()
+            return kl_train + kl_test
+    
+    def get_ssvi_mean_prediction(self, inputs):
+        """
+        Mean prediction for GP-LVM using synchronized q(u).
+        Returns [N_test, M] for C_obs=1 by squeezing the last dimension.
+        """
+        mu_s = self.get_mean_prediction_observed_inputs(inputs)  # [N_test, M, C]
+        if mu_s.shape[-1] == 1:
+            return mu_s[..., 0]
+        return mu_s
+
+    def get_u_samples_ssvi(self, num_samples: int) -> torch.Tensor:
+        """Sample U from current q(u) in gp (already kept in sync by setters)."""
+        samples = self.get_u_vec_samples()
+        return samples.reshape(self.P, self.M, self.C, self.Lx)
+
+    def _s_expectation_given_U(self, kernel_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
+        """
+        kernel_expectation: [P, N, C, L]
+        U_samples: [P, M, C, L]
+        Returns: [P, N, M, C]
+        """
+        K_VV_inv = self.gp.get_K_VV_x_inv()  # C x L x L
+        return (
+            kernel_expectation[:, :, None, :, None, :] @
+            K_VV_inv[None, None, None, :, :, :] @
+            U_samples[:, None, :, :, :, None]
+        )[..., 0, 0]
+
+    def _s_outer_expectation_given_U(self, kernel_outer_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
+        """
+        kernel_outer_expectation: [P, N, C, C, L, L]
+        U_samples: [P, M, C, L]
+        Returns: [P, N, C, C]
+        """
+        K_VV = self.gp.get_K_VV_matrix()               # (C*L) x (C*L)
+        K_VV_inv_matrix = self.gp.get_K_VV_inv_matrix() # (C*L) x (C*L)
+
+        # Reshape U from [P, M, C, L] to [P, M, C*L]
+        Pn = U_samples.shape[0]
+        u_vec = U_samples.reshape(Pn, self.M, self.C * self.Lx)
+
+        Ma = (u_vec[:, :, :, None] * u_vec[:, :, None, :] - K_VV[None, :, :]).sum(dim=1)  # [P, CL, CL]
+        Ma = (K_VV_inv_matrix @ Ma @ K_VV_inv_matrix.transpose(-2, -1))
+        Ma = Ma.reshape(Pn, self.C, self.Lx, self.C, self.Lx).permute(0, 1, 3, 2, 4)      # [P, C, C, L, L]
+
+        Z = kernel_outer_expectation  # [P, N, C, C, L, L]
+        K_xx_expectation = torch.diag(self.gp.sigma2_s)
+        A = K_xx_expectation * self.M + (Ma[:, None, :, :, :, :] * Z).sum(dim=[-2, -1])
+        return A
+
+    def amortized_inference_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor, 
+                                detach_global_params: bool = False):
+        """
+        Amortized inference step: encode observations to local variational parameters
+        
+        Returns raw encoder outputs with gradients for direct use in ELBO.
+        Updates parent class tensors only for bookkeeping (detached).
+        
+        Args:
+            Y_batch: Mini-batch of observations [batch_size x M]
+            batch_indices: Indices of data points in the batch [batch_size]
+            U_samples: Global variational samples [P, M, C, L] (not used directly but maintains interface)
+            detach_global_params: If True, detach mu_u and Sigma_u to prevent gradients flowing to GP
+            
+        Returns:
+            mu_n_batch: [batch_size, Q] - local variational means with gradients
+            sigma_n_batch: [batch_size, Q] - local variational std devs with gradients
+        """
+        # Get global variational parameters from GP
+        mu_u = self.gp.get_vector_mu_u().reshape(self.M, self.L)  # [M, L]
+        Sigma_u = self.gp.get_matrix_Sigma_u()  # [M, L, L]
+        
+        # Detach global params for local step to prevent gradients flowing to GP
+        if detach_global_params:
+            mu_u = mu_u.detach()
+            Sigma_u = Sigma_u.detach()
+        
+        # Encode local parameters using amortized inference
+        mu_n_batch, sigma_n_batch = self.encode_local_params(Y_batch, mu_u, Sigma_u)
+        
+        # Update parent class tensors for bookkeeping (detached copies)
+        with torch.no_grad():
+            self.mu_x_train[:, batch_indices, :] = mu_n_batch.detach().unsqueeze(0).expand(self.P, -1, -1)
+            self._log_sigma_x_train[:, batch_indices, :] = torch.log(sigma_n_batch.detach()).unsqueeze(0).expand(self.P, -1, -1)
+        
+        return mu_n_batch, sigma_n_batch
+    
+
+
+    # def elbo(self,D_train, R_train, D_test=None, mu_x_train=None, Sigma_x_train=None, U_samples: torch.Tensor = None):
+        # needed to override to make the inputs configurable for the local elbo to pass single x_i if needed
+        # so changed only using mu_x_train, Sigma_x_train instead of self.mu_x_train, self.Sigma_x_train
+    def elbo(self,D_train, R_train, D_test=None, mu_x_train=None, Sigma_x_train=None, U_samples: torch.Tensor = None):
+        kernel_train_expectation = self._get_lv_kernel_expectation(mu_x_train, Sigma_x_train)
+        kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x_train,Sigma_x_train)
+        assert U_samples is not None, "U_samples must be provided for ELBO computation"
+        # Replaced _s_expectation and _s_outer_expectation with _s_expectation_given_U and _s_outer_expectation_given_U
+        s_train_expectation = self._s_expectation_given_U(kernel_expectation=kernel_train_expectation,
+                                                         U_samples=U_samples)
+        s_train_outer_expectation = self._s_outer_expectation_given_U(kernel_outer_expectation=kernel_train_outer_expectation,
+                                                                     U_samples=U_samples)
+        if D_test is None: 
+            return self._elbo(
+                s_train_expectation,
+                s_train_outer_expectation,
+                D_train,
+                R_train,
+                mu_x_train,
+                Sigma_x_train,
+            )
+        else:
+            kernel_test_expectation = self._get_lv_kernel_expectation(self.mu_x_test, self.Sigma_x_test)
+            kernel_test_outer_expectation = self._get_lv_kernel_outer_expectation(self.mu_x_test,self.Sigma_x_test)
+            s_test_expectation = self.gp.get_s_expectation(kernel_test_expectation)
+            s_test_outer_expectation = self.gp.get_s_outer_expectation(kernel_test_outer_expectation)
+            return self._elbo(
+                s_train_expectation,
+                s_train_outer_expectation,
+                D_train,
+                R_train,
+                mu_x_train,
+                Sigma_x_train,
+                D_test=D_test,
+                s_test_expectation=s_test_expectation,
+                s_test_outer_expectation=s_test_outer_expectation,
+            )
+            
+    def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train, mu_x_train, Sigma_x_train,  s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
+    # Same reason to override as in elbo - to have mu_x_train, Sigma_x_train as arguments    
+        return self.coordinator._elbo(
+                            s_train_expectation=s_train_expectation, 
+                            s_train_outer_expectation=s_train_outer_expectation, 
+                            D_train=D_train, 
+                            R_train=R_train,  
+                            mu_x_train=mu_x_train, 
+                            Sigma_x_train=Sigma_x_train,
+                            s_test_expectation=s_test_expectation, 
+                            s_test_outer_expectation=s_test_outer_expectation,
+                            D_test=D_test
+                        )
+    
+    def gplvm_elbo(self, y, mu_x_train, Sigma_x_train, U_samples: torch.Tensor = None):
+        R_train = torch.ones((y.shape[0],1), device=y.device, dtype=y.dtype)
+        return self.elbo(y, R_train, mu_x_train=mu_x_train, Sigma_x_train=Sigma_x_train, U_samples=U_samples)
+
+    def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor):
+        """
+        Single training step with amortized inference and separate optimizers
+        
+        Implements clean alternating optimization:
+        1. Local step: Update encoder using mu_n_batch, sigma_n_batch with gradients
+        2. Global step: Update GP params using fresh encoder outputs
+        
+        Args:
+            Y_batch: Mini-batch of observations [batch_size x M]
+            batch_indices: Indices of data points in the batch [batch_size]
+            U_samples: Global variational samples [P, M, C, L]
+        """
+        # ===== LOCAL UPDATE =====
+        # Multiple inner optimization steps for robust encoder training (like in original SSVI)
+        local_losses = []
+        
+        for inner_step in range(self.num_inner_steps):
+            # Detach global params to prevent gradients flowing to GP during local step
+            mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices, U_samples, 
+                                                                     detach_global_params=True)
+            
+            self.optimizer_local.zero_grad()
+            # Use raw encoder outputs with gradients for local loss
+            # Also detach U_samples to prevent GP gradient computation
+            local_loss = -self.gplvm_elbo(Y_batch, 
+                                         mu_n_batch.unsqueeze(0).expand(self.P, -1, -1),
+                                         sigma_n_batch.unsqueeze(0).expand(self.P, -1, -1),
+                                         U_samples=U_samples.detach())
+            local_loss.backward()
+            self.optimizer_local.step()
+            
+            local_losses.append(local_loss.item())
+        
+        # Use final local loss for logging
+        final_local_loss = local_losses[-1]
+        
+        # Store inner step losses for monitoring (optional)
+        self.last_inner_losses = local_losses
+        
+        # ===== GLOBAL UPDATE =====
+        # Get fresh encoder outputs but detach them to freeze encoder during global step
+        mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices, U_samples, 
+                                                                 detach_global_params=False)
+        # Detach encoder outputs to prevent gradients flowing to encoder during global step
+        mu_n_batch = mu_n_batch.detach()
+        sigma_n_batch = sigma_n_batch.detach()
+        
+        self.optimizer_global.zero_grad()
+        # Use detached encoder outputs for global loss - gradients flow only to GP params
+        global_loss = -self.gplvm_elbo(Y_batch,
+                                      mu_n_batch.unsqueeze(0).expand(self.P, -1, -1),
+                                      sigma_n_batch.unsqueeze(0).expand(self.P, -1, -1),
+                                      U_samples=U_samples)
+        global_loss.backward()
+        self.optimizer_global.step()
+        
+        return final_local_loss, global_loss.item()
+    
+    def get_last_inner_losses(self):
+        """Get the inner step losses from the last local update for monitoring"""
+        if hasattr(self, 'last_inner_losses'):
+            return self.last_inner_losses
+        return []
+
+
+class NormalCoordinatorCustom:
+    def __init__(self, module:MFModels, sum_to_one:bool):
+        self.module=module
+        self.inner_train_solver = MultivariateNormalSolver(self.module.C_unobs)
+        if sum_to_one:
+            self.linear_map = torch.vstack([torch.zeros(self.module.C-1), torch.eye(self.module.C-1)])
+            self.linear_map[:self.module.C_obs, :self.module.C_obs-1] = generate_regular_simplex(self.module.C_obs-1)
+            self.h = torch.zeros(self.module.C)
+            self.h[:self.module.C_obs] = torch.ones(self.module.C_obs)/self.module.C_obs
+            self.inner_test_solver = MultivariateNormalSolver(self.module.C -1)
+        else:
+            self.linear_map = None
+            self.inner_test_solver = MultivariateNormalSolver(self.module.C)
+
+    def get_A_test(self, s_outer_expectation):
+        if self.linear_map is not None:
+            return self.linear_map.T@(1/(self.module.sigma2)*(s_outer_expectation))@self.linear_map # [N] x (C-1) x (C-1) 
+        else:
+            return 1/(self.module.sigma2)*(s_outer_expectation) # [N] x C x C 
+        
+    def get_b_test(self, D_test, s_expectation: torch.Tensor):
+        if self.linear_map is not None: 
+            return 1/(self.module.sigma2)*((D_test - (self.h[..., :]*s_expectation).sum(dim=-1))[..., None, None]*s_expectation[...,None]*self.linear_map[...,None,None,:,:]).sum(dim=[-2,-3]) # N x (C-1)
+        else:
+            return 1/(self.module.sigma2)*(D_test[:,:,None]*s_expectation).sum(dim=-2) # N x C 
+
+                
+    def get_const_test(self, D_test, s_expectation: torch.Tensor, s_outer_expectation: torch.Tensor):
+        if self.linear_map is not None:
+            # If something breaks for structured VI, look here
+            return -(D_test.shape[1] * D_test.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_test**2).sum() - 2 * (D_test[..., None] * s_expectation *self.h[...,None,None,:]).sum(dim=[-3,-2,-1]).mean()  + (self.h[...,None, None, :]*s_outer_expectation*self.h[...,None, :, None]).sum(dim=[-3,-2,-1]).mean())
+        else: 
+            const_test= -(D_test.shape[1] * D_test.shape[0] )/2*torch.log(self.module.sigma2)- 1/(2*self.module.sigma2)*(D_test**2).sum()
+            if len(s_expectation.shape)==3:
+                return const_test
+            if len(s_expectation.shape)==4:
+                return const_test[None,...]
+            else:
+                raise AssertionError("I should never be here")
+
+    def get_A_train(self, s_unobs_outer_expectation):
+        return 1/(self.module.sigma2)*(s_unobs_outer_expectation)
+    
+    def get_b_train(self, D_train, R_train, s_unobs_expectation, s_outer_cross_expectation):
+        # return 1/(self.parent.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=1) - (R_train[:,:,None]*s_outer_cross_expectation).sum(dim=1))
+        return 1/(self.module.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=-2) - (R_train[...,:,:,None]*s_outer_cross_expectation).sum(dim=-2))
+                
+    def get_const_train(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
+        return -(D_train.shape[1] * D_train.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
+               
+               # torch.einsum("nm, mc, cn", D_train, s_obs_expectation, R_train.T)                                                                          #    torch.einsum("nc, ncd, dn",R_train,s_obs_outer_expectation,R_train.T))
+    
+    def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train, mu_x_train, Sigma_x_train, s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
+        # Again same reason to override as in elbo
+        assert R_train.shape[1] == self.module.C_obs
+        s_train_obs_expectation = s_train_expectation[...,:self.module.C_obs]
+        s_train_unobs_expectation = s_train_expectation[...,self.module.C_obs:]
+
+        s_train_obs_outer_expectation = s_train_outer_expectation[..., :self.module.C_obs,:self.module.C_obs]
+        s_train_cross_outer_expectation = s_train_outer_expectation[..., :self.module.C_obs,self.module.C_obs:]
+        s_train_unobs_outer_expectation = s_train_outer_expectation[..., self.module.C_obs:,self.module.C_obs:]
+
+        
+
+        A_train = self.get_A_train(s_train_unobs_outer_expectation) # C_unobs x C_unobs
+        b_train = self.get_b_train(D_train, R_train, s_train_unobs_expectation, s_train_cross_outer_expectation) # N x C_unobs
+        const_train = self.get_const_train(D_train, R_train, s_train_obs_expectation, s_train_obs_outer_expectation)
+        
+        # Scale const_train for mini-batches to represent full dataset contribution
+        batch_size = D_train.shape[0]
+        total_size = mu_x_train.shape[0] if mu_x_train.dim() == 2 else mu_x_train.shape[1]
+        if batch_size != total_size:
+            const_train = const_train * (total_size / batch_size)
+        
+        training_inner_elbo = self.inner_train_solver(A_train, b_train).mean() + const_train.mean()
+        # HERE IS THE CORRECTION TO USE mu_x_train, Sigma_x_train FROM THE ARGUMETNS
+        #kl = self.module.get_kl_from(mu_x_train, Sigma_x_train)
+        # Match Struc_WS_GPLVM: KL_u + KL_x (averaged over P if provided)
+        kl = self.module.get_kl_from(mu_x_train, Sigma_x_train)
+        if D_test is None: 
+            return training_inner_elbo.mean() - kl
+        else: 
+            assert s_test_expectation is not None
+            assert s_test_outer_expectation is not None
+            A_test = self.get_A_test(s_test_outer_expectation)
+            b_test = self.get_b_test(D_test, s_test_expectation)
+            const_test = self.get_const_test(D_test, s_test_expectation, s_test_outer_expectation)
+            test_inner_elbo = self.inner_test_solver(A_test, b_test).mean() + const_test
+            return (training_inner_elbo
+                    + test_inner_elbo
+                    - kl)
+    
+    def predict_weights(self, D, s_expectation, s_outer_expectation):
+        # s_expectation = self.module.get_s_expectation(D_test.shape[0])
+        # s_outer_expectation = self.module.get_s_outer_expectation(D_test.shape[0])
+        A_test = self.get_A_test(s_outer_expectation)
+        b_test = self.get_b_test(D, s_expectation)
+        if self.linear_map is not None:
+            mu_rho, Sigma_rho = self.inner_test_solver.get_weight_params(A_test, b_test)
+            mu_r = mu_rho @ self.linear_map.T + self.h
+            Sigma_r = self.linear_map@Sigma_rho@self.linear_map.T + 1e-8
+        else:
+            mu_r, Sigma_r = self.inner_test_solver.get_weight_params(A_test, b_test)
+        return torch.distributions.MultivariateNormal(mu_r,Sigma_r, validate_args=False)
+    
+    
