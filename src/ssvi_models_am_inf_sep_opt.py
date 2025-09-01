@@ -10,7 +10,7 @@ import numpy as np
 
 class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
     def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, 
-                 encoder_hidden_dims=[64, 32], num_inner_steps=5):
+                 encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001):
         super().__init__(P=P, V=Vx, M=M, C_obs=1, mu_x_train=mu_x, mu_x_test=None, C_unobs=0, 
                         sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s, 
                         trainable_V=trainable_V)
@@ -24,11 +24,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         # Output: mu_n (Q) + log_sigma_n (Q) = 2*Q total
         self.encoder = self._build_encoder(encoder_hidden_dims, 2 * self.Q)
         
-        # Number of inner optimization steps for local update (like in original SSVI)
-        self.num_inner_steps = num_inner_steps
-        
-        # Separate optimizers for different parameter groups
-        self._setup_optimizers()
+        # Separate optimizers for different learning rates
+        self._setup_optimizers(local_lr, global_lr)
         
         self.coordinator = NormalCoordinatorCustom(module=self, sum_to_one=False)
 
@@ -53,11 +50,11 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         return nn.Sequential(*layers)
 
-    def _setup_optimizers(self):
-        """Setup separate optimizers for different parameter groups"""
+    def _setup_optimizers(self, local_lr, global_lr):
+        """Setup separate optimizers for different learning rates"""
         # Local parameters (amortized inference encoder)
         local_params = list(self.encoder.parameters())
-        self.optimizer_local = torch.optim.Adam(local_params, lr=0.001)
+        self.optimizer_local = torch.optim.Adam(local_params, lr=local_lr)
         
         # Global parameters (GP hyperparameters, inducing points, and U distribution)
         global_params = [
@@ -71,7 +68,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         if hasattr(self.gp, 'Vx') and isinstance(self.gp.Vx, torch.nn.Parameter):
             global_params.append(self.gp.Vx)
             
-        self.optimizer_global = torch.optim.Adam(global_params, lr=0.001)
+        self.optimizer_global = torch.optim.Adam(global_params, lr=global_lr)
 
     def encode_local_params(self, y_n, mu_u, Sigma_u):
         """
@@ -120,9 +117,6 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         sigma_n = torch.exp(log_sigma_n)
         
         return mu_n, sigma_n
-
-
-
 
     @property 
     def mu_x(self): 
@@ -193,32 +187,21 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         A = K_xx_expectation * self.M + (Ma[:, None, :, :, :, :] * Z).sum(dim=[-2, -1])
         return A
 
-    def amortized_inference_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor, 
-                                detach_global_params: bool = False):
+    def amortized_inference_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor):
         """
         Amortized inference step: encode observations to local variational parameters
-        
-        Returns raw encoder outputs with gradients for direct use in ELBO.
-        Updates parent class tensors only for bookkeeping (detached).
         
         Args:
             Y_batch: Mini-batch of observations [batch_size x M]
             batch_indices: Indices of data points in the batch [batch_size]
-            U_samples: Global variational samples [P, M, C, L] (not used directly but maintains interface)
-            detach_global_params: If True, detach mu_u and Sigma_u to prevent gradients flowing to GP
             
         Returns:
             mu_n_batch: [batch_size, Q] - local variational means with gradients
             sigma_n_batch: [batch_size, Q] - local variational std devs with gradients
         """
-        # Get global variational parameters from GP
+        # Get global variational parameters from GP (with gradients)
         mu_u = self.gp.get_vector_mu_u().reshape(self.M, self.L)  # [M, L]
         Sigma_u = self.gp.get_matrix_Sigma_u()  # [M, L, L]
-        
-        # Detach global params for local step to prevent gradients flowing to GP
-        if detach_global_params:
-            mu_u = mu_u.detach()
-            Sigma_u = Sigma_u.detach()
         
         # Encode local parameters using amortized inference
         mu_n_batch, sigma_n_batch = self.encode_local_params(Y_batch, mu_u, Sigma_u)
@@ -290,68 +273,41 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
 
     def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor):
         """
-        Single training step with amortized inference and separate optimizers
+        Single training step with unified global ELBO optimization
         
-        Implements clean alternating optimization:
-        1. Local step: Update encoder using mu_n_batch, sigma_n_batch with gradients
-        2. Global step: Update GP params using fresh encoder outputs
+        Uses amortized inference for local parameters but optimizes all parameters 
+        jointly using the global ELBO. Separate optimizers are used only for 
+        different learning rates.
         
         Args:
             Y_batch: Mini-batch of observations [batch_size x M]
             batch_indices: Indices of data points in the batch [batch_size]
             U_samples: Global variational samples [P, M, C, L]
+            
+        Returns:
+            loss: Negative ELBO loss value
         """
-        # ===== LOCAL UPDATE =====
-        # Multiple inner optimization steps for robust encoder training (like in original SSVI)
-        local_losses = []
-        
-        for inner_step in range(self.num_inner_steps):
-            # Detach global params to prevent gradients flowing to GP during local step
-            mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices, U_samples, 
-                                                                     detach_global_params=True)
-            
-            self.optimizer_local.zero_grad()
-            # Use raw encoder outputs with gradients for local loss
-            # Also detach U_samples to prevent GP gradient computation
-            local_loss = -self.gplvm_elbo(Y_batch, 
-                                         mu_n_batch.unsqueeze(0).expand(self.P, -1, -1),
-                                         sigma_n_batch.unsqueeze(0).expand(self.P, -1, -1),
-                                         U_samples=U_samples.detach())
-            local_loss.backward()
-            self.optimizer_local.step()
-            
-            local_losses.append(local_loss.item())
-        
-        # Use final local loss for logging
-        final_local_loss = local_losses[-1]
-        
-        # Store inner step losses for monitoring (optional)
-        self.last_inner_losses = local_losses
-        
-        # ===== GLOBAL UPDATE =====
-        # Get fresh encoder outputs but detach them to freeze encoder during global step
-        mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices, U_samples, 
-                                                                 detach_global_params=False)
-        # Detach encoder outputs to prevent gradients flowing to encoder during global step
-        mu_n_batch = mu_n_batch.detach()
-        sigma_n_batch = sigma_n_batch.detach()
-        
+        # Zero gradients for both optimizers BEFORE forward pass
+        self.optimizer_local.zero_grad()
         self.optimizer_global.zero_grad()
-        # Use detached encoder outputs for global loss - gradients flow only to GP params
-        global_loss = -self.gplvm_elbo(Y_batch,
-                                      mu_n_batch.unsqueeze(0).expand(self.P, -1, -1),
-                                      sigma_n_batch.unsqueeze(0).expand(self.P, -1, -1),
-                                      U_samples=U_samples)
-        global_loss.backward()
+        
+        # Get local parameters via amortized inference (with gradients to all params)
+        mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices)
+        
+        # Compute global ELBO loss (gradients flow to all parameters)
+        loss = -self.gplvm_elbo(Y_batch,
+                               mu_n_batch.unsqueeze(0).expand(self.P, -1, -1),
+                               sigma_n_batch.unsqueeze(0).expand(self.P, -1, -1),
+                               U_samples=U_samples)
+        
+        # Backward pass (gradients computed for all parameters)
+        loss.backward()
+        
+        # Update parameters with different learning rates
+        self.optimizer_local.step()
         self.optimizer_global.step()
         
-        return final_local_loss, global_loss.item()
-    
-    def get_last_inner_losses(self):
-        """Get the inner step losses from the last local update for monitoring"""
-        if hasattr(self, 'last_inner_losses'):
-            return self.last_inner_losses
-        return []
+        return loss.item()
 
 
 class NormalCoordinatorCustom:
