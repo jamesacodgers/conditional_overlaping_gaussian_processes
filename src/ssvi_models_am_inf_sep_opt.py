@@ -309,6 +309,47 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         return loss.item()
 
+    def get_gradient_info(self):
+        """
+        Get gradient and parameter information for logging
+        Returns dict with gradient norms and parameter info
+        """
+        info = {}
+        
+        # q(u) parameters gradients
+        if hasattr(self.gp, '_mu_u') and self.gp._mu_u.grad is not None:
+            info['mu_u_grad_norm'] = self.gp._mu_u.grad.norm().item()
+            info['mu_u_param_norm'] = self.gp._mu_u.norm().item()
+        
+        if hasattr(self.gp, '_raw_chol') and self.gp._raw_chol.grad is not None:
+            info['raw_chol_grad_norm'] = self.gp._raw_chol.grad.norm().item()
+            info['raw_chol_param_norm'] = self.gp._raw_chol.norm().item()
+        
+        # Encoder gradients
+        encoder_grad_norms = []
+        encoder_param_norms = []
+        for name, param in self.encoder.named_parameters():
+            if param.grad is not None:
+                encoder_grad_norms.append(param.grad.norm().item())
+                encoder_param_norms.append(param.norm().item())
+        
+        if encoder_grad_norms:
+            info['encoder_grad_norm_max'] = max(encoder_grad_norms)
+            info['encoder_grad_norm_mean'] = sum(encoder_grad_norms) / len(encoder_grad_norms)
+            info['encoder_param_norm_max'] = max(encoder_param_norms)
+            info['encoder_param_norm_mean'] = sum(encoder_param_norms) / len(encoder_param_norms)
+        
+        # GP hyperparameters gradients
+        if hasattr(self.gp, 'beta') and hasattr(self.gp, '_log_beta') and self.gp._log_beta.grad is not None:
+            info['beta_grad_norm'] = self.gp._log_beta.grad.norm().item()
+            info['beta_values'] = self.gp.beta.detach().cpu().numpy().tolist()
+        
+        if hasattr(self.gp, 'sigma2') and hasattr(self.gp, '_log_sigma2') and self.gp._log_sigma2.grad is not None:
+            info['sigma2_grad_norm'] = self.gp._log_sigma2.grad.norm().item()
+            info['sigma2_value'] = self.gp.sigma2.item()
+        
+        return info
+
 
 class NormalCoordinatorCustom:
     def __init__(self, module:MFModels, sum_to_one:bool):

@@ -8,9 +8,72 @@ import numpy as np
 import urllib.request
 import tarfile
 import time
+import os
+import json
+from datetime import datetime
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 torch.set_default_device(device)
+
+class ResultsLogger:
+    """Logger for oil flow SSVI GP-LVM results and gradients"""
+    
+    def __init__(self, config: 'OilFlowSSVIConfig'):
+        self.config = config
+        
+        if config.save_results:
+            # Create results directory with timestamp in existing results folder
+            timestamp = datetime.now().strftime("%d_%m_%H_%M")
+            self.results_dir = f"results/oil_flow_gp_lvm_ssvi_results/oil_flow_res_{timestamp}"
+            os.makedirs(self.results_dir, exist_ok=True)
+            
+            # Initialize log files
+            self.training_log_path = os.path.join(self.results_dir, "training_log.txt")
+            self.gradient_log_path = os.path.join(self.results_dir, "gradient_log.jsonl")
+            
+            # Save config
+            config_path = os.path.join(self.results_dir, "config.json")
+            with open(config_path, 'w') as f:
+                # Convert config to dict, handling non-serializable fields
+                config_dict = {}
+                for key, value in config.__dict__.items():
+                    try:
+                        json.dumps(value)  # Test if serializable
+                        config_dict[key] = value
+                    except:
+                        config_dict[key] = str(value)
+                json.dump(config_dict, f, indent=2)
+        else:
+            self.results_dir = None
+    
+    def log_training(self, message: str):
+        """Log training progress to file only (console prints handled elsewhere)"""
+        if self.results_dir:
+            with open(self.training_log_path, 'a') as f:
+                f.write(f"{message}\n")
+    
+    def log_gradients(self, iteration: int, loss: float, gradient_info: dict):
+        """Log gradient information to file"""
+        if self.results_dir and self.config.enable_gradient_logging:
+            log_entry = {
+                'iteration': iteration,
+                'loss': loss,
+                'timestamp': datetime.now().isoformat(),
+                **gradient_info
+            }
+            with open(self.gradient_log_path, 'a') as f:
+                f.write(json.dumps(log_entry) + '\n')
+    
+    def save_plots(self, figure, filename: str):
+        """Save matplotlib figure to results directory"""
+        if self.results_dir:
+            plot_path = os.path.join(self.results_dir, filename)
+            figure.savefig(plot_path, dpi=300, bbox_inches='tight')
+            self.log_training(f"Plot saved: {filename}")
+    
+    def get_results_dir(self):
+        """Get results directory path"""
+        return self.results_dir
 
 @dataclass
 class OilFlowSSVIConfig:
@@ -47,6 +110,11 @@ class OilFlowSSVIConfig:
     # === Progress Reporting ===
     log_frequency: int = 100  # Log every N iterations
     
+    # === Advanced Logging ===
+    enable_gradient_logging: bool = False  # Log gradients and parameter changes
+    gradient_log_frequency: int = 50       # Log gradients every N iterations
+    save_results: bool = True              # Save results to folder
+    
     def __post_init__(self):
         """Set default encoder architecture if not specified"""
         if self.encoder_hidden_dims is None:
@@ -60,6 +128,9 @@ class OilFlowSSVIConfig:
         print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")
         print(f"Learning rates: Local={self.local_lr}, Global={self.global_lr}")
         print(f"SSVI: P={self.P} samples")
+        print(f"Logging: Save results={self.save_results}, Gradients={self.enable_gradient_logging}")
+        if self.enable_gradient_logging:
+            print(f"  Gradient log frequency: every {self.gradient_log_frequency} iterations")
         print("=" * 50)
 
 def load_oil_flow_data(config: OilFlowSSVIConfig):
@@ -156,8 +227,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         R_train = torch.ones((y.shape[0], 1), device=y.device, dtype=y.dtype)
         return self.elbo(y, R_train, mu_x_train=mu_x_train, Sigma_x_train=Sigma_x_train, U_samples=U_samples)
 
-def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig):
-    """Training function for Oil Flow SSVI GP-LVM"""
+def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig, logger: ResultsLogger = None):
+    """Training function for Oil Flow SSVI GP-LVM with optional logging"""
     losses = []
     
     print(f"Training Oil Flow SSVI GP-LVM...")
@@ -175,21 +246,34 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig)
         loss = model.train_step(y_batch, batch_indices)
         losses.append(loss)
         
+        # Gradient logging (only if logger provided and enabled)
+        if logger and config.enable_gradient_logging and i % config.gradient_log_frequency == 0:
+            gradient_info = model.get_gradient_info()
+            logger.log_gradients(i, loss, gradient_info)
+        
         # Progress reporting
         if i % config.log_frequency == 0:
             elapsed = time.time() - start_time
+            message = f"Iteration {i}/{config.training_iterations}: Loss={loss:.4f}, Time={elapsed:.1f}s"
             print(f"Iteration {i}/{config.training_iterations}")
             print(f"  Loss: {loss:.4f}")
             print(f"  Time elapsed: {elapsed:.1f}s")
+            # Log to file
+            if logger:
+                logger.log_training(message)
     
     total_time = time.time() - start_time
+    final_message = f"Training completed! Final Loss: {losses[-1]:.4f}, Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)"
     print(f"Training completed!")
     print(f"Final Loss: {losses[-1]:.4f}")
     print(f"Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)")
+    # Log to file
+    if logger:
+        logger.log_training(final_message)
     
     return losses
 
-def visualize_results(model: OilFlow_SSVI_GPLVM, y, labels, losses, config: OilFlowSSVIConfig):
+def visualize_results(model: OilFlow_SSVI_GPLVM, y, labels, losses, config: OilFlowSSVIConfig, logger: ResultsLogger):
     """Visualize training results and latent space"""
     
     if not (config.plot_training or config.plot_latent_space or config.plot_hyperparams):
@@ -202,7 +286,7 @@ def visualize_results(model: OilFlow_SSVI_GPLVM, y, labels, losses, config: OilF
         
         n_plots = sum([config.plot_training, config.plot_latent_space, config.plot_hyperparams])
         fig_width = 4 * n_plots
-        plt.figure(figsize=(fig_width, 4))
+        fig = plt.figure(figsize=(fig_width, 4))
         
         plot_idx = 1
         
@@ -244,15 +328,18 @@ def visualize_results(model: OilFlow_SSVI_GPLVM, y, labels, losses, config: OilF
             plt.grid(True, alpha=0.3)
         
         plt.tight_layout()
+        
+        # Save plot
+        logger.save_plots(fig, "training_results.png")
         plt.show()
 
-def visualize_latent_samples(model: OilFlow_SSVI_GPLVM, labels, dims=(4, 0)):
+def visualize_latent_samples(model: OilFlow_SSVI_GPLVM, labels, logger: ResultsLogger, dims=(4, 0)):
     """Visualize samples from latent space uncertainty"""
     with torch.no_grad():
         c = ["r", "g", "b"]
         colors = [c[int(i)-1] for i in labels]
         
-        plt.figure(figsize=(8, 6))
+        fig = plt.figure(figsize=(8, 6))
         
         for p in range(model.P):
             # Sample from latent distribution
@@ -271,6 +358,9 @@ def visualize_latent_samples(model: OilFlow_SSVI_GPLVM, labels, dims=(4, 0)):
         plt.xlabel(f'Latent Dimension {dim1}')
         plt.ylabel(f'Latent Dimension {dim2}')
         plt.title(f'Latent Space Samples (Dims {dim1} vs {dim2})')
+        
+        # Save plot
+        logger.save_plots(fig, f"latent_samples_dims_{dim1}_{dim2}.png")
         plt.show()
 
 # === Pre-defined Configurations ===
@@ -285,7 +375,9 @@ def get_fast_config():
         local_lr=2e-3,
         global_lr=1e-2,
         P=4,
-        log_frequency=50
+        log_frequency=50,
+        enable_gradient_logging=True,
+        gradient_log_frequency=25
     )
 
 def get_standard_config():
@@ -354,9 +446,19 @@ def main(config: OilFlowSSVIConfig = None):
     print(f"  Inducing points: {model.gp.Vx.shape}")
     print(f"  Latent variables: {model.mu_x.shape}")
     
+    # Initialize logger
+    logger = ResultsLogger(config)
+    if logger.results_dir:
+        print(f"Results will be saved to: {logger.results_dir}")
+        # Log initial info
+        logger.log_training("=== Oil Flow SSVI GP-LVM Training Session ===")
+        logger.log_training(f"Model: {config.n_inducing_points} inducing points, latent_dim={config.latent_dim}")
+        logger.log_training(f"Training: {config.training_iterations} iter, batch={config.batch_size}")
+        logger.log_training(f"Learning rates: Local={config.local_lr}, Global={config.global_lr}")
+    
     # Train model
     print(f"\nTraining model...")
-    losses = train_oil_flow_ssvi(model, y, config)
+    losses = train_oil_flow_ssvi(model, y, config, logger)
     
     # Test single step functionality
     print(f"\nTesting single step...")
@@ -367,12 +469,12 @@ def main(config: OilFlowSSVIConfig = None):
     
     # Visualize results
     print(f"\nVisualizing results...")
-    visualize_results(model, y, labels, losses, config)
+    visualize_results(model, y, labels, losses, config, logger)
     
     # Additional latent space visualization
     if config.plot_latent_space:
         print(f"Showing latent space samples...")
-        visualize_latent_samples(model, labels, dims=(4, 0))
+        visualize_latent_samples(model, labels, logger, dims=(4, 0))
     
     # Print final model parameters
     print(f"\nFinal Model Parameters:")
