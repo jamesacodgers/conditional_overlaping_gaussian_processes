@@ -55,6 +55,9 @@ class OilFlowSSVIConfig:
     def print_config(self):
         """Print configuration summary"""
         print("=== Oil Flow SSVI GP-LVM Configuration ===")
+        print("Gradient Flow Fixes Applied:")
+        print("  ✓ U sampling moved inside train_step for proper gradients to q(u)")
+        print("  ✓ Dimensionality consistency fixed (Lx = L)")
         print(f"Model: {self.n_inducing_points} inducing points, latent_dim={self.latent_dim}")
         print(f"Encoder: {self.encoder_hidden_dims} hidden dims")
         print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")
@@ -109,6 +112,39 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         
         # Store config
         self.config = config
+        
+        # Fix dimensionality inconsistency: ensure Lx = L
+        self.Lx = self.L
+
+    def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor = None):
+        """
+        Modified train_step: sample U inside for proper gradient flow
+        """
+        # Zero gradients for both optimizers BEFORE forward pass
+        self.optimizer_local.zero_grad()
+        self.optimizer_global.zero_grad()
+        
+        # Sample U inside train_step for proper gradient flow to q(u)
+        if U_samples is None:
+            U_samples = self.get_u_samples_ssvi(self.P)
+        
+        # Get local parameters via amortized inference (with gradients to all params)
+        mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices)
+        
+        # Compute global ELBO loss (gradients flow to all parameters)
+        loss = -self.gplvm_elbo(Y_batch,
+                               mu_n_batch.unsqueeze(0).expand(self.P, -1, -1),
+                               sigma_n_batch.unsqueeze(0).expand(self.P, -1, -1),
+                               U_samples=U_samples)
+        
+        # Backward pass (gradients computed for all parameters)
+        loss.backward()
+        
+        # Update parameters with different learning rates
+        self.optimizer_local.step()
+        self.optimizer_global.step()
+        
+        return loss.item()
 
     @property 
     def mu_x(self): 
@@ -138,11 +174,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig)
         batch_indices = torch.randperm(N)[:config.batch_size]
         y_batch = y[batch_indices]
         
-        # Sample U from current q(u) distribution
-        U_samples = model.get_u_samples_ssvi(model.P)
-        
-        # Training step
-        loss = model.train_step(y_batch, batch_indices, U_samples)
+        # Training step - U sampling now happens inside for proper gradient flow
+        loss = model.train_step(y_batch, batch_indices)
         losses.append(loss)
         
         # Progress reporting
@@ -332,8 +365,7 @@ def main(config: OilFlowSSVIConfig = None):
     print(f"\nTesting single step...")
     test_indices = torch.randperm(y.shape[0])[:10]
     test_y = y[test_indices]
-    test_U_samples = model.get_u_samples_ssvi(model.P)
-    test_loss = model.train_step(test_y, test_indices, test_U_samples)
+    test_loss = model.train_step(test_y, test_indices)
     print(f"Test step loss: {test_loss:.4f}")
     
     # Visualize results
