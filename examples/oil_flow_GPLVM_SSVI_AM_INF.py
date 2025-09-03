@@ -55,9 +55,6 @@ class OilFlowSSVIConfig:
     def print_config(self):
         """Print configuration summary"""
         print("=== Oil Flow SSVI GP-LVM Configuration ===")
-        print("Gradient Flow Fixes Applied:")
-        print("  ✓ U sampling moved inside train_step for proper gradients to q(u)")
-        print("  ✓ Dimensionality consistency fixed (Lx = L)")
         print(f"Model: {self.n_inducing_points} inducing points, latent_dim={self.latent_dim}")
         print(f"Encoder: {self.encoder_hidden_dims} hidden dims")
         print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")

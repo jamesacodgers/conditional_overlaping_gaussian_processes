@@ -113,8 +113,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         mu_n = encoder_output[:, :self.Q]
         log_sigma_n = encoder_output[:, self.Q:]
         
-        # Ensure positive standard deviations
-        sigma_n = torch.exp(log_sigma_n)
+        # Ensure positive standard deviations with numerical stability
+        sigma_n = torch.nn.functional.softplus(log_sigma_n) + 1e-6
         
         return mu_n, sigma_n
 
