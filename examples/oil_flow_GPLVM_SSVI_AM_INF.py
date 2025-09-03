@@ -25,7 +25,7 @@ class OilFlowSSVIConfig:
     latent_dim: int = 6  # A = 6 from original
     
     # === Model Architecture ===
-    n_inducing_points: int = 12
+    n_inducing_points: int = 64
     encoder_hidden_dims: list = None  # Will be set to [256, 128, 64] if None
     
     # === Training Configuration ===
@@ -334,26 +334,76 @@ def main(config: OilFlowSSVIConfig = None):
     return model, losses, config
 
 if __name__ == "__main__":
-    # === Usage Examples ===
+    # === Learning Rate Experiments ===
     
-    # 1. Standard configuration (default)
-    # main()
+    # Experiment 1: Low local, Low global
+    custom_config_1 = OilFlowSSVIConfig(
+        training_iterations=1000,
+        batch_size=128,
+        local_lr=5e-4,
+        global_lr=5e-3,
+        encoder_hidden_dims=[256, 128, 64],
+        enable_gradient_logging=True,
+        gradient_log_frequency=50
+    )
+    main(custom_config_1)
     
-    # 2. Fast configuration for testing
-     main(get_fast_config())
+    # Experiment 2: Low local, High global
+    custom_config_2 = OilFlowSSVIConfig(
+        training_iterations=1000,
+        batch_size=128,
+        local_lr=5e-4,
+        global_lr=2e-2,
+        encoder_hidden_dims=[256, 128, 64],
+        enable_gradient_logging=True,
+        gradient_log_frequency=50
+    )
+    main(custom_config_2)
     
-    # 3. High-quality configuration
-    # main(get_high_quality_config())
+    # Experiment 3: Medium local, Low global
+    custom_config_3 = OilFlowSSVIConfig(
+        training_iterations=1000,
+        batch_size=128,
+        local_lr=1e-3,
+        global_lr=5e-3,
+        encoder_hidden_dims=[256, 128, 64],
+        enable_gradient_logging=True,
+        gradient_log_frequency=50
+    )
+    main(custom_config_3)
     
-    # 4. Ablation study configuration
-    # main(get_ablation_config())
+    # Experiment 4: Medium local, High global  
+    custom_config_4 = OilFlowSSVIConfig(
+        training_iterations=1000,
+        batch_size=128,
+        local_lr=1e-3,
+        global_lr=2e-2,
+        encoder_hidden_dims=[256, 128, 64],
+        enable_gradient_logging=True,
+        gradient_log_frequency=50
+    )
+    main(custom_config_4)
     
-    # 5. Custom configuration
-    # custom_config = OilFlowSSVIConfig(
-    #     training_iterations=1500,
-    #     batch_size=150,
-    #     local_lr=1e-3,
-    #     global_lr=5e-3,
-    #     encoder_hidden_dims=[256, 128]
-    # )
-    # main(custom_config)
+    # Experiment 5: High local, Low global
+    custom_config_5 = OilFlowSSVIConfig(
+        training_iterations=1000,
+        batch_size=128,
+        local_lr=2e-3,
+        global_lr=5e-3,
+        encoder_hidden_dims=[256, 128, 64],
+        enable_gradient_logging=True,
+        gradient_log_frequency=50
+    )
+    main(custom_config_5)
+    
+    # Experiment 6: High local, High global
+    custom_config_6 = OilFlowSSVIConfig(
+        training_iterations=1000,
+        batch_size=128,
+        local_lr=2e-3,
+        global_lr=2e-2,
+        encoder_hidden_dims=[256, 128, 64],
+        enable_gradient_logging=True,
+        gradient_log_frequency=50
+    )
+    main(custom_config_6)
