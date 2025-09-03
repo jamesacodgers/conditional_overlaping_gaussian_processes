@@ -270,44 +270,6 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         R_train = torch.ones((y.shape[0],1), device=y.device, dtype=y.dtype)
         return self.elbo(y, R_train, mu_x_train=mu_x_train, Sigma_x_train=Sigma_x_train, U_samples=U_samples)
 
-    def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor):
-        """
-        Single training step with unified global ELBO optimization
-        
-        Uses amortized inference for local parameters but optimizes all parameters 
-        jointly using the global ELBO. Separate optimizers are used only for 
-        different learning rates.
-        
-        Args:
-            Y_batch: Mini-batch of observations [batch_size x M]
-            batch_indices: Indices of data points in the batch [batch_size]
-            U_samples: Global variational samples [P, M, C, L]
-            
-        Returns:
-            loss: Negative ELBO loss value
-        """
-        # Zero gradients for both optimizers BEFORE forward pass
-        self.optimizer_local.zero_grad()
-        self.optimizer_global.zero_grad()
-        
-        # Get local parameters via amortized inference (with gradients to all params)
-        mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices)
-        
-        # Compute global ELBO loss (gradients flow to all parameters)
-        loss = -self.gplvm_elbo(Y_batch,
-                               mu_n_batch.unsqueeze(0).expand(self.P, -1, -1),
-                               sigma_n_batch.unsqueeze(0).expand(self.P, -1, -1),
-                               U_samples=U_samples)
-        
-        # Backward pass (gradients computed for all parameters)
-        loss.backward()
-        
-        # Update parameters with different learning rates
-        self.optimizer_local.step()
-        self.optimizer_global.step()
-        
-        return loss.item()
-
     def get_gradient_info(self):
         """
         Get gradient and parameter information for logging
