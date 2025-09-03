@@ -2,78 +2,19 @@
 import torch 
 import matplotlib.pyplot as plt
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
+from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, visualize_latent_samples
 from dataclasses import dataclass
 from typing import Any
 import numpy as np
 import urllib.request
 import tarfile
-import time
 import os
 import json
 from datetime import datetime
+import time
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 torch.set_default_device(device)
-
-class ResultsLogger:
-    """Logger for oil flow SSVI GP-LVM results and gradients"""
-    
-    def __init__(self, config: 'OilFlowSSVIConfig'):
-        self.config = config
-        
-        if config.save_results:
-            # Create results directory with timestamp in existing results folder
-            timestamp = datetime.now().strftime("%d_%m_%H_%M")
-            self.results_dir = f"results/oil_flow_gp_lvm_ssvi_results/oil_flow_res_{timestamp}"
-            os.makedirs(self.results_dir, exist_ok=True)
-            
-            # Initialize log files
-            self.training_log_path = os.path.join(self.results_dir, "training_log.txt")
-            self.gradient_log_path = os.path.join(self.results_dir, "gradient_log.jsonl")
-            
-            # Save config
-            config_path = os.path.join(self.results_dir, "config.json")
-            with open(config_path, 'w') as f:
-                # Convert config to dict, handling non-serializable fields
-                config_dict = {}
-                for key, value in config.__dict__.items():
-                    try:
-                        json.dumps(value)  # Test if serializable
-                        config_dict[key] = value
-                    except:
-                        config_dict[key] = str(value)
-                json.dump(config_dict, f, indent=2)
-        else:
-            self.results_dir = None
-    
-    def log_training(self, message: str):
-        """Log training progress to file only (console prints handled elsewhere)"""
-        if self.results_dir:
-            with open(self.training_log_path, 'a') as f:
-                f.write(f"{message}\n")
-    
-    def log_gradients(self, iteration: int, loss: float, gradient_info: dict):
-        """Log gradient information to file"""
-        if self.results_dir and self.config.enable_gradient_logging:
-            log_entry = {
-                'iteration': iteration,
-                'loss': loss,
-                'timestamp': datetime.now().isoformat(),
-                **gradient_info
-            }
-            with open(self.gradient_log_path, 'a') as f:
-                f.write(json.dumps(log_entry) + '\n')
-    
-    def save_plots(self, figure, filename: str):
-        """Save matplotlib figure to results directory"""
-        if self.results_dir:
-            plot_path = os.path.join(self.results_dir, filename)
-            figure.savefig(plot_path, dpi=300, bbox_inches='tight')
-            self.log_training(f"Plot saved: {filename}")
-    
-    def get_results_dir(self):
-        """Get results directory path"""
-        return self.results_dir
 
 @dataclass
 class OilFlowSSVIConfig:
@@ -186,18 +127,19 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
 
     def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor = None):
         """
-        Modified train_step: sample U inside for proper gradient flow
+        Modified train_step: proper SSVI separation of local/global optimization
         """
-        # Zero gradients for both optimizers BEFORE forward pass
+        # Zero gradients for local optimizer (encoder) only initially
         self.optimizer_local.zero_grad()
+        
+        # Get local parameters via amortized inference (gradients only to encoder)
+        mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices)
+        
+        # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()
         
-        # Sample U inside train_step for proper gradient flow to q(u)
-        if U_samples is None:
-            U_samples = self.get_u_samples_ssvi(self.P)
-        
-        # Get local parameters via amortized inference (with gradients to all params)
-        mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices)
+        # Sample U right before ELBO computation
+        U_samples = self.get_u_samples_ssvi(self.P)
         
         # Compute global ELBO loss (gradients flow to all parameters)
         loss = -self.gplvm_elbo(Y_batch,
@@ -222,12 +164,9 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
     def Sigma_x(self): 
         return self.Sigma_x_train
     
-    def gplvm_elbo(self, y, mu_x_train, Sigma_x_train, U_samples: torch.Tensor = None):
-        """GPLVM ELBO for oil flow data"""
-        R_train = torch.ones((y.shape[0], 1), device=y.device, dtype=y.dtype)
-        return self.elbo(y, R_train, mu_x_train=mu_x_train, Sigma_x_train=Sigma_x_train, U_samples=U_samples)
 
-def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig, logger: ResultsLogger = None):
+
+def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig, logger: SSVIResultsLogger = None):
     """Training function for Oil Flow SSVI GP-LVM with optional logging"""
     losses = []
     
@@ -242,7 +181,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
         batch_indices = torch.randperm(N)[:config.batch_size]
         y_batch = y[batch_indices]
         
-        # Training step - U sampling now happens inside for proper gradient flow
+        # Training step - U sampling happens inside automatically each step
         loss = model.train_step(y_batch, batch_indices)
         losses.append(loss)
         
@@ -272,96 +211,6 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
         logger.log_training(final_message)
     
     return losses
-
-def visualize_results(model: OilFlow_SSVI_GPLVM, y, labels, losses, config: OilFlowSSVIConfig, logger: ResultsLogger):
-    """Visualize training results and latent space"""
-    
-    if not (config.plot_training or config.plot_latent_space or config.plot_hyperparams):
-        return
-    
-    with torch.no_grad():
-        # Color mapping for labels
-        c = ["r", "g", "b"]
-        colors = [c[int(i)-1] for i in labels]
-        
-        n_plots = sum([config.plot_training, config.plot_latent_space, config.plot_hyperparams])
-        fig_width = 4 * n_plots
-        fig = plt.figure(figsize=(fig_width, 4))
-        
-        plot_idx = 1
-        
-        # Plot 1: Training curve
-        if config.plot_training:
-            plt.subplot(1, n_plots, plot_idx)
-            plt.plot(losses, 'b-', alpha=0.7)
-            plt.xlabel('Iteration')
-            plt.ylabel('Loss')
-            plt.title('SSVI Training Curve')
-            plt.grid(True, alpha=0.3)
-            plot_idx += 1
-        
-        # Plot 2: Latent space visualization
-        if config.plot_latent_space:
-            plt.subplot(1, n_plots, plot_idx)
-            
-            # Plot samples from all P particles with transparency
-            for p in range(model.P):
-                # Use first two latent dimensions for visualization
-                mu_x_p = model.mu_x[p, :, :2]  # [N, 2]
-                plt.scatter(mu_x_p[:, 0], mu_x_p[:, 1], 
-                           c=colors, alpha=0.15, s=10)
-            
-            plt.xlabel('Latent Dimension 1')
-            plt.ylabel('Latent Dimension 2') 
-            plt.title(f'Latent Space (P={model.P} particles)')
-            plot_idx += 1
-        
-        # Plot 3: Hyperparameters (lengthscales)
-        if config.plot_hyperparams:
-            plt.subplot(1, n_plots, plot_idx)
-            lengthscales = 1 / model.gp.beta.flatten()
-            plt.bar(range(len(lengthscales)), lengthscales, 
-                   color="blue", alpha=0.7)
-            plt.xlabel('Latent Dimension')
-            plt.ylabel('Lengthscale')
-            plt.title('GP Lengthscales')
-            plt.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        
-        # Save plot
-        logger.save_plots(fig, "training_results.png")
-        plt.show()
-
-def visualize_latent_samples(model: OilFlow_SSVI_GPLVM, labels, logger: ResultsLogger, dims=(4, 0)):
-    """Visualize samples from latent space uncertainty"""
-    with torch.no_grad():
-        c = ["r", "g", "b"]
-        colors = [c[int(i)-1] for i in labels]
-        
-        fig = plt.figure(figsize=(8, 6))
-        
-        for p in range(model.P):
-            # Sample from latent distribution
-            dim1, dim2 = dims
-            sample_1 = torch.distributions.Normal(
-                model.mu_x[p, :, dim1], 
-                model.Sigma_x[p, :, dim1].sqrt()
-            ).sample()
-            sample_2 = torch.distributions.Normal(
-                model.mu_x[p, :, dim2], 
-                model.Sigma_x[p, :, dim2].sqrt()
-            ).sample()
-            
-            plt.scatter(sample_1, sample_2, alpha=0.1, c=colors, s=10)
-        
-        plt.xlabel(f'Latent Dimension {dim1}')
-        plt.ylabel(f'Latent Dimension {dim2}')
-        plt.title(f'Latent Space Samples (Dims {dim1} vs {dim2})')
-        
-        # Save plot
-        logger.save_plots(fig, f"latent_samples_dims_{dim1}_{dim2}.png")
-        plt.show()
 
 # === Pre-defined Configurations ===
 
@@ -447,7 +296,7 @@ def main(config: OilFlowSSVIConfig = None):
     print(f"  Latent variables: {model.mu_x.shape}")
     
     # Initialize logger
-    logger = ResultsLogger(config)
+    logger = SSVIResultsLogger(config, experiment_name="oil_flow_gp_lvm_ssvi")
     if logger.results_dir:
         print(f"Results will be saved to: {logger.results_dir}")
         # Log initial info
@@ -469,7 +318,7 @@ def main(config: OilFlowSSVIConfig = None):
     
     # Visualize results
     print(f"\nVisualizing results...")
-    visualize_results(model, y, labels, losses, config, logger)
+    visualize_ssvi_results(model, y, labels, losses, config, logger)
     
     # Additional latent space visualization
     if config.plot_latent_space:
