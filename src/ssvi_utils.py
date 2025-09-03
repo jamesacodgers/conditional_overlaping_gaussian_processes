@@ -120,16 +120,21 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
         if plot_flags[1]:
             plt.subplot(1, n_plots, plot_idx)
             
-            # Plot samples from all P particles with transparency
+            # Find the two most informative dimensions (largest lengthscales = smallest beta)
+            lengthscales = 1 / model.gp.beta.flatten()
+            top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
+            dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
+            
+            # Plot samples from all P samples with transparency
             for p in range(model.P):
-                # Use first two latent dimensions for visualization
-                mu_x_p = model.mu_x[p, :, :2]  # [N, 2]
+                # Use top 2 most informative latent dimensions
+                mu_x_p = model.mu_x[p, :, [dim1, dim2]]  # [N, 2]
                 plt.scatter(mu_x_p[:, 0], mu_x_p[:, 1], 
                            c=colors, alpha=0.15, s=10)
             
-            plt.xlabel('Latent Dimension 1')
-            plt.ylabel('Latent Dimension 2') 
-            plt.title(f'Latent Space (P={model.P} samples)')
+            plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales[dim1]:.2f})')
+            plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales[dim2]:.2f})') 
+            plt.title(f'Latent Space - Top 2 Informative Dims (P={model.P} samples)')
             plot_idx += 1
         
         # Plot 3: Hyperparameters (lengthscales)
@@ -150,35 +155,7 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
         plt.show()
 
 
-def visualize_latent_samples(model, labels, logger: SSVIResultsLogger, dims=(4, 0)):
-    """Visualize samples from latent space uncertainty"""
-    with torch.no_grad():
-        c = ["r", "g", "b"]
-        colors = [c[int(i)-1] for i in labels]
-        
-        fig = plt.figure(figsize=(8, 6))
-        
-        for p in range(model.P):
-            # Sample from latent distribution
-            dim1, dim2 = dims
-            sample_1 = torch.distributions.Normal(
-                model.mu_x[p, :, dim1], 
-                model.Sigma_x[p, :, dim1].sqrt()
-            ).sample()
-            sample_2 = torch.distributions.Normal(
-                model.mu_x[p, :, dim2], 
-                model.Sigma_x[p, :, dim2].sqrt()
-            ).sample()
-            
-            plt.scatter(sample_1, sample_2, alpha=0.1, c=colors, s=10)
-        
-        plt.xlabel(f'Latent Dimension {dim1}')
-        plt.ylabel(f'Latent Dimension {dim2}')
-        plt.title(f'Latent Space Samples (Dims {dim1} vs {dim2})')
-        
-        # Save plot
-        logger.save_plots(fig, f"latent_samples_dims_{dim1}_{dim2}.png")
-        plt.show()
+
 
 
 

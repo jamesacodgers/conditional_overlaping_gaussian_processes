@@ -2,7 +2,7 @@
 import torch 
 import matplotlib.pyplot as plt
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, visualize_latent_samples
+from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results
 from dataclasses import dataclass
 from typing import Any
 import numpy as np
@@ -320,10 +320,7 @@ def main(config: OilFlowSSVIConfig = None):
     print(f"\nVisualizing results...")
     visualize_ssvi_results(model, y, labels, losses, config, logger)
     
-    # Additional latent space visualization
-    if config.plot_latent_space:
-        print(f"Showing latent space samples...")
-        visualize_latent_samples(model, labels, logger, dims=(4, 0))
+
     
     # Print final model parameters
     print(f"\nFinal Model Parameters:")
@@ -334,7 +331,8 @@ def main(config: OilFlowSSVIConfig = None):
     return model, losses, config
 
 if __name__ == "__main__":
-    # === Learning Rate Experiments ===
+    # === Best Learning Rate Configurations ===
+    # Based on experimental results: Config 1 achieved 175.60 loss, Config 2 achieved 181.82 loss
     
     # Generate diverse initial lengthscales (same for all experiments for fair comparison)
     # Sample initial lengthscales with significant variation across dimensions
@@ -343,47 +341,8 @@ if __name__ == "__main__":
     print(f"Initial lengthscales for all experiments: {initial_lengthscales.tolist()}")
     print(f"Initial beta values: {initial_beta.tolist()}")
     
-    # Experiment 1: Low local, Low global
-    custom_config_1 = OilFlowSSVIConfig(
-        training_iterations=1000,
-        batch_size=128,
-        local_lr=5e-4,
-        global_lr=5e-3,
-        beta=initial_beta,
-        encoder_hidden_dims=[256, 128, 64],
-        enable_gradient_logging=True,
-        gradient_log_frequency=50
-    )
-    main(custom_config_1)
-    
-    # Experiment 2: Low local, High global
-    custom_config_2 = OilFlowSSVIConfig(
-        training_iterations=1000,
-        batch_size=128,
-        local_lr=5e-4,
-        global_lr=2e-2,
-        beta=initial_beta,
-        encoder_hidden_dims=[256, 128, 64],
-        enable_gradient_logging=True,
-        gradient_log_frequency=50
-    )
-    main(custom_config_2)
-    
-    # Experiment 3: Medium local, Low global
-    custom_config_3 = OilFlowSSVIConfig(
-        training_iterations=1000,
-        batch_size=128,
-        local_lr=1e-3,
-        global_lr=5e-3,
-        beta=initial_beta,
-        encoder_hidden_dims=[256, 128, 64],
-        enable_gradient_logging=True,
-        gradient_log_frequency=50
-    )
-    main(custom_config_3)
-    
-    # Experiment 4: Medium local, High global  
-    custom_config_4 = OilFlowSSVIConfig(
+    # Best Configuration: Medium local, High global (Final Loss: 175.60)
+    best_config = OilFlowSSVIConfig(
         training_iterations=1000,
         batch_size=128,
         local_lr=1e-3,
@@ -393,30 +352,17 @@ if __name__ == "__main__":
         enable_gradient_logging=True,
         gradient_log_frequency=50
     )
-    main(custom_config_4)
+    main(best_config)
     
-    # Experiment 5: High local, Low global
-    custom_config_5 = OilFlowSSVIConfig(
+    # Second Best Configuration: Low local, High global (Final Loss: 181.82)
+    second_best_config = OilFlowSSVIConfig(
         training_iterations=1000,
         batch_size=128,
-        local_lr=2e-3,
-        global_lr=5e-3,
-        beta=initial_beta,
-        encoder_hidden_dims=[256, 128, 64],
-        enable_gradient_logging=True,
-        gradient_log_frequency=50
-    )
-    main(custom_config_5)
-    
-    # Experiment 6: High local, High global
-    custom_config_6 = OilFlowSSVIConfig(
-        training_iterations=1000,
-        batch_size=128,
-        local_lr=2e-3,
+        local_lr=5e-4,
         global_lr=2e-2,
         beta=initial_beta,
         encoder_hidden_dims=[256, 128, 64],
         enable_gradient_logging=True,
         gradient_log_frequency=50
     )
-    main(custom_config_6)
+    main(second_best_config)
