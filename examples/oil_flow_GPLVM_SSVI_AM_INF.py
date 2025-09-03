@@ -337,7 +337,6 @@ if __name__ == "__main__":
     # === Learning Rate Experiments ===
     
     # Generate diverse initial lengthscales (same for all experiments for fair comparison)
-    torch.manual_seed(42)  # For reproducibility
     # Sample initial lengthscales with significant variation across dimensions
     initial_lengthscales = torch.exp(torch.randn(6) * 0.8 + 0.5)  # Mean ~1.6, significant variation
     initial_beta = (1.0 / initial_lengthscales).detach()  # Convert to beta and detach
