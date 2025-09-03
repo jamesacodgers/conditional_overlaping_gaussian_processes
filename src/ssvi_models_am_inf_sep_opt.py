@@ -15,8 +15,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                         sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s, 
                         trainable_V=trainable_V)
         
-        # Inducing size and latent dim
-        self.L = self.gp.Vx.shape[-2]     # #inducing, expects Vx: (L, Q) or (1, L, Q)
+        # Inducing size and latent dim - use Lx from base class for consistency
         self.Q = self.gp.Vx.shape[-1]
 
         # Amortized inference encoder network
@@ -33,8 +32,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         """Build amortized inference encoder network"""
         layers = []
         # Calculate correct input dimension:
-        # y_n: [M] + mu_u: [M*L] + vech(Sigma_u): [M * L*(L+1)/2]
-        input_dim = self.M + self.M * self.L + self.M * self.L * (self.L + 1) // 2
+        # y_n: [M] + mu_u: [M*Lx] + vech(Sigma_u): [M * Lx*(Lx+1)/2]
+        input_dim = self.M + self.M * self.Lx + self.M * self.Lx * (self.Lx + 1) // 2
         
         prev_dim = input_dim
         for hidden_dim in hidden_dims:
@@ -91,11 +90,11 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         # Flatten Sigma_u to vector form (upper triangular part) - batch operation
         # Use vech(Sigma_u) for symmetric matrix representation
-        # Sigma_u has shape [M, L, L], vectorize all matrices at once
-        i, j = torch.triu_indices(self.L, self.L, device=Sigma_u.device)
-        Sigma_u_vech = Sigma_u[:, i, j].reshape(self.M, -1)  # [M, L*(L+1)/2]
+        # Sigma_u has shape [M, Lx, Lx], vectorize all matrices at once
+        i, j = torch.triu_indices(self.Lx, self.Lx, device=Sigma_u.device)
+        Sigma_u_vech = Sigma_u[:, i, j].reshape(self.M, -1)  # [M, Lx*(Lx+1)/2]
         
-        # Flatten to [M * L*(L+1)/2] for concatenation
+        # Flatten to [M * Lx*(Lx+1)/2] for concatenation
         Sigma_u_vech = Sigma_u_vech.reshape(-1)
         
         # Expand to batch size
@@ -200,8 +199,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             sigma_n_batch: [batch_size, Q] - local variational std devs with gradients
         """
         # Get global variational parameters from GP (with gradients)
-        mu_u = self.gp.get_vector_mu_u().reshape(self.M, self.L)  # [M, L]
-        Sigma_u = self.gp.get_matrix_Sigma_u()  # [M, L, L]
+        mu_u = self.gp.get_vector_mu_u().reshape(self.M, self.Lx)  # [M, Lx]
+        Sigma_u = self.gp.get_matrix_Sigma_u()  # [M, Lx, Lx]
         
         # Encode local parameters using amortized inference
         mu_n_batch, sigma_n_batch = self.encode_local_params(Y_batch, mu_u, Sigma_u)

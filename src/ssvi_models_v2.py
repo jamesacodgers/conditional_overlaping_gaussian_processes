@@ -12,8 +12,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
     def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64,  trainable_V=True):
         super().__init__(P=P,  V=Vx, M=M, C_obs=1, mu_x_train=mu_x, mu_x_test=None, C_unobs=0, sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s, trainable_V=trainable_V)
         
-        # Inducing size and latent dim
-        self.L = self.gp.Vx.shape[-2]     # #inducing, expects Vx: (L, Q) or (1, L, Q)
+        # Inducing size and latent dim - use Lx from base class for consistency  
         self.Q = self.gp.Vx.shape[-1]
 
         # Robbins-Monro schedule rho_t = s * t^{-kappa}
@@ -36,15 +35,15 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
 
     @_Lambda.setter
     def _Lambda(self, value: torch.Tensor):
-        assert value.shape == (self.M, self.L, self.L)
+        assert value.shape == (self.M, self.Lx, self.Lx)
         with torch.no_grad():
             # Sigma = Lambda^{-1}
-            I = torch.eye(self.L, device=value.device, dtype=value.dtype)
+            I = torch.eye(self.Lx, device=value.device, dtype=value.dtype)
             chol_prec = torch.linalg.cholesky(value)
             # Sigma = Lambda^{-1}:
             Sigma = torch.cholesky_inverse(chol_prec)
             chol_Sigma = torch.linalg.cholesky(Sigma)
-            self.gp._raw_chol[:, :self.L, :self.L].copy_(chol_Sigma)
+            self.gp._raw_chol[:, :self.Lx, :self.Lx].copy_(chol_Sigma)
 
     @property
     def _nu(self):
@@ -54,14 +53,14 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
 
     @_nu.setter
     def _nu(self, value: torch.Tensor):
-        assert value.shape == (self.M, self.L)
+        assert value.shape == (self.M, self.Lx)
         with torch.no_grad():
-            # chol_Sigma = self.gp._raw_chol[:, :self.L, :self.L]
+            # chol_Sigma = self.gp._raw_chol[:, :self.Lx, :self.Lx]
             # Sigma = chol_Sigma @ chol_Sigma.transpose(-2, -1) 
             # # mu = Sigma @ nu
             # mu = (Sigma @ value.unsqueeze(-1)).squeeze(-1)
             mu = (self.gp.get_matrix_Sigma_u()@value.unsqueeze(-1)).squeeze(-1)
-            self.gp._mu_u.data[:, :self.L] = mu
+            self.gp._mu_u.data[:, :self.Lx] = mu
 
     # self._nu_u = self._nu_u + \epsilon
     # -> call _nu_setter()  
@@ -165,9 +164,9 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         
         # Require externally provided U_samples each iteration (no silent sampling)
         assert U_samples is not None, "U_samples must be provided for ssvi_local_step"
-        assert U_samples.dim() == 4, "U_samples must be [P, M, C, L]"
-        P_u, M_u, C_u, L_u = U_samples.shape
-        assert self.P == P_u and M_u == self.M and C_u == self.C and L_u == self.L, "U_samples dims must match model (P, M, C, L)"
+        assert U_samples.dim() == 4, "U_samples must be [P, M, C, Lx]"
+        P_u, M_u, C_u, Lx_u = U_samples.shape
+        assert self.P == P_u and M_u == self.M and C_u == self.C and Lx_u == self.Lx, "U_samples dims must match model (P, M, C, Lx)"
         self._pending_U_samples = U_samples
         
         # Step 1: Optimize local variational distribution q(x_i) over the whole batch
@@ -243,7 +242,7 @@ class GPLVM_SSVI(Struc_WS_GPLVM):
         # Local optimization loop with configurable learning rate
         local_optimizer = torch.optim.Adam([mu_x_i, log_sigma_x_i], lr=lr_local)
         
-        assert U_samples.dim() == 4, "U_samples must be [P, M, C, L]"
+        assert U_samples.dim() == 4, "U_samples must be [P, M, C, Lx]"
         U_samples = U_samples.detach()
         ll = []
 

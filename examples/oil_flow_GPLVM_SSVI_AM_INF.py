@@ -121,9 +121,6 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         
         # Store config
         self.config = config
-        
-        # Fix dimensionality inconsistency: ensure Lx = L
-        self.Lx = self.L
 
     def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor = None):
         """
