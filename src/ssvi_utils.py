@@ -129,7 +129,7 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             
             plt.xlabel('Latent Dimension 1')
             plt.ylabel('Latent Dimension 2') 
-            plt.title(f'Latent Space (P={model.P} particles)')
+            plt.title(f'Latent Space (P={model.P} samples)')
             plot_idx += 1
         
         # Plot 3: Hyperparameters (lengthscales)
