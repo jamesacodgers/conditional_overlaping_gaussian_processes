@@ -336,12 +336,21 @@ def main(config: OilFlowSSVIConfig = None):
 if __name__ == "__main__":
     # === Learning Rate Experiments ===
     
+    # Generate diverse initial lengthscales (same for all experiments for fair comparison)
+    torch.manual_seed(42)  # For reproducibility
+    # Sample initial lengthscales with significant variation across dimensions
+    initial_lengthscales = torch.exp(torch.randn(6) * 0.8 + 0.5)  # Mean ~1.6, significant variation
+    initial_beta = (1.0 / initial_lengthscales).detach()  # Convert to beta and detach
+    print(f"Initial lengthscales for all experiments: {initial_lengthscales.tolist()}")
+    print(f"Initial beta values: {initial_beta.tolist()}")
+    
     # Experiment 1: Low local, Low global
     custom_config_1 = OilFlowSSVIConfig(
         training_iterations=1000,
         batch_size=128,
         local_lr=5e-4,
         global_lr=5e-3,
+        beta=initial_beta,
         encoder_hidden_dims=[256, 128, 64],
         enable_gradient_logging=True,
         gradient_log_frequency=50
@@ -354,6 +363,7 @@ if __name__ == "__main__":
         batch_size=128,
         local_lr=5e-4,
         global_lr=2e-2,
+        beta=initial_beta,
         encoder_hidden_dims=[256, 128, 64],
         enable_gradient_logging=True,
         gradient_log_frequency=50
@@ -366,6 +376,7 @@ if __name__ == "__main__":
         batch_size=128,
         local_lr=1e-3,
         global_lr=5e-3,
+        beta=initial_beta,
         encoder_hidden_dims=[256, 128, 64],
         enable_gradient_logging=True,
         gradient_log_frequency=50
@@ -378,6 +389,7 @@ if __name__ == "__main__":
         batch_size=128,
         local_lr=1e-3,
         global_lr=2e-2,
+        beta=initial_beta,
         encoder_hidden_dims=[256, 128, 64],
         enable_gradient_logging=True,
         gradient_log_frequency=50
@@ -390,6 +402,7 @@ if __name__ == "__main__":
         batch_size=128,
         local_lr=2e-3,
         global_lr=5e-3,
+        beta=initial_beta,
         encoder_hidden_dims=[256, 128, 64],
         enable_gradient_logging=True,
         gradient_log_frequency=50
@@ -402,6 +415,7 @@ if __name__ == "__main__":
         batch_size=128,
         local_lr=2e-3,
         global_lr=2e-2,
+        beta=initial_beta,
         encoder_hidden_dims=[256, 128, 64],
         enable_gradient_logging=True,
         gradient_log_frequency=50
