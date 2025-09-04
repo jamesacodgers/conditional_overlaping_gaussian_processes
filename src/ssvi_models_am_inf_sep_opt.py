@@ -86,9 +86,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         # For GP-LVM, C=1, so reshape: [P, M, C, Lx] -> [P, M, Lx] -> [P * M * Lx]
         u_samples_reshaped = u_samples.squeeze(2)  # Remove C=1 dimension: [P, M, Lx]
         u_samples_flat = u_samples_reshaped.reshape(-1)  # [P * M * Lx]
-        
-        # More memory-efficient: use repeat instead of expand (expand creates view, repeat creates copy)
-        # But actually, expand is fine since it creates a view, not copying memory
+
         u_samples_broadcasted = u_samples_flat.unsqueeze(0).expand(batch_size, -1)
         encoder_input = torch.cat([y_n, u_samples_broadcasted], dim=1)
         
