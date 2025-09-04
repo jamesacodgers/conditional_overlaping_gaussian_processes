@@ -128,15 +128,15 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         """
         # Zero gradients for local optimizer (encoder) only initially
         self.optimizer_local.zero_grad()
+
+        # Sample U before amortized inference step
+        U_samples = self.get_u_samples_ssvi(self.P)
         
         # Get local parameters via amortized inference (gradients only to encoder)
-        mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices)
+        mu_n_batch, sigma_n_batch = self.amortized_inference_step(Y_batch, batch_indices, U_samples)
         
         # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()
-        
-        # Sample U right before ELBO computation
-        U_samples = self.get_u_samples_ssvi(self.P)
         
         # Compute global ELBO loss (gradients flow to all parameters)
         loss = -self.gplvm_elbo(Y_batch,
@@ -338,20 +338,7 @@ if __name__ == "__main__":
     print(f"Initial lengthscales for all experiments: {initial_lengthscales.tolist()}")
     print(f"Initial beta values: {initial_beta.tolist()}")
     
-    # Best Configuration: Medium local, High global (Final Loss: 175.60)
-    best_config = OilFlowSSVIConfig(
-        training_iterations=1000,
-        batch_size=128,
-        local_lr=1e-3,
-        global_lr=2e-2,
-        beta=initial_beta,
-        encoder_hidden_dims=[256, 128, 64],
-        enable_gradient_logging=True,
-        gradient_log_frequency=50
-    )
-    main(best_config)
-    
-    # Second Best Configuration: Low local, High global (Final Loss: 181.82)
+    # Configuration: Low local, High global (Final Loss: 181.82)
     second_best_config = OilFlowSSVIConfig(
         training_iterations=1000,
         batch_size=128,

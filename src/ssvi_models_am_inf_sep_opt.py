@@ -19,7 +19,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         self.Q = self.gp.Vx.shape[-1]
 
         # Amortized inference encoder network
-        # Input: y_n (observation) + mu^u, Sigma^u (global variational parameters)
+        # Input: y_n (observation) + u_samples (P samples from global U distribution)
         # Output: mu_n (Q) + log_sigma_n (Q) = 2*Q total
         self.encoder = self._build_encoder(encoder_hidden_dims, 2 * self.Q)
         
@@ -32,8 +32,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         """Build amortized inference encoder network"""
         layers = []
         # Calculate correct input dimension:
-        # y_n: [M] + mu_u: [M*Lx] + vech(Sigma_u): [M * Lx*(Lx+1)/2]
-        input_dim = self.M + self.M * self.Lx + self.M * self.Lx * (self.Lx + 1) // 2
+        # y_n: [M] + u_samples: [P * M * Lx] 
+        input_dim = self.M + self.P * self.M * self.Lx
         
         prev_dim = input_dim
         for hidden_dim in hidden_dims:
@@ -69,16 +69,13 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             
         self.optimizer_global = torch.optim.Adam(global_params, lr=global_lr)
 
-    def encode_local_params(self, y_n, mu_u, Sigma_u):
+    def encode_local_params(self, y_n, u_samples):
         """
-        Amortized inference: encode observation y_n and global params to local variational parameters
-        
-        Uses efficient batch vectorization of symmetric matrices (vech operation).
+        Amortized inference: encode observation y_n and u_samples to local variational parameters
         
         Args:
             y_n: [batch_size, M] - observations
-            mu_u: [M, L] - global variational mean (from self.gp.get_vector_mu_u().reshape(M, L))
-            Sigma_u: [M, L, L] - global variational covariance (from self.gp.get_matrix_Sigma_u())
+            u_samples: [P, M, C, Lx] - samples from global U distribution (C=1 for GP-LVM)
             
         Returns:
             mu_n: [batch_size, Q] - local variational means
@@ -86,24 +83,14 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         """
         batch_size = y_n.shape[0]
         
-
+        # For GP-LVM, C=1, so reshape: [P, M, C, Lx] -> [P, M, Lx] -> [P * M * Lx]
+        u_samples_reshaped = u_samples.squeeze(2)  # Remove C=1 dimension: [P, M, Lx]
+        u_samples_flat = u_samples_reshaped.reshape(-1)  # [P * M * Lx]
         
-        # Flatten Sigma_u to vector form (upper triangular part) - batch operation
-        # Use vech(Sigma_u) for symmetric matrix representation
-        # Sigma_u has shape [M, Lx, Lx], vectorize all matrices at once
-        i, j = torch.triu_indices(self.Lx, self.Lx, device=Sigma_u.device)
-        Sigma_u_vech = Sigma_u[:, i, j].reshape(self.M, -1)  # [M, Lx*(Lx+1)/2]
-        
-        # Flatten to [M * Lx*(Lx+1)/2] for concatenation
-        Sigma_u_vech = Sigma_u_vech.reshape(-1)
-        
-        # Expand to batch size
-        Sigma_u_flat = Sigma_u_vech.unsqueeze(0).expand(batch_size, -1)
-        
-        # Concatenate inputs: [y_n, mu_u, vech(Sigma_u)]
-        mu_u_expanded = mu_u.unsqueeze(0).expand(batch_size, -1, -1).reshape(batch_size, -1)
-        
-        encoder_input = torch.cat([y_n, mu_u_expanded, Sigma_u_flat], dim=1)
+        # More memory-efficient: use repeat instead of expand (expand creates view, repeat creates copy)
+        # But actually, expand is fine since it creates a view, not copying memory
+        u_samples_broadcasted = u_samples_flat.unsqueeze(0).expand(batch_size, -1)
+        encoder_input = torch.cat([y_n, u_samples_broadcasted], dim=1)
         
         # Encode to local parameters
         encoder_output = self.encoder(encoder_input)
@@ -186,24 +173,21 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         A = K_xx_expectation * self.M + (Ma[:, None, :, :, :, :] * Z).sum(dim=[-2, -1])
         return A
 
-    def amortized_inference_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor):
+    def amortized_inference_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, u_samples: torch.Tensor):
         """
         Amortized inference step: encode observations to local variational parameters
         
         Args:
             Y_batch: Mini-batch of observations [batch_size x M]
             batch_indices: Indices of data points in the batch [batch_size]
+            u_samples: [P, M, C, Lx] - samples from global U distribution
             
         Returns:
             mu_n_batch: [batch_size, Q] - local variational means with gradients
             sigma_n_batch: [batch_size, Q] - local variational std devs with gradients
         """
-        # Get global variational parameters from GP (with gradients)
-        mu_u = self.gp.get_vector_mu_u().reshape(self.M, self.Lx)  # [M, Lx]
-        Sigma_u = self.gp.get_matrix_Sigma_u()  # [M, Lx, Lx]
-        
-        # Encode local parameters using amortized inference
-        mu_n_batch, sigma_n_batch = self.encode_local_params(Y_batch, mu_u, Sigma_u)
+        # Encode local parameters using amortized inference with u_samples
+        mu_n_batch, sigma_n_batch = self.encode_local_params(Y_batch, u_samples)
         
         # Update parent class tensors for bookkeeping (detached copies)
         with torch.no_grad():
