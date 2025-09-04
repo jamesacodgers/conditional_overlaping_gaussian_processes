@@ -10,7 +10,16 @@ import numpy as np
 
 class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
     def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, 
-                 encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001):
+                 encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001, device="auto"):
+        # Resolve device if auto
+        if device == "auto":
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = device
+        
+        # Ensure input tensors are on the correct device
+        Vx = Vx.to(device)
+        mu_x = mu_x.to(device)
+        
         super().__init__(P=P, V=Vx, M=M, C_obs=1, mu_x_train=mu_x, mu_x_test=None, C_unobs=0, 
                         sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s, 
                         trainable_V=trainable_V)
@@ -20,6 +29,9 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         # Input: y_n (observation) + u_samples (P samples from global U distribution)
         # Output: mu_n (Q) + log_sigma_n (Q) = 2*Q total
         self.encoder = self._build_encoder(encoder_hidden_dims, 2 * self.A)
+        
+        # Move encoder to device
+        self.encoder = self.encoder.to(device)
         
         # Separate optimizers for different learning rates
         self._setup_optimizers(local_lr, global_lr)
@@ -78,8 +90,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             u_samples: [P, M, C, Lx] - samples from global U distribution (C=1 for GP-LVM)
             
         Returns:
-            mu_n: [batch_size, Q] - local variational means
-            sigma_n: [batch_size, Q] - local variational standard deviations
+            mu_n: [batch_size, A] - local variational means
+            sigma_n: [batch_size, A] - local variational standard deviations
         """
         batch_size = y_n.shape[0] 
         y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
@@ -299,10 +311,11 @@ class NormalCoordinatorCustom:
         self.module=module
         self.inner_train_solver = MultivariateNormalSolver(self.module.C_unobs)
         if sum_to_one:
-            self.linear_map = torch.vstack([torch.zeros(self.module.C-1), torch.eye(self.module.C-1)])
+            device = getattr(self.module, 'device', 'cpu')
+            self.linear_map = torch.vstack([torch.zeros(self.module.C-1, device=device), torch.eye(self.module.C-1, device=device)])
             self.linear_map[:self.module.C_obs, :self.module.C_obs-1] = generate_regular_simplex(self.module.C_obs-1)
-            self.h = torch.zeros(self.module.C)
-            self.h[:self.module.C_obs] = torch.ones(self.module.C_obs)/self.module.C_obs
+            self.h = torch.zeros(self.module.C, device=device)
+            self.h[:self.module.C_obs] = torch.ones(self.module.C_obs, device=device)/self.module.C_obs
             self.inner_test_solver = MultivariateNormalSolver(self.module.C -1)
         else:
             self.linear_map = None

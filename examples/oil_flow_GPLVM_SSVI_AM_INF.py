@@ -13,12 +13,14 @@ import json
 from datetime import datetime
 import time
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-torch.set_default_device(device)
+# Device will be set in main() from config
 
 @dataclass
 class OilFlowSSVIConfig:
     """Configuration for Oil Flow SSVI GP-LVM with Amortized Inference"""
+    
+    # === Device Configuration ===
+    device: str = "auto"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
     
     # === Data Configuration ===
     data_url: str = "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"
@@ -57,13 +59,22 @@ class OilFlowSSVIConfig:
     save_results: bool = True              # Save results to folder
     
     def __post_init__(self):
-        """Set default encoder architecture if not specified"""
+        """Set default encoder architecture and resolve device if not specified"""
         if self.encoder_hidden_dims is None:
             self.encoder_hidden_dims = [256, 128, 64]
+        
+        # Resolve device configuration
+        if self.device == "auto":
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
     
     def print_config(self):
         """Print configuration summary"""
         print("=== Oil Flow SSVI GP-LVM Configuration ===")
+        print(f"Device: {self.device}")
+        if torch.cuda.is_available():
+            print(f"CUDA available: {torch.cuda.get_device_name(0) if self.device.startswith('cuda') else 'Not using CUDA'}")
+        else:
+            print("CUDA available: No")
         print(f"Model: {self.n_inducing_points} inducing points, latent_dim={self.latent_dim}")
         print(f"Encoder: {self.encoder_hidden_dims} hidden dims")
         print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")
@@ -84,13 +95,13 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
         f.extract('DataTrn.txt')
         f.extract('DataTrnLbls.txt')
     
-    # Load data
-    y = torch.Tensor(np.loadtxt(fname='DataTrn.txt'))
-    labels = torch.Tensor(np.loadtxt(fname='DataTrnLbls.txt'))
-    labels = (labels @ np.diag([1, 2, 3])).sum(axis=1)
+    # Load data and move to device
+    y = torch.Tensor(np.loadtxt(fname='DataTrn.txt')).to(config.device)
+    labels = torch.Tensor(np.loadtxt(fname='DataTrnLbls.txt')).to(config.device)
+    labels = (labels @ torch.diag(torch.tensor([1, 2, 3], device=config.device, dtype=labels.dtype))).sum(axis=1)
     
     # Initialize inducing points and latent variables (following original)
-    Vx = torch.randn(config.n_inducing_points, config.latent_dim)
+    Vx = torch.randn(config.n_inducing_points, config.latent_dim, device=config.device)
     mu_x, _, _ = torch.pca_lowrank(y, config.latent_dim)
     mu_x = mu_x / mu_x.std(dim=0)
     
@@ -116,7 +127,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
             trainable_V=config.trainable_V,
             encoder_hidden_dims=config.encoder_hidden_dims,
             local_lr=config.local_lr,
-            global_lr=config.global_lr
+            global_lr=config.global_lr,
+            device=config.device
         )
         
         # Store config
@@ -175,7 +187,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
     for i in range(config.training_iterations):
         # Sample batch indices
         N = y.shape[0]
-        batch_indices = torch.randperm(N)[:config.batch_size]
+        batch_indices = torch.randperm(N, device=y.device)[:config.batch_size]
         y_batch = y[batch_indices]
         
         # Training step - U sampling happens inside automatically each step
@@ -271,6 +283,9 @@ def main(config: OilFlowSSVIConfig = None):
     # Use default config if none provided
     if config is None:
         config = get_standard_config()
+    
+    # Set device from config
+    torch.set_default_device(config.device)
     
     # Print configuration
     config.print_config()
