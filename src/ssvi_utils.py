@@ -124,23 +124,24 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             lengthscales = 1 / model.gp.beta.flatten()
             top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
             dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
+            lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
             
             # Plot samples from all P samples with transparency
             for p in range(model.P):
                 # Use top 2 most informative latent dimensions
-                mu_x_p = model.mu_x[p, :, [dim1, dim2]]  # [N, 2]
+                mu_x_p = model.mu_x[p, :, [dim1, dim2]].cpu()  # [N, 2] - move to CPU for plotting
                 plt.scatter(mu_x_p[:, 0], mu_x_p[:, 1], 
                            c=colors, alpha=0.15, s=10)
             
-            plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales[dim1]:.2f})')
-            plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales[dim2]:.2f})') 
+            plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
+            plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})') 
             plt.title(f'Latent Space - Top 2 Informative Dims (P={model.P} samples)')
             plot_idx += 1
         
         # Plot 3: Hyperparameters (lengthscales)
         if plot_flags[2]:
             plt.subplot(1, n_plots, plot_idx)
-            lengthscales = 1 / model.gp.beta.flatten()
+            lengthscales = (1 / model.gp.beta.flatten()).cpu()
             plt.bar(range(len(lengthscales)), lengthscales, 
                    color="blue", alpha=0.7)
             plt.xlabel('Latent Dimension')
