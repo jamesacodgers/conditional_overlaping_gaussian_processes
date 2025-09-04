@@ -59,6 +59,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         global_params = [
             self.gp._log_sigma2_s,     # Signal variances  
             self.gp._log_beta,         # Lengthscales
+            self._log_sigma2,       # Noise variance
             self.gp._mu_u,             # U distribution mean
             self.gp._raw_chol          # U distribution covariance (Cholesky)
         ]

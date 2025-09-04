@@ -334,7 +334,7 @@ if __name__ == "__main__":
     # Generate diverse initial lengthscales (same for all experiments for fair comparison)
     # Sample initial lengthscales with significant variation across dimensions
     initial_lengthscales = torch.exp(torch.randn(6) * 0.8 + 0.5)  # Mean ~1.6, significant variation
-    initial_beta = (1.0 / initial_lengthscales).detach()  # Convert to beta and detach
+    initial_beta = torch.tensor([1.]) #(1.0 / initial_lengthscales).detach()  # Convert to beta and detach
     print(f"Initial lengthscales for all experiments: {initial_lengthscales.tolist()}")
     print(f"Initial beta values: {initial_beta.tolist()}")
     
@@ -342,8 +342,8 @@ if __name__ == "__main__":
     second_best_config = OilFlowSSVIConfig(
         training_iterations=1000,
         batch_size=128,
-        local_lr=5e-4,
-        global_lr=2e-2,
+        local_lr=1e-2,
+        global_lr=1e-2,
         beta=initial_beta,
         encoder_hidden_dims=[256, 128, 64],
         enable_gradient_logging=True,
