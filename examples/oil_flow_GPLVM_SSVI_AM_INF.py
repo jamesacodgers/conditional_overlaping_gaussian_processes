@@ -140,8 +140,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         
         # Compute global ELBO loss (gradients flow to all parameters)
         loss = -self.gplvm_elbo(Y_batch,
-                               mu_n_batch.unsqueeze(0).expand(self.P, -1, -1),
-                               sigma_n_batch.unsqueeze(0).expand(self.P, -1, -1),
+                               mu_n_batch,
+                               sigma_n_batch,
                                U_samples=U_samples)
         
         # Backward pass (gradients computed for all parameters)
@@ -333,7 +333,7 @@ if __name__ == "__main__":
     
     # Generate diverse initial lengthscales (same for all experiments for fair comparison)
     # Sample initial lengthscales with significant variation across dimensions
-    initial_lengthscales = torch.exp(torch.randn(6) * 0.8 + 0.5)  # Mean ~1.6, significant variation
+    initial_lengthscales = torch.ones(10)/4 #torch.exp(torch.randn(6) * 0.8 + 0.5)  # Mean ~1.6, significant variation
     initial_beta = torch.tensor([1.]) #(1.0 / initial_lengthscales).detach()  # Convert to beta and detach
     print(f"Initial lengthscales for all experiments: {initial_lengthscales.tolist()}")
     print(f"Initial beta values: {initial_beta.tolist()}")

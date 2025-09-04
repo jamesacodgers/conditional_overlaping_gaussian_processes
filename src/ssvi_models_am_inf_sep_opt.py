@@ -15,13 +15,11 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                         sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s, 
                         trainable_V=trainable_V)
         
-        # Inducing size and latent dim - use Lx from base class for consistency
-        self.Q = self.gp.Vx.shape[-1]
 
         # Amortized inference encoder network
         # Input: y_n (observation) + u_samples (P samples from global U distribution)
         # Output: mu_n (Q) + log_sigma_n (Q) = 2*Q total
-        self.encoder = self._build_encoder(encoder_hidden_dims, 2 * self.Q)
+        self.encoder = self._build_encoder(encoder_hidden_dims, 2 * self.A)
         
         # Separate optimizers for different learning rates
         self._setup_optimizers(local_lr, global_lr)
@@ -33,8 +31,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         layers = []
         # Calculate correct input dimension:
         # y_n: [M] + u_samples: [P * M * Lx] 
-        input_dim = self.M + self.P * self.M * self.Lx
-        
+        input_dim = self.M + self.M * self.Lx
+
         prev_dim = input_dim
         for hidden_dim in hidden_dims:
             layers.extend([
@@ -82,21 +80,21 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             mu_n: [batch_size, Q] - local variational means
             sigma_n: [batch_size, Q] - local variational standard deviations
         """
-        batch_size = y_n.shape[0]
-        
-        # For GP-LVM, C=1, so reshape: [P, M, C, Lx] -> [P, M, Lx] -> [P * M * Lx]
-        u_samples_reshaped = u_samples.squeeze(2)  # Remove C=1 dimension: [P, M, Lx]
-        u_samples_flat = u_samples_reshaped.reshape(-1)  # [P * M * Lx]
+        batch_size = y_n.shape[0] 
+        y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
 
-        u_samples_broadcasted = u_samples_flat.unsqueeze(0).expand(batch_size, -1)
-        encoder_input = torch.cat([y_n, u_samples_broadcasted], dim=1)
+        u_samples = u_samples.squeeze(2)  # Remove C=1 dimension for GP-LVM: [P, M, Lx]
+        u_samples = u_samples.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
+        u_samples = u_samples.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
+
+        encoder_input = torch.cat([y_n, u_samples], dim=-1) # [P, batch_size, M + M*Lx]
         
         # Encode to local parameters
         encoder_output = self.encoder(encoder_input)
         
         # Split output into mu_n and log_sigma_n
-        mu_n = encoder_output[:, :self.Q]
-        log_sigma_n = encoder_output[:, self.Q:]
+        mu_n = encoder_output[:, :, :self.A]
+        log_sigma_n = encoder_output[:, :, self.A:]
         
         # Ensure positive standard deviations with numerical stability
         sigma_n = torch.nn.functional.softplus(log_sigma_n) + 1e-6
@@ -190,8 +188,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         # Update parent class tensors for bookkeeping (detached copies)
         with torch.no_grad():
-            self.mu_x_train[:, batch_indices, :] = mu_n_batch.detach().unsqueeze(0).expand(self.P, -1, -1)
-            self._log_sigma_x_train[:, batch_indices, :] = torch.log(sigma_n_batch.detach()).unsqueeze(0).expand(self.P, -1, -1)
+            self.mu_x_train[:, batch_indices, :] = mu_n_batch.detach()
+            self._log_sigma_x_train[:, batch_indices, :] = torch.log(sigma_n_batch.detach())
         
         return mu_n_batch, sigma_n_batch
     
