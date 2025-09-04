@@ -343,7 +343,7 @@ if __name__ == "__main__":
         training_iterations=1000,
         batch_size=128,
         local_lr=1e-2,
-        global_lr=1e-2,
+        global_lr=3e-3,
         beta=initial_beta,
         encoder_hidden_dims=[256, 128, 64],
         enable_gradient_logging=True,
