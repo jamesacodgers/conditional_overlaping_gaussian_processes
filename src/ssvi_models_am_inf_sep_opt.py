@@ -108,7 +108,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         mu_n = encoder_output[:, :, :self.A]
         log_sigma_n = encoder_output[:, :, self.A:]
         
-        sigma_n = torch.exp(log_sigma_n)
+        sigma_n = torch.nn.functional.softplus(log_sigma_n)
         
         return mu_n, sigma_n
 
@@ -266,7 +266,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                                                                      U_samples=U_samples)
 
         const_train = self.coordinator.get_const_train(y, R_train, s_train_expectation, s_train_outer_expectation)
-        
+
         training_inner_elbo =  const_train.mean() - self.get_kl_x_from(mu_x, Sigma_x)
         
         # Scale const_train for mini-batches to represent full dataset contribution
