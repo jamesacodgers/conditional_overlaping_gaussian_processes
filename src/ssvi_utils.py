@@ -125,14 +125,13 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
             dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
-            
+            U = model.get_u_samples()  # [P, M, C, Lx]
+            mu_x, sigma_x = model.get_mu_sigma_x_samples(y, U)  # [N, A]
+            mu_x =  mu_x.cpu().numpy()  # Move to CPU for plotting
             # Plot samples from all P samples with transparency
             for p in range(model.P):
                 # Use top 2 most informative latent dimensions
-                U = model.get_u_samples()  # [P, M, C, Lx]
-                mu_x_p, sigma_x_p = model.get_mu_sigma_x_samples(y, U)  # [N, A]
-                mu_x_p = model.mu_x[p, :, [dim1, dim2]].cpu()  # [N, 2] - move to CPU for plotting
-                plt.scatter(mu_x_p[:, 0], mu_x_p[:, 1], 
+                plt.scatter(mu_x[p,:, 0], mu_x[p,:, 1], 
                            c=colors, alpha=0.15, s=10)
             
             plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
