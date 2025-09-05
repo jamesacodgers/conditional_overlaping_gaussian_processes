@@ -112,13 +112,10 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         return mu_n, sigma_n
 
-    @property 
-    def mu_x(self): 
-        return self.mu_x_train
+    def get_mu_sigma_x_samples(self, y, u_samples): 
+        mu_x, sigma_x = self.encode_local_params(y, u_samples)    # [
+        return mu_x, sigma_x
     
-    @property 
-    def Sigma_x(self): 
-        return self.Sigma_x_train
     
     def get_kl_x_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
         x_prior = torch.distributions.Normal(torch.zeros(self.A), torch.ones(self.A))
@@ -141,10 +138,10 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             return mu_s[..., 0]
         return mu_s
 
-    def get_u_samples_ssvi(self, num_samples: int) -> torch.Tensor:
-        """Sample U from current q(u) in gp (already kept in sync by setters)."""
-        samples = self.get_u_vec_samples()
-        return samples.reshape(self.P, self.M, self.C, self.Lx)
+    # def get_u_samples_ssvi(self, num_samples: int) -> torch.Tensor:
+    #     """Sample U from current q(u) in gp (already kept in sync by setters)."""
+    #     samples = self.get_u_vec_samples()
+    #     return samples.reshape(self.P, self.M, self.C, self.Lx)
 
     def _s_expectation_given_U(self, kernel_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
         """

@@ -129,6 +129,8 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             # Plot samples from all P samples with transparency
             for p in range(model.P):
                 # Use top 2 most informative latent dimensions
+                U = model.get_u_samples()  # [P, M, C, Lx]
+                mu_x_p, sigma_x_p = model.get_mu_sigma_x_samples(y, U)  # [N, A]
                 mu_x_p = model.mu_x[p, :, [dim1, dim2]].cpu()  # [N, 2] - move to CPU for plotting
                 plt.scatter(mu_x_p[:, 0], mu_x_p[:, 1], 
                            c=colors, alpha=0.15, s=10)

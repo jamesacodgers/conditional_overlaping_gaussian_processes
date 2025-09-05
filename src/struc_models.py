@@ -164,7 +164,7 @@ class Struc_WS_GPLVM(MF_WS_GPLVM):
         # self._samples = torch.nn.Parameter(torch.randn(self.P, self.M, self.L*self.C))
 
     def get_u_samples(self):
-        dist = self.get_q_u_dist()
+        dist = self.gp.get_q_u_dist()
         samples = dist.rsample((self.P,))
         # samples = self.get_u_vec_samples()
         return samples.reshape(self.P, self.M, self.C, self.Lx)
