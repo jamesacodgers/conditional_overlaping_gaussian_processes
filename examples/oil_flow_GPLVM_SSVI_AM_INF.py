@@ -1,17 +1,22 @@
 # %% 
 import torch 
 import matplotlib.pyplot as plt
-from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results
+
 from dataclasses import dataclass
 from typing import Any
 import numpy as np
 import urllib.request
 import tarfile
 import os
+import sys
 import json
 from datetime import datetime
 import time
+
+sys.path.insert(0, os.getcwd())
+
+from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
+from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results
 
 # Device will be set in main() from config
 
@@ -355,13 +360,16 @@ if __name__ == "__main__":
     
     # Configuration: Low local, High global (Final Loss: 181.82)
     second_best_config = OilFlowSSVIConfig(
-        training_iterations=1000,
-        batch_size=128,
+        training_iterations=5000,
+        batch_size=32,
         local_lr=1e-2,
         global_lr=3e-3,
         beta=initial_beta,
-        encoder_hidden_dims=[256, 128, 64],
+        encoder_hidden_dims=[32, 32, 32],
         enable_gradient_logging=True,
-        gradient_log_frequency=50
+        gradient_log_frequency=50,
+        n_inducing_points=32,
+        latent_dim=10,
+        P=32
     )
     main(second_best_config)

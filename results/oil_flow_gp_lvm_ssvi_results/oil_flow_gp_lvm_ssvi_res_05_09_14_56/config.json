@@ -1,0 +1,27 @@
+{
+  "device": "cuda",
+  "data_url": "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz",
+  "latent_dim": 6,
+  "n_inducing_points": 64,
+  "encoder_hidden_dims": [
+    256,
+    128,
+    64
+  ],
+  "training_iterations": 50000,
+  "batch_size": 128,
+  "local_lr": 0.01,
+  "global_lr": 0.003,
+  "sigma2": 1.0,
+  "beta": "tensor([1.])",
+  "sigma2_s": null,
+  "P": 8,
+  "trainable_V": true,
+  "plot_training": true,
+  "plot_latent_space": true,
+  "plot_hyperparams": true,
+  "log_frequency": 100,
+  "enable_gradient_logging": true,
+  "gradient_log_frequency": 50,
+  "save_results": true
+}
