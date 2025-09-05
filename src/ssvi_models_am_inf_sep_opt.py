@@ -255,9 +255,26 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                             D_test=D_test
                         )
     
-    def gplvm_elbo(self, y, mu_x_train, Sigma_x_train, U_samples: torch.Tensor = None):
+    def gplvm_elbo(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size):
         R_train = torch.ones((y.shape[0],1), device=y.device, dtype=y.dtype)
-        return self.elbo(y, R_train, mu_x_train=mu_x_train, Sigma_x_train=Sigma_x_train, U_samples=U_samples)
+        kernel_train_expectation = self._get_lv_kernel_expectation(mu_x, Sigma_x)
+        kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x,Sigma_x)
+
+        s_train_expectation = self._s_expectation_given_U(kernel_expectation=kernel_train_expectation,
+                                                         U_samples=U_samples)
+        s_train_outer_expectation = self._s_outer_expectation_given_U(kernel_outer_expectation=kernel_train_outer_expectation,
+                                                                     U_samples=U_samples)
+
+        const_train = self.coordinator.get_const_train(y, R_train, s_train_expectation, s_train_outer_expectation)
+        
+        # Scale const_train for mini-batches to represent full dataset contribution
+        if batch_size != total_size:
+            const_train = const_train * (total_size / batch_size)
+        
+        training_inner_elbo =  const_train.mean()
+
+
+        return training_inner_elbo - self.get_kl_x_from(mu_x, Sigma_x)
 
     def get_gradient_info(self):
         """

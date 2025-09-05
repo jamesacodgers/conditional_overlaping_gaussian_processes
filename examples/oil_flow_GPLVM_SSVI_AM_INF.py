@@ -24,6 +24,8 @@ from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results
 class OilFlowSSVIConfig:
     """Configuration for Oil Flow SSVI GP-LVM with Amortized Inference"""
     
+    total_size = None  # To be set after data loading
+
     # === Device Configuration ===
     device: str = "auto"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
     
@@ -88,6 +90,7 @@ class OilFlowSSVIConfig:
         print(f"Logging: Save results={self.save_results}, Gradients={self.enable_gradient_logging}")
         if self.enable_gradient_logging:
             print(f"  Gradient log frequency: every {self.gradient_log_frequency} iterations")
+
         print("=" * 50)
 
 def load_oil_flow_data(config: OilFlowSSVIConfig):
@@ -104,7 +107,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     y = torch.Tensor(np.loadtxt(fname='DataTrn.txt')).to(config.device)
     labels = torch.Tensor(np.loadtxt(fname='DataTrnLbls.txt')).to(config.device)
     labels = (labels @ torch.diag(torch.tensor([1, 2, 3], device=config.device, dtype=labels.dtype))).sum(axis=1)
-    
+
     # Initialize inducing points and latent variables (following original)
     Vx = torch.randn(config.n_inducing_points, config.latent_dim, device=config.device)
     mu_x, _, _ = torch.pca_lowrank(y, config.latent_dim)
@@ -113,7 +116,8 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     print(f"Data loaded: {y.shape[0]} samples, {y.shape[1]} dimensions")
     print(f"Latent initialization: {mu_x.shape}")
     print(f"Inducing points: {Vx.shape}")
-    
+    config.total_size = y.shape[0]
+
     return y, labels, Vx, mu_x
 
 class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
@@ -159,7 +163,10 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         loss = -self.gplvm_elbo(Y_batch,
                                mu_n_batch,
                                sigma_n_batch,
-                               U_samples=U_samples)
+                               U_samples=U_samples,
+                               batch_size=self.config.batch_size,
+                               total_size=self.config.total_size
+                               )
         
         # Backward pass (gradients computed for all parameters)
         loss.backward()
