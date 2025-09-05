@@ -271,7 +271,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         # Scale const_train for mini-batches to represent full dataset contribution
         if batch_size != total_size:
-            const_train = const_train * (total_size / batch_size)
+            training_inner_elbo = training_inner_elbo * (total_size / batch_size)
         
 
 
