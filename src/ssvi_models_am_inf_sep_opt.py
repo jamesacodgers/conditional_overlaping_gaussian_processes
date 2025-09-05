@@ -267,14 +267,15 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
 
         const_train = self.coordinator.get_const_train(y, R_train, s_train_expectation, s_train_outer_expectation)
         
+        training_inner_elbo =  const_train.mean() - self.get_kl_x_from(mu_x, Sigma_x)
+        
         # Scale const_train for mini-batches to represent full dataset contribution
         if batch_size != total_size:
             const_train = const_train * (total_size / batch_size)
         
-        training_inner_elbo =  const_train.mean()
 
 
-        return training_inner_elbo - self.get_kl_x_from(mu_x, Sigma_x)
+        return training_inner_elbo  - self.gp.get_kl_u()
 
     def get_gradient_info(self):
         """
