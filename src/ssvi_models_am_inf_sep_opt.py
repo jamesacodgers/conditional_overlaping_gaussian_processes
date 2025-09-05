@@ -50,7 +50,6 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             layers.extend([
                 nn.Linear(prev_dim, hidden_dim),
                 nn.ReLU(),
-                nn.Dropout(0.1)
             ])
             prev_dim = hidden_dim
         
@@ -109,8 +108,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         mu_n = encoder_output[:, :, :self.A]
         log_sigma_n = encoder_output[:, :, self.A:]
         
-        # Ensure positive standard deviations with numerical stability
-        sigma_n = torch.nn.functional.softplus(log_sigma_n) + 1e-6
+        sigma_n = torch.exp(log_sigma_n)
         
         return mu_n, sigma_n
 
