@@ -27,12 +27,18 @@ class SSVIResultsLogger:
             timestamp = datetime.now().strftime("%d_%m_%H_%M")
             
             # Determine correct results path based on current working directory
+            # Organize results by experiment type: SSVI vs Original GP-LVM
+            if "gplvm" in experiment_name.lower():
+                results_folder = "oil_flow_original_gplvm_results"
+            else:
+                results_folder = "oil_flow_ssvi_results"
+                
             if os.path.basename(os.getcwd()) == "ssvi_scripts_experiments":
                 # Running from within ssvi_scripts_experiments directory
-                self.results_dir = f"results/{experiment_name}_results/{experiment_name}_res_{timestamp}"
+                self.results_dir = f"results/{results_folder}/{experiment_name}_res_{timestamp}"
             else:
                 # Running from project root
-                self.results_dir = f"ssvi_scripts_experiments/results/{experiment_name}_results/{experiment_name}_res_{timestamp}"
+                self.results_dir = f"ssvi_scripts_experiments/results/{results_folder}/{experiment_name}_res_{timestamp}"
             os.makedirs(self.results_dir, exist_ok=True)
             
             # Initialize log files
