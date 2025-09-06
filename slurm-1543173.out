@@ -1,0 +1,1574 @@
+/usr/lib64/python3.11/tarfile.py:2299: RuntimeWarning: The default behavior of tarfile extraction has been changed to disallow common exploits (including CVE-2007-4559). By default, absolute/parent paths are disallowed and some mode bits are cleared. See https://access.redhat.com/articles/7004769 for more details.
+  warnings.warn(
+/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/.venv/lib64/python3.11/site-packages/torch/_compile.py:53: UserWarning: optimizer contains a parameter group with duplicate parameters; in future, this will cause an error; see github.com/pytorch/pytorch/issues/40967 for more information
+  return disable_fn(*args, **kwargs)
+Initial lengthscales for all experiments: [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+Initial beta values: [1.0]
+=== Oil Flow SSVI GP-LVM Configuration ===
+Device: cuda
+CUDA available: NVIDIA A100-SXM4-40GB
+Model: 64 inducing points, latent_dim=10
+Encoder: [128, 64, 32] hidden dims
+Training: 50000 iter, batch=128
+Learning rates: Local=0.001, Global=0.001
+SSVI: P=8 samples
+Logging: Save results=True, Gradients=True
+  Gradient log frequency: every 50 iterations
+==================================================
+Downloading and loading oil flow data...
+Data loaded: 1000 samples, 12 dimensions
+Latent initialization: torch.Size([1000, 10])
+Inducing points: torch.Size([64, 10])
+
+Initializing Oil Flow SSVI GP-LVM...
+Model initialized:
+  Encoder: Sequential(
+  (0): Linear(in_features=780, out_features=128, bias=True)
+  (1): ReLU()
+  (2): Linear(in_features=128, out_features=64, bias=True)
+  (3): ReLU()
+  (4): Linear(in_features=64, out_features=32, bias=True)
+  (5): ReLU()
+  (6): Linear(in_features=32, out_features=20, bias=True)
+)
+  Inducing points: torch.Size([64, 10])
+  Latent variables: torch.Size([8, 1000, 10])
+Results will be saved to: results/oil_flow_gp_lvm_ssvi_results/oil_flow_gp_lvm_ssvi_res_05_09_20_27
+
+Training model...
+Training Oil Flow SSVI GP-LVM...
+Iterations: 50000, Batch size: 128
+Iteration 0/50000
+  Loss: 10646.7207
+  Time elapsed: 0.8s
+Iteration 100/50000
+  Loss: 8617.4258
+  Time elapsed: 3.6s
+Iteration 200/50000
+  Loss: 7774.5781
+  Time elapsed: 6.2s
+Iteration 300/50000
+  Loss: 7170.2026
+  Time elapsed: 9.0s
+Iteration 400/50000
+  Loss: 6385.3696
+  Time elapsed: 11.6s
+Iteration 500/50000
+  Loss: 5799.3535
+  Time elapsed: 14.3s
+Iteration 600/50000
+  Loss: 4976.5391
+  Time elapsed: 16.9s
+Iteration 700/50000
+  Loss: 4143.3896
+  Time elapsed: 19.6s
+Iteration 800/50000
+  Loss: 3486.7322
+  Time elapsed: 22.3s
+Iteration 900/50000
+  Loss: 2505.9189
+  Time elapsed: 25.0s
+Iteration 1000/50000
+  Loss: 1654.1370
+  Time elapsed: 27.6s
+Iteration 1100/50000
+  Loss: 1007.8358
+  Time elapsed: 30.3s
+Iteration 1200/50000
+  Loss: 595.2292
+  Time elapsed: 33.0s
+Iteration 1300/50000
+  Loss: 160.0649
+  Time elapsed: 35.7s
+Iteration 1400/50000
+  Loss: -453.5780
+  Time elapsed: 38.3s
+Iteration 1500/50000
+  Loss: -871.4546
+  Time elapsed: 41.0s
+Iteration 1600/50000
+  Loss: -1000.8362
+  Time elapsed: 43.7s
+Iteration 1700/50000
+  Loss: -1339.3347
+  Time elapsed: 46.4s
+Iteration 1800/50000
+  Loss: -1365.2090
+  Time elapsed: 49.0s
+Iteration 1900/50000
+  Loss: -2016.5883
+  Time elapsed: 51.7s
+Iteration 2000/50000
+  Loss: -2108.6985
+  Time elapsed: 54.4s
+Iteration 2100/50000
+  Loss: -2122.2014
+  Time elapsed: 57.0s
+Iteration 2200/50000
+  Loss: -2521.5806
+  Time elapsed: 59.7s
+Iteration 2300/50000
+  Loss: -2629.5117
+  Time elapsed: 62.4s
+Iteration 2400/50000
+  Loss: -3519.2869
+  Time elapsed: 65.0s
+Iteration 2500/50000
+  Loss: -4059.0439
+  Time elapsed: 67.7s
+Iteration 2600/50000
+  Loss: -3572.6904
+  Time elapsed: 70.4s
+Iteration 2700/50000
+  Loss: -4000.5935
+  Time elapsed: 73.0s
+Iteration 2800/50000
+  Loss: -4499.1045
+  Time elapsed: 75.7s
+Iteration 2900/50000
+  Loss: -4868.0020
+  Time elapsed: 78.4s
+Iteration 3000/50000
+  Loss: -4531.3408
+  Time elapsed: 81.0s
+Iteration 3100/50000
+  Loss: -5008.5020
+  Time elapsed: 83.7s
+Iteration 3200/50000
+  Loss: -4915.7915
+  Time elapsed: 86.4s
+Iteration 3300/50000
+  Loss: -5248.1431
+  Time elapsed: 89.1s
+Iteration 3400/50000
+  Loss: -5566.8008
+  Time elapsed: 91.7s
+Iteration 3500/50000
+  Loss: -5612.7661
+  Time elapsed: 94.4s
+Iteration 3600/50000
+  Loss: -5642.0361
+  Time elapsed: 97.0s
+Iteration 3700/50000
+  Loss: -6111.2427
+  Time elapsed: 99.7s
+Iteration 3800/50000
+  Loss: -6229.6626
+  Time elapsed: 102.4s
+Iteration 3900/50000
+  Loss: -6261.8682
+  Time elapsed: 105.1s
+Iteration 4000/50000
+  Loss: -6374.9976
+  Time elapsed: 107.8s
+Iteration 4100/50000
+  Loss: -6054.4814
+  Time elapsed: 110.4s
+Iteration 4200/50000
+  Loss: -6424.5020
+  Time elapsed: 113.1s
+Iteration 4300/50000
+  Loss: -6411.8086
+  Time elapsed: 115.7s
+Iteration 4400/50000
+  Loss: -5825.9771
+  Time elapsed: 118.4s
+Iteration 4500/50000
+  Loss: -6631.4170
+  Time elapsed: 121.1s
+Iteration 4600/50000
+  Loss: -6714.9072
+  Time elapsed: 123.7s
+Iteration 4700/50000
+  Loss: -6897.1606
+  Time elapsed: 126.4s
+Iteration 4800/50000
+  Loss: -7305.2412
+  Time elapsed: 129.0s
+Iteration 4900/50000
+  Loss: -6825.0918
+  Time elapsed: 131.7s
+Iteration 5000/50000
+  Loss: -7629.3022
+  Time elapsed: 134.4s
+Iteration 5100/50000
+  Loss: -6799.6831
+  Time elapsed: 137.1s
+Iteration 5200/50000
+  Loss: -7095.5923
+  Time elapsed: 139.7s
+Iteration 5300/50000
+  Loss: -7867.8408
+  Time elapsed: 142.4s
+Iteration 5400/50000
+  Loss: -7806.6816
+  Time elapsed: 145.0s
+Iteration 5500/50000
+  Loss: -7990.7676
+  Time elapsed: 147.7s
+Iteration 5600/50000
+  Loss: -7318.0195
+  Time elapsed: 150.4s
+Iteration 5700/50000
+  Loss: -7954.2603
+  Time elapsed: 153.0s
+Iteration 5800/50000
+  Loss: -7592.5352
+  Time elapsed: 155.7s
+Iteration 5900/50000
+  Loss: -8191.7017
+  Time elapsed: 158.4s
+Iteration 6000/50000
+  Loss: -8323.1553
+  Time elapsed: 161.1s
+Iteration 6100/50000
+  Loss: -7895.1372
+  Time elapsed: 163.7s
+Iteration 6200/50000
+  Loss: -7995.9478
+  Time elapsed: 166.4s
+Iteration 6300/50000
+  Loss: -7693.0259
+  Time elapsed: 169.0s
+Iteration 6400/50000
+  Loss: -8260.8184
+  Time elapsed: 171.7s
+Iteration 6500/50000
+  Loss: -8121.4883
+  Time elapsed: 174.4s
+Iteration 6600/50000
+  Loss: -7556.9688
+  Time elapsed: 177.1s
+Iteration 6700/50000
+  Loss: -8615.1504
+  Time elapsed: 179.8s
+Iteration 6800/50000
+  Loss: -8690.8916
+  Time elapsed: 182.4s
+Iteration 6900/50000
+  Loss: -8598.3604
+  Time elapsed: 185.1s
+Iteration 7000/50000
+  Loss: -8333.6133
+  Time elapsed: 187.7s
+Iteration 7100/50000
+  Loss: -8846.2598
+  Time elapsed: 190.4s
+Iteration 7200/50000
+  Loss: -8299.3066
+  Time elapsed: 193.1s
+Iteration 7300/50000
+  Loss: -8375.7305
+  Time elapsed: 195.7s
+Iteration 7400/50000
+  Loss: -8897.6221
+  Time elapsed: 198.4s
+Iteration 7500/50000
+  Loss: -8657.5068
+  Time elapsed: 201.0s
+Iteration 7600/50000
+  Loss: -8687.5029
+  Time elapsed: 203.7s
+Iteration 7700/50000
+  Loss: -9257.3350
+  Time elapsed: 206.3s
+Iteration 7800/50000
+  Loss: -8817.1191
+  Time elapsed: 209.0s
+Iteration 7900/50000
+  Loss: -9194.3604
+  Time elapsed: 211.6s
+Iteration 8000/50000
+  Loss: -9003.8008
+  Time elapsed: 214.3s
+Iteration 8100/50000
+  Loss: -9145.5107
+  Time elapsed: 216.9s
+Iteration 8200/50000
+  Loss: -8675.3301
+  Time elapsed: 219.6s
+Iteration 8300/50000
+  Loss: -8653.6309
+  Time elapsed: 222.2s
+Iteration 8400/50000
+  Loss: -9032.5859
+  Time elapsed: 224.9s
+Iteration 8500/50000
+  Loss: -9194.3652
+  Time elapsed: 227.5s
+Iteration 8600/50000
+  Loss: -8464.0225
+  Time elapsed: 230.2s
+Iteration 8700/50000
+  Loss: -8436.4326
+  Time elapsed: 232.9s
+Iteration 8800/50000
+  Loss: -9066.3330
+  Time elapsed: 235.5s
+Iteration 8900/50000
+  Loss: -9110.2578
+  Time elapsed: 238.1s
+Iteration 9000/50000
+  Loss: -8877.3750
+  Time elapsed: 240.8s
+Iteration 9100/50000
+  Loss: -8697.8262
+  Time elapsed: 243.5s
+Iteration 9200/50000
+  Loss: -8812.0654
+  Time elapsed: 246.1s
+Iteration 9300/50000
+  Loss: -8551.2334
+  Time elapsed: 248.7s
+Iteration 9400/50000
+  Loss: -9266.5605
+  Time elapsed: 251.4s
+Iteration 9500/50000
+  Loss: -8923.3008
+  Time elapsed: 254.1s
+Iteration 9600/50000
+  Loss: -8923.5273
+  Time elapsed: 256.7s
+Iteration 9700/50000
+  Loss: -8881.3838
+  Time elapsed: 259.4s
+Iteration 9800/50000
+  Loss: -9014.0586
+  Time elapsed: 262.1s
+Iteration 9900/50000
+  Loss: -9683.0137
+  Time elapsed: 264.7s
+Iteration 10000/50000
+  Loss: -9260.3379
+  Time elapsed: 267.3s
+Iteration 10100/50000
+  Loss: -9284.3184
+  Time elapsed: 270.0s
+Iteration 10200/50000
+  Loss: -9616.5850
+  Time elapsed: 272.7s
+Iteration 10300/50000
+  Loss: -8755.3623
+  Time elapsed: 275.3s
+Iteration 10400/50000
+  Loss: -9062.6689
+  Time elapsed: 278.0s
+Iteration 10500/50000
+  Loss: -9869.1611
+  Time elapsed: 280.6s
+Iteration 10600/50000
+  Loss: -9046.4668
+  Time elapsed: 283.3s
+Iteration 10700/50000
+  Loss: -9446.6943
+  Time elapsed: 285.9s
+Iteration 10800/50000
+  Loss: -9274.8008
+  Time elapsed: 288.6s
+Iteration 10900/50000
+  Loss: -9042.9453
+  Time elapsed: 291.2s
+Iteration 11000/50000
+  Loss: -9877.2188
+  Time elapsed: 293.9s
+Iteration 11100/50000
+  Loss: -9217.4219
+  Time elapsed: 296.5s
+Iteration 11200/50000
+  Loss: -9097.4766
+  Time elapsed: 299.2s
+Iteration 11300/50000
+  Loss: -9886.2012
+  Time elapsed: 301.8s
+Iteration 11400/50000
+  Loss: -9698.0215
+  Time elapsed: 304.5s
+Iteration 11500/50000
+  Loss: -9469.1543
+  Time elapsed: 307.1s
+Iteration 11600/50000
+  Loss: -9374.5410
+  Time elapsed: 309.8s
+Iteration 11700/50000
+  Loss: -9371.1084
+  Time elapsed: 312.5s
+Iteration 11800/50000
+  Loss: -9318.7930
+  Time elapsed: 315.1s
+Iteration 11900/50000
+  Loss: -8737.8477
+  Time elapsed: 317.8s
+Iteration 12000/50000
+  Loss: -9425.1865
+  Time elapsed: 320.4s
+Iteration 12100/50000
+  Loss: -9313.2344
+  Time elapsed: 323.0s
+Iteration 12200/50000
+  Loss: -9612.6201
+  Time elapsed: 325.7s
+Iteration 12300/50000
+  Loss: -9592.6621
+  Time elapsed: 328.4s
+Iteration 12400/50000
+  Loss: -9533.1338
+  Time elapsed: 331.0s
+Iteration 12500/50000
+  Loss: -9334.4199
+  Time elapsed: 333.6s
+Iteration 12600/50000
+  Loss: -9748.9297
+  Time elapsed: 336.3s
+Iteration 12700/50000
+  Loss: -9612.9902
+  Time elapsed: 339.0s
+Iteration 12800/50000
+  Loss: -10263.3896
+  Time elapsed: 341.6s
+Iteration 12900/50000
+  Loss: -9644.6992
+  Time elapsed: 344.3s
+Iteration 13000/50000
+  Loss: -9956.4141
+  Time elapsed: 346.9s
+Iteration 13100/50000
+  Loss: -9750.6992
+  Time elapsed: 349.6s
+Iteration 13200/50000
+  Loss: -9922.7617
+  Time elapsed: 352.2s
+Iteration 13300/50000
+  Loss: -10025.5391
+  Time elapsed: 354.9s
+Iteration 13400/50000
+  Loss: -9822.2305
+  Time elapsed: 357.5s
+Iteration 13500/50000
+  Loss: -10196.5693
+  Time elapsed: 360.2s
+Iteration 13600/50000
+  Loss: -9594.8164
+  Time elapsed: 362.8s
+Iteration 13700/50000
+  Loss: -9497.9873
+  Time elapsed: 365.5s
+Iteration 13800/50000
+  Loss: -9351.4922
+  Time elapsed: 368.1s
+Iteration 13900/50000
+  Loss: -10097.2344
+  Time elapsed: 370.8s
+Iteration 14000/50000
+  Loss: -9528.5215
+  Time elapsed: 373.4s
+Iteration 14100/50000
+  Loss: -9482.1885
+  Time elapsed: 376.1s
+Iteration 14200/50000
+  Loss: -10159.8525
+  Time elapsed: 378.7s
+Iteration 14300/50000
+  Loss: -9828.2334
+  Time elapsed: 381.4s
+Iteration 14400/50000
+  Loss: -9684.1318
+  Time elapsed: 384.0s
+Iteration 14500/50000
+  Loss: -9547.9453
+  Time elapsed: 386.7s
+Iteration 14600/50000
+  Loss: -10285.5684
+  Time elapsed: 389.3s
+Iteration 14700/50000
+  Loss: -10202.9561
+  Time elapsed: 392.0s
+Iteration 14800/50000
+  Loss: -9931.5879
+  Time elapsed: 394.6s
+Iteration 14900/50000
+  Loss: -10081.5752
+  Time elapsed: 397.3s
+Iteration 15000/50000
+  Loss: -9238.8711
+  Time elapsed: 400.0s
+Iteration 15100/50000
+  Loss: -9849.0742
+  Time elapsed: 402.6s
+Iteration 15200/50000
+  Loss: -9681.3965
+  Time elapsed: 405.2s
+Iteration 15300/50000
+  Loss: -9758.8301
+  Time elapsed: 407.9s
+Iteration 15400/50000
+  Loss: -10409.2695
+  Time elapsed: 410.5s
+Iteration 15500/50000
+  Loss: -9569.5488
+  Time elapsed: 413.2s
+Iteration 15600/50000
+  Loss: -9880.2988
+  Time elapsed: 415.8s
+Iteration 15700/50000
+  Loss: -9878.6875
+  Time elapsed: 418.5s
+Iteration 15800/50000
+  Loss: -9641.6074
+  Time elapsed: 421.2s
+Iteration 15900/50000
+  Loss: -9857.0410
+  Time elapsed: 423.8s
+Iteration 16000/50000
+  Loss: -9179.9209
+  Time elapsed: 426.5s
+Iteration 16100/50000
+  Loss: -9564.7910
+  Time elapsed: 429.1s
+Iteration 16200/50000
+  Loss: -9398.4316
+  Time elapsed: 431.8s
+Iteration 16300/50000
+  Loss: -9740.4248
+  Time elapsed: 434.4s
+Iteration 16400/50000
+  Loss: -10260.7354
+  Time elapsed: 437.0s
+Iteration 16500/50000
+  Loss: -10187.5264
+  Time elapsed: 439.7s
+Iteration 16600/50000
+  Loss: -10086.6455
+  Time elapsed: 442.4s
+Iteration 16700/50000
+  Loss: -10149.9941
+  Time elapsed: 445.0s
+Iteration 16800/50000
+  Loss: -9749.5928
+  Time elapsed: 447.6s
+Iteration 16900/50000
+  Loss: -9781.7852
+  Time elapsed: 450.3s
+Iteration 17000/50000
+  Loss: -9899.6719
+  Time elapsed: 453.0s
+Iteration 17100/50000
+  Loss: -9547.1104
+  Time elapsed: 455.6s
+Iteration 17200/50000
+  Loss: -10041.9102
+  Time elapsed: 458.2s
+Iteration 17300/50000
+  Loss: -10117.2314
+  Time elapsed: 460.9s
+Iteration 17400/50000
+  Loss: -10401.3174
+  Time elapsed: 463.6s
+Iteration 17500/50000
+  Loss: -10150.5283
+  Time elapsed: 466.2s
+Iteration 17600/50000
+  Loss: -9529.0049
+  Time elapsed: 468.8s
+Iteration 17700/50000
+  Loss: -10475.3516
+  Time elapsed: 471.5s
+Iteration 17800/50000
+  Loss: -10001.4746
+  Time elapsed: 474.2s
+Iteration 17900/50000
+  Loss: -9945.8398
+  Time elapsed: 476.8s
+Iteration 18000/50000
+  Loss: -10201.0195
+  Time elapsed: 479.4s
+Iteration 18100/50000
+  Loss: -10192.0254
+  Time elapsed: 482.1s
+Iteration 18200/50000
+  Loss: -9743.0234
+  Time elapsed: 484.8s
+Iteration 18300/50000
+  Loss: -10073.2178
+  Time elapsed: 487.4s
+Iteration 18400/50000
+  Loss: -9253.0215
+  Time elapsed: 490.0s
+Iteration 18500/50000
+  Loss: -10247.4756
+  Time elapsed: 492.7s
+Iteration 18600/50000
+  Loss: -10075.5996
+  Time elapsed: 495.4s
+Iteration 18700/50000
+  Loss: -10146.8984
+  Time elapsed: 498.0s
+Iteration 18800/50000
+  Loss: -10593.3633
+  Time elapsed: 500.6s
+Iteration 18900/50000
+  Loss: -10133.7998
+  Time elapsed: 503.3s
+Iteration 19000/50000
+  Loss: -9899.1260
+  Time elapsed: 506.0s
+Iteration 19100/50000
+  Loss: -9909.2764
+  Time elapsed: 508.6s
+Iteration 19200/50000
+  Loss: -10586.7285
+  Time elapsed: 511.3s
+Iteration 19300/50000
+  Loss: -9293.3828
+  Time elapsed: 513.9s
+Iteration 19400/50000
+  Loss: -10009.7627
+  Time elapsed: 516.6s
+Iteration 19500/50000
+  Loss: -9861.2002
+  Time elapsed: 519.2s
+Iteration 19600/50000
+  Loss: -10204.5830
+  Time elapsed: 521.8s
+Iteration 19700/50000
+  Loss: -9774.4180
+  Time elapsed: 524.5s
+Iteration 19800/50000
+  Loss: -9343.2900
+  Time elapsed: 527.2s
+Iteration 19900/50000
+  Loss: -10637.7451
+  Time elapsed: 529.8s
+Iteration 20000/50000
+  Loss: -10360.6895
+  Time elapsed: 532.4s
+Iteration 20100/50000
+  Loss: -9817.6514
+  Time elapsed: 535.1s
+Iteration 20200/50000
+  Loss: -10401.4258
+  Time elapsed: 537.8s
+Iteration 20300/50000
+  Loss: -9603.6250
+  Time elapsed: 540.4s
+Iteration 20400/50000
+  Loss: -9760.6357
+  Time elapsed: 543.0s
+Iteration 20500/50000
+  Loss: -10374.6621
+  Time elapsed: 545.7s
+Iteration 20600/50000
+  Loss: -9718.2686
+  Time elapsed: 548.3s
+Iteration 20700/50000
+  Loss: -10096.1875
+  Time elapsed: 551.0s
+Iteration 20800/50000
+  Loss: -9562.9883
+  Time elapsed: 553.7s
+Iteration 20900/50000
+  Loss: -10488.4307
+  Time elapsed: 556.3s
+Iteration 21000/50000
+  Loss: -10049.3340
+  Time elapsed: 559.0s
+Iteration 21100/50000
+  Loss: -9322.3047
+  Time elapsed: 561.6s
+Iteration 21200/50000
+  Loss: -9538.8887
+  Time elapsed: 564.3s
+Iteration 21300/50000
+  Loss: -9962.7891
+  Time elapsed: 566.9s
+Iteration 21400/50000
+  Loss: -10175.4043
+  Time elapsed: 569.6s
+Iteration 21500/50000
+  Loss: -10098.9932
+  Time elapsed: 572.2s
+Iteration 21600/50000
+  Loss: -9638.0693
+  Time elapsed: 574.8s
+Iteration 21700/50000
+  Loss: -10731.6240
+  Time elapsed: 577.5s
+Iteration 21800/50000
+  Loss: -10252.8418
+  Time elapsed: 580.2s
+Iteration 21900/50000
+  Loss: -10291.8691
+  Time elapsed: 582.8s
+Iteration 22000/50000
+  Loss: -10525.9346
+  Time elapsed: 585.5s
+Iteration 22100/50000
+  Loss: -10210.4678
+  Time elapsed: 588.1s
+Iteration 22200/50000
+  Loss: -9902.6230
+  Time elapsed: 590.8s
+Iteration 22300/50000
+  Loss: -10257.0586
+  Time elapsed: 593.4s
+Iteration 22400/50000
+  Loss: -10536.4648
+  Time elapsed: 596.1s
+Iteration 22500/50000
+  Loss: -10233.8047
+  Time elapsed: 598.7s
+Iteration 22600/50000
+  Loss: -10215.7500
+  Time elapsed: 601.4s
+Iteration 22700/50000
+  Loss: -9713.2695
+  Time elapsed: 604.0s
+Iteration 22800/50000
+  Loss: -10299.8555
+  Time elapsed: 606.6s
+Iteration 22900/50000
+  Loss: -10991.6396
+  Time elapsed: 609.3s
+Iteration 23000/50000
+  Loss: -10050.3018
+  Time elapsed: 612.0s
+Iteration 23100/50000
+  Loss: -10861.0703
+  Time elapsed: 614.6s
+Iteration 23200/50000
+  Loss: -10284.0059
+  Time elapsed: 617.3s
+Iteration 23300/50000
+  Loss: -10125.8242
+  Time elapsed: 619.9s
+Iteration 23400/50000
+  Loss: -10148.9482
+  Time elapsed: 622.6s
+Iteration 23500/50000
+  Loss: -10237.8721
+  Time elapsed: 625.2s
+Iteration 23600/50000
+  Loss: -10649.4443
+  Time elapsed: 627.9s
+Iteration 23700/50000
+  Loss: -10160.0059
+  Time elapsed: 630.5s
+Iteration 23800/50000
+  Loss: -9612.6035
+  Time elapsed: 633.2s
+Iteration 23900/50000
+  Loss: -10177.0898
+  Time elapsed: 635.8s
+Iteration 24000/50000
+  Loss: -10500.8633
+  Time elapsed: 638.5s
+Iteration 24100/50000
+  Loss: -9881.3936
+  Time elapsed: 641.1s
+Iteration 24200/50000
+  Loss: -10408.7422
+  Time elapsed: 643.8s
+Iteration 24300/50000
+  Loss: -10588.0273
+  Time elapsed: 646.4s
+Iteration 24400/50000
+  Loss: -9880.9648
+  Time elapsed: 649.1s
+Iteration 24500/50000
+  Loss: -9985.3203
+  Time elapsed: 651.7s
+Iteration 24600/50000
+  Loss: -9605.6367
+  Time elapsed: 654.4s
+Iteration 24700/50000
+  Loss: -10429.7285
+  Time elapsed: 657.0s
+Iteration 24800/50000
+  Loss: -10554.1592
+  Time elapsed: 659.6s
+Iteration 24900/50000
+  Loss: -10783.3867
+  Time elapsed: 662.3s
+Iteration 25000/50000
+  Loss: -9610.0859
+  Time elapsed: 665.0s
+Iteration 25100/50000
+  Loss: -10426.9795
+  Time elapsed: 667.6s
+Iteration 25200/50000
+  Loss: -10068.3564
+  Time elapsed: 670.3s
+Iteration 25300/50000
+  Loss: -10141.7979
+  Time elapsed: 672.9s
+Iteration 25400/50000
+  Loss: -9435.6094
+  Time elapsed: 675.6s
+Iteration 25500/50000
+  Loss: -10321.3906
+  Time elapsed: 678.2s
+Iteration 25600/50000
+  Loss: -9994.2402
+  Time elapsed: 680.9s
+Iteration 25700/50000
+  Loss: -10765.1250
+  Time elapsed: 683.5s
+Iteration 25800/50000
+  Loss: -10366.7676
+  Time elapsed: 686.2s
+Iteration 25900/50000
+  Loss: -10080.9795
+  Time elapsed: 688.8s
+Iteration 26000/50000
+  Loss: -10342.6113
+  Time elapsed: 691.4s
+Iteration 26100/50000
+  Loss: -10641.7354
+  Time elapsed: 694.1s
+Iteration 26200/50000
+  Loss: -10322.1191
+  Time elapsed: 696.8s
+Iteration 26300/50000
+  Loss: -10393.7090
+  Time elapsed: 699.4s
+Iteration 26400/50000
+  Loss: -9887.9238
+  Time elapsed: 702.0s
+Iteration 26500/50000
+  Loss: -11013.1377
+  Time elapsed: 704.7s
+Iteration 26600/50000
+  Loss: -9981.1660
+  Time elapsed: 707.4s
+Iteration 26700/50000
+  Loss: -10132.6719
+  Time elapsed: 710.0s
+Iteration 26800/50000
+  Loss: -9991.2197
+  Time elapsed: 712.7s
+Iteration 26900/50000
+  Loss: -10148.1650
+  Time elapsed: 715.3s
+Iteration 27000/50000
+  Loss: -10496.8027
+  Time elapsed: 718.0s
+Iteration 27100/50000
+  Loss: -10455.2168
+  Time elapsed: 720.6s
+Iteration 27200/50000
+  Loss: -9792.8857
+  Time elapsed: 723.2s
+Iteration 27300/50000
+  Loss: -10506.6143
+  Time elapsed: 725.9s
+Iteration 27400/50000
+  Loss: -10711.5811
+  Time elapsed: 728.6s
+Iteration 27500/50000
+  Loss: -10145.4600
+  Time elapsed: 731.2s
+Iteration 27600/50000
+  Loss: -9881.8408
+  Time elapsed: 733.9s
+Iteration 27700/50000
+  Loss: -10085.6865
+  Time elapsed: 736.5s
+Iteration 27800/50000
+  Loss: -9833.7656
+  Time elapsed: 739.2s
+Iteration 27900/50000
+  Loss: -10157.7441
+  Time elapsed: 741.8s
+Iteration 28000/50000
+  Loss: -10312.0283
+  Time elapsed: 744.4s
+Iteration 28100/50000
+  Loss: -10248.7949
+  Time elapsed: 747.1s
+Iteration 28200/50000
+  Loss: -9954.0693
+  Time elapsed: 749.8s
+Iteration 28300/50000
+  Loss: -10286.9805
+  Time elapsed: 752.4s
+Iteration 28400/50000
+  Loss: -10123.2002
+  Time elapsed: 755.1s
+Iteration 28500/50000
+  Loss: -9916.5029
+  Time elapsed: 757.7s
+Iteration 28600/50000
+  Loss: -9797.0576
+  Time elapsed: 760.3s
+Iteration 28700/50000
+  Loss: -10373.8760
+  Time elapsed: 763.0s
+Iteration 28800/50000
+  Loss: -10400.9912
+  Time elapsed: 765.6s
+Iteration 28900/50000
+  Loss: -10221.5703
+  Time elapsed: 768.3s
+Iteration 29000/50000
+  Loss: -10665.6406
+  Time elapsed: 770.9s
+Iteration 29100/50000
+  Loss: -9848.7832
+  Time elapsed: 773.6s
+Iteration 29200/50000
+  Loss: -10262.2139
+  Time elapsed: 776.2s
+Iteration 29300/50000
+  Loss: -10390.3691
+  Time elapsed: 778.9s
+Iteration 29400/50000
+  Loss: -10531.2666
+  Time elapsed: 781.6s
+Iteration 29500/50000
+  Loss: -10087.8516
+  Time elapsed: 784.2s
+Iteration 29600/50000
+  Loss: -10500.8037
+  Time elapsed: 786.9s
+Iteration 29700/50000
+  Loss: -9731.7637
+  Time elapsed: 789.5s
+Iteration 29800/50000
+  Loss: -10287.2168
+  Time elapsed: 792.1s
+Iteration 29900/50000
+  Loss: -11090.3125
+  Time elapsed: 794.8s
+Iteration 30000/50000
+  Loss: -10141.8584
+  Time elapsed: 797.4s
+Iteration 30100/50000
+  Loss: -10600.5156
+  Time elapsed: 800.1s
+Iteration 30200/50000
+  Loss: -10872.1758
+  Time elapsed: 802.7s
+Iteration 30300/50000
+  Loss: -9921.5762
+  Time elapsed: 805.4s
+Iteration 30400/50000
+  Loss: -10619.0146
+  Time elapsed: 808.0s
+Iteration 30500/50000
+  Loss: -9751.7695
+  Time elapsed: 810.7s
+Iteration 30600/50000
+  Loss: -10991.0088
+  Time elapsed: 813.4s
+Iteration 30700/50000
+  Loss: -10198.3555
+  Time elapsed: 816.0s
+Iteration 30800/50000
+  Loss: -10070.1699
+  Time elapsed: 818.7s
+Iteration 30900/50000
+  Loss: -10122.2227
+  Time elapsed: 821.3s
+Iteration 31000/50000
+  Loss: -10302.5820
+  Time elapsed: 824.0s
+Iteration 31100/50000
+  Loss: -10029.6260
+  Time elapsed: 826.6s
+Iteration 31200/50000
+  Loss: -9910.8496
+  Time elapsed: 829.2s
+Iteration 31300/50000
+  Loss: -10499.2275
+  Time elapsed: 831.9s
+Iteration 31400/50000
+  Loss: -10111.6924
+  Time elapsed: 834.6s
+Iteration 31500/50000
+  Loss: -10056.8047
+  Time elapsed: 837.2s
+Iteration 31600/50000
+  Loss: -10388.8818
+  Time elapsed: 839.9s
+Iteration 31700/50000
+  Loss: -10165.5381
+  Time elapsed: 842.5s
+Iteration 31800/50000
+  Loss: -10033.2383
+  Time elapsed: 845.1s
+Iteration 31900/50000
+  Loss: -10655.5938
+  Time elapsed: 847.8s
+Iteration 32000/50000
+  Loss: -10298.4785
+  Time elapsed: 850.5s
+Iteration 32100/50000
+  Loss: -10019.4531
+  Time elapsed: 853.1s
+Iteration 32200/50000
+  Loss: -10720.6084
+  Time elapsed: 855.8s
+Iteration 32300/50000
+  Loss: -10383.6621
+  Time elapsed: 858.4s
+Iteration 32400/50000
+  Loss: -11211.1738
+  Time elapsed: 861.0s
+Iteration 32500/50000
+  Loss: -11482.1592
+  Time elapsed: 863.7s
+Iteration 32600/50000
+  Loss: -10422.1621
+  Time elapsed: 866.4s
+Iteration 32700/50000
+  Loss: -10254.8574
+  Time elapsed: 869.0s
+Iteration 32800/50000
+  Loss: -9932.4707
+  Time elapsed: 871.7s
+Iteration 32900/50000
+  Loss: -10319.2412
+  Time elapsed: 874.3s
+Iteration 33000/50000
+  Loss: -10331.8682
+  Time elapsed: 877.0s
+Iteration 33100/50000
+  Loss: -10301.5137
+  Time elapsed: 879.6s
+Iteration 33200/50000
+  Loss: -10054.2812
+  Time elapsed: 882.3s
+Iteration 33300/50000
+  Loss: -9989.1172
+  Time elapsed: 884.9s
+Iteration 33400/50000
+  Loss: -10874.1875
+  Time elapsed: 887.6s
+Iteration 33500/50000
+  Loss: -10520.2432
+  Time elapsed: 890.2s
+Iteration 33600/50000
+  Loss: -10208.2031
+  Time elapsed: 892.9s
+Iteration 33700/50000
+  Loss: -10494.2441
+  Time elapsed: 895.5s
+Iteration 33800/50000
+  Loss: -9547.5000
+  Time elapsed: 898.2s
+Iteration 33900/50000
+  Loss: -10227.3389
+  Time elapsed: 900.8s
+Iteration 34000/50000
+  Loss: -10643.9902
+  Time elapsed: 903.5s
+Iteration 34100/50000
+  Loss: -10831.0518
+  Time elapsed: 906.1s
+Iteration 34200/50000
+  Loss: -11049.1797
+  Time elapsed: 908.8s
+Iteration 34300/50000
+  Loss: -10127.9922
+  Time elapsed: 911.4s
+Iteration 34400/50000
+  Loss: -10241.6240
+  Time elapsed: 914.1s
+Iteration 34500/50000
+  Loss: -10220.6445
+  Time elapsed: 916.7s
+Iteration 34600/50000
+  Loss: -9821.3799
+  Time elapsed: 919.4s
+Iteration 34700/50000
+  Loss: -10315.4531
+  Time elapsed: 922.1s
+Iteration 34800/50000
+  Loss: -10027.2256
+  Time elapsed: 924.7s
+Iteration 34900/50000
+  Loss: -10495.6240
+  Time elapsed: 927.3s
+Iteration 35000/50000
+  Loss: -9960.6045
+  Time elapsed: 930.0s
+Iteration 35100/50000
+  Loss: -10690.8496
+  Time elapsed: 932.6s
+Iteration 35200/50000
+  Loss: -10540.7031
+  Time elapsed: 935.3s
+Iteration 35300/50000
+  Loss: -10330.5137
+  Time elapsed: 937.9s
+Iteration 35400/50000
+  Loss: -10109.2656
+  Time elapsed: 940.6s
+Iteration 35500/50000
+  Loss: -10226.1553
+  Time elapsed: 943.2s
+Iteration 35600/50000
+  Loss: -10479.6738
+  Time elapsed: 945.9s
+Iteration 35700/50000
+  Loss: -10921.1465
+  Time elapsed: 948.5s
+Iteration 35800/50000
+  Loss: -10744.7178
+  Time elapsed: 951.2s
+Iteration 35900/50000
+  Loss: -10418.4463
+  Time elapsed: 953.9s
+Iteration 36000/50000
+  Loss: -10448.3135
+  Time elapsed: 956.5s
+Iteration 36100/50000
+  Loss: -10633.5244
+  Time elapsed: 959.1s
+Iteration 36200/50000
+  Loss: -9938.4873
+  Time elapsed: 961.8s
+Iteration 36300/50000
+  Loss: -10154.9375
+  Time elapsed: 964.4s
+Iteration 36400/50000
+  Loss: -10639.3809
+  Time elapsed: 967.1s
+Iteration 36500/50000
+  Loss: -10881.5400
+  Time elapsed: 969.7s
+Iteration 36600/50000
+  Loss: -10725.2295
+  Time elapsed: 972.4s
+Iteration 36700/50000
+  Loss: -10378.5469
+  Time elapsed: 975.0s
+Iteration 36800/50000
+  Loss: -10450.6172
+  Time elapsed: 977.7s
+Iteration 36900/50000
+  Loss: -10453.0498
+  Time elapsed: 980.3s
+Iteration 37000/50000
+  Loss: -10375.0664
+  Time elapsed: 983.0s
+Iteration 37100/50000
+  Loss: -10402.0479
+  Time elapsed: 985.6s
+Iteration 37200/50000
+  Loss: -10356.3428
+  Time elapsed: 988.3s
+Iteration 37300/50000
+  Loss: -10551.3154
+  Time elapsed: 990.9s
+Iteration 37400/50000
+  Loss: -10573.9531
+  Time elapsed: 993.6s
+Iteration 37500/50000
+  Loss: -10633.8516
+  Time elapsed: 996.2s
+Iteration 37600/50000
+  Loss: -9785.9512
+  Time elapsed: 998.9s
+Iteration 37700/50000
+  Loss: -10236.0557
+  Time elapsed: 1001.5s
+Iteration 37800/50000
+  Loss: -10867.5566
+  Time elapsed: 1004.2s
+Iteration 37900/50000
+  Loss: -10920.2578
+  Time elapsed: 1006.9s
+Iteration 38000/50000
+  Loss: -10498.1016
+  Time elapsed: 1009.4s
+Iteration 38100/50000
+  Loss: -10448.9648
+  Time elapsed: 1012.1s
+Iteration 38200/50000
+  Loss: -10877.4375
+  Time elapsed: 1014.8s
+Iteration 38300/50000
+  Loss: -10007.6953
+  Time elapsed: 1017.4s
+Iteration 38400/50000
+  Loss: -10756.8906
+  Time elapsed: 1020.1s
+Iteration 38500/50000
+  Loss: -10724.3193
+  Time elapsed: 1022.7s
+Iteration 38600/50000
+  Loss: -10540.5713
+  Time elapsed: 1025.4s
+Iteration 38700/50000
+  Loss: -10287.1602
+  Time elapsed: 1028.0s
+Iteration 38800/50000
+  Loss: -10226.8086
+  Time elapsed: 1030.7s
+Iteration 38900/50000
+  Loss: -10239.3438
+  Time elapsed: 1033.3s
+Iteration 39000/50000
+  Loss: -10786.1797
+  Time elapsed: 1036.0s
+Iteration 39100/50000
+  Loss: -10100.7939
+  Time elapsed: 1038.6s
+Iteration 39200/50000
+  Loss: -10607.8516
+  Time elapsed: 1041.2s
+Iteration 39300/50000
+  Loss: -10790.3584
+  Time elapsed: 1043.9s
+Iteration 39400/50000
+  Loss: -10742.9844
+  Time elapsed: 1046.6s
+Iteration 39500/50000
+  Loss: -10374.2256
+  Time elapsed: 1049.2s
+Iteration 39600/50000
+  Loss: -10258.4482
+  Time elapsed: 1051.9s
+Iteration 39700/50000
+  Loss: -10890.4814
+  Time elapsed: 1054.5s
+Iteration 39800/50000
+  Loss: -10523.1719
+  Time elapsed: 1057.2s
+Iteration 39900/50000
+  Loss: -10698.8320
+  Time elapsed: 1059.8s
+Iteration 40000/50000
+  Loss: -11072.4150
+  Time elapsed: 1062.5s
+Iteration 40100/50000
+  Loss: -10776.7109
+  Time elapsed: 1065.1s
+Iteration 40200/50000
+  Loss: -10504.7900
+  Time elapsed: 1067.8s
+Iteration 40300/50000
+  Loss: -10446.2188
+  Time elapsed: 1070.4s
+Iteration 40400/50000
+  Loss: -10414.4990
+  Time elapsed: 1073.1s
+Iteration 40500/50000
+  Loss: -10720.9043
+  Time elapsed: 1075.7s
+Iteration 40600/50000
+  Loss: -10464.0596
+  Time elapsed: 1078.4s
+Iteration 40700/50000
+  Loss: -10837.0430
+  Time elapsed: 1081.0s
+Iteration 40800/50000
+  Loss: -10750.5908
+  Time elapsed: 1083.6s
+Iteration 40900/50000
+  Loss: -10625.7471
+  Time elapsed: 1086.3s
+Iteration 41000/50000
+  Loss: -10347.1338
+  Time elapsed: 1089.0s
+Iteration 41100/50000
+  Loss: -10929.2148
+  Time elapsed: 1091.6s
+Iteration 41200/50000
+  Loss: -10056.6992
+  Time elapsed: 1094.2s
+Iteration 41300/50000
+  Loss: -10198.6504
+  Time elapsed: 1096.9s
+Iteration 41400/50000
+  Loss: -10367.1338
+  Time elapsed: 1099.5s
+Iteration 41500/50000
+  Loss: -10973.8389
+  Time elapsed: 1102.2s
+Iteration 41600/50000
+  Loss: -10485.0723
+  Time elapsed: 1104.9s
+Iteration 41700/50000
+  Loss: -11125.2529
+  Time elapsed: 1107.5s
+Iteration 41800/50000
+  Loss: -10379.8359
+  Time elapsed: 1110.2s
+Iteration 41900/50000
+  Loss: -10920.1094
+  Time elapsed: 1112.8s
+Iteration 42000/50000
+  Loss: -10556.6338
+  Time elapsed: 1115.4s
+Iteration 42100/50000
+  Loss: -10160.8281
+  Time elapsed: 1118.1s
+Iteration 42200/50000
+  Loss: -10672.4326
+  Time elapsed: 1120.8s
+Iteration 42300/50000
+  Loss: -10167.8623
+  Time elapsed: 1123.4s
+Iteration 42400/50000
+  Loss: -10809.3926
+  Time elapsed: 1126.0s
+Iteration 42500/50000
+  Loss: -10924.8848
+  Time elapsed: 1128.7s
+Iteration 42600/50000
+  Loss: -10511.3936
+  Time elapsed: 1131.4s
+Iteration 42700/50000
+  Loss: -10632.8643
+  Time elapsed: 1134.0s
+Iteration 42800/50000
+  Loss: -10020.2002
+  Time elapsed: 1136.7s
+Iteration 42900/50000
+  Loss: -10295.1260
+  Time elapsed: 1139.3s
+Iteration 43000/50000
+  Loss: -10462.7422
+  Time elapsed: 1142.0s
+Iteration 43100/50000
+  Loss: -10306.5674
+  Time elapsed: 1144.6s
+Iteration 43200/50000
+  Loss: -11767.0723
+  Time elapsed: 1147.3s
+Iteration 43300/50000
+  Loss: -9685.5781
+  Time elapsed: 1149.9s
+Iteration 43400/50000
+  Loss: -10503.1201
+  Time elapsed: 1152.5s
+Iteration 43500/50000
+  Loss: -9692.0801
+  Time elapsed: 1155.2s
+Iteration 43600/50000
+  Loss: -10662.7881
+  Time elapsed: 1157.9s
+Iteration 43700/50000
+  Loss: -10712.6055
+  Time elapsed: 1160.5s
+Iteration 43800/50000
+  Loss: -9706.3350
+  Time elapsed: 1163.2s
+Iteration 43900/50000
+  Loss: -10368.2832
+  Time elapsed: 1165.8s
+Iteration 44000/50000
+  Loss: -10825.3633
+  Time elapsed: 1168.4s
+Iteration 44100/50000
+  Loss: -9939.4629
+  Time elapsed: 1171.1s
+Iteration 44200/50000
+  Loss: -10887.3672
+  Time elapsed: 1173.8s
+Iteration 44300/50000
+  Loss: -11380.5059
+  Time elapsed: 1176.4s
+Iteration 44400/50000
+  Loss: -10433.1143
+  Time elapsed: 1179.1s
+Iteration 44500/50000
+  Loss: -10546.0283
+  Time elapsed: 1181.7s
+Iteration 44600/50000
+  Loss: -10409.8516
+  Time elapsed: 1184.4s
+Iteration 44700/50000
+  Loss: -10726.4209
+  Time elapsed: 1187.0s
+Iteration 44800/50000
+  Loss: -10592.4131
+  Time elapsed: 1189.7s
+Iteration 44900/50000
+  Loss: -10913.3447
+  Time elapsed: 1192.3s
+Iteration 45000/50000
+  Loss: -10446.0332
+  Time elapsed: 1195.0s
+Iteration 45100/50000
+  Loss: -10089.2773
+  Time elapsed: 1197.6s
+Iteration 45200/50000
+  Loss: -10687.9238
+  Time elapsed: 1200.3s
+Iteration 45300/50000
+  Loss: -10596.6582
+  Time elapsed: 1203.0s
+Iteration 45400/50000
+  Loss: -11088.4180
+  Time elapsed: 1205.6s
+Iteration 45500/50000
+  Loss: -10299.8340
+  Time elapsed: 1208.3s
+Iteration 45600/50000
+  Loss: -11019.0459
+  Time elapsed: 1210.9s
+Iteration 45700/50000
+  Loss: -10277.8887
+  Time elapsed: 1213.6s
+Iteration 45800/50000
+  Loss: -11198.8633
+  Time elapsed: 1216.2s
+Iteration 45900/50000
+  Loss: -10024.9072
+  Time elapsed: 1218.9s
+Iteration 46000/50000
+  Loss: -10980.3457
+  Time elapsed: 1221.5s
+Iteration 46100/50000
+  Loss: -10434.7520
+  Time elapsed: 1224.2s
+Iteration 46200/50000
+  Loss: -10817.9395
+  Time elapsed: 1226.8s
+Iteration 46300/50000
+  Loss: -11265.1934
+  Time elapsed: 1229.5s
+Iteration 46400/50000
+  Loss: -10630.6895
+  Time elapsed: 1232.1s
+Iteration 46500/50000
+  Loss: -10722.8516
+  Time elapsed: 1234.8s
+Iteration 46600/50000
+  Loss: -10840.0967
+  Time elapsed: 1237.4s
+Iteration 46700/50000
+  Loss: -10701.3271
+  Time elapsed: 1240.1s
+Iteration 46800/50000
+  Loss: -9929.5566
+  Time elapsed: 1242.8s
+Iteration 46900/50000
+  Loss: -11727.5283
+  Time elapsed: 1245.4s
+Iteration 47000/50000
+  Loss: -11110.1250
+  Time elapsed: 1248.1s
+Iteration 47100/50000
+  Loss: -10222.4414
+  Time elapsed: 1250.7s
+Iteration 47200/50000
+  Loss: -11058.4775
+  Time elapsed: 1253.3s
+Iteration 47300/50000
+  Loss: -10185.4248
+  Time elapsed: 1256.0s
+Iteration 47400/50000
+  Loss: -10636.4395
+  Time elapsed: 1258.7s
+Iteration 47500/50000
+  Loss: -11174.6045
+  Time elapsed: 1261.3s
+Iteration 47600/50000
+  Loss: -10901.7041
+  Time elapsed: 1264.0s
+Iteration 47700/50000
+  Loss: -10644.9863
+  Time elapsed: 1266.6s
+Iteration 47800/50000
+  Loss: -10661.5957
+  Time elapsed: 1269.3s
+Iteration 47900/50000
+  Loss: -10536.4619
+  Time elapsed: 1271.9s
+Iteration 48000/50000
+  Loss: -10484.6182
+  Time elapsed: 1274.6s
+Iteration 48100/50000
+  Loss: -10573.1963
+  Time elapsed: 1277.3s
+Iteration 48200/50000
+  Loss: -10035.0234
+  Time elapsed: 1279.9s
+Iteration 48300/50000
+  Loss: -11003.5850
+  Time elapsed: 1282.5s
+Iteration 48400/50000
+  Loss: -10331.1416
+  Time elapsed: 1285.2s
+Iteration 48500/50000
+  Loss: -10769.4805
+  Time elapsed: 1287.9s
+Iteration 48600/50000
+  Loss: -10608.9521
+  Time elapsed: 1290.5s
+Iteration 48700/50000
+  Loss: -10540.9160
+  Time elapsed: 1293.2s
+Iteration 48800/50000
+  Loss: -10221.5625
+  Time elapsed: 1295.8s
+Iteration 48900/50000
+  Loss: -10769.5781
+  Time elapsed: 1298.5s
+Iteration 49000/50000
+  Loss: -10717.5557
+  Time elapsed: 1301.1s
+Iteration 49100/50000
+  Loss: -11317.8770
+  Time elapsed: 1303.8s
+Iteration 49200/50000
+  Loss: -10762.6211
+  Time elapsed: 1306.4s
+Iteration 49300/50000
+  Loss: -11075.8467
+  Time elapsed: 1309.1s
+Iteration 49400/50000
+  Loss: -10913.8467
+  Time elapsed: 1311.7s
+Iteration 49500/50000
+  Loss: -10279.6592
+  Time elapsed: 1314.4s
+Iteration 49600/50000
+  Loss: -10547.8838
+  Time elapsed: 1317.0s
+Iteration 49700/50000
+  Loss: -10861.1455
+  Time elapsed: 1319.7s
+Iteration 49800/50000
+  Loss: -10397.2490
+  Time elapsed: 1322.3s
+Iteration 49900/50000
+  Loss: -10585.2441
+  Time elapsed: 1325.0s
+Training completed!
+Final Loss: -10790.5566
+Total time: 1327.6s (37.7 iter/s)
+
+Testing single step...
+Test step loss: 638.8271
+
+Visualizing results...
+
+Final Model Parameters:
+  Observation noise (sigma2): 0.0087
+  Signal variances (sigma2_s): tensor([0.3691], device='cuda:0', grad_fn=<ExpBackward0>)
+  Lengthscales (1/beta): tensor([5.5884e-05, 1.0466e+00, 3.1039e-02, 9.7645e-02, 5.6436e-05, 5.6459e-05,
+        6.5046e-05, 5.7052e-05, 3.3480e-05, 5.9153e-05], device='cuda:0',
+       grad_fn=<ViewBackward0>)
+
+============================= JOB FEEDBACK =============================
+
+Job ID: 1543173
+Cluster: haic
+User/Group: hgf_vrm8102/hgf_hmgu
+Account: hgf_hmgu
+State: COMPLETED (exit code 0)
+Partition: normal
+Nodes: 1
+Cores per node: 2
+Nodelist: haicn1704
+CPU Utilized: 00:22:08
+CPU Efficiency: 48.79% of 00:45:22 core-walltime
+Job Wall-clock time: 00:22:41
+Starttime: Fri Sep  5 20:26:33 2025
+Endtime: Fri Sep  5 20:49:14 2025
+Memory Utilized: 1.18 GB
+Memory Efficiency: 18.29% of 6.45 GB

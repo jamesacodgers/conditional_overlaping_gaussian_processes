@@ -367,16 +367,15 @@ if __name__ == "__main__":
     
     # Configuration: Low local, High global (Final Loss: 181.82)
     second_best_config = OilFlowSSVIConfig(
-        training_iterations=20000,
+        training_iterations=200000,
         batch_size=128,
         local_lr=1e-3,
         global_lr=1e-3,
         beta=initial_beta,
-        encoder_hidden_dims=[128, 64, 32],
-        enable_gradient_logging=True,
-        gradient_log_frequency=50,
-        n_inducing_points=64,
+        encoder_hidden_dims=[128, 128, 128],
+        enable_gradient_logging=False,
+        n_inducing_points=32,
         latent_dim=10,
-        P=64
+        P=32
     )
     main(second_best_config)
