@@ -25,7 +25,14 @@ class SSVIResultsLogger:
         if hasattr(config, 'save_results') and config.save_results:
             # Create results directory with timestamp
             timestamp = datetime.now().strftime("%d_%m_%H_%M")
-            self.results_dir = f"results/{experiment_name}_results/{experiment_name}_res_{timestamp}"
+            
+            # Determine correct results path based on current working directory
+            if os.path.basename(os.getcwd()) == "ssvi_scripts_experiments":
+                # Running from within ssvi_scripts_experiments directory
+                self.results_dir = f"results/{experiment_name}_results/{experiment_name}_res_{timestamp}"
+            else:
+                # Running from project root
+                self.results_dir = f"ssvi_scripts_experiments/results/{experiment_name}_results/{experiment_name}_res_{timestamp}"
             os.makedirs(self.results_dir, exist_ok=True)
             
             # Initialize log files

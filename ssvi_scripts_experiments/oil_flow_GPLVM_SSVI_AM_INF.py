@@ -1,4 +1,21 @@
 # %% 
+"""
+Oil Flow SSVI GP-LVM with Amortized Inference
+
+Usage examples:
+    # Run with default fast config
+    python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py
+    
+    # Run with base config
+    python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml
+    
+    # Run with base config and overrides
+    python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml --training-iterations 100 --device cuda
+    
+    # Run with custom config name for results
+    python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml --config-name my_experiment
+"""
+
 import torch 
 import matplotlib.pyplot as plt
 
@@ -18,6 +35,10 @@ sys.path.insert(0, os.getcwd())
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, save_metrics_to_json, save_metrics_to_text
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
+from src.ssvi_config_utils import (
+    load_config_with_overrides, create_argument_parser, 
+    get_base_config_path, ensure_config_dir_exists, print_available_configs
+)
 
 # Device will be set in main() from config
 
@@ -347,7 +368,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
 def get_fast_config():
     """Fast configuration for testing"""
     return OilFlowSSVIConfig(
-        training_iterations=500,
+        training_iterations=200,
         batch_size=50,
         n_inducing_points=8,
         encoder_hidden_dims=[128, 64],
@@ -366,7 +387,7 @@ def get_fast_config():
         plot_hyperparams=True
     )
 
-def main(config: OilFlowSSVIConfig = None):
+def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     """Main function for Oil Flow SSVI GP-LVM example"""
     
     # Use default config if none provided
@@ -396,8 +417,9 @@ def main(config: OilFlowSSVIConfig = None):
     print(f"  Inducing points: {model.gp.Vx.shape}")
     print(f"  Latent variables: {model.mu_x.shape}")
     
-    # Initialize logger
-    logger = SSVIResultsLogger(config, experiment_name="oil_flow_gp_lvm_ssvi")
+    # Initialize logger with config-based naming
+    experiment_name = f"oil_flow_ssvi_{config_name}"
+    logger = SSVIResultsLogger(config, experiment_name=experiment_name)
     if logger.results_dir:
         print(f"Results will be saved to: {logger.results_dir}")
         # Log initial info
@@ -481,33 +503,36 @@ def main(config: OilFlowSSVIConfig = None):
     return model, losses, config, metrics_computer, final_metrics
 
 if __name__ == "__main__":
+    # Parse command line arguments
+    parser = create_argument_parser()
+    args = parser.parse_args()
     
-    # Generate diverse initial lengthscales (same for all experiments for fair comparison)
-    # Sample initial lengthscales with significant variation across dimensions
-    initial_lengthscales = torch.ones(10)/4 #torch.exp(torch.randn(6) * 0.8 + 0.5)  # Mean ~1.6, significant variation
-    initial_beta = torch.tensor([1.]) #(1.0 / initial_lengthscales).detach()  # Convert to beta and detach
-    print(f"Initial lengthscales for all experiments: {initial_lengthscales.tolist()}")
-    print(f"Initial beta values: {initial_beta.tolist()}")
+    # Ensure config directory exists
+    ensure_config_dir_exists()
     
-    # Configuration: Low local, High global (Final Loss: 181.82)
-    second_best_config = OilFlowSSVIConfig(
-        training_iterations=200,
-        batch_size=128,
-        local_lr=1e-3,
-        global_lr=1e-3,
-        beta=initial_beta,
-        encoder_hidden_dims=[128, 64, 32],
-        enable_gradient_logging=True,
-        gradient_log_frequency=50,
-        n_inducing_points=12,
-        latent_dim=10,
-        P=5,
-        enable_metrics=True,
-        metrics_frequency=100,
-        save_training_plots=True,
-        plot_save_frequency=100,
-        plot_training=True,
-        plot_latent_space=True,
-        plot_hyperparams=True
-    )
-    main(second_best_config)
+    # Show available configs if no config specified
+    if args.config is None:
+        print("No config file specified. Available configurations:")
+        print_available_configs()
+        print("\nUsing default fast_config...\n")
+    
+    # Load configuration with overrides
+    try:
+        config, config_name = load_config_with_overrides(
+            config_path=args.config,
+            config_class=OilFlowSSVIConfig,
+            args=args
+        )
+        
+        print(f"Using configuration: {config_name}")
+        if args.config:
+            print(f"Config file: {args.config}")
+        
+        # Run main function with loaded config
+        main(config, config_name)
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        print("\nAvailable configurations:")
+        print_available_configs()
+        sys.exit(1)
