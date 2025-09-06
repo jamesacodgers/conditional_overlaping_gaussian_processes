@@ -1,0 +1,705 @@
+/usr/lib64/python3.11/tarfile.py:2299: RuntimeWarning: The default behavior of tarfile extraction has been changed to disallow common exploits (including CVE-2007-4559). By default, absolute/parent paths are disallowed and some mode bits are cleared. See https://access.redhat.com/articles/7004769 for more details.
+  warnings.warn(
+/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/.venv/lib64/python3.11/site-packages/torch/_compile.py:53: UserWarning: optimizer contains a parameter group with duplicate parameters; in future, this will cause an error; see github.com/pytorch/pytorch/issues/40967 for more information
+  return disable_fn(*args, **kwargs)
+Initial lengthscales for all experiments: [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+Initial beta values: [1.0]
+=== Oil Flow SSVI GP-LVM Configuration ===
+Device: cuda
+CUDA available: NVIDIA A100-SXM4-40GB
+Model: 32 inducing points, latent_dim=10
+Encoder: [128, 128, 128] hidden dims
+Training: 400000 iter, batch=128
+Learning rates: Local=0.001, Global=0.001
+SSVI: P=32 samples
+Logging: Save results=True, Gradients=False
+==================================================
+Downloading and loading oil flow data...
+Data loaded: 1000 samples, 12 dimensions
+Latent initialization: torch.Size([1000, 10])
+Inducing points: torch.Size([32, 10])
+
+Initializing Oil Flow SSVI GP-LVM...
+Model initialized:
+  Encoder: Sequential(
+  (0): Linear(in_features=396, out_features=128, bias=True)
+  (1): ReLU()
+  (2): Linear(in_features=128, out_features=128, bias=True)
+  (3): ReLU()
+  (4): Linear(in_features=128, out_features=128, bias=True)
+  (5): ReLU()
+  (6): Linear(in_features=128, out_features=20, bias=True)
+)
+  Inducing points: torch.Size([32, 10])
+  Latent variables: torch.Size([32, 1000, 10])
+Results will be saved to: results/oil_flow_gp_lvm_ssvi_results/oil_flow_gp_lvm_ssvi_res_06_09_13_12
+
+Training model...
+Training Oil Flow SSVI GP-LVM...
+Iterations: 400000, Batch size: 128
+Iteration 0/400000
+  Loss: 10354.1172
+  Time elapsed: 0.2s
+Iteration 100/400000
+  Loss: 8475.0830
+  Time elapsed: 2.9s
+Iteration 200/400000
+  Loss: 7822.9854
+  Time elapsed: 5.6s
+Iteration 300/400000
+  Loss: 6973.8589
+  Time elapsed: 8.3s
+Iteration 400/400000
+  Loss: 6249.9556
+  Time elapsed: 11.1s
+Iteration 500/400000
+  Loss: 5422.2275
+  Time elapsed: 13.7s
+Iteration 600/400000
+  Loss: 4871.6870
+  Time elapsed: 16.4s
+Iteration 700/400000
+  Loss: 4149.5952
+  Time elapsed: 19.1s
+Iteration 800/400000
+  Loss: 3341.4312
+  Time elapsed: 21.8s
+Iteration 900/400000
+  Loss: 2768.4050
+  Time elapsed: 24.5s
+Iteration 1000/400000
+  Loss: 1825.0156
+  Time elapsed: 27.1s
+Iteration 1100/400000
+  Loss: 1253.0088
+  Time elapsed: 29.8s
+Iteration 1200/400000
+  Loss: 831.3331
+  Time elapsed: 32.4s
+Iteration 1300/400000
+  Loss: 156.0402
+  Time elapsed: 35.1s
+Iteration 1400/400000
+  Loss: -110.6033
+  Time elapsed: 37.8s
+Iteration 1500/400000
+  Loss: -488.0765
+  Time elapsed: 40.6s
+Iteration 1600/400000
+  Loss: -782.5342
+  Time elapsed: 43.3s
+Iteration 1700/400000
+  Loss: -1081.8165
+  Time elapsed: 45.9s
+Iteration 1800/400000
+  Loss: -1848.8662
+  Time elapsed: 48.5s
+Iteration 1900/400000
+  Loss: -2119.2380
+  Time elapsed: 51.1s
+Iteration 2000/400000
+  Loss: -2514.2393
+  Time elapsed: 53.7s
+Iteration 2100/400000
+  Loss: -2979.4216
+  Time elapsed: 56.3s
+Iteration 2200/400000
+  Loss: -2746.6328
+  Time elapsed: 59.0s
+Iteration 2300/400000
+  Loss: -3955.2588
+  Time elapsed: 61.7s
+Iteration 2400/400000
+  Loss: -3761.8093
+  Time elapsed: 64.4s
+Iteration 2500/400000
+  Loss: -3914.9575
+  Time elapsed: 67.1s
+Iteration 2600/400000
+  Loss: -4382.8984
+  Time elapsed: 69.8s
+Iteration 2700/400000
+  Loss: -5043.9395
+  Time elapsed: 72.5s
+Iteration 2800/400000
+  Loss: -5129.0171
+  Time elapsed: 75.2s
+Iteration 2900/400000
+  Loss: -4932.9609
+  Time elapsed: 77.9s
+Iteration 3000/400000
+  Loss: -5080.9937
+  Time elapsed: 80.5s
+Iteration 3100/400000
+  Loss: -5384.4243
+  Time elapsed: 83.2s
+Iteration 3200/400000
+  Loss: -5516.4692
+  Time elapsed: 85.9s
+Iteration 3300/400000
+  Loss: -5881.1431
+  Time elapsed: 88.6s
+Iteration 3400/400000
+  Loss: -5947.6284
+  Time elapsed: 91.3s
+Iteration 3500/400000
+  Loss: -6022.9370
+  Time elapsed: 94.1s
+Iteration 3600/400000
+  Loss: -5833.1035
+  Time elapsed: 96.8s
+Iteration 3700/400000
+  Loss: -6369.4380
+  Time elapsed: 99.5s
+Iteration 3800/400000
+  Loss: -6780.7407
+  Time elapsed: 102.2s
+Iteration 3900/400000
+  Loss: -6425.8384
+  Time elapsed: 104.9s
+Iteration 4000/400000
+  Loss: -6070.5093
+  Time elapsed: 107.6s
+Iteration 4100/400000
+  Loss: -6623.5977
+  Time elapsed: 110.2s
+Iteration 4200/400000
+  Loss: -6985.1221
+  Time elapsed: 112.9s
+Iteration 4300/400000
+  Loss: -6595.4785
+  Time elapsed: 115.6s
+Iteration 4400/400000
+  Loss: -6741.6069
+  Time elapsed: 118.4s
+Iteration 4500/400000
+  Loss: -6251.4243
+  Time elapsed: 121.1s
+Iteration 4600/400000
+  Loss: -6650.6724
+  Time elapsed: 123.8s
+Iteration 4700/400000
+  Loss: -6586.1719
+  Time elapsed: 126.5s
+Iteration 4800/400000
+  Loss: -6279.8203
+  Time elapsed: 129.2s
+Iteration 4900/400000
+  Loss: -7067.1104
+  Time elapsed: 131.9s
+Iteration 5000/400000
+  Loss: -6302.8813
+  Time elapsed: 134.6s
+Iteration 5100/400000
+  Loss: -7055.1426
+  Time elapsed: 137.3s
+Iteration 5200/400000
+  Loss: -6354.9307
+  Time elapsed: 140.0s
+Iteration 5300/400000
+  Loss: -7090.9790
+  Time elapsed: 142.7s
+Iteration 5400/400000
+  Loss: -7416.3896
+  Time elapsed: 145.4s
+Iteration 5500/400000
+  Loss: -6771.7500
+  Time elapsed: 148.1s
+Iteration 5600/400000
+  Loss: -6875.0327
+  Time elapsed: 150.7s
+Iteration 5700/400000
+  Loss: -7003.5801
+  Time elapsed: 153.2s
+Iteration 5800/400000
+  Loss: -6537.4170
+  Time elapsed: 155.9s
+Iteration 5900/400000
+  Loss: -6996.0850
+  Time elapsed: 158.5s
+Iteration 6000/400000
+  Loss: -7351.6274
+  Time elapsed: 161.1s
+Iteration 6100/400000
+  Loss: -7166.6963
+  Time elapsed: 163.7s
+Iteration 6200/400000
+  Loss: -6923.4438
+  Time elapsed: 166.3s
+Iteration 6300/400000
+  Loss: -7377.8740
+  Time elapsed: 168.9s
+Iteration 6400/400000
+  Loss: -7214.5537
+  Time elapsed: 171.5s
+Iteration 6500/400000
+  Loss: -7396.0923
+  Time elapsed: 174.1s
+Iteration 6600/400000
+  Loss: -7465.3618
+  Time elapsed: 176.7s
+Iteration 6700/400000
+  Loss: -6745.8726
+  Time elapsed: 179.3s
+Iteration 6800/400000
+  Loss: -7124.4526
+  Time elapsed: 181.9s
+Iteration 6900/400000
+  Loss: -7077.8867
+  Time elapsed: 184.5s
+Iteration 7000/400000
+  Loss: -7202.1958
+  Time elapsed: 187.1s
+Iteration 7100/400000
+  Loss: -7572.0659
+  Time elapsed: 189.7s
+Iteration 7200/400000
+  Loss: -7240.4434
+  Time elapsed: 192.3s
+Iteration 7300/400000
+  Loss: -7269.7559
+  Time elapsed: 194.9s
+Iteration 7400/400000
+  Loss: -7534.2568
+  Time elapsed: 197.5s
+Iteration 7500/400000
+  Loss: -7720.6426
+  Time elapsed: 200.1s
+Iteration 7600/400000
+  Loss: -7173.0625
+  Time elapsed: 202.8s
+Iteration 7700/400000
+  Loss: -7303.2969
+  Time elapsed: 205.5s
+Iteration 7800/400000
+  Loss: -7032.3193
+  Time elapsed: 208.2s
+Iteration 7900/400000
+  Loss: -7086.5015
+  Time elapsed: 210.9s
+Iteration 8000/400000
+  Loss: -7182.2363
+  Time elapsed: 213.6s
+Iteration 8100/400000
+  Loss: -6507.8062
+  Time elapsed: 216.2s
+Iteration 8200/400000
+  Loss: -7086.5879
+  Time elapsed: 218.9s
+Iteration 8300/400000
+  Loss: -7769.7241
+  Time elapsed: 221.6s
+Iteration 8400/400000
+  Loss: -7242.1860
+  Time elapsed: 224.2s
+Iteration 8500/400000
+  Loss: -7662.0186
+  Time elapsed: 226.8s
+Iteration 8600/400000
+  Loss: -7665.8960
+  Time elapsed: 229.5s
+Iteration 8700/400000
+  Loss: -7831.8691
+  Time elapsed: 232.2s
+Iteration 8800/400000
+  Loss: -7366.3984
+  Time elapsed: 234.9s
+Iteration 8900/400000
+  Loss: -7301.7056
+  Time elapsed: 237.6s
+Iteration 9000/400000
+  Loss: -8178.3564
+  Time elapsed: 240.2s
+Iteration 9100/400000
+  Loss: -7755.6045
+  Time elapsed: 242.8s
+Iteration 9200/400000
+  Loss: -7768.6929
+  Time elapsed: 245.5s
+Iteration 9300/400000
+  Loss: -8317.9668
+  Time elapsed: 248.2s
+Iteration 9400/400000
+  Loss: -8114.8965
+  Time elapsed: 250.9s
+Iteration 9500/400000
+  Loss: -7887.5283
+  Time elapsed: 253.6s
+Iteration 9600/400000
+  Loss: -8541.4043
+  Time elapsed: 256.2s
+Iteration 9700/400000
+  Loss: -8155.2471
+  Time elapsed: 258.8s
+Iteration 9800/400000
+  Loss: -7734.8647
+  Time elapsed: 261.5s
+Iteration 9900/400000
+  Loss: -8016.1953
+  Time elapsed: 264.2s
+Iteration 10000/400000
+  Loss: -8099.3242
+  Time elapsed: 266.9s
+Iteration 10100/400000
+  Loss: -7399.7349
+  Time elapsed: 269.6s
+Iteration 10200/400000
+  Loss: -8238.8779
+  Time elapsed: 272.2s
+Iteration 10300/400000
+  Loss: -8652.6016
+  Time elapsed: 274.9s
+Iteration 10400/400000
+  Loss: -8869.9805
+  Time elapsed: 277.6s
+Iteration 10500/400000
+  Loss: -8288.9326
+  Time elapsed: 280.2s
+Iteration 10600/400000
+  Loss: -8303.5879
+  Time elapsed: 282.9s
+Iteration 10700/400000
+  Loss: -8509.8740
+  Time elapsed: 285.6s
+Iteration 10800/400000
+  Loss: -8660.5635
+  Time elapsed: 288.2s
+Iteration 10900/400000
+  Loss: -8533.9512
+  Time elapsed: 290.9s
+Iteration 11000/400000
+  Loss: -8694.2783
+  Time elapsed: 293.6s
+Iteration 11100/400000
+  Loss: -8578.9854
+  Time elapsed: 296.3s
+Iteration 11200/400000
+  Loss: -8482.3613
+  Time elapsed: 298.9s
+Iteration 11300/400000
+  Loss: -9185.5977
+  Time elapsed: 301.5s
+Iteration 11400/400000
+  Loss: -8826.9512
+  Time elapsed: 304.2s
+Iteration 11500/400000
+  Loss: -8357.6016
+  Time elapsed: 306.8s
+Iteration 11600/400000
+  Loss: -8339.1182
+  Time elapsed: 309.5s
+Iteration 11700/400000
+  Loss: -8232.9746
+  Time elapsed: 312.2s
+Iteration 11800/400000
+  Loss: -8311.9121
+  Time elapsed: 314.9s
+Iteration 11900/400000
+  Loss: -8436.0117
+  Time elapsed: 317.5s
+Iteration 12000/400000
+  Loss: -8820.1865
+  Time elapsed: 320.2s
+Iteration 12100/400000
+  Loss: -9153.1270
+  Time elapsed: 322.7s
+Iteration 12200/400000
+  Loss: -8367.1094
+  Time elapsed: 325.3s
+Iteration 12300/400000
+  Loss: -9426.3887
+  Time elapsed: 327.9s
+Iteration 12400/400000
+  Loss: -8899.2568
+  Time elapsed: 330.6s
+Iteration 12500/400000
+  Loss: -9313.6621
+  Time elapsed: 333.3s
+Iteration 12600/400000
+  Loss: -9288.5537
+  Time elapsed: 335.9s
+Iteration 12700/400000
+  Loss: -8510.1064
+  Time elapsed: 338.6s
+Iteration 12800/400000
+  Loss: -9118.4502
+  Time elapsed: 341.3s
+Iteration 12900/400000
+  Loss: -9220.9287
+  Time elapsed: 343.9s
+Iteration 13000/400000
+  Loss: -9912.1445
+  Time elapsed: 346.6s
+Iteration 13100/400000
+  Loss: -9216.3818
+  Time elapsed: 349.3s
+Iteration 13200/400000
+  Loss: -9167.8525
+  Time elapsed: 352.0s
+Iteration 13300/400000
+  Loss: -9784.8340
+  Time elapsed: 354.7s
+Iteration 13400/400000
+  Loss: -9675.8223
+  Time elapsed: 357.4s
+Iteration 13500/400000
+  Loss: -9349.8174
+  Time elapsed: 360.1s
+Iteration 13600/400000
+  Loss: -9214.5889
+  Time elapsed: 362.8s
+Iteration 13700/400000
+  Loss: -9656.9424
+  Time elapsed: 365.5s
+Iteration 13800/400000
+  Loss: -9892.1641
+  Time elapsed: 368.2s
+Iteration 13900/400000
+  Loss: -9734.9570
+  Time elapsed: 370.9s
+Iteration 14000/400000
+  Loss: -9056.3330
+  Time elapsed: 373.6s
+Iteration 14100/400000
+  Loss: -9205.2334
+  Time elapsed: 376.3s
+Iteration 14200/400000
+  Loss: -9210.1855
+  Time elapsed: 379.0s
+Iteration 14300/400000
+  Loss: -9359.0049
+  Time elapsed: 381.7s
+Iteration 14400/400000
+  Loss: -9479.7695
+  Time elapsed: 384.3s
+Iteration 14500/400000
+  Loss: -9662.0811
+  Time elapsed: 387.0s
+Iteration 14600/400000
+  Loss: -9594.5078
+  Time elapsed: 389.8s
+Iteration 14700/400000
+  Loss: -8794.2949
+  Time elapsed: 392.5s
+Iteration 14800/400000
+  Loss: -9386.2354
+  Time elapsed: 395.2s
+Iteration 14900/400000
+  Loss: -8980.6475
+  Time elapsed: 397.9s
+Iteration 15000/400000
+  Loss: -9319.7930
+  Time elapsed: 400.6s
+Iteration 15100/400000
+  Loss: -8947.2549
+  Time elapsed: 403.3s
+Iteration 15200/400000
+  Loss: -9247.4980
+  Time elapsed: 406.0s
+Iteration 15300/400000
+  Loss: -9614.0879
+  Time elapsed: 408.7s
+Iteration 15400/400000
+  Loss: -9039.0820
+  Time elapsed: 411.5s
+Iteration 15500/400000
+  Loss: -8867.6113
+  Time elapsed: 414.2s
+Iteration 15600/400000
+  Loss: -10023.4873
+  Time elapsed: 416.9s
+Iteration 15700/400000
+  Loss: -8965.4688
+  Time elapsed: 419.6s
+Iteration 15800/400000
+  Loss: -9895.5605
+  Time elapsed: 422.1s
+Iteration 15900/400000
+  Loss: -10358.3457
+  Time elapsed: 424.7s
+Iteration 16000/400000
+  Loss: -9188.4941
+  Time elapsed: 427.4s
+Iteration 16100/400000
+  Loss: -9091.2842
+  Time elapsed: 429.9s
+Iteration 16200/400000
+  Loss: -9288.2930
+  Time elapsed: 432.5s
+Iteration 16300/400000
+  Loss: -9298.0059
+  Time elapsed: 435.2s
+Iteration 16400/400000
+  Loss: -9273.0410
+  Time elapsed: 437.7s
+Iteration 16500/400000
+  Loss: -9188.9639
+  Time elapsed: 440.4s
+Iteration 16600/400000
+  Loss: -9506.8213
+  Time elapsed: 443.0s
+Iteration 16700/400000
+  Loss: -9698.0557
+  Time elapsed: 445.5s
+Iteration 16800/400000
+  Loss: -9147.4775
+  Time elapsed: 448.2s
+Iteration 16900/400000
+  Loss: -9181.3779
+  Time elapsed: 450.8s
+Iteration 17000/400000
+  Loss: -9219.4219
+  Time elapsed: 453.3s
+Iteration 17100/400000
+  Loss: -9224.2021
+  Time elapsed: 456.0s
+Iteration 17200/400000
+  Loss: -9836.7539
+  Time elapsed: 458.6s
+Iteration 17300/400000
+  Loss: -9426.9834
+  Time elapsed: 461.2s
+Iteration 17400/400000
+  Loss: -8583.6357
+  Time elapsed: 463.8s
+Iteration 17500/400000
+  Loss: -9455.0469
+  Time elapsed: 466.4s
+Iteration 17600/400000
+  Loss: -9470.7236
+  Time elapsed: 469.0s
+Iteration 17700/400000
+  Loss: -9848.7178
+  Time elapsed: 471.7s
+Iteration 17800/400000
+  Loss: -9522.6182
+  Time elapsed: 474.4s
+Iteration 17900/400000
+  Loss: -9879.2402
+  Time elapsed: 477.1s
+Iteration 18000/400000
+  Loss: -9277.3994
+  Time elapsed: 479.8s
+Iteration 18100/400000
+  Loss: -9914.0801
+  Time elapsed: 482.5s
+Iteration 18200/400000
+  Loss: -9979.1270
+  Time elapsed: 485.3s
+Iteration 18300/400000
+  Loss: -9884.3418
+  Time elapsed: 488.0s
+Iteration 18400/400000
+  Loss: -9979.2676
+  Time elapsed: 490.6s
+Iteration 18500/400000
+  Loss: -9775.1904
+  Time elapsed: 493.3s
+Iteration 18600/400000
+  Loss: -10289.0469
+  Time elapsed: 495.9s
+Iteration 18700/400000
+  Loss: -10013.5352
+  Time elapsed: 498.6s
+Iteration 18800/400000
+  Loss: -9948.7822
+  Time elapsed: 501.3s
+Iteration 18900/400000
+  Loss: -9620.5957
+  Time elapsed: 504.0s
+Iteration 19000/400000
+  Loss: -9359.3164
+  Time elapsed: 506.7s
+Iteration 19100/400000
+  Loss: -9767.4961
+  Time elapsed: 509.4s
+Iteration 19200/400000
+  Loss: -9236.1123
+  Time elapsed: 512.0s
+Iteration 19300/400000
+  Loss: -9468.9863
+  Time elapsed: 514.8s
+Iteration 19400/400000
+  Loss: -10147.9629
+  Time elapsed: 517.5s
+Iteration 19500/400000
+  Loss: -9666.3213
+  Time elapsed: 520.2s
+Iteration 19600/400000
+  Loss: -9917.7637
+  Time elapsed: 522.9s
+Iteration 19700/400000
+  Loss: -9824.3623
+  Time elapsed: 525.5s
+Iteration 19800/400000
+  Loss: -9077.7725
+  Time elapsed: 528.2s
+Traceback (most recent call last):
+  File "/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/examples/oil_flow_GPLVM_SSVI_AM_INF.py", line 381, in <module>
+    main(second_best_config)
+  File "/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/examples/oil_flow_GPLVM_SSVI_AM_INF.py", line 334, in main
+    losses = train_oil_flow_ssvi(model, y, config, logger)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/examples/oil_flow_GPLVM_SSVI_AM_INF.py", line 206, in train_oil_flow_ssvi
+    loss = model.train_step(y_batch, batch_indices)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/examples/oil_flow_GPLVM_SSVI_AM_INF.py", line 154, in train_step
+    U_samples = self.get_u_samples()
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/src/struc_models.py", line 167, in get_u_samples
+    dist = self.gp.get_q_u_dist()
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/src/gps.py", line 170, in get_q_u_dist
+    return torch.distributions.MultivariateNormal(mu_u, Sigma_u)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/.venv/lib64/python3.11/site-packages/torch/distributions/multivariate_normal.py", line 184, in __init__
+    super().__init__(batch_shape, event_shape, validate_args=validate_args)
+  File "/hkfs/home/haicore/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/.venv/lib64/python3.11/site-packages/torch/distributions/distribution.py", line 77, in __init__
+    raise ValueError(
+ValueError: Expected parameter loc (Tensor of shape (12, 32)) of distribution MultivariateNormal(loc: torch.Size([12, 32]), covariance_matrix: torch.Size([12, 32, 32])) to satisfy the constraint IndependentConstraint(Real(), 1), but found invalid values:
+tensor([[nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan,
+         nan, nan, nan, nan, nan, nan, nan, nan]], device='cuda:0',
+       grad_fn=<ExpandBackward0>)
+
+============================= JOB FEEDBACK =============================
+
+Job ID: 1543276
+Cluster: haic
+User/Group: hgf_vrm8102/hgf_hmgu
+Account: hgf_hmgu
+State: FAILED (exit code 1)
+Partition: normal
+Nodes: 1
+Cores per node: 2
+Nodelist: haicn1703
+CPU Utilized: 00:08:51
+CPU Efficiency: 48.81% of 00:18:08 core-walltime
+Job Wall-clock time: 00:09:04
+Starttime: Sat Sep  6 13:12:13 2025
+Endtime: Sat Sep  6 13:21:17 2025
+Memory Utilized: 1.04 GB
+Memory Efficiency: 16.15% of 6.45 GB
+Energy Consumed: 390120 Joule / 108.366666666667 Watthours
+Average node power draw: 717.132352941176 Watt

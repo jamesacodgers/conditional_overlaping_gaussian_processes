@@ -62,7 +62,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         """Setup separate optimizers for different learning rates"""
         # Local parameters (amortized inference encoder)
         local_params = list(self.encoder.parameters())
-        self.optimizer_local = torch.optim.Adam(local_params, lr=local_lr)
+        self.optimizer_local = torch.optim.AdamW(local_params, lr=local_lr)
         
         # Global parameters (GP hyperparameters, inducing points, and U distribution)
         global_params = [
