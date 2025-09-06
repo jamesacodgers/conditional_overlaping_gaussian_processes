@@ -298,7 +298,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                 # Generate filename with iteration number
                 plot_filename = f"training_results_iter_{i}.png"
                 
-                # Use the existing visualization function
+                # Use the existing visualization function (save only, no display)
                 visualize_ssvi_results(
                     model=model,
                     y=y,
@@ -306,7 +306,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                     losses=losses,
                     config=config,
                     logger=logger,
-                    save_filename=plot_filename
+                    save_filename=plot_filename,
+                    show_plot=False
                 )
                 
                 print(f"    Training plots saved: {plot_filename}")
@@ -501,7 +502,6 @@ if __name__ == "__main__":
         n_inducing_points=12,
         latent_dim=10,
         P=5,
-        # Metrics and visualization - ONLY ADDITION vs examples
         enable_metrics=True,
         metrics_frequency=100,
         save_training_plots=True,
