@@ -71,52 +71,100 @@ class Struc_GPLVM(Struc_WS_GPLVM):
     def gplvm_elbo(self, y):
         R_train = torch.ones((y.shape[0], 1))
         return super(Struc_GPLVM, self).elbo(y, R_train)
-
-
-def preprocess_gplvm_for_visualization(model, y, config):
-    """
-    Preprocess GP-LVM model data for visualization
-    Keep original P-sample format since visualization expects it
-    """
-    # Keep original format - no averaging needed
-    mu_x_processed = model.mu_x  # Keep (P, N, D) format
-    Sigma_x_processed = model.Sigma_x  # Keep (P, N, D) format
     
-    # Create a simple object to hold the processed data
-    class ProcessedGPLVM:
-        def __init__(self, mu_x, Sigma_x, original_model):
-            self.mu_x = mu_x
-            self.Sigma_x = Sigma_x
-            self.original_model = original_model
-            
-        def __getattr__(self, name):
-            # Delegate other attributes to original model
-            return getattr(self.original_model, name)
-            
-        def get_u_samples(self):
-            """Mock U samples for GP-LVM compatibility"""
-            # GP-LVM doesn't use U samples in the same way, return dummy
-            return None
-            
-        def get_mu_sigma_x_samples(self, Y_batch, U_samples=None):
-            """Mock test prediction - returns subset of training latent variables"""
-            batch_size = Y_batch.shape[0]
-            # Return subset for batch (assumes Y_batch corresponds to training data)
-            # Data is already in (P, N, D) format, just slice the N dimension
-            mu_batch = self.mu_x[:, :batch_size, :]  # (P, batch_size, D)
-            sigma_batch = self.Sigma_x[:, :batch_size, :]  # (P, batch_size, D)
-            
-            return mu_batch, sigma_batch
-            
-        def get_ssvi_mean_prediction(self, x_sample):
-            """Mock GP mean prediction for reconstruction"""
-            # Use the GP-LVM's built-in mean prediction method
-            mu_s = self.original_model.get_mean_prediction_observed_inputs(x_sample)  # [N_test, M, C]
-            if mu_s.shape[-1] == 1:
-                return mu_s[..., 0]  # [N_test, M] for C_obs=1
-            return mu_s
+    # Add minimal compatibility methods for SSVI visualization
+    def get_u_samples(self):
+        """Simple U samples for SSVI visualization compatibility"""
+        dist = self.gp.get_q_u_dist()
+        samples = dist.rsample((self.P,))
+        return samples.reshape(self.P, self.M, self.C, self.gp.Lx)
     
-    return ProcessedGPLVM(mu_x_processed, Sigma_x_processed, model)
+    def get_mu_sigma_x_samples(self, Y_batch, U_samples=None):
+        """Simple method for SSVI visualization compatibility"""
+        batch_size = Y_batch.shape[0]
+        # Return subset for batch (assumes Y_batch corresponds to training data)
+        mu_batch = self.mu_x_train[:, :batch_size, :]  # (P, batch_size, D)
+        sigma_batch = self.Sigma_x_train[:, :batch_size, :]  # (P, batch_size, D)
+        return mu_batch, sigma_batch
+    
+    
+    def setup_test_data(self, mu_x_test_init):
+        """Initialize new test data parameters for separate optimization (separate from parent class test vars)"""
+        if mu_x_test_init is not None:
+            # Use new variable names to avoid touching parent class test variables
+            self.mu_x_test_predict = torch.nn.Parameter(mu_x_test_init[None,...].repeat(self.P,1,1))
+            self._log_sigma_x_test_predict = torch.nn.Parameter(torch.zeros_like(self.mu_x_test_predict))
+            
+            # Keep track of test data size for validation
+            self._test_data_size = mu_x_test_init.shape[0]
+    
+    def get_test_parameters(self):
+        """Get only our new test parameters for separate optimization"""
+        if hasattr(self, 'mu_x_test_predict') and self.mu_x_test_predict is not None:
+            return [self.mu_x_test_predict, self._log_sigma_x_test_predict]
+        return []
+    
+    def get_training_parameters(self):
+        """Get training parameters (excluding our new test parameters)"""
+        training_params = []
+        for name, param in self.named_parameters():
+            # Exclude only our new test parameters from training optimizer
+            if 'mu_x_test_predict' not in name and '_log_sigma_x_test_predict' not in name:
+                training_params.append(param)
+        return training_params
+    
+    @property
+    def Sigma_x_test_predict(self):
+        """Variance for our NEW test parameters"""
+        if hasattr(self, '_log_sigma_x_test_predict'):
+            return torch.exp(self._log_sigma_x_test_predict)
+        return None
+    
+    def test_prediction_elbo(self, y_test):
+        """Clean ELBO computation for test data using our new test variables"""
+        if not hasattr(self, 'mu_x_test_predict') or self.mu_x_test_predict is None:
+            raise ValueError("Test data not initialized. Call setup_test_data() first.")
+        
+        # Validate test data size matches
+        if y_test.shape[0] != self._test_data_size:
+            raise ValueError(f"Test data size mismatch: expected {self._test_data_size}, got {y_test.shape[0]}")
+        
+        # Compute test ELBO directly using our test variables
+        # This follows the same computation as the parent class but isolated to test data only
+        
+        # 1. Compute kernel expectations for our test variables
+        kernel_test_expectation = self._get_lv_kernel_expectation(
+            self.mu_x_test_predict, self.Sigma_x_test_predict
+        )
+        kernel_test_outer_expectation = self._get_lv_kernel_outer_expectation(
+            self.mu_x_test_predict, self.Sigma_x_test_predict
+        )
+        
+        # 2. Get GP signal expectations
+        s_test_expectation = self.gp.get_s_expectation(kernel_test_expectation)
+        s_test_outer_expectation = self.gp.get_s_outer_expectation(kernel_test_outer_expectation)
+        
+        # 3. Compute test likelihood term (reconstruction term)
+        R_test = torch.ones((y_test.shape[0], 1), device=y_test.device, dtype=y_test.dtype)
+        assert R_test.shape[1] == self.C_obs
+        
+        # Get observed part of signal expectation
+        s_test_obs_expectation = s_test_expectation[...,:self.C_obs]  # [P, N_test, C_obs]
+        s_test_obs_outer_expectation = s_test_outer_expectation[...,:self.C_obs, :self.C_obs]  # [P, N_test, C_obs, C_obs]
+        
+        # Compute likelihood term for test data
+        # Following the pattern from NormalCoordinator._elbo
+        A_test = self.coordinator.get_A_test(s_test_obs_outer_expectation)
+        b_test = self.coordinator.get_b_test(y_test, s_test_obs_expectation)
+        const_test = self.coordinator.get_const_test(y_test, s_test_obs_expectation, s_test_obs_outer_expectation)
+        
+        test_inner_elbo = self.coordinator.inner_test_solver(A_test, b_test).mean() + const_test
+        
+        # 4. Compute KL term for our test variables only (no GP KL since GP params are fixed)
+        test_kl_x = self.get_kl_x_from(self.mu_x_test_predict, self.Sigma_x_test_predict)
+        
+        # 5. Return test ELBO (likelihood - KL)
+        return test_inner_elbo - test_kl_x
 
 
 
@@ -128,13 +176,13 @@ def get_fast_gplvm_config():
         n_inducing_points=8,
         latent_dim=4,
         P=4,
-        log_frequency=50,
+        log_frequency=100,
         enable_gradient_logging=True,  # Enable gradient logging like SSVI
-        gradient_log_frequency=25,     # Add gradient log frequency
-        enable_metrics=False,          # Disabled due to test prediction limitations in original GP-LVM
-        metrics_frequency=50,
+        gradient_log_frequency=50,     # Add gradient log frequency
+        enable_metrics=True,           
+        metrics_frequency=100,
         save_training_plots=True,
-        plot_save_frequency=50,        # More frequent saves (50 instead of 100)
+        plot_save_frequency=100,        
         plot_training=True,
         plot_latent_space=True,
         plot_hyperparams=True
@@ -223,17 +271,35 @@ def train_gplvm_with_logging(model, y, config, logger=None, split_data=None, lab
         metrics_computer = SSVIMetricsComputer(device=config.device)
         print(f"Debug: Model mu_x shape: {model.mu_x.shape}")
         print(f"Debug: Model Sigma_x shape: {model.Sigma_x.shape}")
+        
+        # Setup test data for separate optimization if metrics enabled
+        if split_data is not None:
+            # Initialize test latent variables using PCA of test data
+            print("Setting up test data for separate optimization...")
+            y_test = split_data['y_test']
+            mu_x_test_init, _, _ = torch.pca_lowrank(y_test, config.latent_dim)
+            mu_x_test_init = mu_x_test_init / mu_x_test_init.std(dim=0)
+            model.setup_test_data(mu_x_test_init)
+            print(f"Test latent variables initialized: {model.mu_x_test_predict.shape}")
     
-    # Setup optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
+    # Setup training optimizer (excludes test parameters) 
+    training_optimizer = torch.optim.Adam(model.get_training_parameters(), lr=config.learning_rate)
+    
+    # Setup test optimizer (only our NEW test parameters)
+    test_optimizer = None
+    if hasattr(model, 'mu_x_test_predict') and model.mu_x_test_predict is not None:
+        test_params = model.get_test_parameters()
+        if test_params:
+            test_optimizer = torch.optim.Adam(test_params, lr=config.learning_rate)
+            print(f"Test optimizer initialized with {len(test_params)} parameters")
     
     start_time = time.time()
     
     for i in range(config.training_iterations):
-        optimizer.zero_grad()
+        training_optimizer.zero_grad()
         loss = -model.gplvm_elbo(y=y)
         loss.backward()
-        optimizer.step()
+        training_optimizer.step()
         losses.append(loss.detach().item())
         
         # Metrics computation (periodic) - reuse SSVI infrastructure
@@ -243,24 +309,43 @@ def train_gplvm_with_logging(model, y, config, logger=None, split_data=None, lab
             
             print(f"  Computing metrics at iteration {i}...")
             try:
-                # Compute subset of train/test data for efficiency
-                train_subset_size = min(200, split_data['y_train'].shape[0])
-                test_subset_size = min(100, split_data['y_test'].shape[0])
+                # Use full datasets for proper metrics computation
+                y_train_full = split_data['y_train']
+                y_test_full = split_data['y_test']
                 
-                train_subset_indices = torch.randperm(split_data['y_train'].shape[0])[:train_subset_size]
-                test_subset_indices = torch.randperm(split_data['y_test'].shape[0])[:test_subset_size]
-                
-                print(f"    Debug: About to compute metrics with y_train shape: {split_data['y_train'][train_subset_indices].shape}")
-                print(f"    Debug: About to compute metrics with y_test shape: {split_data['y_test'][test_subset_indices].shape}")
-                
-                metrics = metrics_computer.compute_full_metrics(
-                    model=model,  # Use model directly (now handles P samples internally)
-                    y_train=split_data['y_train'][train_subset_indices],
-                    y_test=split_data['y_test'][test_subset_indices],
-                    iteration=i,
-                    elbo_loss=loss.item(),
-                    n_samples=10  # Reduced for efficiency during training
-                )
+                # Optimize test latent variables using separate test optimizer
+                if test_optimizer is not None:
+                    print(f"    Optimizing test latent variables for metrics...")
+                    
+                    # Test optimization for metrics computation (using full test set)
+                    test_losses = predict_test_data_with_separate_optimizer(
+                        model, y_test_full, config, n_test_iterations=100, test_lr=config.learning_rate
+                    )
+                    
+                    print(f"    Debug: About to compute metrics with y_train shape: {y_train_full.shape}")
+                    print(f"    Debug: About to compute metrics with y_test shape: {y_test_full.shape}")
+                    
+                    metrics = metrics_computer.compute_full_metrics(
+                        model=model,  # Use model directly (now handles P samples internally)
+                        y_train=y_train_full,
+                        y_test=y_test_full,
+                        iteration=i,
+                        elbo_loss=loss.item(),
+                        n_samples=config.P  # Use proper P samples from model configuration
+                    )
+                else:
+                    # Fallback to original metrics computation without test optimization
+                    print(f"    Debug: About to compute metrics with y_train shape: {y_train_full.shape}")
+                    print(f"    Debug: About to compute metrics with y_test shape: {y_test_full.shape}")
+                    
+                    metrics = metrics_computer.compute_full_metrics(
+                        model=model,  # Use model directly (now handles P samples internally)
+                        y_train=y_train_full,
+                        y_test=y_test_full,
+                        iteration=i,
+                        elbo_loss=loss.item(),
+                        n_samples=config.P  # Use proper P samples from model configuration
+                    )
                 
                 print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f}")
                 print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
@@ -287,12 +372,9 @@ def train_gplvm_with_logging(model, y, config, logger=None, split_data=None, lab
                 # Generate filename with iteration number
                 plot_filename = f"training_results_iter_{i}.png"
                 
-                # Prepare GP-LVM model for SSVI visualization compatibility
-                processed_model = preprocess_gplvm_for_visualization(model, y, config)
-                
-                # Use the SSVI visualization function with adapted model
+                # Use same SSVI visualization for identical output structure
                 visualize_ssvi_results(
-                    model=processed_model,
+                    model=model,
                     y=y,
                     labels=labels,
                     losses=losses,
@@ -338,6 +420,53 @@ def train_gplvm_with_logging(model, y, config, logger=None, split_data=None, lab
     
     return losses, metrics_computer
 
+def predict_test_data_with_separate_optimizer(model, y_test, config, n_test_iterations=100, test_lr=None):
+    """
+    Predict test data using separate optimizer for our NEW test latent variables.
+    Only optimizes mu_x_test_predict and sigma_x_test_predict, keeping GP parameters fixed.
+    """
+    if not hasattr(model, 'mu_x_test_predict') or model.mu_x_test_predict is None:
+        raise ValueError("Test data not initialized. Ensure model.setup_test_data() was called.")
+    
+    if test_lr is None:
+        test_lr = config.learning_rate
+    
+    print(f"Optimizing test latent variables for {y_test.shape[0]} test points...")
+    print(f"Test iterations: {n_test_iterations}, Test learning rate: {test_lr}")
+    
+    # Setup test optimizer (only test parameters)
+    test_params = model.get_test_parameters()
+    if not test_params:
+        raise ValueError("No test parameters found for optimization.")
+    
+    test_optimizer = torch.optim.Adam(test_params, lr=test_lr)
+    test_losses = []
+    
+    # Store original training state
+    model.train()
+    
+    start_time = time.time()
+    
+    for i in range(n_test_iterations):
+        test_optimizer.zero_grad()
+        
+        # Compute test ELBO (only optimizes test latent variables)
+        test_loss = -model.test_prediction_elbo(y_test)
+        test_loss.backward()
+        test_optimizer.step()
+        
+        test_losses.append(test_loss.detach().item())
+        
+        # Progress reporting
+        if i % (n_test_iterations // 5) == 0 or i == n_test_iterations - 1:
+            elapsed = time.time() - start_time
+            print(f"  Test iteration {i}/{n_test_iterations}: Loss={test_loss.item():.4f}, Time={elapsed:.1f}s")
+    
+    total_time = time.time() - start_time
+    print(f"Test optimization completed! Final Loss: {test_losses[-1]:.4f}, Total time: {total_time:.1f}s")
+    
+    return test_losses
+
 def main(config: OilFlowGPLVMConfig = None, config_name: str = "fast"):
     """Main function for Oil Flow Original GP-LVM example"""
     
@@ -374,7 +503,7 @@ def main(config: OilFlowGPLVMConfig = None, config_name: str = "fast"):
     logger = SSVIResultsLogger(config, experiment_name=experiment_name)
     if logger.results_dir:
         print(f"Results will be saved to: {logger.results_dir}")
-        # Log initial info
+        # Log initial info (match SSVI format)
         logger.log_training("=== Oil Flow Original GP-LVM Training Session ===")
         logger.log_training(f"Model: Structured GP-LVM with {config.n_inducing_points} inducing points")
         logger.log_training(f"Latent dimensions: {config.latent_dim}")
@@ -384,15 +513,28 @@ def main(config: OilFlowGPLVMConfig = None, config_name: str = "fast"):
     print(f"\nTraining model...")
     losses, metrics_computer = train_gplvm_with_logging(model, y, config, logger, split_data, labels)
     
-    # Visualize results
+    # Visualize results (use same SSVI visualization for identical output structure)
     print(f"\nVisualizing results...")
-    # Prepare GP-LVM model for SSVI visualization compatibility
-    processed_model = preprocess_gplvm_for_visualization(model, y, config)
-    visualize_ssvi_results(processed_model, y, labels, losses, config, logger)
+    visualize_ssvi_results(model, y, labels, losses, config, logger)
     
     # Generate final metrics and plots if metrics were computed
     if metrics_computer is not None and config.enable_metrics and split_data is not None:
         print(f"\nGenerating final metrics and plots...")
+        
+        # Optimize test latent variables on full test set for final evaluation (GP-LVM specific feature)
+        if hasattr(model, 'mu_x_test_predict') and model.mu_x_test_predict is not None:
+            print("Performing final test optimization on full test set...")
+            final_test_losses = predict_test_data_with_separate_optimizer(
+                model, split_data['y_test'], config, n_test_iterations=200, test_lr=config.learning_rate
+            )
+            
+            # Log test optimization results (GP-LVM specific feature)
+            if logger:
+                logger.log_training(f"Test optimization completed. Initial test loss: {final_test_losses[0]:.4f}, Final test loss: {final_test_losses[-1]:.4f}")
+                logger.log_training(f"Test loss improvement: {final_test_losses[0] - final_test_losses[-1]:.4f}")
+            
+            print(f"Test optimization results: Initial loss: {final_test_losses[0]:.4f} -> Final loss: {final_test_losses[-1]:.4f}")
+            print(f"Test loss improvement: {final_test_losses[0] - final_test_losses[-1]:.4f}")
         
         # Compute final comprehensive metrics on full test set
         print("Computing final metrics on full datasets...")
@@ -402,7 +544,7 @@ def main(config: OilFlowGPLVMConfig = None, config_name: str = "fast"):
             y_test=split_data['y_test'],
             iteration=config.training_iterations,
             elbo_loss=losses[-1] if losses else 0.0,
-            n_samples=50  # More samples for final evaluation
+            n_samples=config.P  # Use proper P samples from model configuration
         )
         
         # Print final metrics summary using the computed final_metrics
@@ -412,14 +554,14 @@ def main(config: OilFlowGPLVMConfig = None, config_name: str = "fast"):
         if logger:
             logger.log_training(f"Final comprehensive metrics computed: {final_metrics.to_dict()}")
         
-        print(f"\n=== Final GP-LVM Performance ===")
+        print(f"\n=== Final Model Performance ===")
         print(f"Final Train RMSE: {summary['final_train_rmse']:.4f}")
         print(f"Final Test RMSE: {summary['final_test_rmse']:.4f}")
         print(f"Final Train NLPD: {summary['final_train_nlpd']:.3f}")
         print(f"Final Test NLPD: {summary['final_test_nlpd']:.3f}")
         print(f"Overfitting Ratio (Test/Train RMSE): {summary['overfitting_ratio']:.3f}")
         print(f"Effective Latent Dimensions: {summary['final_effective_dims']}/{summary['total_latent_dims']}")
-        print("=" * 40)
+        print("=" * 35)
         
         # Generate metrics plots
         print("Generating metrics progression plots...")

@@ -106,8 +106,10 @@ class SSVIMetricsComputer:
                     epsilon = torch.randn_like(sigma_x)
                     x_sample = mu_x + sigma_x * epsilon
                 
-                # Reconstruct through GP mean prediction
-                y_recon = model.get_ssvi_mean_prediction(x_sample)  # [batch_size, D]
+                # Reconstruct through GP mean prediction using proper GP method
+                y_recon = model.gp.get_gp_expectation(x_sample)  # [batch_size, M, C]
+                if y_recon.shape[-1] == 1:
+                    y_recon = y_recon[..., 0]  # [batch_size, M] for C=1 case
                 reconstructions.append(y_recon)
             
             # Average reconstructions
@@ -163,23 +165,27 @@ class SSVIMetricsComputer:
                     epsilon = torch.randn_like(sigma_x)
                     x_sample = mu_x + sigma_x * epsilon
                 
-                # Compute predictive distribution through GP
-                try:
-                    # Get GP predictive mean using built-in method
-                    f_mean = model.get_ssvi_mean_prediction(x_sample)  # [batch_size, D]
+                # Compute predictive distribution through GP using proper GP methods
+                
+                # Get GP predictive mean using GP method directly
+                f_mean = model.gp.get_gp_expectation(x_sample)  # [batch_size, M, C]
+                
+                # Get proper GP predictive variance: GP covariance + observation noise
+                # model.gp.get_gp_covariance(x_sample) + model.sigma2
+                gp_cov = model.gp.get_gp_covariance(x_sample)  # [batch_size, M, C, C]
+                
+                # For observed data (C=1 case), extract diagonal and add observation noise
+                if gp_cov.shape[-1] == 1:
+                    f_var = gp_cov[..., 0, 0] + model.sigma2  # [batch_size, M]
+                    f_mean = f_mean[..., 0]  # [batch_size, M] to match f_var
+                else:
+                    # For multi-output case, use diagonal elements + observation noise
+                    f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [batch_size, M, C]
+                
+                # Compute log probability under Gaussian
+                log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch - f_mean)**2 / f_var
+                log_probs.append(log_prob.sum(dim=-1))  # Sum over dimensions
                     
-                    # For GP predictive variance, use observation noise as approximation
-                    f_var = model.sigma2 * torch.ones_like(f_mean)
-                    
-                    # Compute log probability under Gaussian
-                    log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch - f_mean)**2 / f_var
-                    log_probs.append(log_prob.sum(dim=-1))  # Sum over dimensions
-                    
-                except Exception as e:
-                    # Fallback: use simpler computation with mean only
-                    f_mean = model.get_ssvi_mean_prediction(x_sample)
-                    log_prob = -0.5 * torch.sum((y_batch - f_mean)**2, dim=-1) / model.sigma2
-                    log_probs.append(log_prob)
             
             # Average log probabilities (log of mixture)
             log_probs = torch.stack(log_probs)  # [n_samples, batch_size]
