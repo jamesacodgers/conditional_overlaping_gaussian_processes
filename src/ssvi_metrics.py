@@ -165,11 +165,10 @@ class SSVIMetricsComputer:
                 
                 # Compute predictive distribution through GP
                 try:
-                    # Get GP predictive mean and variance
+                    # Get GP predictive mean using built-in method
                     f_mean = model.get_ssvi_mean_prediction(x_sample)  # [batch_size, D]
                     
-                    # For GP predictive variance, we need the full covariance computation
-                    # This is approximate - using observation noise as predictive variance
+                    # For GP predictive variance, use observation noise as approximation
                     f_var = model.sigma2 * torch.ones_like(f_mean)
                     
                     # Compute log probability under Gaussian
@@ -177,7 +176,7 @@ class SSVIMetricsComputer:
                     log_probs.append(log_prob.sum(dim=-1))  # Sum over dimensions
                     
                 except Exception as e:
-                    # Fallback: use simpler computation
+                    # Fallback: use simpler computation with mean only
                     f_mean = model.get_ssvi_mean_prediction(x_sample)
                     log_prob = -0.5 * torch.sum((y_batch - f_mean)**2, dim=-1) / model.sigma2
                     log_probs.append(log_prob)

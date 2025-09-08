@@ -74,11 +74,6 @@ class OilFlowSSVIConfig:
     P: int = 8               # Number of samples for SSVI (like original)
     trainable_V: bool = True
     
-    # === Visualization ===
-    plot_training: bool = True
-    plot_latent_space: bool = True
-    plot_hyperparams: bool = True
-    
     # === Progress Reporting ===
     log_frequency: int = 100  # Log every N iterations
     
@@ -283,25 +278,20 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
             
             print(f"  Computing metrics at iteration {i}...")
             try:
-                # Compute subset of train/test data for efficiency
-                train_subset_size = min(200, split_data['y_train'].shape[0])
-                test_subset_size = min(100, split_data['y_test'].shape[0])
-                
-                train_subset_indices = torch.randperm(split_data['y_train'].shape[0])[:train_subset_size]
-                test_subset_indices = torch.randperm(split_data['y_test'].shape[0])[:test_subset_size]
-                
+                # Use full datasets for proper evaluation
                 metrics = metrics_computer.compute_full_metrics(
                     model=model,
-                    y_train=split_data['y_train'][train_subset_indices],
-                    y_test=split_data['y_test'][test_subset_indices],
+                    y_train=split_data['y_train'],
+                    y_test=split_data['y_test'],
                     iteration=i,
                     elbo_loss=loss,
-                    n_samples=10  # Reduced for efficiency during training
+                    n_samples=config.P  # Use config P parameter for consistency
                 )
                 
-                print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f}")
+                print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
                 print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
                 print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
+                print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
                 
                 # Log metrics
                 if logger:
@@ -455,7 +445,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             y_test=split_data['y_test'],
             iteration=config.training_iterations,
             elbo_loss=losses[-1] if losses else 0.0,
-            n_samples=50  # More samples for final evaluation
+            n_samples=config.P * 2  # Use config P parameter, doubled for final comprehensive evaluation
         )
         
         # Print final metrics summary using the computed final_metrics

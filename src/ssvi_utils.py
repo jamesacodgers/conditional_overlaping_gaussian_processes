@@ -421,10 +421,10 @@ def save_metrics_to_text(metrics_computer,
     lengthscales_info = ""
     if model is not None:
         try:
-            # Get lengthscales (1/beta)
-            beta_values = model.Abeta.exp()  # Convert from log space
+            # Get lengthscales (1/beta) from the GP model
+            beta_values = model.gp.beta  # This already applies exp() and adds 1e-5
             lengthscales = 1.0 / beta_values
-            lengthscales_list = lengthscales.detach().cpu().numpy().tolist()
+            lengthscales_list = lengthscales.detach().cpu().numpy().flatten().tolist()
             
             lengthscales_info = f"""
 LENGTHSCALES (1/beta):
