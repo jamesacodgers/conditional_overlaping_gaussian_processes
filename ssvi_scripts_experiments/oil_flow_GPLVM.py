@@ -58,15 +58,6 @@ class Struc_GPLVM(Struc_WS_GPLVM):
     def Sigma_x(self): 
         return self.Sigma_x_train
     
-    @property
-    def mu_x_raw(self):
-        """Access to raw P-sample latent means (P, N, D) for internal use"""
-        return self.mu_x_train
-    
-    @property
-    def Sigma_x_raw(self):
-        """Access to raw P-sample latent variances (P, N, D) for internal use"""
-        return self.Sigma_x_train
     
     def gplvm_elbo(self, y):
         R_train = torch.ones((y.shape[0], 1))
@@ -79,13 +70,102 @@ class Struc_GPLVM(Struc_WS_GPLVM):
         samples = dist.rsample((self.P,))
         return samples.reshape(self.P, self.M, self.C, self.gp.Lx)
     
-    def get_mu_sigma_x_samples(self, Y_batch, U_samples=None):
-        """Simple method for SSVI visualization compatibility"""
-        batch_size = Y_batch.shape[0]
-        # Return subset for batch (assumes Y_batch corresponds to training data)
-        mu_batch = self.mu_x_train[:, :batch_size, :]  # (P, batch_size, D)
-        sigma_batch = self.Sigma_x_train[:, :batch_size, :]  # (P, batch_size, D)
+    def get_mu_sigma_x_train_samples(self, Y_train_batch=None, U_samples=None):
+        """
+        Get latent variable samples for training data
+        
+        Args:
+            Y_train_batch: Training observations (used to determine batch size)
+            U_samples: Not used for oil_flow_GPLVM (uses stored latent variables)
+            
+        Returns:
+            (mu_x, sigma_x): Training latent variable samples (P, batch_size, D)
+        """
+        if Y_train_batch is not None:
+            batch_size = Y_train_batch.shape[0]
+            # Return training data subset (assumes Y_batch corresponds to first batch_size training points)
+            mu_batch = self.mu_x_train[:, :batch_size, :]  # (P, batch_size, D)
+            sigma_batch = self.Sigma_x_train[:, :batch_size, :]  # (P, batch_size, D)
+        else:
+            # Return all training data
+            mu_batch = self.mu_x_train  # (P, N_train, D)
+            sigma_batch = self.Sigma_x_train  # (P, N_train, D)
+        
         return mu_batch, sigma_batch
+    
+    def get_mu_sigma_x_test_samples(self, Y_test_batch=None, U_samples=None):
+        """
+        Get latent variable samples for test data
+        
+        Args:
+            Y_test_batch: Test observations (used to determine batch size and validate setup)
+            U_samples: Not used for oil_flow_GPLVM (uses optimized test latent variables)
+            
+        Returns:
+            (mu_x, sigma_x): Test latent variable samples (P, batch_size, D)
+        """
+        if not hasattr(self, 'mu_x_test_predict') or self.mu_x_test_predict is None:
+            raise ValueError("Test data not initialized. Call setup_test_data() and prepare_for_test_metrics() first.")
+        
+        if Y_test_batch is not None:
+            batch_size = Y_test_batch.shape[0]
+            if batch_size != self._test_data_size:
+                raise ValueError(f"Test batch size {batch_size} doesn't match initialized test size {self._test_data_size}")
+        
+        # Return optimized test latent variables
+        mu_batch = self.mu_x_test_predict  # (P, N_test, D)
+        sigma_batch = self.Sigma_x_test_predict  # (P, N_test, D)
+        return mu_batch, sigma_batch
+    
+    
+    def prepare_for_test_metrics(self, y_test, config, n_optimization_steps=100):
+        """
+        Prepare model for computing test metrics by optimizing test latent variables
+        
+        Args:
+            y_test: Test observations
+            config: Configuration object with learning rate info
+            n_optimization_steps: Number of optimization steps for test variables
+        """
+        if not hasattr(self, 'mu_x_test_predict') or self.mu_x_test_predict is None:
+            print("Warning: Test data not initialized. Call setup_test_data() first.")
+            return
+        
+        print(f"Optimizing test latent variables for metrics computation ({n_optimization_steps} steps)...")
+        
+        # Setup test optimizer (only test parameters)
+        test_params = self.get_test_parameters()
+        if not test_params:
+            print("Warning: No test parameters found for optimization.")
+            return
+        
+        test_optimizer = torch.optim.Adam(test_params, lr=config.learning_rate)
+        
+        # Store original training state
+        was_training = self.training
+        self.train()
+        
+        initial_loss = None
+        for i in range(n_optimization_steps):
+            test_optimizer.zero_grad()
+            
+            # Compute test ELBO (only optimizes test latent variables)
+            test_loss = -self.test_prediction_elbo(y_test)
+            test_loss.backward()
+            test_optimizer.step()
+            
+            if i == 0:
+                initial_loss = test_loss.item()
+            
+            # Minimal progress reporting
+            if i % (n_optimization_steps // 4) == 0 or i == n_optimization_steps - 1:
+                print(f"  Step {i}/{n_optimization_steps}: Loss={test_loss.item():.4f}")
+        
+        final_loss = test_loss.item()
+        print(f"Test optimization completed. Loss: {initial_loss:.4f} -> {final_loss:.4f} (improvement: {initial_loss - final_loss:.4f})")
+        
+        # Restore original training state
+        self.train(was_training)
     
     
     def setup_test_data(self, mu_x_test_init):
@@ -185,7 +265,8 @@ def get_fast_gplvm_config():
         plot_save_frequency=100,        
         plot_training=True,
         plot_latent_space=True,
-        plot_hyperparams=True
+        plot_hyperparams=True,
+        test_optimization_steps=50  # Config value for all test preparation
     )
 
 def create_gplvm_model(config: OilFlowGPLVMConfig, Vx, mu_x, M):
@@ -313,39 +394,22 @@ def train_gplvm_with_logging(model, y, config, logger=None, split_data=None, lab
                 y_train_full = split_data['y_train']
                 y_test_full = split_data['y_test']
                 
-                # Optimize test latent variables using separate test optimizer
-                if test_optimizer is not None:
-                    print(f"    Optimizing test latent variables for metrics...")
-                    
-                    # Test optimization for metrics computation (using full test set)
-                    test_losses = predict_test_data_with_separate_optimizer(
-                        model, y_test_full, config, n_test_iterations=100, test_lr=config.learning_rate
-                    )
-                    
-                    print(f"    Debug: About to compute metrics with y_train shape: {y_train_full.shape}")
-                    print(f"    Debug: About to compute metrics with y_test shape: {y_test_full.shape}")
-                    
-                    metrics = metrics_computer.compute_full_metrics(
-                        model=model,  # Use model directly (now handles P samples internally)
-                        y_train=y_train_full,
-                        y_test=y_test_full,
-                        iteration=i,
-                        elbo_loss=loss.item(),
-                        n_samples=config.P  # Use proper P samples from model configuration
-                    )
-                else:
-                    # Fallback to original metrics computation without test optimization
-                    print(f"    Debug: About to compute metrics with y_train shape: {y_train_full.shape}")
-                    print(f"    Debug: About to compute metrics with y_test shape: {y_test_full.shape}")
-                    
-                    metrics = metrics_computer.compute_full_metrics(
-                        model=model,  # Use model directly (now handles P samples internally)
-                        y_train=y_train_full,
-                        y_test=y_test_full,
-                        iteration=i,
-                        elbo_loss=loss.item(),
-                        n_samples=config.P  # Use proper P samples from model configuration
-                    )
+                # Prepare model for test metrics computation
+                if hasattr(model, 'prepare_for_test_metrics'):
+                    print(f"    Preparing model for test metrics computation...")
+                    model.prepare_for_test_metrics(y_test_full, config, n_optimization_steps=config.test_optimization_steps)
+                
+                print(f"    Computing metrics with y_train shape: {y_train_full.shape}")
+                print(f"    Computing metrics with y_test shape: {y_test_full.shape}")
+                
+                metrics = metrics_computer.compute_full_metrics(
+                    model=model,  
+                    y_train=y_train_full,
+                    y_test=y_test_full,
+                    iteration=i,
+                    elbo_loss=loss.item(),
+                    n_samples=config.P  
+                )
                 
                 print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f}")
                 print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
@@ -381,7 +445,8 @@ def train_gplvm_with_logging(model, y, config, logger=None, split_data=None, lab
                     config=config,
                     logger=logger,
                     save_filename=plot_filename,
-                    show_plot=False
+                    show_plot=False,
+                    is_test_data=False  # This is training data visualization
                 )
                 
                 print(f"    Training plots saved: {plot_filename}")
@@ -515,7 +580,7 @@ def main(config: OilFlowGPLVMConfig = None, config_name: str = "fast"):
     
     # Visualize results (use same SSVI visualization for identical output structure)
     print(f"\nVisualizing results...")
-    visualize_ssvi_results(model, y, labels, losses, config, logger)
+    visualize_ssvi_results(model, y, labels, losses, config, logger, is_test_data=False)  # Training data visualization
     
     # Generate final metrics and plots if metrics were computed
     if metrics_computer is not None and config.enable_metrics and split_data is not None:
@@ -538,6 +603,12 @@ def main(config: OilFlowGPLVMConfig = None, config_name: str = "fast"):
         
         # Compute final comprehensive metrics on full test set
         print("Computing final metrics on full datasets...")
+        
+        # Prepare model for final test metrics computation
+        if hasattr(model, 'prepare_for_test_metrics'):
+            print("Preparing model for final test metrics computation...")
+            model.prepare_for_test_metrics(split_data['y_test'], config, n_optimization_steps=config.test_optimization_steps)
+        
         final_metrics = metrics_computer.compute_full_metrics(
             model=model,  # Use model directly (now handles P samples internally)
             y_train=split_data['y_train'],

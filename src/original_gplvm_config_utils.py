@@ -69,6 +69,9 @@ class OilFlowGPLVMConfig:
     save_training_plots: bool = True       # Save training result plots during training
     plot_save_frequency: int = 100         # Save plots every N iterations
     
+    # === Test Optimization Configuration ===
+    test_optimization_steps: int = 50      # Number of optimization steps for test data preparation
+    
     def __post_init__(self):
         """Set default values and resolve device if not specified"""
         # Resolve device configuration

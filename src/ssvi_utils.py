@@ -95,13 +95,22 @@ class SSVIResultsLogger:
 
 
 
-def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True):
+def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False):
     """Visualize SSVI training results and latent space"""
     
     if not (hasattr(config, 'plot_training') and config.plot_training or
             hasattr(config, 'plot_latent_space') and config.plot_latent_space or
             hasattr(config, 'plot_hyperparams') and config.plot_hyperparams):
         return
+    
+    # Prepare GP-LVM model for test visualization if needed (SSVI doesn't need this)
+    if hasattr(model, 'prepare_for_test_metrics') and is_test_data:
+        # Only oil_flow_GPLVM needs test preparation for test data visualization
+        # Use provided optimization steps or default from config
+        if n_optimization_steps is None:
+            # Use single config value for all test optimization
+            n_optimization_steps = getattr(config, 'test_optimization_steps', 50)
+        model.prepare_for_test_metrics(y, config, n_optimization_steps=n_optimization_steps)
     
     with torch.no_grad():
         # Color mapping for labels (assuming 3 classes)
@@ -138,13 +147,14 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
             dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
+            # Get latent variables using new explicit training method
             U = model.get_u_samples()  # [P, M, C, Lx]
-            mu_x, sigma_x = model.get_mu_sigma_x_samples(y, U)  # [N, A]
-            mu_x =  mu_x.cpu().numpy()  # Move to CPU for plotting
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y, U)  # [P, N, A]
+            mu_x = mu_x.cpu().numpy()  # Move to CPU for plotting
             # Plot samples from all P samples with transparency
             for p in range(model.P):
                 # Use top 2 most informative latent dimensions
-                plt.scatter(mu_x[p,:, 0], mu_x[p,:, 1], 
+                plt.scatter(mu_x[p, :, dim1], mu_x[p, :, dim2], 
                            c=colors, alpha=0.15, s=10)
             
             plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')

@@ -212,7 +212,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         U_samples = self.get_u_samples()
 
         # Get local parameters via amortized inference (gradients only to encoder)
-        mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_samples(Y_batch, U_samples)
+        mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
         
         # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()

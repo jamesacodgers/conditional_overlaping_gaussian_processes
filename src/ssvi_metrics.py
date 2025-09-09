@@ -59,19 +59,44 @@ class SSVIMetricsComputer:
         self.device = device
         self.metrics_history: List[SSVIMetrics] = []
     
+    def _sample_latent_variables(self, mu_x: torch.Tensor, sigma_x: torch.Tensor, model) -> torch.Tensor:
+        """
+        Sample latent variables from the posterior distribution q(x) = N(mu_x, sigma_x^2)
+        
+        Args:
+            mu_x: Latent means [P, batch_size, latent_dim]
+            sigma_x: Latent standard deviations [P, batch_size, latent_dim]
+            model: GP-LVM model (used to get P value)
+            
+        Returns:
+            x_sample: Sampled latent variables [batch_size, latent_dim]
+        """
+        # Sample one of the P samples randomly
+        sample_idx = torch.randint(0, model.P, (1,)).item()
+        mu_sample = mu_x[sample_idx]  # [batch_size, latent_dim]
+        sigma_sample = sigma_x[sample_idx]  # [batch_size, latent_dim]
+        
+        # Sample from the latent variable distribution q(x) = N(mu_x, sigma_x^2)
+        epsilon = torch.randn_like(sigma_sample)
+        x_sample = mu_sample + sigma_sample * epsilon
+        
+        return x_sample
+    
     def compute_rmse(self, 
                      model, 
                      y_true: torch.Tensor, 
                      batch_indices: Optional[torch.Tensor] = None,
-                     n_samples: int = 10) -> float:
+                     n_samples: int = 10,
+                     is_test_data: bool = False) -> float:
         """
         Compute Root Mean Square Error for reconstruction
         
         Args:
-            model: SSVI GP-LVM model
+            model: GP-LVM model (SSVI or structured)
             y_true: True observations [N, D] or [batch_size, D]
             batch_indices: Optional indices if using subset of data
             n_samples: Number of samples for Monte Carlo estimation
+            is_test_data: Whether this is test data (determines which method to call)
             
         Returns:
             RMSE value
@@ -87,24 +112,20 @@ class SSVIMetricsComputer:
                 N = y_true.shape[0]
                 batch_indices = torch.arange(N, device=y_true.device)
             
-            # Sample U for amortized inference
+            # Sample U for both model types
             U_samples = model.get_u_samples()
             
-            # Get latent representations for this batch
-            mu_x, sigma_x = model.get_mu_sigma_x_samples(y_batch, U_samples)
+            # Get latent representations for this batch using explicit method
+            if is_test_data:
+                mu_x, sigma_x = model.get_mu_sigma_x_test_samples(y_batch, U_samples)
+            else:
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_batch, U_samples)
             
             # Sample from latent distribution for reconstruction
             reconstructions = []
             for _ in range(n_samples):
-                # Sample latent variables
-                if hasattr(model, 'P') and model.P > 1:
-                    # Use one of the SSVI samples
-                    sample_idx = torch.randint(0, model.P, (1,)).item()
-                    x_sample = mu_x[sample_idx]  # [batch_size, latent_dim]
-                else:
-                    # Standard VAE-style sampling
-                    epsilon = torch.randn_like(sigma_x)
-                    x_sample = mu_x + sigma_x * epsilon
+                # Sample latent variables using helper function
+                x_sample = self._sample_latent_variables(mu_x, sigma_x, model)
                 
                 # Reconstruct through GP mean prediction using proper GP method
                 y_recon = model.gp.get_gp_expectation(x_sample)  # [batch_size, M, C]
@@ -126,15 +147,17 @@ class SSVIMetricsComputer:
                      model, 
                      y_true: torch.Tensor, 
                      batch_indices: Optional[torch.Tensor] = None,
-                     n_samples: int = 50) -> float:
+                     n_samples: int = 50,
+                     is_test_data: bool = False) -> float:
         """
         Compute Negative Log Predictive Density for uncertainty quantification
         
         Args:
-            model: SSVI GP-LVM model
+            model: GP-LVM model (SSVI or structured)
             y_true: True observations [N, D] or [batch_size, D]
             batch_indices: Optional indices if using subset of data
             n_samples: Number of samples for Monte Carlo estimation
+            is_test_data: Whether this is test data (determines which method to call)
             
         Returns:
             NLPD value (lower is better)
@@ -148,22 +171,20 @@ class SSVIMetricsComputer:
                 N = y_true.shape[0]
                 batch_indices = torch.arange(N, device=y_true.device)
             
-            # Sample U for amortized inference
+            # Sample U for both model types
             U_samples = model.get_u_samples()
             
-            # Get latent representations for this batch
-            mu_x, sigma_x = model.get_mu_sigma_x_samples(y_batch, U_samples)
+            # Get latent representations for this batch using explicit method
+            if is_test_data:
+                mu_x, sigma_x = model.get_mu_sigma_x_test_samples(y_batch, U_samples)
+            else:
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_batch, U_samples)
             
             log_probs = []
             
             for _ in range(n_samples):
-                # Sample latent variables
-                if hasattr(model, 'P') and model.P > 1:
-                    sample_idx = torch.randint(0, model.P, (1,)).item()
-                    x_sample = mu_x[sample_idx]
-                else:
-                    epsilon = torch.randn_like(sigma_x)
-                    x_sample = mu_x + sigma_x * epsilon
+                # Sample latent variables using helper function
+                x_sample = self._sample_latent_variables(mu_x, sigma_x, model)
                 
                 # Compute predictive distribution through GP using proper GP methods
                 
@@ -171,7 +192,6 @@ class SSVIMetricsComputer:
                 f_mean = model.gp.get_gp_expectation(x_sample)  # [batch_size, M, C]
                 
                 # Get proper GP predictive variance: GP covariance + observation noise
-                # model.gp.get_gp_covariance(x_sample) + model.sigma2
                 gp_cov = model.gp.get_gp_covariance(x_sample)  # [batch_size, M, C, C]
                 
                 # For observed data (C=1 case), extract diagonal and add observation noise
@@ -257,14 +277,14 @@ class SSVIMetricsComputer:
         metrics.elbo_loss = elbo_loss
         
         try:
-            # Reconstruction metrics
-            metrics.train_rmse = self.compute_rmse(model, y_train, train_indices, n_samples)
-            metrics.test_rmse = self.compute_rmse(model, y_test, test_indices, n_samples)
+            # Reconstruction metrics with explicit train/test flags
+            metrics.train_rmse = self.compute_rmse(model, y_train, train_indices, n_samples, is_test_data=False)
+            metrics.test_rmse = self.compute_rmse(model, y_test, test_indices, n_samples, is_test_data=True)
             
             # Uncertainty metrics (computationally expensive, use fewer samples)
             uncertainty_samples = min(10, n_samples)
-            metrics.train_nlpd = self.compute_nlpd(model, y_train, train_indices, uncertainty_samples)
-            metrics.test_nlpd = self.compute_nlpd(model, y_test, test_indices, uncertainty_samples)
+            metrics.train_nlpd = self.compute_nlpd(model, y_train, train_indices, uncertainty_samples, is_test_data=False)
+            metrics.test_nlpd = self.compute_nlpd(model, y_test, test_indices, uncertainty_samples, is_test_data=True)
             
             # Model complexity
             effective_dims, total_dims = self.compute_effective_latent_dims(model)
@@ -298,9 +318,6 @@ class SSVIMetricsComputer:
             'total_iterations': len(self.metrics_history)
         }
     
-    def clear_history(self):
-        """Clear metrics history"""
-        self.metrics_history.clear()
 
 
 def create_train_test_split(y: torch.Tensor, 
