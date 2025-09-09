@@ -3,7 +3,7 @@ import types
 
 # Local wrapper to mirror examples/toy_GPLVM.Struc_GPLVM without importing that file (which has side effects)
 from src.struc_models import Struc_WS_GPLVM
-from src.ssvi_models_v2 import GPLVM_SSVI
+from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 
 
 class Struc_GPLVM(Struc_WS_GPLVM):
@@ -60,7 +60,7 @@ def main():
 
     # Instantiate both models with identical hyperparameters
     struc = Struc_GPLVM(Vx=Vx, M=M, mu_x=mu_x_base, sigma2=1.0, P=P, trainable_V=False)
-    ssvi = GPLVM_SSVI(Vx=Vx, M=M, mu_x=mu_x_base, sigma2=1.0, P=P, trainable_V=False)
+    ssvi = GPLVM_SSVI_AM_INF(Vx=Vx, M=M, mu_x=mu_x_base, sigma2=1.0, P=P, trainable_V=False, device="cpu")
 
     # Synchronize q(u) parameters so KL_u matches exactly
     with torch.no_grad():
@@ -82,10 +82,10 @@ def main():
     elbo_struc = struc.gplvm_elbo(y)
 
     # ELBO via SSVI with explicit inputs
-    elbo_ssvi = ssvi.gplvm_elbo(y=y, mu_x_train=mu_x_P, Sigma_x_train=Sigma_x_P, U_samples=U_samples)
+    elbo_ssvi = ssvi.gplvm_elbo(y=y, mu_x=mu_x_P, Sigma_x=Sigma_x_P, U_samples=U_samples, batch_size=y.shape[0], total_size=y.shape[0])
 
     print("ELBO (Struc_GPLVM):", elbo_struc.item())
-    print("ELBO (GPLVM_SSVI):", elbo_ssvi.item())
+    print("ELBO (GPLVM_SSVI_AM_INF):", elbo_ssvi.item())
     print("Abs diff:", abs(elbo_struc.item() - elbo_ssvi.item()))
 
     # Optional assertion for equality within tolerance
