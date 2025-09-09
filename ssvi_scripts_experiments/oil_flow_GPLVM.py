@@ -40,15 +40,23 @@ from src.ssvi_utils import (
     plot_final_metrics_summary, save_metrics_to_json, save_metrics_to_text
 )
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
+from src.missing_data_utils import preprocess_data_for_missing_training
+from src.save_utils import save_paper_style_metrics, print_final_model_parameters
+from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 
 # Device will be set in main() from config
 
 class Struc_GPLVM(Struc_WS_GPLVM):
     """Structured GP-LVM wrapper with proper P-sample handling like SSVI"""
-    def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True):
+    def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, enable_missing_data=False):
         super().__init__(P=P, V=Vx, M=M, C_obs=1, mu_x_train=mu_x, mu_x_test=None, C_unobs=0, 
                         sigma2=sigma2, weight_distribution="continuous", beta=beta, 
                         sigma2_s=sigma2_s, trainable_V=trainable_V)
+        
+        # Missing data capability for GP-LVM
+        self.enable_missing_data = enable_missing_data
+        if self.enable_missing_data:
+            print("Missing data reconstruction enabled for GP-LVM")
 
     @property 
     def mu_x(self): 
@@ -61,6 +69,20 @@ class Struc_GPLVM(Struc_WS_GPLVM):
     
     def gplvm_elbo(self, y):
         R_train = torch.ones((y.shape[0], 1))
+        # Handle missing data if enabled
+        if self.enable_missing_data:
+            missing_mask = torch.isnan(y)
+            if missing_mask.any():
+                # Store missing mask in coordinator for likelihood computation
+                if hasattr(self, 'coordinator'):
+                    self.coordinator.missing_mask = missing_mask
+                    elbo_result = super(Struc_GPLVM, self).elbo(y, R_train)
+                    # Clean up
+                    if hasattr(self.coordinator, 'missing_mask'):
+                        delattr(self.coordinator, 'missing_mask')
+                    return elbo_result
+        
+        # Standard ELBO computation (no missing data or missing data disabled)
         return super(Struc_GPLVM, self).elbo(y, R_train)
     
     # Add minimal compatibility methods for SSVI visualization
@@ -200,6 +222,120 @@ class Struc_GPLVM(Struc_WS_GPLVM):
             return torch.exp(self._log_sigma_x_test_predict)
         return None
     
+    def reconstruct_missing_data(self, y_observed, missing_mask=None, n_samples=50):
+        """
+        Reconstruct missing dimensions using GP-LVM optimization and GP decoding.
+        For GP-LVM, this requires optimizing latent variables for the observed data.
+        
+        Args:
+            y_observed: Data with missing values as NaN [batch_size, output_dim]
+            missing_mask: Boolean mask [batch_size, output_dim] where True=missing (optional)
+            n_samples: Number of samples for Monte Carlo reconstruction
+            
+        Returns:
+            y_reconstructed: Complete data with reconstructed missing values
+            reconstruction_std: Standard deviation of reconstructions
+        """
+        if not self.enable_missing_data:
+            raise ValueError("Missing data reconstruction not enabled. Set enable_missing_data=True in model constructor.")
+        
+        # Create missing mask from NaN values if not provided
+        if missing_mask is None:
+            missing_mask = torch.isnan(y_observed)
+        
+        batch_size = y_observed.shape[0]
+        
+        # Initialize latent variables for the data with missing values
+        # Use PCA initialization on observed data only
+        y_clean = torch.where(missing_mask, torch.zeros_like(y_observed), y_observed)
+        mu_x_init, _, _ = torch.pca_lowrank(y_clean, self.A)
+        mu_x_init = mu_x_init / mu_x_init.std(dim=0)
+        
+        # Setup temporary latent variables for this data
+        mu_x_temp = torch.nn.Parameter(mu_x_init[None,...].repeat(self.P,1,1))
+        log_sigma_x_temp = torch.nn.Parameter(torch.zeros_like(mu_x_temp))
+        
+        # Optimizer for latent variables
+        temp_optimizer = torch.optim.Adam([mu_x_temp, log_sigma_x_temp], lr=0.01)
+        
+        # Optimize latent variables using only observed dimensions
+        self.eval()
+        for i in range(min(100, n_samples * 2)):  # Optimize before sampling
+            temp_optimizer.zero_grad()
+            
+            # Get GP expectation for current latent variables
+            sigma_x_temp = torch.exp(log_sigma_x_temp)
+            
+            # Sample latent variables
+            sample_idx = torch.randint(0, self.P, (1,)).item()
+            mu_sample = mu_x_temp[sample_idx]
+            sigma_sample = sigma_x_temp[sample_idx]
+            
+            epsilon = torch.randn_like(sigma_sample)
+            x_sample = mu_sample + sigma_sample * epsilon
+            
+            # Get GP prediction
+            y_pred, _ = self.get_gp_expectation(x_sample)
+            
+            # Compute likelihood only for observed dimensions using GP-LVM's ELBO
+            # Create clean data for ELBO computation
+            y_clean = torch.where(missing_mask, torch.zeros_like(y_observed), y_observed)
+            
+            # Store missing mask for coordinator and compute ELBO
+            if hasattr(self, 'coordinator'):
+                self.coordinator.missing_mask = missing_mask
+                likelihood = self.gplvm_elbo(y_clean)
+                # Clean up
+                if hasattr(self.coordinator, 'missing_mask'):
+                    delattr(self.coordinator, 'missing_mask')
+            else:
+                # Fallback: simple Gaussian likelihood for observed dimensions
+                observed_mask = ~missing_mask
+                if observed_mask.sum() > 0:
+                    observed_errors = (y_pred - y_clean)[observed_mask]
+                    likelihood = -0.5 * torch.sum(observed_errors**2) / self.sigma2
+                else:
+                    likelihood = torch.zeros(1, device=y_pred.device)
+            
+            # Add KL regularization
+            kl_x = 0.5 * torch.sum(mu_sample**2 + sigma_sample**2 - 1 - 2*torch.log(sigma_sample + 1e-8))
+            
+            loss = -likelihood + 0.01 * kl_x  # Small KL weight
+            loss.backward()
+            temp_optimizer.step()
+        
+        # Sample reconstructions
+        reconstructions = []
+        with torch.no_grad():
+            for _ in range(n_samples):
+                # Sample latent variables
+                sample_idx = torch.randint(0, self.P, (1,)).item()
+                mu_sample = mu_x_temp[sample_idx]
+                sigma_sample = torch.exp(log_sigma_x_temp[sample_idx])
+                
+                epsilon = torch.randn_like(sigma_sample)
+                x_sample = mu_sample + sigma_sample * epsilon
+                
+                # Decode to observation space using GP
+                y_mean, _ = self.get_gp_expectation(x_sample)
+                reconstructions.append(y_mean)
+        
+        # Stack reconstructions and compute statistics
+        reconstructions = torch.stack(reconstructions, dim=0)  # [n_samples, batch_size, output_dim]
+        
+        # Compute mean and std across samples
+        y_reconstructed_mean = reconstructions.mean(dim=0)
+        y_reconstructed_std = reconstructions.std(dim=0)
+        
+        # For complete reconstruction, use observed values where available
+        y_complete = torch.where(missing_mask, 
+                                y_reconstructed_mean, 
+                                torch.where(torch.isnan(y_observed), 
+                                           y_reconstructed_mean, 
+                                           y_observed))
+        
+        return y_complete, y_reconstructed_std
+    
     def test_prediction_elbo(self, y_test):
         """Clean ELBO computation for test data using our new test variables"""
         if not hasattr(self, 'mu_x_test_predict') or self.mu_x_test_predict is None:
@@ -275,11 +411,12 @@ def create_gplvm_model(config: OilFlowGPLVMConfig, Vx, mu_x, M):
         Vx=Vx, 
         M=M, 
         mu_x=mu_x, 
-        sigma2=config.sigma2,
+        sigma2=config.sigma2, 
         beta=config.beta,
         sigma2_s=config.sigma2_s,
         P=config.P,
-        trainable_V=config.trainable_V
+        trainable_V=config.trainable_V,
+        enable_missing_data=config.enable_missing_data
     )
     return model
 
@@ -335,6 +472,37 @@ def load_oil_flow_data_gplvm(config):
     print(f"Latent initialization: {mu_x.shape}")
     print(f"Inducing points: {Vx.shape}")
     config.total_size = y.shape[0]
+    
+    # Apply missing data preprocessing if enabled
+    if config.enable_missing_data:
+        print(f"\n=== Missing Data Preprocessing (GP-LVM) ===")
+        y_missing, missing_mask, missing_info = preprocess_data_for_missing_training(y, config)
+        
+        # Store original data for evaluation
+        y_original = y.clone()
+        y = y_missing  # Use missing data for training
+        
+        # Update split data if it exists
+        if split_data is not None:
+            y_train_missing, train_missing_mask, _ = preprocess_data_for_missing_training(split_data['y_train'], config)
+            y_test_missing, test_missing_mask, _ = preprocess_data_for_missing_training(split_data['y_test'], config)
+            
+            split_data.update({
+                'y_train_original': split_data['y_train'].clone(),
+                'y_test_original': split_data['y_test'].clone(),
+                'y_train': y_train_missing,
+                'y_test': y_test_missing,
+                'train_missing_mask': train_missing_mask,
+                'test_missing_mask': test_missing_mask
+            })
+        
+        # Store missing data info for later use
+        config.missing_info = missing_info
+        config.y_original = y_original
+        config.missing_mask = missing_mask
+        
+        print(f"Missing data preprocessing completed.")
+        print("=" * 50)
 
     return y, labels, Vx, mu_x, split_data
 
@@ -652,17 +820,30 @@ def main(config: OilFlowGPLVMConfig = None, config_name: str = "fast"):
         if logger:
             logger.log_training(f"Training completed. Final loss: {losses[-1]:.4f}")
     
+    # Comprehensive missing data reconstruction experiment if enabled
+    if config.enable_missing_data:
+        run_missing_data_reconstruction_experiment(
+            model, config, y, split_data, logger,
+            model_type="GP LVM",
+            model_description="Gaussian Process Latent Variable Model"
+        )
+
+    
     # Print final model parameters
-    print(f"\nFinal Model Parameters:")
-    print(f"  Observation noise (sigma2): {model.sigma2:.4f}")
-    if hasattr(model, 'gp'):
-        print(f"  Signal variances (sigma2_s): {model.gp.sigma2_s}")
-        print(f"  Lengthscales (1/beta): {(1/model.gp.beta).flatten()}")
+    print_final_model_parameters(model, "GP LVM")
     
     # Return final_metrics if computed, otherwise None
     final_metrics = None
     if metrics_computer is not None and metrics_computer.metrics_history:
         final_metrics = metrics_computer.metrics_history[-1]
+    
+    # Save standard paper metrics for all experiments (missing data enabled/disabled)
+    if logger and split_data is not None:
+        save_paper_style_metrics(
+            model, split_data, losses, logger, config, metrics_computer, final_metrics,
+            model_type="GP LVM", 
+            model_description="Gaussian Process Latent Variable Model"
+        )
     
     return model, losses, config, metrics_computer, final_metrics
 

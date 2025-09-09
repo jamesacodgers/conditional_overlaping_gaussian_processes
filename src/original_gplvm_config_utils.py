@@ -72,6 +72,12 @@ class OilFlowGPLVMConfig:
     # === Test Optimization Configuration ===
     test_optimization_steps: int = 50      # Number of optimization steps for test data preparation
     
+    # === Missing Data Configuration ===
+    enable_missing_data: bool = False      # Enable missing data reconstruction capability
+    missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
+    reconstruction_samples: int = 50       # Number of samples for missing data reconstruction  
+    missing_data_seed: int = 123           # Seed for reproducible missing data patterns
+    
     def __post_init__(self):
         """Set default values and resolve device if not specified"""
         # Resolve device configuration

@@ -35,6 +35,9 @@ sys.path.insert(0, os.getcwd())
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, save_metrics_to_json, save_metrics_to_text
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
+from src.missing_data_utils import preprocess_data_for_missing_training
+from src.save_utils import save_paper_style_metrics, print_final_model_parameters
+from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
@@ -94,6 +97,12 @@ class OilFlowSSVIConfig:
     plot_training: bool = True             # Plot training progress
     plot_latent_space: bool = True         # Plot latent space visualization  
     plot_hyperparams: bool = True          # Plot model hyperparameters
+    
+    # === Missing Data Configuration ===
+    enable_missing_data: bool = False      # Enable missing data reconstruction capability
+    missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
+    reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
+    missing_data_seed: int = 123           # Seed for reproducible missing data patterns
     
     def __post_init__(self):
         """Set default encoder architecture and resolve device if not specified"""
@@ -175,6 +184,37 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     print(f"Latent initialization: {mu_x.shape}")
     print(f"Inducing points: {Vx.shape}")
     config.total_size = y.shape[0]
+    
+    # Apply missing data preprocessing if enabled
+    if config.enable_missing_data:
+        print(f"\n=== Missing Data Preprocessing ===")
+        y_missing, missing_mask, missing_info = preprocess_data_for_missing_training(y, config)
+        
+        # Store original data for evaluation
+        y_original = y.clone()
+        y = y_missing  # Use missing data for training
+        
+        # Update split data if it exists
+        if split_data is not None:
+            y_train_missing, train_missing_mask, _ = preprocess_data_for_missing_training(split_data['y_train'], config)
+            y_test_missing, test_missing_mask, _ = preprocess_data_for_missing_training(split_data['y_test'], config)
+            
+            split_data.update({
+                'y_train_original': split_data['y_train'].clone(),
+                'y_test_original': split_data['y_test'].clone(),
+                'y_train': y_train_missing,
+                'y_test': y_test_missing,
+                'train_missing_mask': train_missing_mask,
+                'test_missing_mask': test_missing_mask
+            })
+        
+        # Store missing data info for later use
+        config.missing_info = missing_info
+        config.y_original = y_original
+        config.missing_mask = missing_mask
+        
+        print(f"Missing data preprocessing completed.")
+        print("=" * 50)
 
     return y, labels, Vx, mu_x, split_data
 
@@ -195,7 +235,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
             encoder_hidden_dims=config.encoder_hidden_dims,
             local_lr=config.local_lr,
             global_lr=config.global_lr,
-            device=config.device
+            device=config.device,
+            enable_missing_data=config.enable_missing_data
         )
         
         # Store config
@@ -218,13 +259,24 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         self.optimizer_global.zero_grad()
         
         # Compute global ELBO loss (gradients flow to all parameters)
-        loss = -self.gplvm_elbo(Y_batch,
-                               mu_n_batch,
-                               sigma_n_batch,
-                               U_samples=U_samples,
-                               batch_size=self.config.batch_size,
-                               total_size=self.config.total_size
-                               )
+        if self.enable_missing_data:
+            # Use missing data aware ELBO (coordinator handles the missing mask automatically)
+            missing_mask = torch.isnan(Y_batch)
+            loss = -self.gplvm_elbo_with_missing_data(Y_batch,
+                                                     mu_n_batch,
+                                                     sigma_n_batch,
+                                                     U_samples=U_samples,
+                                                     batch_size=self.config.batch_size,
+                                                     total_size=self.config.total_size,
+                                                     missing_mask=missing_mask)
+        else:
+            # Standard ELBO computation
+            loss = -self.gplvm_elbo(Y_batch,
+                                   mu_n_batch,
+                                   sigma_n_batch,
+                                   U_samples=U_samples,
+                                   batch_size=self.config.batch_size,
+                                   total_size=self.config.total_size)
         
         # Backward pass (gradients computed for all parameters)
         loss.backward()
@@ -479,16 +531,29 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             save_metrics_to_text(metrics_computer, logger, model)
 
     
+    # Comprehensive missing data reconstruction experiment if enabled
+    if config.enable_missing_data:
+        run_missing_data_reconstruction_experiment(
+            model, config, y, split_data, logger,
+            model_type="GP LVM SSVI",
+            model_description="GP-LVM with Stochastic Structured Variational Inference"
+        )
+    
     # Print final model parameters
-    print(f"\nFinal Model Parameters:")
-    print(f"  Observation noise (sigma2): {model.sigma2:.4f}")
-    print(f"  Signal variances (sigma2_s): {model.gp.sigma2_s}")
-    print(f"  Lengthscales (1/beta): {(1/model.gp.beta).flatten()}")
+    print_final_model_parameters(model, "GP LVM SSVI")
     
     # Return final_metrics if computed, otherwise None
     final_metrics = None
     if metrics_computer is not None and metrics_computer.metrics_history:
         final_metrics = metrics_computer.metrics_history[-1]
+    
+    # Save standard paper metrics for all experiments (missing data enabled/disabled)
+    if logger and split_data is not None:
+        save_paper_style_metrics(
+            model, split_data, losses, logger, config, metrics_computer, final_metrics,
+            model_type="GP LVM SSVI", 
+            model_description="GP-LVM with Stochastic Structured Variational Inference"
+        )
     
     return model, losses, config, metrics_computer, final_metrics
 

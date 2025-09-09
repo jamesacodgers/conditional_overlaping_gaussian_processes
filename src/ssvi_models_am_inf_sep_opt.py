@@ -10,7 +10,8 @@ import numpy as np
 
 class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
     def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, 
-                 encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001, device="auto"):
+                 encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001, device="auto", 
+                 enable_missing_data=False):
         # Resolve device if auto
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -32,6 +33,11 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         # Move encoder to device
         self.encoder = self.encoder.to(device)
+        
+        # Missing data capability
+        self.enable_missing_data = enable_missing_data
+        if self.enable_missing_data:
+            print("Missing data reconstruction enabled")
         
         # Separate optimizers for different learning rates
         self._setup_optimizers(local_lr, global_lr)
@@ -333,6 +339,46 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             info['sigma2_value'] = self.gp.sigma2.item()
         
         return info
+    
+    def reconstruct_missing_data(self, y_observed, missing_mask=None, n_samples=50):
+        """
+        Reconstruct missing dimensions using amortized inference and GP decoding.
+        
+        Args:
+            y_observed: Data with missing values as NaN [batch_size, output_dim]
+            missing_mask: Boolean mask [batch_size, output_dim] where True=missing (optional)
+            n_samples: Number of samples for Monte Carlo reconstruction
+            
+        Returns:
+            y_reconstructed: Complete data with reconstructed missing values
+            reconstruction_std: Standard deviation of reconstructions
+        """
+        if not self.enable_missing_data:
+            raise ValueError("Missing data reconstruction not enabled. Set enable_missing_data=True in model constructor.")
+        
+        from src.missing_data_utils import reconstruct_missing_dimensions
+        return reconstruct_missing_dimensions(self, y_observed, missing_mask, n_samples)
+    
+    def gplvm_elbo_with_missing_data(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask=None):
+        """
+        Extended gplvm_elbo that handles missing data by modifying the coordinator's likelihood computation.
+        Uses the original ELBO structure but handles missing data in the coordinator.
+        """
+        if not self.enable_missing_data or missing_mask is None:
+            # Use standard ELBO when missing data is disabled or no missing data
+            return self.gplvm_elbo(y, mu_x, Sigma_x, U_samples, batch_size, total_size)
+        
+        # Store missing mask in coordinator for likelihood computation
+        self.coordinator.missing_mask = missing_mask
+        
+        # Use standard ELBO computation - coordinator will handle missing data internally
+        elbo_result = self.gplvm_elbo(y, mu_x, Sigma_x, U_samples, batch_size, total_size)
+        
+        # Clean up
+        if hasattr(self.coordinator, 'missing_mask'):
+            delattr(self.coordinator, 'missing_mask')
+        
+        return elbo_result
 
 
 class NormalCoordinatorCustom:
@@ -384,7 +430,54 @@ class NormalCoordinatorCustom:
         return 1/(self.module.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=-2) - (R_train[...,:,:,None]*s_outer_cross_expectation).sum(dim=-2))
                 
     def get_const_train(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
+        # Handle missing data if missing_mask is provided
+        if hasattr(self, 'missing_mask') and self.missing_mask is not None:
+            return self._get_const_train_missing_data(D_train, R_train, s_obs_expectation, s_obs_outer_expectation)
+        
+        # Standard likelihood computation for complete data
         return -(D_train.shape[1] * D_train.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
+    
+    def _get_const_train_missing_data(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
+        """
+        Compute likelihood term accounting for missing data.
+        Only observed dimensions contribute to the likelihood.
+        """
+        missing_mask = self.missing_mask
+        
+        # Replace NaN values with zeros for computation (they'll be masked out)
+        D_train_clean = torch.where(missing_mask, torch.zeros_like(D_train), D_train)
+        
+        # Create observed mask (inverse of missing mask)
+        observed_mask = ~missing_mask  # [batch_size, output_dim]
+        
+        # Count observed elements for normalization
+        n_observed = observed_mask.sum()
+        
+        if n_observed == 0:
+            # All data missing - return zero likelihood
+            return torch.zeros(1, device=D_train.device)
+        
+        # Compute squared error terms only for observed dimensions
+        # Data term: (D_train**2).sum() but only for observed dimensions
+        data_squared_term = (D_train_clean**2 * observed_mask.float()).sum()
+        
+        # Cross term: D_train @ s_obs_expectation @ R_train but only for observed dimensions
+        # Need to handle the batch dimensions properly
+        cross_term = torch.sum(
+            D_train_clean[...,None,:] @ s_obs_expectation @ R_train[...,None] * observed_mask[...,None,:],
+            dim=[-1,-2,-3]
+        )
+        
+        # Quadratic term: R_train @ s_obs_outer_expectation @ R_train (unchanged since R_train structure preserved)
+        quad_term = torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None], dim=[-1,-2,-3])
+        
+        # Likelihood computation with observed data only
+        log_likelihood = (
+            -n_observed/2 * torch.log(self.module.sigma2) -
+            1/(2*self.module.sigma2) * (data_squared_term - 2 * cross_term + quad_term)
+        )
+        
+        return log_likelihood
                
                # torch.einsum("nm, mc, cn", D_train, s_obs_expectation, R_train.T)                                                                          #    torch.einsum("nc, ncd, dn",R_train,s_obs_outer_expectation,R_train.T))
     
