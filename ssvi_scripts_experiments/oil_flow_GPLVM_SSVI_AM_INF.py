@@ -486,13 +486,6 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     print(f"\nTraining model...")
     losses, metrics_computer = train_oil_flow_ssvi(model, y, config, logger, split_data, labels)
     
-    # Test single step functionality
-    print(f"\nTesting single step...")
-    test_indices = torch.randperm(y.shape[0])[:10]
-    test_y = y[test_indices]
-    test_loss = model.train_step(test_y, test_indices)
-    print(f"Test step loss: {test_loss:.4f}")
-    
     # Visualize results
     print(f"\nVisualizing results...")
     visualize_ssvi_results(model, y, labels, losses, config, logger)

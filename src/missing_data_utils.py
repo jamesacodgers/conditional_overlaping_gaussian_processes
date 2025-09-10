@@ -6,73 +6,16 @@ following the approach from "Generalised Gaussian Process Latent Variable Models
 with Stochastic Variational Inference" paper.
 
 Key features:
-- Gaussian missing data likelihood that marginalizes over unobserved dimensions
 - Data masking utilities for creating missing data patterns
 - Reconstruction methods for recovering missing dimensions
+- Evaluation metrics for missing data reconstruction quality
 """
 
 import torch
-import torch.nn as nn
 import numpy as np
 from typing import Tuple, Optional, Dict, List
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
-
-
-class GaussianMissingDataLikelihood(nn.Module):
-    """
-    Gaussian likelihood that can handle missing data by marginalizing over unobserved dimensions.
-    
-    Based on the approach from the GPLVM SVI paper where missing dimensions are handled by:
-    1. Only computing likelihood terms for observed dimensions
-    2. Using conditional independence given inducing variables
-    3. Marginalizing out missing dimensions automatically
-    """
-    
-    def __init__(self, sigma2: float = 1.0):
-        super().__init__()
-        self.sigma2 = sigma2
-        
-    def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor, 
-                missing_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """
-        Compute Gaussian log likelihood, handling missing data.
-        
-        Args:
-            y_pred: Predicted values [batch_size, output_dim]
-            y_true: True values [batch_size, output_dim] (may contain NaN for missing)
-            missing_mask: Boolean mask [batch_size, output_dim] where True=missing (optional)
-            
-        Returns:
-            log_likelihood: Scalar log likelihood summed over observed dimensions only
-        """
-        # Create missing mask from NaN values if not provided
-        if missing_mask is None:
-            missing_mask = torch.isnan(y_true)
-        
-        # Replace NaN values with zeros for computation (they'll be masked out)
-        y_true_clean = torch.where(missing_mask, torch.zeros_like(y_true), y_true)
-        
-        # Compute squared errors
-        squared_errors = (y_pred - y_true_clean) ** 2
-        
-        # Only include observed dimensions in likelihood computation
-        observed_mask = ~missing_mask
-        
-        # Sum over observed dimensions only
-        observed_squared_errors = squared_errors * observed_mask.float()
-        
-        # Count observed dimensions for normalization
-        n_observed = observed_mask.sum()
-        
-        if n_observed == 0:
-            # All data missing - return zero likelihood
-            return torch.zeros(1, device=y_pred.device)
-        
-        # Gaussian log likelihood (without constant terms)
-        log_likelihood = -0.5 * observed_squared_errors.sum() / self.sigma2
-        
-        return log_likelihood
 
 
 def create_missing_data_pattern(data: torch.Tensor, 

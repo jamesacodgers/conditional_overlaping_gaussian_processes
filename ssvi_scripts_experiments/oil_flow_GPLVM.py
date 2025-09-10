@@ -284,23 +284,25 @@ class Struc_GPLVM(Struc_WS_GPLVM):
             # Store missing mask for coordinator and compute ELBO
             if hasattr(self, 'coordinator'):
                 self.coordinator.missing_mask = missing_mask
-                likelihood = self.gplvm_elbo(y_clean)
+                log_likelihood = self.gplvm_elbo(y_clean)
                 # Clean up
                 if hasattr(self.coordinator, 'missing_mask'):
                     delattr(self.coordinator, 'missing_mask')
             else:
-                # Fallback: simple Gaussian likelihood for observed dimensions
+                # Proper Gaussian log-likelihood for observed dimensions (following SVI paper formulation)
                 observed_mask = ~missing_mask
-                if observed_mask.sum() > 0:
+                n_observed = observed_mask.sum()
+                if n_observed > 0:
                     observed_errors = (y_pred - y_clean)[observed_mask]
-                    likelihood = -0.5 * torch.sum(observed_errors**2) / self.sigma2
+                    # Complete Gaussian log-likelihood: -0.5 * N * log(2*pi*sigma^2) - 0.5 * sum((y-mu)^2)/sigma^2
+                    log_likelihood = -0.5 * n_observed * torch.log(2 * torch.pi * self.sigma2) - 0.5 * torch.sum(observed_errors**2) / self.sigma2
                 else:
-                    likelihood = torch.zeros(1, device=y_pred.device)
+                    log_likelihood = torch.zeros(1, device=y_pred.device)
             
             # Add KL regularization
             kl_x = 0.5 * torch.sum(mu_sample**2 + sigma_sample**2 - 1 - 2*torch.log(sigma_sample + 1e-8))
             
-            loss = -likelihood + 0.01 * kl_x  # Small KL weight
+            loss = -log_likelihood + 0.01 * kl_x  # Small KL weight
             loss.backward()
             temp_optimizer.step()
         
