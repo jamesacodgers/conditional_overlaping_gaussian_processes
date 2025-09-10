@@ -363,10 +363,21 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         """
         Extended gplvm_elbo that handles missing data by modifying the coordinator's likelihood computation.
         Uses the original ELBO structure but handles missing data in the coordinator.
+        
+        Raises:
+            ValueError: If missing data functionality is not enabled or missing_mask is not provided
         """
-        if not self.enable_missing_data or missing_mask is None:
-            # Use standard ELBO when missing data is disabled or no missing data
-            return self.gplvm_elbo(y, mu_x, Sigma_x, U_samples, batch_size, total_size)
+        if not self.enable_missing_data:
+            raise ValueError(
+                "Missing data functionality not enabled. Set enable_missing_data=True in model constructor "
+                "to use gplvm_elbo_with_missing_data(). Use gplvm_elbo() for standard computation."
+            )
+        
+        if missing_mask is None:
+            raise ValueError(
+                "missing_mask is required for gplvm_elbo_with_missing_data(). "
+                "Provide a boolean tensor indicating missing values, or use gplvm_elbo() for standard computation."
+            )
         
         # Store missing mask in coordinator for likelihood computation
         self.coordinator.missing_mask = missing_mask

@@ -252,8 +252,15 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         # Sample U before amortized inference step
         U_samples = self.get_u_samples()
 
-        # Get local parameters via amortized inference (gradients only to encoder)
-        mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
+        # Handle missing data preprocessing for encoder input
+        if self.enable_missing_data:
+            # Replace NaN values with zeros for encoder input (encoder expects clean data)
+            Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.zeros_like(Y_batch), Y_batch)
+            # Get local parameters via amortized inference (gradients only to encoder)
+            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples)
+        else:
+            # Standard case: no missing data preprocessing needed
+            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
         
         # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()
@@ -408,7 +415,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
 # === Pre-defined Configurations ===
 
 def get_fast_config():
-    """Fast configuration for testing"""
+    """Fast configuration for testing with missing data enabled"""
     return OilFlowSSVIConfig(
         training_iterations=200,
         batch_size=50,
@@ -426,7 +433,12 @@ def get_fast_config():
         plot_save_frequency=100,
         plot_training=True,
         plot_latent_space=True,
-        plot_hyperparams=True
+        plot_hyperparams=True,
+        # === Missing Data Configuration ===
+        enable_missing_data=True,      # Enable missing data reconstruction capability
+        missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
+        reconstruction_samples=50,     # Number of samples for missing data reconstruction
+        missing_data_seed=123          # Seed for reproducible missing data patterns
     )
 
 def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):

@@ -385,7 +385,7 @@ class Struc_GPLVM(Struc_WS_GPLVM):
 
 
 def get_fast_gplvm_config():
-    """Fast configuration for testing GP-LVM"""
+    """Fast configuration for testing GP-LVM with missing data enabled"""
     return OilFlowGPLVMConfig(
         training_iterations=200,
         learning_rate=1e-2,
@@ -402,7 +402,12 @@ def get_fast_gplvm_config():
         plot_training=True,
         plot_latent_space=True,
         plot_hyperparams=True,
-        test_optimization_steps=50  # Config value for all test preparation
+        test_optimization_steps=50,  # Config value for all test preparation
+        # === Missing Data Configuration ===
+        enable_missing_data=True,      # Enable missing data reconstruction capability
+        missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
+        reconstruction_samples=50,     # Number of samples for missing data reconstruction
+        missing_data_seed=123          # Seed for reproducible missing data patterns
     )
 
 def create_gplvm_model(config: OilFlowGPLVMConfig, Vx, mu_x, M):

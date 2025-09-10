@@ -173,7 +173,12 @@ def reconstruct_missing_dimensions(model,
             x_sample = mu_sample + sigma_sample * epsilon
             
             # Decode to observation space using GP
-            y_mean, _ = model.get_gp_expectation(x_sample, U_samples)
+            y_mean = model.gp.get_gp_expectation(x_sample)  # [batch_size, M, C]
+            
+            # Handle output dimensions (squeeze if C=1)
+            if y_mean.shape[-1] == 1:
+                y_mean = y_mean[..., 0]  # [batch_size, M]
+            
             reconstructions.append(y_mean)
         
         # Stack reconstructions and compute statistics

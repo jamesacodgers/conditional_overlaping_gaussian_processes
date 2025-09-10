@@ -78,7 +78,7 @@ def save_paper_style_metrics(model, split_data, losses, logger, config, metrics_
         },
         "hyperparameters": {
             "latent_dim": int(config.latent_dim),
-            "inducing_points": int(config.M),
+            "inducing_points": int(getattr(config, 'n_inducing_points', 0)),
             "P_samples": int(config.P),
             "training_iterations": int(config.training_iterations),
             "learning_rate": float(config.learning_rate)
@@ -111,7 +111,7 @@ def save_paper_style_metrics(model, split_data, losses, logger, config, metrics_
             "missing_pattern": config.missing_info.get('pattern_type', 'unknown'),
             "missing_percentage": float(config.missing_info.get('missing_percentage', 0.0)),
             "total_elements": int(config.missing_info.get('total_elements', 0)),
-            "missing_elements": int(config.missing_info.get('num_missing_elements', 0))
+            "missing_elements": int(config.missing_info.get('n_missing', 0))
         }
     
     # Add batch size for SSVI models (if available)
@@ -226,16 +226,14 @@ def save_missing_data_visualizations(model_type, config, y_reconstructed, test_r
         print("\nSaving reconstruction visualizations...")
         # Training data visualization
         visualize_reconstruction_results(
-            config.y_original, y_reconstructed, config.missing_mask,
-            title=f"{model_type} Missing Data Reconstruction - Training Set",
+            config.y_original, config.y_original, y_reconstructed, config.missing_mask,
             save_path=os.path.join(logger.results_dir, "missing_data_reconstruction_train.png")
         )
         
         if test_reconstructed is not None and split_data is not None:
             # Test data visualization
             visualize_reconstruction_results(
-                split_data['y_test_original'], test_reconstructed, split_data['test_missing_mask'],
-                title=f"{model_type} Missing Data Reconstruction - Test Set",
+                split_data['y_test_original'], split_data['y_test'], test_reconstructed, split_data['test_missing_mask'],
                 save_path=os.path.join(logger.results_dir, "missing_data_reconstruction_test.png")
             )
 
@@ -257,12 +255,12 @@ def _save_missing_data_reconstruction_json(model_type, model_description, config
             "missing_pattern": config.missing_info['pattern_type'],
             "missing_percentage": float(config.missing_info['missing_percentage']),
             "total_elements": int(config.missing_info['total_elements']),
-            "missing_elements": int(config.missing_info['num_missing_elements'])
+            "missing_elements": int(config.missing_info['n_missing'])
         },
         "hyperparameters": {
             "reconstruction_samples": int(config.reconstruction_samples),
             "latent_dim": int(config.latent_dim),
-            "inducing_points": int(config.M),
+            "inducing_points": int(getattr(config, 'n_inducing_points', 0)),
             "P_samples": int(config.P)
         },
         "reconstruction_metrics": {
