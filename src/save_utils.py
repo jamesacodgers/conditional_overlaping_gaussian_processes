@@ -81,7 +81,7 @@ def save_paper_style_metrics(model, split_data, losses, logger, config, metrics_
             "inducing_points": int(getattr(config, 'n_inducing_points', 0)),
             "P_samples": int(config.P),
             "training_iterations": int(config.training_iterations),
-            "learning_rate": float(config.learning_rate)
+            "learning_rate": float(getattr(config, 'global_lr', 0.001))
         },
         "training_results": {
             "final_loss": float(losses[-1]) if losses else 0.0,

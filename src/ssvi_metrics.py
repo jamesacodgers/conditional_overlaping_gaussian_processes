@@ -115,29 +115,54 @@ class SSVIMetricsComputer:
             # Sample U for both model types
             U_samples = model.get_u_samples()
             
+            # Preprocess encoder input to handle missing data (replace NaN with zeros)
+            y_encoder_input = torch.where(torch.isnan(y_batch), torch.zeros_like(y_batch), y_batch)
+            
             # Get latent representations for this batch using explicit method
             if is_test_data:
-                mu_x, sigma_x = model.get_mu_sigma_x_test_samples(y_batch, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_test_samples(y_encoder_input, U_samples)
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_batch, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
             
             # Sample from latent distribution for reconstruction
             reconstructions = []
-            for _ in range(n_samples):
+            for i in range(n_samples):
                 # Sample latent variables using helper function
                 x_sample = self._sample_latent_variables(mu_x, sigma_x, model)
                 
                 # Reconstruct through GP mean prediction using proper GP method
                 y_recon = model.gp.get_gp_expectation(x_sample)  # [batch_size, M, C]
+                
                 if y_recon.shape[-1] == 1:
                     y_recon = y_recon[..., 0]  # [batch_size, M] for C=1 case
+                
                 reconstructions.append(y_recon)
             
             # Average reconstructions
             y_pred = torch.stack(reconstructions).mean(dim=0)  # [batch_size, D]
             
-            # Compute RMSE
-            mse = torch.mean((y_batch - y_pred) ** 2)
+            # Compute RMSE - handle missing data if enabled
+            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                # Handle missing data: create mask for observed values
+                missing_mask = torch.isnan(y_batch)
+                observed_mask = ~missing_mask
+                
+                # Check if we have any observed data
+                if observed_mask.sum() == 0:
+                    # All data is missing - return NaN
+                    model.train()
+                    return float('nan')
+                
+                # Compute RMSE only on observed values
+                # Replace NaN values in y_batch with zeros for computation (they'll be masked out)
+                y_batch_clean = torch.where(observed_mask, y_batch, torch.zeros_like(y_batch))
+                squared_errors = (y_batch_clean - y_pred) ** 2
+                observed_squared_errors = squared_errors * observed_mask.float()
+                mse = observed_squared_errors.sum() / observed_mask.sum()
+            else:
+                # Standard RMSE computation for complete data
+                mse = torch.mean((y_batch - y_pred) ** 2)
+            
             rmse = torch.sqrt(mse).item()
             
         model.train()
@@ -174,11 +199,14 @@ class SSVIMetricsComputer:
             # Sample U for both model types
             U_samples = model.get_u_samples()
             
+            # Preprocess encoder input to handle missing data (replace NaN with zeros)
+            y_encoder_input = torch.where(torch.isnan(y_batch), torch.zeros_like(y_batch), y_batch)
+            
             # Get latent representations for this batch using explicit method
             if is_test_data:
-                mu_x, sigma_x = model.get_mu_sigma_x_test_samples(y_batch, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_test_samples(y_encoder_input, U_samples)
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_batch, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
             
             log_probs = []
             
@@ -202,9 +230,30 @@ class SSVIMetricsComputer:
                     # For multi-output case, use diagonal elements + observation noise
                     f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [batch_size, M, C]
                 
-                # Compute log probability under Gaussian
-                log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch - f_mean)**2 / f_var
-                log_probs.append(log_prob.sum(dim=-1))  # Sum over dimensions
+                # Handle missing data if enabled
+                if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                    # Mask out missing values in log probability computation
+                    missing_mask = torch.isnan(y_batch)
+                    observed_mask = ~missing_mask
+                    
+                    # Check if we have any observed data
+                    if observed_mask.sum() == 0:
+                        # All data is missing - return NaN
+                        model.train()
+                        return float('nan')
+                    
+                    # Replace NaN values in y_batch with zeros for computation (they'll be masked out)
+                    y_batch_clean = torch.where(observed_mask, y_batch, torch.zeros_like(y_batch))
+                    
+                    # Compute log probability under Gaussian
+                    log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch_clean - f_mean)**2 / f_var
+                    
+                    log_prob_masked = log_prob * observed_mask.float()
+                    log_probs.append(log_prob_masked.sum(dim=-1))  # Sum over observed dimensions only
+                else:
+                    # Standard computation for complete data
+                    log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch - f_mean)**2 / f_var
+                    log_probs.append(log_prob.sum(dim=-1))  # Sum over dimensions
                     
             
             # Average log probabilities (log of mixture)
