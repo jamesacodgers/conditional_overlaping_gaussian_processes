@@ -115,7 +115,7 @@ class SSVIMetricsComputer:
             # Sample U for both model types
             U_samples = model.get_u_samples()
             
-            # Preprocess encoder input to handle missing data (replace NaN with zeros)
+            # Preprocess encoder input to handle missing data (consistent with training)
             y_encoder_input = torch.where(torch.isnan(y_batch), torch.zeros_like(y_batch), y_batch)
             
             # Get latent representations for this batch using explicit method
@@ -199,7 +199,7 @@ class SSVIMetricsComputer:
             # Sample U for both model types
             U_samples = model.get_u_samples()
             
-            # Preprocess encoder input to handle missing data (replace NaN with zeros)
+            # Preprocess encoder input to handle missing data (consistent with training)
             y_encoder_input = torch.where(torch.isnan(y_batch), torch.zeros_like(y_batch), y_batch)
             
             # Get latent representations for this batch using explicit method

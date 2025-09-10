@@ -95,7 +95,7 @@ def reconstruct_missing_dimensions(model,
         # The encoder should be robust to missing data through its input preprocessing
         U_samples = model.get_u_samples()
         
-        # Handle missing data in encoder input
+        # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(missing_mask, 
                                      torch.zeros_like(y_observed), 
                                      y_observed)

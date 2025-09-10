@@ -269,7 +269,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         if self.enable_missing_data:
             # Use missing data aware ELBO (coordinator handles the missing mask automatically)
             missing_mask = torch.isnan(Y_batch)
-            loss = -self.gplvm_elbo_with_missing_data(Y_batch,
+            # Use the same clean data for ELBO computation to maintain consistency with encoder
+            loss = -self.gplvm_elbo_with_missing_data(Y_batch_clean,
                                                      mu_n_batch,
                                                      sigma_n_batch,
                                                      U_samples=U_samples,
