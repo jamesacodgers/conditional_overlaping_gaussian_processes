@@ -421,11 +421,6 @@ class NormalCoordinatorCustom:
 
                 
     def get_const_test(self, D_test, s_expectation: torch.Tensor, s_outer_expectation: torch.Tensor):
-        # Handle missing data if missing_mask is provided
-        if hasattr(self, 'missing_mask') and self.missing_mask is not None:
-            return self._get_const_test_missing_data(D_test, s_expectation, s_outer_expectation)
-        
-        # Standard computation for complete data
         if self.linear_map is not None:
             # If something breaks for structured VI, look here
             return -(D_test.shape[1] * D_test.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_test**2).sum() - 2 * (D_test[..., None] * s_expectation *self.h[...,None,None,:]).sum(dim=[-3,-2,-1]).mean()  + (self.h[...,None, None, :]*s_outer_expectation*self.h[...,None, :, None]).sum(dim=[-3,-2,-1]).mean())
