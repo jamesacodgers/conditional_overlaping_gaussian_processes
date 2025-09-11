@@ -437,11 +437,6 @@ class NormalCoordinatorCustom:
         return 1/(self.module.sigma2)*(s_unobs_outer_expectation)
     
     def get_b_train(self, D_train, R_train, s_unobs_expectation, s_outer_cross_expectation):
-        # Handle missing data if missing_mask is provided
-        if hasattr(self, 'missing_mask') and self.missing_mask is not None:
-            return self._get_b_train_missing_data(D_train, R_train, s_unobs_expectation, s_outer_cross_expectation)
-        
-        # Standard computation for complete data
         # return 1/(self.parent.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=1) - (R_train[:,:,None]*s_outer_cross_expectation).sum(dim=1))
         return 1/(self.module.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=-2) - (R_train[...,:,:,None]*s_outer_cross_expectation).sum(dim=-2))
                 
@@ -500,27 +495,7 @@ class NormalCoordinatorCustom:
         )
         
         return log_likelihood
-    
-    def _get_b_train_missing_data(self, D_train, R_train, s_unobs_expectation, s_outer_cross_expectation):
-        """
-        Compute b_train term accounting for missing data.
-        Only observed dimensions contribute to the linear term.
-        """
-        missing_mask = self.missing_mask
-        
-        # Create observed mask (inverse of missing mask)
-        observed_mask = ~missing_mask  # [batch_size, output_dim]
-        
-        # Replace NaN values with zeros for computation (they'll be masked out)
-        D_train_clean = torch.where(missing_mask, torch.zeros_like(D_train), D_train)
-        
-        # First term: D_train @ s_unobs_expectation but only for observed dimensions
-        first_term = (D_train_clean[:,:,None] * s_unobs_expectation * observed_mask[:,:,None]).sum(dim=-2)
-        
-        # Second term: R_train @ s_outer_cross_expectation (unchanged since R_train structure preserved)
-        second_term = (R_train[...,:,:,None] * s_outer_cross_expectation).sum(dim=-2)
-        
-        return 1/(self.module.sigma2) * (first_term - second_term)
+
 
     
     def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train, mu_x_train, Sigma_x_train, s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
