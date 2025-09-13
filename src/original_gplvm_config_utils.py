@@ -1,289 +1,142 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Configuration utilities for original GP-LVM experiments.
-Handles YAML config loading, command line parsing, and configuration management for GP-LVM.
+Configuration utilities for Original GP LVM experiments
 """
 
+import os
 import yaml
 import argparse
-import os
-import sys
-from pathlib import Path
-from typing import Dict, Any, Optional
-from dataclasses import asdict, fields, dataclass
-import torch
+from typing import Dict, Any, Tuple
+from .original_gplvm_config import OriginalGPLVMConfig, get_fast_config, get_base_config
 
-# Import shared utilities from SSVI config
-from src.ssvi_config_utils import (
-    load_config_from_yaml, save_config_to_yaml, dataclass_to_dict, 
-    dict_to_dataclass, get_config_name_from_path
-)
-
-
-@dataclass
-class OilFlowGPLVMConfig:
-    """Configuration for Oil Flow Original GP-LVM"""
+def create_argument_parser():
+    """Create argument parser for command line configuration"""
+    parser = argparse.ArgumentParser(description='Original GP LVM Experiment')
     
-    total_size = None  # To be set after data loading
-
-    # === Device Configuration ===
-    device: str = "auto"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
+    parser.add_argument('--config', type=str, default=None,
+                       help='Path to YAML configuration file')
+    parser.add_argument('--config-name', type=str, default='fast',
+                       help='Name for this configuration (used for results folder)')
     
-    # === Data Configuration ===
-    data_url: str = "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"
-    latent_dim: int = 6  # A = 6 from original (same as SSVI for comparison)
+    # Data configuration
+    parser.add_argument('--dataset', type=str, default=None,
+                       help='Dataset to use (oilflow)')
+    parser.add_argument('--test-size', type=int, default=None,
+                       help='Number of test samples')
+    parser.add_argument('--random-seed', type=int, default=None,
+                       help='Random seed for reproducibility')
     
-    # === Model Architecture ===
-    n_inducing_points: int = 12  # M in the original script
+    # Model configuration
+    parser.add_argument('--latent-dim', type=int, default=None,
+                       help='Latent dimension')
+    parser.add_argument('--n-inducing', type=int, default=None,
+                       help='Number of inducing points')
+    parser.add_argument('--pca-init', action='store_true',
+                       help='Initialize with PCA')
     
-    # === Training Configuration ===
-    training_iterations: int = 1000
-    learning_rate: float = 1e-2  # Single optimizer for original GP-LVM
+    # Training configuration
+    parser.add_argument('--training-steps', type=int, default=None,
+                       help='Number of training steps (applied to all models)')
+    parser.add_argument('--batch-size', type=int, default=None,
+                       help='Batch size')
+    parser.add_argument('--learning-rate', type=float, default=None,
+                       help='Learning rate')
     
-    # === GP Hyperparameters ===
-    sigma2: float = 1.0
-    beta: Any = None         # Lengthscales (None = auto)
-    sigma2_s: Any = None     # Signal variances (None = auto)
-    P: int = 8               # Number of samples for structured GP-LVM
-    trainable_V: bool = True
+    # Results configuration
+    parser.add_argument('--results-dir', type=str, default=None,
+                       help='Results directory')
+    parser.add_argument('--experiment-name', type=str, default=None,
+                       help='Experiment name')
+    parser.add_argument('--no-save', action='store_true',
+                       help='Disable saving results')
     
-    # === Visualization ===
-    plot_training: bool = True
-    plot_latent_space: bool = True
-    plot_hyperparams: bool = True
-    
-    # === Progress Reporting ===
-    log_frequency: int = 100  # Log every N iterations
-    
-    # === Advanced Logging ===
-    enable_gradient_logging: bool = False  # Log gradients and parameter changes
-    gradient_log_frequency: int = 50       # Log gradients every N iterations
-    save_results: bool = True              # Save results to folder
-    
-    # === Metrics Configuration ===
-    enable_metrics: bool = True            # Compute evaluation metrics
-    metrics_frequency: int = 100           # Compute metrics every N iterations
-    test_size: float = 0.2                 # Fraction of data for testing
-    split_random_seed: int = 42            # Seed for train/test split (separate from training seed)
-    
-    # === Visualization Configuration ===
-    save_training_plots: bool = True       # Save training result plots during training
-    plot_save_frequency: int = 100         # Save plots every N iterations
-    
-    # === Test Optimization Configuration ===
-    test_optimization_steps: int = 50      # Number of optimization steps for test data preparation
-    
-    # === Missing Data Configuration ===
-    enable_missing_data: bool = False      # Enable missing data reconstruction capability
-    missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
-    reconstruction_samples: int = 50       # Number of samples for missing data reconstruction  
-    missing_data_seed: int = 123           # Seed for reproducible missing data patterns
-    
-    def __post_init__(self):
-        """Set default values and resolve device if not specified"""
-        # Resolve device configuration
-        if self.device == "auto":
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    def print_config(self):
-        """Print configuration summary"""
-        print("=== Oil Flow Original GP-LVM Configuration ===")
-        print(f"Device: {self.device}")
-        if torch.cuda.is_available():
-            print(f"CUDA available: {torch.cuda.get_device_name(0) if self.device.startswith('cuda') else 'Not using CUDA'}")
-        else:
-            print("CUDA available: No")
-        print(f"Model: Structured GP-LVM with {self.n_inducing_points} inducing points")
-        print(f"Latent dimensions: {self.latent_dim}")
-        print(f"Training: {self.training_iterations} iter, lr={self.learning_rate}")
-        print(f"Structured GP-LVM: P={self.P} samples")
-        print(f"Logging: Save results={self.save_results}, Gradients={self.enable_gradient_logging}")
-        if self.enable_gradient_logging:
-            print(f"  Gradient log frequency: every {self.gradient_log_frequency} iterations")
-        print("=" * 50)
-
-
-def create_gplvm_argument_parser() -> argparse.ArgumentParser:
-    """Create command line argument parser for GP-LVM scripts."""
-    parser = argparse.ArgumentParser(
-        description='Run Original GP-LVM Oil Flow experiment with configurable parameters',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    
-    parser.add_argument(
-        '--config', '-c',
-        type=str,
-        default=None,
-        help='Path to YAML configuration file. If not provided, uses fast_config by default.'
-    )
-    
-    parser.add_argument(
-        '--config-name',
-        type=str,
-        default=None,
-        help='Override config name for result file naming (auto-detected from config path if not provided)'
-    )
-    
-    parser.add_argument(
-        '--device',
-        type=str,
-        choices=['auto', 'cuda', 'cpu'],
-        default=None,
-        help='Override device setting from config'
-    )
-    
-    parser.add_argument(
-        '--training-iterations',
-        type=int,
-        default=None,
-        help='Override number of training iterations'
-    )
-    
-    parser.add_argument(
-        '--learning-rate',
-        type=float,
-        default=None,
-        help='Override learning rate'
-    )
-    
-    
-    parser.add_argument(
-        '--no-metrics',
-        action='store_true',
-        help='Disable metrics computation'
-    )
-    
-    parser.add_argument(
-        '--no-plots',
-        action='store_true',
-        help='Disable plot generation and saving'
-    )
-    
-    parser.add_argument(
-        '--no-save',
-        action='store_true',
-        help='Disable saving results to disk'
-    )
-    
-    parser.add_argument(
-        '--quiet',
-        action='store_true',
-        help='Reduce output verbosity'
-    )
+    # Device configuration
+    parser.add_argument('--device', type=str, default=None,
+                       help='Device to use (auto, cuda, cpu)')
     
     return parser
 
-
-def load_gplvm_config_with_overrides(config_path: Optional[str] = None, 
-                                    config_class = None,
-                                    args: Optional[argparse.Namespace] = None) -> tuple:
+def load_config_with_overrides(config_path: str = None, 
+                             config_class: type = OriginalGPLVMConfig,
+                             args: argparse.Namespace = None) -> Tuple[OriginalGPLVMConfig, str]:
     """
-    Load GP-LVM configuration with command line overrides.
+    Load configuration with command line overrides
     
-    Returns:
-        tuple: (config_object, config_name)
-    """
-    if config_class is None:
-        config_class = OilFlowGPLVMConfig
-    
-    # Default config name
-    config_name = "fast"
-    
-    if config_path is not None and os.path.exists(config_path):
-        # Load from YAML file
-        print(f"Loading GP-LVM configuration from: {config_path}")
-        config_dict = load_config_from_yaml(config_path)
-        config = dict_to_dataclass(config_dict, config_class)
-        config_name = get_config_name_from_path(config_path)
-        print(f"Using config name: {config_name}")
-    else:
-        # Use default fast config
-        if config_path is not None:
-            print(f"Warning: Config file {config_path} not found, using default fast config")
-        else:
-            print("No config file specified, using default fast config")
+    Args:
+        config_path: Path to YAML config file (optional)
+        config_class: Configuration class to instantiate
+        args: Command line arguments
         
-        # Import and use get_fast_gplvm_config function
-        from ssvi_scripts_experiments.oil_flow_GPLVM import get_fast_gplvm_config
-        config = get_fast_gplvm_config()
+    Returns:
+        Tuple of (config_instance, config_name)
+    """
+    # Start with default config
+    if config_path is None:
+        config = get_fast_config()
         config_name = "fast"
+    else:
+        # Load from YAML file
+        with open(config_path, 'r') as f:
+            config_dict = yaml.safe_load(f)
+        config = config_class(**config_dict)
+        config_name = os.path.splitext(os.path.basename(config_path))[0]
     
-    # Apply command line overrides if provided
+    # Apply command line overrides
     if args is not None:
-        if args.config_name is not None:
-            config_name = args.config_name
-            
-        if args.device is not None:
-            config.device = args.device
-            
-        if args.training_iterations is not None:
-            config.training_iterations = args.training_iterations
-            
-        if args.learning_rate is not None:
-            config.learning_rate = args.learning_rate
-            
-        if args.no_metrics:
-            config.enable_metrics = False
-            
-        if args.no_plots:
-            config.plot_training = False
-            config.plot_latent_space = False
-            config.plot_hyperparams = False
-            config.save_training_plots = False
-            
+        # Convert args to dict, filtering out None values
+        overrides = {k: v for k, v in vars(args).items() 
+                    if v is not None and k not in ['config', 'config_name']}
+        
+        # Apply overrides
+        for key, value in overrides.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+        
+        # Handle special cases
+        if args.training_steps is not None:
+            # Apply same training steps to all models
+            config.training_steps = {model: args.training_steps for model in config.models}
+        
         if args.no_save:
             config.save_results = False
         
-        if args.quiet:
-            config.log_frequency = config.training_iterations // 5  # Reduce log frequency
+        # Use config_name from args if provided
+        if args.config_name:
+            config_name = args.config_name
     
     return config, config_name
 
-
-def get_gplvm_base_config_path() -> str:
-    """Get the path to the base GP-LVM configuration file."""
-    if os.path.basename(os.getcwd()) == "ssvi_scripts_experiments":
-        return "original_gp_lvm_configs/base_config.yaml"
-    else:
-        return "ssvi_scripts_experiments/original_gp_lvm_configs/base_config.yaml"
-
-
-def get_gplvm_config_dir() -> str:
-    """Get the GP-LVM configuration directory path."""
-    if os.path.basename(os.getcwd()) == "ssvi_scripts_experiments":
-        return "original_gp_lvm_configs"
-    else:
-        return "ssvi_scripts_experiments/original_gp_lvm_configs"
-
-
-def ensure_gplvm_config_dir_exists():
-    """Ensure the GP-LVM configuration directory exists."""
-    config_dir = get_gplvm_config_dir()
+def ensure_config_dir_exists():
+    """Ensure config directory exists"""
+    config_dir = "ssvi_scripts_experiments/original_gplvm_configs"
     os.makedirs(config_dir, exist_ok=True)
+    return config_dir
 
-
-def list_available_gplvm_configs() -> list:
-    """List all available GP-LVM configuration files."""
-    config_dir = get_gplvm_config_dir()
-    if not os.path.exists(config_dir):
-        return []
+def print_available_configs():
+    """Print available configuration files"""
+    config_dir = ensure_config_dir_exists()
+    config_files = [f for f in os.listdir(config_dir) if f.endswith('.yaml')]
     
-    config_files = []
-    for file in os.listdir(config_dir):
-        if file.endswith('.yaml') or file.endswith('.yml'):
-            config_files.append(os.path.join(config_dir, file))
-    
-    return sorted(config_files)
-
-
-def print_available_gplvm_configs():
-    """Print available GP-LVM configuration files."""
-    configs = list_available_gplvm_configs()
-    if configs:
-        print("Available GP-LVM configuration files:")
-        for config in configs:
-            config_name = get_config_name_from_path(config)
-            print(f"  - {config} (name: {config_name})")
+    if config_files:
+        print("Available configuration files:")
+        for config_file in sorted(config_files):
+            print(f"  {config_file}")
     else:
-        config_dir = get_gplvm_config_dir()
-        print(f"No configuration files found in {config_dir}/")
-        print("The script will use the default fast_config.")
+        print("No configuration files found.")
+        print(f"Config directory: {config_dir}")
+
+def save_config_to_yaml(config: OriginalGPLVMConfig, filepath: str):
+    """Save configuration to YAML file"""
+    config_dict = {}
+    for field_name, field_value in config.__dict__.items():
+        if field_value is not None:
+            config_dict[field_name] = field_value
+    
+    with open(filepath, 'w') as f:
+        yaml.dump(config_dict, f, default_flow_style=False)
+
+def get_base_config_path():
+    """Get path to base configuration file"""
+    config_dir = ensure_config_dir_exists()
+    return os.path.join(config_dir, "original_gplvm_base_config.yaml")
