@@ -5,18 +5,18 @@ Oil Flow SSVI GP-LVM with Amortized Inference
 Usage examples:
     # Run with default fast config
     python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py
-    
+
     # Run with base config
     python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml
-    
+
     # Run with base config and overrides
     python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml --training-iterations 100 --device cuda
-    
+
     # Run with custom config name for results
     python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml --config-name my_experiment
 """
 
-import torch 
+import torch
 import matplotlib.pyplot as plt
 
 from dataclasses import dataclass
@@ -33,92 +33,96 @@ import time
 sys.path.insert(0, os.getcwd())
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, save_metrics_to_json, save_metrics_to_text
+from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, \
+    save_metrics_to_json, save_metrics_to_text
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
-from src.missing_data_utils import preprocess_data_for_missing_training
-from src.save_utils import save_paper_style_metrics, print_final_model_parameters
-from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.ssvi_config_utils import (
-    load_config_with_overrides, create_argument_parser, 
+    load_config_with_overrides, create_argument_parser,
     get_base_config_path, ensure_config_dir_exists, print_available_configs
 )
+from src.ssvi_alignment_utils import (
+    load_oilflow_data_for_ssvi, integrate_original_gplvm_outputs, SSVIOriginalGPLVMResultsLogger
+)
+
 
 # Device will be set in main() from config
 
 @dataclass
 class OilFlowSSVIConfig:
     """Configuration for Oil Flow SSVI GP-LVM with Amortized Inference"""
-    
+
     total_size = None  # To be set after data loading
 
     # === Device Configuration ===
     device: str = "auto"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
-    
+
     # === Data Configuration ===
     data_url: str = "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"
+    dataset: str = "oilflow"  # Dataset name for original GP LVM compatibility
     latent_dim: int = 6  # A = 6 from original
-    
+    n_inducing: int = 64  # Alias for n_inducing_points for compatibility
+    test_size_int: int = 50  # Number of test samples (like original GP LVM)
+    random_seed: int = 7  # Random seed for reproducibility
+    learning_rate: float = 1e-3  # Alias for local_lr for compatibility
+    plot_colors: list = None  # Will be set to ['r', 'b', 'g'] if None
+
     # === Model Architecture ===
     n_inducing_points: int = 64
     encoder_hidden_dims: list = None  # Will be set to [256, 128, 64] if None
-    
+
     # === Training Configuration ===
     training_iterations: int = 1000
     batch_size: int = 100
-    
+
     # === Learning Rates ===
-    local_lr: float = 1e-3   # Encoder parameters
+    local_lr: float = 1e-3  # Encoder parameters
     global_lr: float = 1e-2  # GP hyperparameters (higher like in original)
-    
+
     # === GP Hyperparameters ===
     sigma2: float = 1.0
-    beta: Any = None         # Lengthscales (None = auto)
-    sigma2_s: Any = None     # Signal variances (None = auto)
-    P: int = 8               # Number of samples for SSVI (like original)
+    beta: Any = None  # Lengthscales (None = auto)
+    sigma2_s: Any = None  # Signal variances (None = auto)
+    P: int = 8  # Number of samples for SSVI (like original)
     trainable_V: bool = True
-    
+
     # === Progress Reporting ===
     log_frequency: int = 100  # Log every N iterations
-    
+
     # === Advanced Logging ===
     enable_gradient_logging: bool = False  # Log gradients and parameter changes
-    gradient_log_frequency: int = 50       # Log gradients every N iterations
-    save_results: bool = True              # Save results to folder
-    
+    gradient_log_frequency: int = 50  # Log gradients every N iterations
+    save_results: bool = True  # Save results to folder
+    results_dir: str = "results/oil_flow_ssvi_results"  # Results directory
+
     # === Metrics Configuration ===
-    enable_metrics: bool = True            # Compute evaluation metrics
-    metrics_frequency: int = 100           # Compute metrics every N iterations
-    test_size: float = 0.2                 # Fraction of data for testing
-    split_random_seed: int = 42            # Seed for train/test split (separate from training seed)
-    
+    enable_metrics: bool = True  # Compute evaluation metrics
+    metrics_frequency: int = 100  # Compute metrics every N iterations
+    test_size: float = 0.2  # Fraction of data for testing
+    split_random_seed: int = 42  # Seed for train/test split (separate from training seed)
+
     # === Visualization Configuration ===
-    save_training_plots: bool = True       # Save training result plots during training
-    plot_save_frequency: int = 100         # Save plots every N iterations
-    plot_training: bool = True             # Plot training progress
-    plot_latent_space: bool = True         # Plot latent space visualization  
-    plot_hyperparams: bool = True          # Plot model hyperparameters
-    
-    # === Missing Data Configuration ===
-    enable_missing_data: bool = False      # Enable missing data reconstruction capability
-    missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
-    reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
-    missing_data_seed: int = 123           # Seed for reproducible missing data patterns
-    
+    save_training_plots: bool = True  # Save training result plots during training
+    plot_save_frequency: int = 100  # Save plots every N iterations
+    plot_training: bool = True  # Plot training progress
+    plot_latent_space: bool = True  # Plot latent space visualization
+    plot_hyperparams: bool = True  # Plot model hyperparameters
+
     def __post_init__(self):
         """Set default encoder architecture and resolve device if not specified"""
         if self.encoder_hidden_dims is None:
             self.encoder_hidden_dims = [256, 128, 64]
-        
+
         # Resolve device configuration
         if self.device == "auto":
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     def print_config(self):
         """Print configuration summary"""
         print("=== Oil Flow SSVI GP-LVM Configuration ===")
         print(f"Device: {self.device}")
         if torch.cuda.is_available():
-            print(f"CUDA available: {torch.cuda.get_device_name(0) if self.device.startswith('cuda') else 'Not using CUDA'}")
+            print(
+                f"CUDA available: {torch.cuda.get_device_name(0) if self.device.startswith('cuda') else 'Not using CUDA'}")
         else:
             print("CUDA available: No")
         print(f"Model: {self.n_inducing_points} inducing points, latent_dim={self.latent_dim}")
@@ -132,32 +136,35 @@ class OilFlowSSVIConfig:
 
         print("=" * 50)
 
+
 def load_oil_flow_data(config: OilFlowSSVIConfig):
     """Load and preprocess oil flow data with optional train/test split"""
     print("Downloading and loading oil flow data...")
-    
+
     # Download data
     urllib.request.urlretrieve(config.data_url, '3PhData.tar.gz')
     with tarfile.open('3PhData.tar.gz', 'r') as f:
         f.extract('DataTrn.txt')
         f.extract('DataTrnLbls.txt')
-    
+
     # Load data and move to device
     y_full = torch.Tensor(np.loadtxt(fname='DataTrn.txt')).to(config.device)
     labels_full = torch.Tensor(np.loadtxt(fname='DataTrnLbls.txt')).to(config.device)
-    labels_full = (labels_full @ torch.diag(torch.tensor([1, 2, 3], device=config.device, dtype=labels_full.dtype))).sum(axis=1)
-    
+    labels_full = (
+                labels_full @ torch.diag(torch.tensor([1, 2, 3], device=config.device, dtype=labels_full.dtype))).sum(
+        axis=1)
+
     # Create train/test split if metrics enabled
     if config.enable_metrics:
         print(f"Creating train/test split (test_size={config.test_size})...")
         y_train, y_test, labels_train, labels_test, train_indices, test_indices = create_train_test_split(
-            y_full, labels_full, 
-            test_size=config.test_size, 
+            y_full, labels_full,
+            test_size=config.test_size,
             random_seed=config.split_random_seed
         )
         print(f"Train set: {y_train.shape[0]} samples")
         print(f"Test set: {y_test.shape[0]} samples")
-        
+
         # Use training data for model initialization
         y = y_train
         labels = labels_train
@@ -179,48 +186,18 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     Vx = torch.randn(config.n_inducing_points, config.latent_dim, device=config.device)
     mu_x, _, _ = torch.pca_lowrank(y, config.latent_dim)
     mu_x = mu_x / mu_x.std(dim=0)
-    
+
     print(f"Data loaded: {y.shape[0]} samples, {y.shape[1]} dimensions")
     print(f"Latent initialization: {mu_x.shape}")
     print(f"Inducing points: {Vx.shape}")
     config.total_size = y.shape[0]
-    
-    # Apply missing data preprocessing if enabled
-    if config.enable_missing_data:
-        print(f"\n=== Missing Data Preprocessing ===")
-        y_missing, missing_mask, missing_info = preprocess_data_for_missing_training(y, config)
-        
-        # Store original data for evaluation
-        y_original = y.clone()
-        y = y_missing  # Use missing data for training
-        
-        # Update split data if it exists
-        if split_data is not None:
-            y_train_missing, train_missing_mask, _ = preprocess_data_for_missing_training(split_data['y_train'], config)
-            y_test_missing, test_missing_mask, _ = preprocess_data_for_missing_training(split_data['y_test'], config)
-            
-            split_data.update({
-                'y_train_original': split_data['y_train'].clone(),
-                'y_test_original': split_data['y_test'].clone(),
-                'y_train': y_train_missing,
-                'y_test': y_test_missing,
-                'train_missing_mask': train_missing_mask,
-                'test_missing_mask': test_missing_mask
-            })
-        
-        # Store missing data info for later use
-        config.missing_info = missing_info
-        config.y_original = y_original
-        config.missing_mask = missing_mask
-        
-        print(f"Missing data preprocessing completed.")
-        print("=" * 50)
 
     return y, labels, Vx, mu_x, split_data
 
+
 class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
     """Oil Flow SSVI GP-LVM with Amortized Inference"""
-    
+
     def __init__(self, config: OilFlowSSVIConfig, Vx, mu_x, M):
         # Initialize underlying SSVI model
         super().__init__(
@@ -235,10 +212,9 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
             encoder_hidden_dims=config.encoder_hidden_dims,
             local_lr=config.local_lr,
             global_lr=config.global_lr,
-            device=config.device,
-            enable_missing_data=config.enable_missing_data
+            device=config.device
         )
-        
+
         # Store config
         self.config = config
 
@@ -252,90 +228,70 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         # Sample U before amortized inference step
         U_samples = self.get_u_samples()
 
-        # Handle missing data preprocessing for encoder input
-        if self.enable_missing_data:
-            # Replace NaN values with zeros for encoder input (encoder expects clean data)
-            Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.zeros_like(Y_batch), Y_batch)
-            # Get local parameters via amortized inference (gradients only to encoder)
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples)
-        else:
-            # Standard case: no missing data preprocessing needed
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
-        
+        # Get local parameters via amortized inference (gradients only to encoder)
+        mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
+
         # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()
-        
+
         # Compute global ELBO loss (gradients flow to all parameters)
-        if self.enable_missing_data:
-            # Use missing data aware ELBO (coordinator handles the missing mask automatically)
-            missing_mask = torch.isnan(Y_batch)
-            # Use the same clean data for ELBO computation to maintain consistency with encoder
-            loss = -self.gplvm_elbo_with_missing_data(Y_batch_clean,
-                                                     mu_n_batch,
-                                                     sigma_n_batch,
-                                                     U_samples=U_samples,
-                                                     batch_size=self.config.batch_size,
-                                                     total_size=self.config.total_size,
-                                                     missing_mask=missing_mask)
-        else:
-            # Standard ELBO computation
-            loss = -self.gplvm_elbo(Y_batch,
-                                   mu_n_batch,
-                                   sigma_n_batch,
-                                   U_samples=U_samples,
-                                   batch_size=self.config.batch_size,
-                                   total_size=self.config.total_size)
-        
+        loss = -self.gplvm_elbo(Y_batch,
+                                mu_n_batch,
+                                sigma_n_batch,
+                                U_samples=U_samples,
+                                batch_size=self.config.batch_size,
+                                total_size=self.config.total_size
+                                )
+
         # Backward pass (gradients computed for all parameters)
         loss.backward()
-        
+
         # Update parameters with different learning rates
         self.optimizer_local.step()
         self.optimizer_global.step()
-        
+
         return loss.item()
 
-    @property 
-    def mu_x(self): 
+    @property
+    def mu_x(self):
         return self.mu_x_train
-    
-    @property 
-    def Sigma_x(self): 
+
+    @property
+    def Sigma_x(self):
         return self.Sigma_x_train
-    
 
 
-def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig, 
+def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                         logger: SSVIResultsLogger = None, split_data=None, labels=None):
     """Training function for Oil Flow SSVI GP-LVM with optional logging and metrics"""
     losses = []
-    
+
     print(f"Training Oil Flow SSVI GP-LVM...")
     print(f"Iterations: {config.training_iterations}, Batch size: {config.batch_size}")
-    
+
     # Initialize metrics computer if enabled
     metrics_computer = None
     if config.enable_metrics and split_data is not None:
         print(f"Metrics computation enabled (frequency: every {config.metrics_frequency} iterations)")
         metrics_computer = SSVIMetricsComputer(device=config.device)
-    
+
     start_time = time.time()
-    
+
     for i in range(config.training_iterations):
         # Sample batch indices
         N = y.shape[0]
         batch_indices = torch.randperm(N, device=y.device)[:config.batch_size]
         y_batch = y[batch_indices]
-        
+
         # Training step - U sampling happens inside automatically each step
         loss = model.train_step(y_batch, batch_indices)
         losses.append(loss)
-        
+
         # Metrics computation (periodic)
-        if (metrics_computer is not None and 
-            config.enable_metrics and 
-            i % config.metrics_frequency == 0):
-            
+        if (metrics_computer is not None and
+                config.enable_metrics and
+                i % config.metrics_frequency == 0):
+
             print(f"  Computing metrics at iteration {i}...")
             try:
                 # Use full datasets for proper evaluation
@@ -347,28 +303,30 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                     elbo_loss=loss,
                     n_samples=config.P  # Use config P parameter for consistency
                 )
-                
-                print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
+
+                print(
+                    f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse / metrics.train_rmse:.3f})")
                 print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
                 print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
-                print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
-                
+                print(
+                    f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
+
                 # Log metrics
                 if logger:
                     logger.log_training(f"Metrics at iteration {i}: {metrics.to_dict()}")
-                    
+
             except Exception as e:
                 print(f"    Warning: Error computing metrics at iteration {i}: {e}")
-        
-        # Training plot saving (periodic)  
-        if (logger and config.save_training_plots and 
-            i > 0 and i % config.plot_save_frequency == 0):
-            
+
+        # Training plot saving (periodic)
+        if (logger and config.save_training_plots and
+                i > 0 and i % config.plot_save_frequency == 0):
+
             print(f"  Saving training plots at iteration {i}...")
             try:
                 # Generate filename with iteration number
                 plot_filename = f"training_results_iter_{i}.png"
-                
+
                 # Use the existing visualization function (save only, no display)
                 visualize_ssvi_results(
                     model=model,
@@ -380,17 +338,17 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                     save_filename=plot_filename,
                     show_plot=False
                 )
-                
+
                 print(f"    Training plots saved: {plot_filename}")
-                
+
             except Exception as e:
                 print(f"    Warning: Error saving training plots at iteration {i}: {e}")
-        
+
         # Gradient logging (only if logger provided and enabled)
         if logger and config.enable_gradient_logging and i % config.gradient_log_frequency == 0:
             gradient_info = model.get_gradient_info()
             logger.log_gradients(i, loss, gradient_info)
-        
+
         # Progress reporting
         if i % config.log_frequency == 0:
             elapsed = time.time() - start_time
@@ -401,22 +359,23 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
             # Log to file
             if logger:
                 logger.log_training(message)
-    
+
     total_time = time.time() - start_time
-    final_message = f"Training completed! Final Loss: {losses[-1]:.4f}, Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)"
+    final_message = f"Training completed! Final Loss: {losses[-1]:.4f}, Total time: {total_time:.1f}s ({config.training_iterations / total_time:.1f} iter/s)"
     print(f"Training completed!")
     print(f"Final Loss: {losses[-1]:.4f}")
-    print(f"Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)")
+    print(f"Total time: {total_time:.1f}s ({config.training_iterations / total_time:.1f} iter/s)")
     # Log to file
     if logger:
         logger.log_training(final_message)
-    
+
     return losses, metrics_computer
+
 
 # === Pre-defined Configurations ===
 
 def get_fast_config():
-    """Fast configuration for testing with missing data enabled"""
+    """Fast configuration for testing"""
     return OilFlowSSVIConfig(
         training_iterations=200,
         batch_size=50,
@@ -434,30 +393,52 @@ def get_fast_config():
         plot_save_frequency=100,
         plot_training=True,
         plot_latent_space=True,
-        plot_hyperparams=True,
-        # === Missing Data Configuration ===
-        enable_missing_data=True,      # Enable missing data reconstruction capability
-        missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
-        reconstruction_samples=50,     # Number of samples for missing data reconstruction
-        missing_data_seed=123          # Seed for reproducible missing data patterns
+        plot_hyperparams=True
     )
+
 
 def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     """Main function for Oil Flow SSVI GP-LVM example"""
-    
+
     # Use default config if none provided
     if config is None:
         config = get_fast_config()
-    
+
     # Set device from config
     torch.set_default_device(config.device)
-    
+
     # Print configuration
     config.print_config()
+
+    # Load oil flow data using original GP LVM method
+    print("Loading oil flow data using original GP LVM method...")
+    original_data = load_oilflow_data_for_ssvi(config)
     
-    # Load oil flow data
-    y, labels, Vx, mu_x, split_data = load_oil_flow_data(config)
+    # Extract data in original format
+    Y_train = original_data['Y_train']
+    Y_test = original_data['Y_test']
+    labels_train = original_data['labels_train']
+    labels_test = original_data['labels_test']
     
+    # Use training data for SSVI model (same as original)
+    y = Y_train
+    labels = labels_train
+    
+    # Set total_size for SSVI model
+    config.total_size = y.shape[0]
+    
+    # Create Vx and mu_x for SSVI model
+    Vx = torch.randn(config.n_inducing, config.latent_dim)
+    mu_x = torch.randn(y.shape[0], config.latent_dim)
+    
+    # Create split_data for compatibility
+    split_data = {
+        'y_train': Y_train,
+        'y_test': Y_test,
+        'labels_train': labels_train,
+        'labels_test': labels_test
+    }
+
     # Create model
     print("\nInitializing Oil Flow SSVI GP-LVM...")
     model = OilFlow_SSVI_GPLVM(
@@ -466,117 +447,115 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         mu_x=mu_x,
         M=y.shape[1]  # Observation dimension
     )
-    
+
     print(f"Model initialized:")
     print(f"  Encoder: {model.encoder}")
     print(f"  Inducing points: {model.gp.Vx.shape}")
     print(f"  Latent variables: {model.mu_x.shape}")
-    
-    # Initialize logger with config-based naming
-    experiment_name = f"oil_flow_ssvi_{config_name}"
-    logger = SSVIResultsLogger(config, experiment_name=experiment_name)
-    if logger.results_dir:
-        print(f"Results will be saved to: {logger.results_dir}")
-        # Log initial info
-        logger.log_training("=== Oil Flow SSVI GP-LVM Training Session ===")
-        logger.log_training(f"Model: {config.n_inducing_points} inducing points, latent_dim={config.latent_dim}")
-        logger.log_training(f"Training: {config.training_iterations} iter, batch={config.batch_size}")
-        logger.log_training(f"Learning rates: Local={config.local_lr}, Global={config.global_lr}")
-    
+
+    # Disable SSVI logger - we'll use original GP LVM outputs only
+    logger = None
+
     # Train model
     print(f"\nTraining model...")
     losses, metrics_computer = train_oil_flow_ssvi(model, y, config, logger, split_data, labels)
-    
-    # Visualize results
-    print(f"\nVisualizing results...")
-    visualize_ssvi_results(model, y, labels, losses, config, logger)
-    
-    # Generate final metrics and plots if metrics were computed
-    if metrics_computer is not None and config.enable_metrics and split_data is not None:
-        print(f"\nGenerating final metrics and plots...")
-        
-        # Compute final comprehensive metrics on full test set
-        print("Computing final metrics on full datasets...")
-        final_metrics = metrics_computer.compute_full_metrics(
-            model=model,
-            y_train=split_data['y_train'],
-            y_test=split_data['y_test'],
-            iteration=config.training_iterations,
-            elbo_loss=losses[-1] if losses else 0.0,
-            n_samples=config.P * 2  # Use config P parameter, doubled for final comprehensive evaluation
-        )
-        
-        # Print final metrics summary using the computed final_metrics
-        summary = metrics_computer.get_metrics_summary()
-        
-        # Log the final metrics to the training log
-        if logger:
-            logger.log_training(f"Final comprehensive metrics computed: {final_metrics.to_dict()}")
-        
-        print(f"\n=== Final Model Performance ===")
-        print(f"Final Train RMSE: {summary['final_train_rmse']:.4f}")
-        print(f"Final Test RMSE: {summary['final_test_rmse']:.4f}")
-        print(f"Final Train NLPD: {summary['final_train_nlpd']:.3f}")
-        print(f"Final Test NLPD: {summary['final_test_nlpd']:.3f}")
-        print(f"Overfitting Ratio (Test/Train RMSE): {summary['overfitting_ratio']:.3f}")
-        print(f"Effective Latent Dimensions: {summary['final_effective_dims']}/{summary['total_latent_dims']}")
-        print("=" * 35)
-        
-        # Generate metrics plots
-        print("Generating metrics progression plots...")
-        plot_metrics_history(metrics_computer, logger, show_plot=False)
-        
-        print("Generating final metrics summary plots...")
-        plot_final_metrics_summary(metrics_computer, model, logger, show_plot=False)
-        
-        # Save metrics to JSON and text
-        if logger:
-            print("Saving complete metrics to JSON...")
-            save_metrics_to_json(metrics_computer, logger)
-            print("Saving metrics summary to text...")
-            save_metrics_to_text(metrics_computer, logger, model)
 
-    
-    # Comprehensive missing data reconstruction experiment if enabled
-    if config.enable_missing_data:
-        run_missing_data_reconstruction_experiment(
-            model, config, y, split_data, logger,
-            model_type="GP LVM SSVI",
-            model_description="GP-LVM with Stochastic Structured Variational Inference"
-        )
-    
+    # Test single step functionality
+    print(f"\nTesting single step...")
+    test_indices = torch.randperm(y.shape[0])[:10]
+    test_y = y[test_indices]
+    test_loss = model.train_step(test_y, test_indices)
+    print(f"Test step loss: {test_loss:.4f}")
+
+    # Skip visualization since we're using original GP LVM outputs only
+    print(f"\nSkipping SSVI visualization - using original GP LVM outputs...")
+
+    # Create SSVI logger to match original GP LVM structure
+    if config.save_results:
+        ssvi_logger = SSVIOriginalGPLVMResultsLogger(config, config_name)
+        ssvi_results_dir = ssvi_logger.get_results_dir()
+        
+        # Log training completion
+        ssvi_logger.log_training("=== SSVI Training Completed ===")
+        ssvi_logger.log_training(f"Final Loss: {losses[-1]:.4f}")
+        
+        # Save gradient logs if available (additional SSVI data)
+        if hasattr(model, 'gradient_logs') and model.gradient_logs:
+            gradient_logs_path = os.path.join(ssvi_results_dir, 'gradient_logs.jsonl')
+            with open(gradient_logs_path, 'w') as f:
+                for log_entry in model.gradient_logs:
+                    f.write(json.dumps(log_entry) + '\n')
+            ssvi_logger.log_training(f"Gradient logs saved: {gradient_logs_path}")
+        
+        # Save metrics summary if available (additional SSVI data)
+        if metrics_computer is not None and config.enable_metrics:
+            metrics_summary = metrics_computer.get_metrics_summary()
+            metrics_summary_path = os.path.join(ssvi_results_dir, 'metrics_summary.json')
+            with open(metrics_summary_path, 'w') as f:
+                json.dump(metrics_summary, f, indent=2)
+            ssvi_logger.log_training(f"Metrics summary saved: {metrics_summary_path}")
+        
+        # Create experiment summary in exact original GP LVM format
+        experiment_summary = {
+            'train_rmse': 0.0,  # Will be updated below
+            'test_rmse': 0.0,   # Will be updated below
+            'final_loss': float(losses[-1]),
+            'final_noise': float(model.sigma2) if hasattr(model, 'sigma2') else 0.0
+        }
+        
+        # Add metrics if available
+        if metrics_computer is not None and config.enable_metrics:
+            metrics_data = metrics_computer.get_metrics_summary()
+            experiment_summary.update({
+                'train_rmse': metrics_data.get('final_train_rmse', 0.0),
+                'test_rmse': metrics_data.get('final_test_rmse', 0.0)
+            })
+        
+        # Save experiment summary (same as original GP LVM)
+        ssvi_logger.save_final_summary(experiment_summary)
+        ssvi_logger.log_training("=== SSVI Experiment Completed ===")
+        
+        print(f"SSVI results saved to: {ssvi_results_dir}")
+        print(f"Files created: config.json, training.log, experiment_summary.json")
+
     # Print final model parameters
-    print_final_model_parameters(model, "GP LVM SSVI")
-    
+    print(f"\nFinal Model Parameters:")
+    print(f"  Observation noise (sigma2): {model.sigma2:.4f}")
+    print(f"  Signal variances (sigma2_s): {model.gp.sigma2_s}")
+    print(f"  Lengthscales (1/beta): {(1 / model.gp.beta).flatten()}")
+
+    # Add original GP LVM outputs (this will be the only output saving)
+    print(f"\n=== Saving Original GP LVM Outputs ===")
+    try:
+        original_logger, original_results = integrate_original_gplvm_outputs(
+            model, config, config_name, losses, Y_train, Y_test, labels_train, labels_test
+        )
+        print("Original GP LVM outputs successfully saved!")
+    except Exception as e:
+        print(f"Warning: Could not save original GP LVM outputs: {e}")
+
     # Return final_metrics if computed, otherwise None
     final_metrics = None
     if metrics_computer is not None and metrics_computer.metrics_history:
         final_metrics = metrics_computer.metrics_history[-1]
-    
-    # Save standard paper metrics for all experiments (missing data enabled/disabled)
-    if logger and split_data is not None:
-        save_paper_style_metrics(
-            model, split_data, losses, logger, config, metrics_computer, final_metrics,
-            model_type="GP LVM SSVI", 
-            model_description="GP-LVM with Stochastic Structured Variational Inference"
-        )
-    
+
     return model, losses, config, metrics_computer, final_metrics
+
 
 if __name__ == "__main__":
     # Parse command line arguments
     parser = create_argument_parser()
     args = parser.parse_args()
-    
+
     # Ensure config directory exists
     ensure_config_dir_exists()
-    
+
     # Show available configs if no config specified
     if args.config is None:
         print("No config file specified. Available configurations:")
         print_available_configs()
         print("\nUsing default fast_config...\n")
-    
+
     # Load configuration with overrides
     try:
         config, config_name = load_config_with_overrides(
@@ -584,14 +563,14 @@ if __name__ == "__main__":
             config_class=OilFlowSSVIConfig,
             args=args
         )
-        
+
         print(f"Using configuration: {config_name}")
         if args.config:
             print(f"Config file: {args.config}")
-        
+
         # Run main function with loaded config
         main(config, config_name)
-        
+
     except Exception as e:
         print(f"Error: {e}")
         print("\nAvailable configurations:")
