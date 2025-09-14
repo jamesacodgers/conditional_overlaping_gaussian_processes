@@ -421,6 +421,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
 
     # Set device from config
     torch.set_default_device(config.device)
+    
+    # Set random seed (same as original GPLVM code)
+    torch.manual_seed(config.random_seed)
 
     # Print configuration
     config.print_config()
