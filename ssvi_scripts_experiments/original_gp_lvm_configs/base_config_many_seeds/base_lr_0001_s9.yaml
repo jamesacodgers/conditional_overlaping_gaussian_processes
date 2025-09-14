@@ -26,7 +26,7 @@ learning_rate: 0.001  # Matches oilflow_expt.py: lr=0.001
 
 # Model-specific Configuration (from oilflow_expt.py)
 # For nn_gauss model: nn_layers matching SSVI base config
-nn_layers: [128, 64, 32]
+nn_layers: (128, 64, 32)
 
 # Prior Configuration (from oilflow_expt.py)
 # For gauss model: NormalPrior(X_prior_mean, torch.ones_like(X_prior_mean))
