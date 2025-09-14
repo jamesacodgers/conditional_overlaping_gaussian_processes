@@ -446,8 +446,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     config.total_size = y.shape[0]
     
     # Create Vx and mu_x for SSVI model
-    Vx = torch.randn(config.n_inducing, config.latent_dim)
-    mu_x = torch.randn(y.shape[0], config.latent_dim)
+    Vx = torch.randn(config.n_inducing, config.latent_dim, device=config.device)
+    mu_x = torch.randn(y.shape[0], config.latent_dim, device=config.device)
     
     # Create split_data for compatibility
     split_data = {
@@ -480,7 +480,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
 
     # Test single step functionality
     print(f"\nTesting single step...")
-    test_indices = torch.randperm(y.shape[0])[:10]
+    test_indices = torch.randperm(y.shape[0], device=y.device)[:10]
     test_y = y[test_indices]
     test_loss = model.train_step(test_y, test_indices)
     print(f"Test step loss: {test_loss:.4f}")

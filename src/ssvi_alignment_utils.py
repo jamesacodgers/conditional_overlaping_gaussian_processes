@@ -38,8 +38,8 @@ def load_oilflow_data_for_ssvi(config):
     Y_train, Y_test = train_test_split(Y.numpy(), test_size=config.test_size_int, random_state=config.random_seed)
     lb_train, lb_test = train_test_split(labels, test_size=config.test_size_int, random_state=config.random_seed)
     
-    Y_train = torch.tensor(Y_train, dtype=torch.float32)
-    Y_test = torch.tensor(Y_test, dtype=torch.float32)
+    Y_train = torch.tensor(Y_train, dtype=torch.float32, device=config.device)
+    Y_test = torch.tensor(Y_test, dtype=torch.float32, device=config.device)
     
     # Return in same format as original GP LVM
     return {
