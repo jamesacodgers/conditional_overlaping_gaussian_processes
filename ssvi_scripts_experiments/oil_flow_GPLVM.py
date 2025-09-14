@@ -124,8 +124,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     Y_train, Y_test = train_test_split(Y.numpy(), test_size=config.test_size, random_state=config.random_seed)
     lb_train, lb_test = train_test_split(labels, test_size=config.test_size, random_state=config.random_seed)
     
-    Y_train = torch.Tensor(Y_train)
-    Y_test = torch.Tensor(Y_test)
+    Y_train = torch.tensor(Y_train, dtype=torch.float32)
+    Y_test = torch.tensor(Y_test, dtype=torch.float32)
     
     # Setting shapes
     N = len(Y_train)
@@ -219,6 +219,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             iterator.set_description('Loss: ' + str(float(np.round(loss.item(),2))) + ", iter no: " + str(i))
             loss.backward()
             optimizer.step()
+            
+            # Save iteration-based models and plots (like SSVI does)
+            if logger and logger.get_results_dir() and i > 0 and i % 100 == 0:
+                from src.ssvi_alignment_utils import save_iteration_model, create_iteration_plot
+                print(f"  Saving iteration {i} model and plot...")
+                save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
+                create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "original")
         model.store(loss_list, likelihood)
         
         logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
@@ -238,11 +245,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         
         # Create standardized scattered plots (same as original generalised_gplvm_code but scattered)
         if logger.get_results_dir():
-            plots_dir = os.path.join(logger.get_results_dir(), 'plots')
-            os.makedirs(plots_dir, exist_ok=True)
             # Import function only when needed to avoid directory creation issues
             from src.ssvi_alignment_utils import create_standardized_scattered_plot
-            create_standardized_scattered_plot(model, loss_list, lb_train, config, plots_dir, model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
+            create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
         
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')
@@ -316,8 +321,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             elif model_name == 'gauss':
                    X_test_mean = X_test.q_mu.detach().numpy()
        
-            Y_test_recon, Y_test_pred_covar = model.reconstruct_y(torch.Tensor(X_test_mean), Y_test, ae=ae, model_name=model_name)
-            Y_train_recon, Y_train_pred_covar = model.reconstruct_y(torch.Tensor(X_train_mean), Y_train, ae=ae, model_name=model_name)
+            Y_test_recon, Y_test_pred_covar = model.reconstruct_y(torch.tensor(X_test_mean, dtype=torch.float32), Y_test, ae=ae, model_name=model_name)
+            Y_train_recon, Y_train_pred_covar = model.reconstruct_y(torch.tensor(X_train_mean, dtype=torch.float32), Y_train, ae=ae, model_name=model_name)
             
             # ################################
             # Compute the metrics:

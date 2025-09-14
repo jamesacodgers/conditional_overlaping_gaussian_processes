@@ -105,31 +105,26 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger, save_filena
     # Use the standardized plotting function for consistency
     from src.ssvi_alignment_utils import create_standardized_scattered_plot
     
-    # Create a temporary directory for the plot
-    import tempfile
-    import os
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Create the standardized plot
-        create_standardized_scattered_plot(model, losses, labels, config, temp_dir, "ssvi", config.random_seed, y, model_type="ssvi")
-        
-        # Read the plot file and save it using the logger
-        plot_path = os.path.join(temp_dir, f"oilflow_ssvi_scattered_seed_{config.random_seed}.png")
-        if os.path.exists(plot_path):
-            # Copy the plot to the logger's plots directory
-            import shutil
-            logger_plot_path = os.path.join(logger.plots_dir, save_filename)
-            shutil.copy2(plot_path, logger_plot_path)
-            logger.log_training(f"Plot saved: plots/{save_filename}")
-        
-        if show_plot:
-            # Display the plot
-            import matplotlib.pyplot as plt
-            fig = plt.figure(figsize=(12, 4))
-            img = plt.imread(plot_path)
-            plt.imshow(img)
-            plt.axis('off')
-            plt.show()
-            plt.close(fig)
+    # Create the standardized plot directly with custom filename
+    create_standardized_scattered_plot(
+        model, losses, labels, config, logger.plots_dir, 
+        "ssvi", config.random_seed, y, model_type="ssvi", 
+        custom_filename=save_filename
+    )
+    
+    # Log the saved plot
+    logger.log_training(f"Plot saved: plots/{save_filename}")
+    
+    if show_plot:
+        # Display the plot
+        import matplotlib.pyplot as plt
+        final_plot_path = os.path.join(logger.plots_dir, save_filename)
+        fig = plt.figure(figsize=(12, 4))
+        img = plt.imread(final_plot_path)
+        plt.imshow(img)
+        plt.axis('off')
+        plt.show()
+        plt.close(fig)
 
 
 def plot_metrics_history(metrics_computer, 

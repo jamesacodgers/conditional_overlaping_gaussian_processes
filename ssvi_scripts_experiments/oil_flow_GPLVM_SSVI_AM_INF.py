@@ -300,6 +300,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                     model=model,
                     y_train=split_data['y_train'],
                     y_test=split_data['y_test'],
+                    config=config,  
                     iteration=i,
                     elbo_loss=loss,
                     n_samples=config.P  # Use config P parameter for consistency
@@ -308,7 +309,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                 print(
                     f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse / metrics.train_rmse:.3f})")
                 print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
-                print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
+                print(f"    Latent dims: {metrics.total_latent_dims}")
                 print(
                     f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
 
@@ -326,7 +327,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
             print(f"  Saving training plots at iteration {i}...")
             try:
                 # Generate filename with iteration number
-                plot_filename = f"training_results_iter_{i}.png"
+                plot_filename = f"oilflow_ssvi_iter_{i}_seed_{config.random_seed}.png"
 
                 # Use the existing visualization function (save only, no display)
                 visualize_ssvi_results(
@@ -486,15 +487,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 for log_entry in model.gradient_logs:
                     f.write(json.dumps(log_entry) + '\n')
             logger.log_training(f"Gradient logs saved: {gradient_logs_path}")
-        
-        # Save metrics summary if available (additional SSVI data)
-        if metrics_computer is not None and config.enable_metrics:
-            metrics_summary = metrics_computer.get_metrics_summary()
-            metrics_summary_path = os.path.join(ssvi_results_dir, 'metrics_summary.json')
-            with open(metrics_summary_path, 'w') as f:
-                json.dump(metrics_summary, f, indent=2)
-            logger.log_training(f"Metrics summary saved: {metrics_summary_path}")
-        
+                
         # Create standardized scattered plots (same as original generalised_gplvm_code but scattered)
         from src.ssvi_alignment_utils import create_standardized_scattered_plot
         create_standardized_scattered_plot(model, losses, labels, config, ssvi_results_dir, "ssvi", config.random_seed, y, model_type="ssvi")
