@@ -192,9 +192,20 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         likelihood = GaussianLikelihood()
         elbo = VariationalELBO(likelihood, model, num_data=len(Y_train))
         
-        # Fix device placement for NNEncoder jitter tensor (created on CPU in original code)
+        # Move model and likelihood to CUDA if available (like original experiments)
+        if config.device == 'cuda' and torch.cuda.is_available():
+            model = model.cuda()
+            likelihood = likelihood.cuda()
+        
+        # Fix device placement for NNEncoder tensors (created on CPU in original code)
         if model_name == 'nn_gauss' and hasattr(model.X, 'jitter'):
             model.X.jitter = model.X.jitter.to(config.device)
+            # Also ensure prior_x tensors are on correct device
+            if hasattr(model.X, 'prior_x'):
+                if hasattr(model.X.prior_x, 'loc'):
+                    model.X.prior_x.loc = model.X.prior_x.loc.to(config.device)
+                if hasattr(model.X.prior_x, 'covariance_matrix'):
+                    model.X.prior_x.covariance_matrix = model.X.prior_x.covariance_matrix.to(config.device)
     
         optimizer = torch.optim.Adam([
         {'params': model.parameters()},
