@@ -29,12 +29,13 @@ class SSVIResultsLogger:
             # Determine correct results path based on current working directory
             # Organize results by experiment type: SSVI vs Original GP-LVM
             if "gplvm" in experiment_name.lower():
-                results_folder = "orig_gplvm_results"
+                results_folder = "oil_flow_results/original_gplvm_results"
             else:
-                results_folder = "ssvi_results"
+                results_folder = "oil_flow_results/ssvi_results"
                 
-            # Create results directory
-            self.results_dir = f"results/{results_folder}/{experiment_name}_{timestamp}"
+            # Create results directory with seed
+            seed = getattr(config, 'random_seed', 7)  # Default to 7 if not available
+            self.results_dir = f"{results_folder}/{experiment_name}_seed_{seed}_{timestamp}"
             os.makedirs(self.results_dir, exist_ok=True)
             
             # Create plots subdirectory
