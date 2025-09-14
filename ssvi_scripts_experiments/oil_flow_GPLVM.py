@@ -191,6 +191,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers, device=config.device)
         likelihood = GaussianLikelihood()
         elbo = VariationalELBO(likelihood, model, num_data=len(Y_train))
+        
+        # Fix device placement for NNEncoder jitter tensor (created on CPU in original code)
+        if model_name == 'nn_gauss' and hasattr(model.X, 'jitter'):
+            model.X.jitter = model.X.jitter.to(config.device)
     
         optimizer = torch.optim.Adam([
         {'params': model.parameters()},
