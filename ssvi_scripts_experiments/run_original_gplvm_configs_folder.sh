@@ -35,6 +35,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 # Default values
 DEVICE=""  # Empty means use config file setting
 TRAINING_STEPS=""
+TEST_ITERATIONS=""
 CONFIG_NAME=""
 CONFIG_SUBFOLDER=""
 SPECIFIC_CONFIG=""
@@ -48,6 +49,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --training-steps)
             TRAINING_STEPS="$2"
+            shift 2
+            ;;
+        --test-iterations)
+            TEST_ITERATIONS="$2"
             shift 2
             ;;
         --config-name)
@@ -64,6 +69,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --device DEVICE          Device to use (cpu, cuda) [default: cpu]"
             echo "  --training-steps N       Override training steps"
+            echo "  --test-iterations N      Override test iterations"
             echo "  --config-name NAME       Custom config name for results"
             echo "  --help, -h               Show this help message"
             echo ""
@@ -73,6 +79,7 @@ while [[ $# -gt 0 ]]; do
             echo "  $0 original_gp_lvm_configs/random_grid_hypers_configs original_gplvm_config_001.yaml  # Run specific config"
             echo "  $0 original_gp_lvm_configs/random_grid_hypers_configs --device cuda                    # Run all configs on GPU"
             echo "  $0 original_gp_lvm_configs/random_grid_hypers_configs original_gplvm_config_001.yaml --device cuda --training-steps 200"
+            echo "  $0 original_gp_lvm_configs/base_config_many_seeds --training-steps 200 --test-iterations 200"
             exit 0
             ;;
         -*)
@@ -146,6 +153,10 @@ run_config() {
     # Add optional parameters
     if [[ -n "$TRAINING_STEPS" ]]; then
         cmd="$cmd --training-steps \"$TRAINING_STEPS\""
+    fi
+    
+    if [[ -n "$TEST_ITERATIONS" ]]; then
+        cmd="$cmd --test-iterations \"$TEST_ITERATIONS\""
     fi
     
     if [[ -n "$CONFIG_NAME" ]]; then

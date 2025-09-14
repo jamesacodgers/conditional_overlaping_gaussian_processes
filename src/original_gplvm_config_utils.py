@@ -43,6 +43,10 @@ def create_argument_parser():
     parser.add_argument('--learning-rate', type=float, default=None,
                        help='Learning rate')
     
+    # Testing configuration
+    parser.add_argument('--test-iterations', type=int, default=None,
+                       help='Number of iterations for test phase evaluation')
+    
     # Results configuration
     parser.add_argument('--results-dir', type=str, default=None,
                        help='Results directory')
