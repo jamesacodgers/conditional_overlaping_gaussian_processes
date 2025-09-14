@@ -258,7 +258,7 @@ class SSVIOriginalGPLVMResultsLogger:
             timestamp = datetime.now().strftime("%m_%d_%H_%M")
             self.results_dir = os.path.join(
                 config.results_dir,
-                f"oil_flow_ssvi_{experiment_name}_res_{timestamp}"
+                f"oil_flow_ssvi_{experiment_name}_{timestamp}"
             )
             os.makedirs(self.results_dir, exist_ok=True)
             

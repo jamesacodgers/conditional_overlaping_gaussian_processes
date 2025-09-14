@@ -34,7 +34,7 @@ sys.path.insert(0, os.getcwd())
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 from src.ssvi_utils import visualize_ssvi_results, plot_metrics_history, \
-    save_metrics_to_json, save_metrics_to_text
+    save_metrics_to_json
 from src.ssvi_alignment_utils import SSVIOriginalGPLVMResultsLogger
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.ssvi_config_utils import (

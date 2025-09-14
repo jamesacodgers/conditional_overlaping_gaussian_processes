@@ -33,12 +33,8 @@ class SSVIResultsLogger:
             else:
                 results_folder = "ssvi_results"
                 
-            if os.path.basename(os.getcwd()) == "ssvi_scripts_experiments":
-                # Running from within ssvi_scripts_experiments directory
-                self.results_dir = f"results/{results_folder}/{experiment_name}_res_{timestamp}"
-            else:
-                # Running from project root - use results directory directly
-                self.results_dir = f"results/{results_folder}/{experiment_name}_res_{timestamp}"
+            # Create results directory
+            self.results_dir = f"results/{results_folder}/{experiment_name}_{timestamp}"
             os.makedirs(self.results_dir, exist_ok=True)
             
             # Create plots subdirectory
@@ -226,87 +222,6 @@ def save_metrics_to_json(metrics_computer,
     print(f"Complete metrics saved to: {filepath}")
 
 
-def save_metrics_to_text(metrics_computer,
-                        logger: SSVIResultsLogger,
-                        model=None,
-                        filename: str = "metrics_summary.txt"):
-    """
-    Save metrics summary to easy-to-read text file for comparison
-    
-    Args:
-        metrics_computer: SSVIMetricsComputer with computed metrics
-        logger: SSVIResultsLogger for file saving
-        model: Optional model to extract lengthscales from
-        filename: Name of text file
-    """
-    if not logger.results_dir:
-        print("No results directory available for saving metrics")
-        return
-    
-    if not metrics_computer.metrics_history:
-        print("No metrics history available for text export")
-        return
-    
-    # Get final metrics and summary
-    final_metrics = metrics_computer.metrics_history[-1]
-    summary = metrics_computer.get_metrics_summary()
-    
-    # Get lengthscales if model is provided
-    lengthscales_info = ""
-    if model is not None:
-        try:
-            # Get lengthscales (1/beta) from the GP model
-            beta_values = model.gp.beta  # This already applies exp() and adds 1e-5
-            lengthscales = 1.0 / beta_values
-            lengthscales_list = lengthscales.detach().cpu().numpy().flatten().tolist()
-            
-            lengthscales_info = f"""
-LENGTHSCALES (1/beta):
-{', '.join([f'{ls:.4f}' for ls in lengthscales_list])}"""
-            
-        except Exception as e:
-            lengthscales_info = f"\nLENGTHSCALES: Could not extract ({str(e)})\n"
-    
-    # Create text content
-    text_content = f"""=== SSVI GP-LVM Metrics Summary ===
-Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-FINAL PERFORMANCE METRICS:
-Train RMSE:        {final_metrics.train_rmse:.6f}
-Test RMSE:         {final_metrics.test_rmse:.6f}
-Train NLPD:        {final_metrics.train_nlpd:.6f}
-Test NLPD:         {final_metrics.test_nlpd:.6f}
-
-MODEL ANALYSIS:
-Overfitting Ratio: {summary.get('overfitting_ratio', float('inf')):.6f}
-# Effective dimensions removed
-Final Loss:        {final_metrics.elbo_loss:.6f}
-Total Iterations:  {summary.get('total_iterations', 0)}{lengthscales_info}
-
-PAPER-STYLE COMPARISON FORMAT:
-Method     | Train RMSE | Test RMSE | Train NLPD | Test NLPD
-GP-LVM SSVI| {final_metrics.train_rmse:.4f}     | {final_metrics.test_rmse:.4f}    | {final_metrics.train_nlpd:.3f}     | {final_metrics.test_nlpd:.3f}
-
-TRAINING PROGRESSION:
-"""
-    
-    # Add training progression
-    for i, metrics in enumerate(metrics_computer.metrics_history):
-        text_content += f"Iter {metrics.iteration:4d}: Train RMSE={metrics.train_rmse:.4f}, Test RMSE={metrics.test_rmse:.4f}, "
-        text_content += f"Train NLPD={metrics.train_nlpd:.3f}, Test NLPD={metrics.test_nlpd:.3f}, "
-        # Remove effective dimensions from text output
-    
-    text_content += f"\n=== End of Summary ===\n"
-    
-    # Save to text file
-    filepath = os.path.join(logger.results_dir, filename)
-    with open(filepath, 'w') as f:
-        f.write(text_content)
-    
-    logger.log_training(f"Text metrics saved to: {filename}")
-    print(f"Text metrics saved to: {filepath}")
-    
-    return filepath
 
 
 
