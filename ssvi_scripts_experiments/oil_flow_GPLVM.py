@@ -196,6 +196,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if config.device == 'cuda' and torch.cuda.is_available():
             model = model.cuda()
             likelihood = likelihood.cuda()
+            # Also move the latent variable (X) to CUDA
+            if hasattr(model, 'X'):
+                model.X = model.X.cuda()
         
         # Fix device placement for NNEncoder tensors (created on CPU in original code)
         if model_name == 'nn_gauss' and hasattr(model.X, 'jitter'):
@@ -226,14 +229,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         batch_size = config.batch_size
         for i in iterator: 
             batch_index = model._get_batch_idx(batch_size)
+            # Convert batch_index to torch tensor on correct device for CUDA compatibility
+            batch_index_tensor = torch.tensor(batch_index, device=config.device)
             optimizer.zero_grad()
             if model_name in ['point','map', 'gauss']:
                 sample = model.sample_latent_variable()  # a full sample returns latent x across all N
             else:
                 sample = model.sample_latent_variable(Y_train)
-            sample_batch = sample[batch_index]
+            sample_batch = sample[batch_index_tensor]
             output_batch = model(sample_batch)
-            loss = -elbo(output_batch, Y_train[batch_index].T).sum()
+            loss = -elbo(output_batch, Y_train[batch_index_tensor].T).sum()
             loss_list.append(loss.item())
             noise_trace.append(np.round(likelihood.noise_covar.noise.item(),3))
             iterator.set_description('Loss: ' + str(float(np.round(loss.item(),2))) + ", iter no: " + str(i))
