@@ -46,6 +46,7 @@ from sklearn.model_selection import train_test_split
 
 # Import metrics
 from utils.metrics import rmse
+from src.nlpd_utils import compute_nlpd_ssvi_style
 
 # Import configuration system
 from src.original_gplvm_config import OriginalGPLVMConfig, get_fast_config
@@ -327,27 +328,27 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
             print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
             
-            # 2) Negative log-likelihood (NLPD) - using original GP-LVM approach
+            # 2) Negative log-likelihood (NLPD) - using SSVI-style approach for consistency
             
             # Train NLPD
             if model_name == 'gauss':
-                # For variational gauss model, use the final training loss
-                train_nll = loss_list[-1]/len(Y_train)
+                # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
+                X_train_covar = torch.diag_embed(torch.exp(model.X.q_log_sigma)**2)  # [N, latent_dim, latent_dim]
+                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean, X_train_covar, likelihood, n_samples=50)
             elif model_name == 'nn_gauss':
-                # For encoder nn_gauss model, compute log probability directly on training data
-                with torch.no_grad():
-                    Y_star_train = model(torch.tensor(X_train_mean, dtype=torch.float32))
-                    train_nll = -torch.sum(Y_star_train.log_prob(Y_train.T))/len(Y_train)
+                # For encoder nn_gauss model, use SSVI-style approach with encoder variance
+                X_train_covar = model.X.sigma(Y_train)  # [N, latent_dim, latent_dim] - full covariance matrix
+                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean, X_train_covar, likelihood, n_samples=50)
             
             # Test NLPD
             if model_name == 'gauss':
-                # For variational gauss model, use the final test loss
-                test_nll = losses_test[-1]/len(Y_test)
+                # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
+                X_test_covar = torch.diag_embed(torch.exp(X_test.q_log_sigma)**2)  # [N_test, latent_dim, latent_dim]
+                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean, X_test_covar, likelihood, n_samples=50)
             elif model_name == 'nn_gauss':
-                # For encoder nn_gauss model, compute log probability directly
-                with torch.no_grad():
-                    Y_star_test = model(torch.tensor(X_test_mean, dtype=torch.float32))
-                    test_nll = -torch.sum(Y_star_test.log_prob(Y_test.T))/len(Y_test)
+                # For encoder nn_gauss model, use SSVI-style approach with encoder variance
+                X_test_covar = model.X.sigma(Y_test)  # [N_test, latent_dim, latent_dim] - full covariance matrix
+                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean, X_test_covar, likelihood, n_samples=50)
             
             print(f'Train NLPD {model_name} = ' + str(train_nll))
             print(f'Test NLPD {model_name} = ' + str(test_nll))

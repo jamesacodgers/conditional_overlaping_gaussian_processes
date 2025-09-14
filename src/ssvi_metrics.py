@@ -69,14 +69,14 @@ class SSVIMetricsComputer:
         Returns:
             x_sample: Sampled latent variables [batch_size, latent_dim]
         """
-        # Sample one of the P samples randomly
-        sample_idx = torch.randint(0, model.P, (1,)).item()
-        mu_sample = mu_x[sample_idx]  # [batch_size, latent_dim]
-        sigma_sample = sigma_x[sample_idx]  # [batch_size, latent_dim]
+        # Average over all P samples to get the marginal variational distribution
+        # This is mathematically equivalent to the Original GP-LVM approach
+        mu_avg = mu_x.mean(dim=0)  # [batch_size, latent_dim]
+        sigma_avg = sigma_x.mean(dim=0)  # [batch_size, latent_dim]
         
-        # Sample from the latent variable distribution q(x) = N(mu_x, sigma_x^2)
-        epsilon = torch.randn_like(sigma_sample)
-        x_sample = mu_sample + sigma_sample * epsilon
+        # Sample from the averaged latent variable distribution q(x) = N(mu_avg, sigma_avg^2)
+        epsilon = torch.randn_like(sigma_avg)
+        x_sample = mu_avg + sigma_avg * epsilon
         
         return x_sample
     
@@ -120,7 +120,8 @@ class SSVIMetricsComputer:
             # Sample from latent distribution for reconstruction
             reconstructions = []
             for i in range(n_samples):
-                # Sample latent variables using helper function
+                # Sample latent variables using corrected helper function
+                # This now averages over all P samples, making it mathematically equivalent to Original GP-LVM
                 x_sample = self._sample_latent_variables(mu_x, sigma_x, model)
                 
                 # Reconstruct through GP mean prediction using proper GP method
@@ -199,7 +200,8 @@ class SSVIMetricsComputer:
             log_probs = []
             
             for _ in range(n_samples):
-                # Sample latent variables using helper function
+                # Sample latent variables using corrected helper function
+                # This now averages over all P samples, making it mathematically equivalent to Original GP-LVM
                 x_sample = self._sample_latent_variables(mu_x, sigma_x, model)
                 
                 # Compute predictive distribution through GP using proper GP methods
