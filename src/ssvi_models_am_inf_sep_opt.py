@@ -384,61 +384,7 @@ class NormalCoordinatorCustom:
         return 1/(self.module.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=-2) - (R_train[...,:,:,None]*s_outer_cross_expectation).sum(dim=-2))
                 
     def get_const_train(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
-        # Handle missing data if missing_mask is provided
-        if hasattr(self, 'missing_mask') and self.missing_mask is not None:
-            return self._get_const_train_missing_data(D_train, R_train, s_obs_expectation, s_obs_outer_expectation)
-        
-        # Standard likelihood computation for complete data
         return -(D_train.shape[1] * D_train.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
-    
-    def _get_const_train_missing_data(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
-        """
-        Compute likelihood term accounting for missing data following SVI paper formulation.
-        Only observed dimensions contribute to the likelihood.
-        
-        Mathematical formulation:
-        log p(y_obs | mu, sigma^2) = -0.5 * N * log(2*pi*sigma^2) - 0.5 * sum((y_obs - mu)^2)/sigma^2
-        where N = number of observed dimensions
-        """
-        missing_mask = self.missing_mask
-        
-        # Create observed mask (inverse of missing mask)
-        observed_mask = ~missing_mask  # [batch_size, output_dim]
-        
-        # Count observed elements for normalization
-        n_observed = observed_mask.sum()
-        
-        if n_observed == 0:
-            # All data missing - return zero likelihood
-            return torch.zeros(1, device=D_train.device)
-        
-        # Replace NaN values with zeros for computation (they'll be masked out)
-        D_train_clean = torch.where(missing_mask, torch.zeros_like(D_train), D_train)
-        
-        # Compute likelihood terms only for observed dimensions
-        # Data term: (D_train**2).sum() but only for observed dimensions
-        data_squared_term = (D_train_clean**2 * observed_mask.float()).sum()
-        
-        # Cross term: D_train @ s_obs_expectation @ R_train but only for observed dimensions
-        cross_term = torch.sum(
-            D_train_clean[...,None,:] @ s_obs_expectation @ R_train[...,None] * observed_mask[...,None,:],
-            dim=[-1,-2,-3]
-        )
-        
-        # Quadratic term: R_train @ s_obs_outer_expectation @ R_train but only for observed dimensions
-        quad_term = torch.sum(
-            R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None] * observed_mask[...,None,:],
-            dim=[-1,-2,-3]
-        )
-        
-        # Complete Gaussian log-likelihood: -0.5 * N * log(2*pi*sigma^2) - 0.5 * sum((y-mu)^2)/sigma^2
-        log_likelihood = (
-            -n_observed/2 * torch.log(2 * torch.pi * self.module.sigma2) -
-            1/(2*self.module.sigma2) * (data_squared_term - 2 * cross_term + quad_term)
-        )
-        
-        return log_likelihood
-
 
     
     def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train, mu_x_train, Sigma_x_train, s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
