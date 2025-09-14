@@ -157,7 +157,9 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
                 X_mean = model.X.q_mu.detach().cpu().numpy()
             elif model_name_class == 'NNEncoder':  # 'nn_gauss' model
                 # Use Y_train on the same device as the model to avoid device mismatch
-                X_mean = model.X.mu(Y_train).detach().cpu().numpy()
+                # Ensure Y_train is on the same device as the model before calling mu()
+                Y_train_device = Y_train.to(model.X.mu_layers[0].weight.device) if Y_train.device != model.X.mu_layers[0].weight.device else Y_train
+                X_mean = model.X.mu(Y_train_device).detach().cpu().numpy()
             else:
                 # Fallback: use direct latent values (like original)
                 X_mean = model.X.X.detach().cpu().numpy()
