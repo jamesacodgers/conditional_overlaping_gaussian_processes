@@ -196,13 +196,14 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if config.device == 'cuda' and torch.cuda.is_available():
             model = model.cuda()
             likelihood = likelihood.cuda()
-            # Also move the latent variable (X) to CUDA
+            # Also move the latent variable (X) to CUDA using proper to() method
             if hasattr(model, 'X'):
-                model.X = model.X.cuda()
+                model.X = model.X.to(config.device)
         
         # Fix device placement for NNEncoder tensors (created on CPU in original code)
         if model_name == 'nn_gauss' and hasattr(model.X, 'jitter'):
-            model.X.jitter = model.X.jitter.to(config.device)
+            # Use the proper to() method which handles jitter tensor
+            model.X = model.X.to(config.device)
             # Also ensure prior_x tensors are on correct device
             if hasattr(model.X, 'prior_x'):
                 if hasattr(model.X.prior_x, 'loc'):

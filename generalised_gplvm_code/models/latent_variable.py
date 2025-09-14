@@ -74,6 +74,12 @@ class NNEncoder(LatentVariable):
 
         jitter = torch.eye(latent_dim).unsqueeze(0)*1e-5
         self.jitter = torch.cat([jitter for i in range(n)], axis=0)
+        
+    def to(self, device):
+        """Move the encoder to the specified device, including jitter tensor"""
+        super().to(device)
+        self.jitter = self.jitter.to(device)
+        return self
 
     def _get_mu_layers(self, layers):
         return (self.data_dim,) + layers + (self.latent_dim,)
