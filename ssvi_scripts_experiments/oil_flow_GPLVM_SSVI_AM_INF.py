@@ -93,7 +93,7 @@ class OilFlowSSVIConfig:
     enable_gradient_logging: bool = False  # Log gradients and parameter changes
     gradient_log_frequency: int = 50  # Log gradients every N iterations
     save_results: bool = True  # Save results to folder
-    results_dir: str = "oil_flow_results/ssvi_results"  # Results directory
+    results_dir: str = "ssvi_scripts_experiments/oil_flow_results/ssvi_results"  # Results directory
 
     # === Metrics Configuration ===
     enable_metrics: bool = True  # Compute evaluation metrics
