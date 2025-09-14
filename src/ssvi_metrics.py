@@ -156,7 +156,7 @@ class SSVIMetricsComputer:
                 # Standard RMSE computation for complete data
                 mse = torch.mean((y_batch - y_pred) ** 2)
             
-            rmse = torch.sqrt(mse).item()
+            rmse = mse.sqrt().item()
             
         model.train()
         return rmse
@@ -254,9 +254,9 @@ class SSVIMetricsComputer:
             
         model.train()
         return nlpd
-    
+
     # Remove effective latent dimensions computation
-    
+
     def compute_full_metrics(self, 
                            model, 
                            y_train: torch.Tensor, 
