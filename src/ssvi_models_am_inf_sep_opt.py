@@ -1,5 +1,5 @@
 from matplotlib import pyplot as plt
-import torch 
+import torch
 import torch.nn as nn
 from tqdm import tqdm
 from src.struc_models import Struc_WS_GPLVM
@@ -9,9 +9,8 @@ from src.utils import train_lbfgs, generate_regular_simplex
 import numpy as np
 
 class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
-    def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, 
-                 encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001, device="auto", 
-                 enable_missing_data=False):
+    def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True,
+                 encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001, device="auto"):
         # Resolve device if auto
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -33,12 +32,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         # Move encoder to device
         self.encoder = self.encoder.to(device)
-        
-        # Missing data capability
-        self.enable_missing_data = enable_missing_data
-        if self.enable_missing_data:
-            print("Missing data reconstruction enabled")
-        
+
         # Separate optimizers for different learning rates
         self._setup_optimizers(local_lr, global_lr)
         
@@ -48,7 +42,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         """Build amortized inference encoder network"""
         layers = []
         # Calculate correct input dimension:
-        # y_n: [M] + u_samples: [P * M * Lx] 
+        # y_n: [M] + u_samples: [P * M * Lx]
         input_dim = self.M + self.M * self.Lx
 
         prev_dim = input_dim
@@ -339,57 +333,6 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             info['sigma2_value'] = self.gp.sigma2.item()
         
         return info
-    
-    def reconstruct_missing_data(self, y_observed, missing_mask=None, n_samples=50):
-        """
-        Reconstruct missing dimensions using amortized inference and GP decoding.
-        
-        Args:
-            y_observed: Data with missing values as NaN [batch_size, output_dim]
-            missing_mask: Boolean mask [batch_size, output_dim] where True=missing (optional)
-            n_samples: Number of samples for Monte Carlo reconstruction
-            
-        Returns:
-            y_reconstructed: Complete data with reconstructed missing values
-            reconstruction_std: Standard deviation of reconstructions
-        """
-        if not self.enable_missing_data:
-            raise ValueError("Missing data reconstruction not enabled. Set enable_missing_data=True in model constructor.")
-        
-        from src.missing_data_utils import reconstruct_missing_dimensions
-        return reconstruct_missing_dimensions(self, y_observed, missing_mask, n_samples)
-    
-    def gplvm_elbo_with_missing_data(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask=None):
-        """
-        Extended gplvm_elbo that handles missing data by modifying the coordinator's likelihood computation.
-        Uses the original ELBO structure but handles missing data in the coordinator.
-        
-        Raises:
-            ValueError: If missing data functionality is not enabled or missing_mask is not provided
-        """
-        if not self.enable_missing_data:
-            raise ValueError(
-                "Missing data functionality not enabled. Set enable_missing_data=True in model constructor "
-                "to use gplvm_elbo_with_missing_data(). Use gplvm_elbo() for standard computation."
-            )
-        
-        if missing_mask is None:
-            raise ValueError(
-                "missing_mask is required for gplvm_elbo_with_missing_data(). "
-                "Provide a boolean tensor indicating missing values, or use gplvm_elbo() for standard computation."
-            )
-        
-        # Store missing mask in coordinator for likelihood computation
-        self.coordinator.missing_mask = missing_mask
-        
-        # Use standard ELBO computation - coordinator will handle missing data internally
-        elbo_result = self.gplvm_elbo(y, mu_x, Sigma_x, U_samples, batch_size, total_size)
-        
-        # Clean up
-        if hasattr(self.coordinator, 'missing_mask'):
-            delattr(self.coordinator, 'missing_mask')
-        
-        return elbo_result
 
 
 class NormalCoordinatorCustom:
