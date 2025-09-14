@@ -156,8 +156,6 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
                 # Use variational parameters directly (like original)
                 X_mean = model.X.q_mu.detach().cpu().numpy()
             elif model_name_class == 'NNEncoder':  # 'nn_gauss' model
-                # Use encoder methods (like original)
-                model.X.jitter = 1e-5
                 # Ensure Y_train is on CPU to avoid CUDA tensor issues
                 Y_train_cpu = Y_train.cpu() if Y_train.is_cuda else Y_train
                 X_mean = model.X.mu(Y_train_cpu).detach().cpu().numpy()

@@ -136,8 +136,9 @@ class NNEncoder(LatentVariable):
         q_x = torch.distributions.MultivariateNormal(mu, sg)
 
         prior_x = self.prior_x
-        prior_x.loc = prior_x.loc[:len(batch_idx), ...]
-        prior_x.covariance_matrix = prior_x.covariance_matrix[:len(batch_idx), ...]
+        # Ensure prior_x tensors are on the same device as mu and sg
+        prior_x.loc = prior_x.loc[:len(batch_idx), ...].to(mu.device)
+        prior_x.covariance_matrix = prior_x.covariance_matrix[:len(batch_idx), ...].to(mu.device)
 
         x_kl = kl_gaussian_loss_term(q_x, self.prior_x, len(batch_idx), self.data_dim)
         self.update_added_loss_term('x_kl', x_kl)
