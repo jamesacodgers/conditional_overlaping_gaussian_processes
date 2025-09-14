@@ -510,18 +510,24 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         
         # Create experiment summary in exact original GP LVM format
         experiment_summary = {
-            'train_rmse': 0.0,  # Will be updated below
-            'test_rmse': 0.0,   # Will be updated below
-            'final_loss': float(losses[-1]),
-            'final_noise': float(model.sigma2) if hasattr(model, 'sigma2') else 0.0
+            'ssvi': {
+                'train_rmse': 0.0,  # Will be updated below
+                'test_rmse': 0.0,   # Will be updated below
+                'train_nlpd': 0.0,  # Will be updated below
+                'test_nlpd': 0.0,   # Will be updated below
+                'final_loss': float(losses[-1]),
+                'final_noise': float(model.sigma2) if hasattr(model, 'sigma2') else 0.0
+            }
         }
         
         # Add metrics if available
         if metrics_computer is not None and config.enable_metrics:
             metrics_data = metrics_computer.get_metrics_summary()
-            experiment_summary.update({
+            experiment_summary['ssvi'].update({
                 'train_rmse': metrics_data.get('final_train_rmse', 0.0),
-                'test_rmse': metrics_data.get('final_test_rmse', 0.0)
+                'test_rmse': metrics_data.get('final_test_rmse', 0.0),
+                'train_nlpd': metrics_data.get('final_train_nlpd', 0.0),
+                'test_nlpd': metrics_data.get('final_test_nlpd', 0.0)
             })
         
         # Save experiment summary (same as original GP LVM)
