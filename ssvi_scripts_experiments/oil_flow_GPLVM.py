@@ -283,8 +283,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Create standardized scattered plots (same as original generalised_gplvm_code but scattered)
         if logger.get_results_dir():
             print(f"[DEBUG] About to create standardized scattered plot for {model_name}")
+            print(f"[DEBUG] logger.get_results_dir(): {logger.get_results_dir()}")
+            print(f"[DEBUG] model.X.__class__.__name__: {model.X.__class__.__name__}")
+            print(f"[DEBUG] Y_train device: {Y_train.device}")
+            print(f"[DEBUG] lb_train type: {type(lb_train)}")
             # Import function only when needed to avoid directory creation issues
             from src.ssvi_alignment_utils import create_standardized_scattered_plot
+            print(f"[DEBUG] About to call create_standardized_scattered_plot for {model_name}")
             # lb_train is already a numpy array from train_test_split, no need to convert
             # Use Y_train on the same device as model to avoid device mismatch
             create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")

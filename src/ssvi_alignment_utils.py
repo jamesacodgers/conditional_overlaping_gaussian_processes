@@ -107,6 +107,8 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     import pathlib
     
     print(f"[DEBUG] Starting create_standardized_scattered_plot for model_type={model_type}, model_name={model_name}")
+    print(f"[DEBUG] Y_train device in plotting function: {Y_train.device}")
+    print(f"[DEBUG] labels_train type in plotting function: {type(labels_train)}")
     
     # Use exact same styling as original plot_report function
     plt.style.use('ggplot')
@@ -181,9 +183,18 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
                 print(f"[DEBUG] model.X.mu_layers[0].weight device: {model.X.mu_layers[0].weight.device}")
                 Y_train_device = Y_train.to(model.X.mu_layers[0].weight.device) if Y_train.device != model.X.mu_layers[0].weight.device else Y_train
                 print(f"[DEBUG] Y_train_device device: {Y_train_device.device}")
+                print(f"[DEBUG] About to call model.X.mu(Y_train_device)")
                 X_mean_result = model.X.mu(Y_train_device)
                 print(f"[DEBUG] X_mean_result device before detach: {X_mean_result.device}")
-                X_mean = X_mean_result.detach().cpu().numpy()
+                print(f"[DEBUG] X_mean_result requires_grad: {X_mean_result.requires_grad}")
+                print(f"[DEBUG] About to detach X_mean_result")
+                X_mean_detached = X_mean_result.detach()
+                print(f"[DEBUG] X_mean_detached device: {X_mean_detached.device}")
+                print(f"[DEBUG] About to move X_mean_detached to CPU")
+                X_mean_cpu = X_mean_detached.cpu()
+                print(f"[DEBUG] X_mean_cpu device: {X_mean_cpu.device}")
+                print(f"[DEBUG] About to convert X_mean_cpu to numpy")
+                X_mean = X_mean_cpu.numpy()
                 print(f"[DEBUG] nn_gauss X_mean shape: {X_mean.shape}, device: CPU")
             else:
                 print("[DEBUG] Using fallback (direct latent values)...")
