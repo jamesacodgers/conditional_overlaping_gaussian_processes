@@ -526,6 +526,21 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             json.dump(initial_summary, f, indent=2)
         logger.log_training(f"Initial experiment summary saved: {summary_path}")
         
+        # Save checkpoint metrics and training progress plot (SSVI only)
+        if metrics_computer is not None and metrics_computer.metrics_history:
+            print(f"\n=== Saving Checkpoint Metrics and Training Progress Plot ===")
+            try:
+                # Save checkpoint metrics to JSON
+                checkpoint_json_path = logger.save_checkpoint_metrics(metrics_computer, "ssvi", config.random_seed)
+                print(f"Checkpoint metrics saved: {checkpoint_json_path}")
+                
+                # Save training progress plot
+                checkpoint_plot_path = logger.save_checkpoint_plot(metrics_computer, "ssvi", config.random_seed)
+                print(f"Training progress plot saved: {checkpoint_plot_path}")
+                
+            except Exception as e:
+                print(f"Warning: Could not save checkpoint data: {e}")
+        
         print(f"SSVI results saved to: {ssvi_results_dir}")
         print(f"Files created: config.json, training.log, experiment_summary.json")
 

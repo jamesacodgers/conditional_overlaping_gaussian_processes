@@ -389,6 +389,87 @@ class SSVIOriginalGPLVMResultsLogger:
     def get_results_dir(self):
         """Get results directory path"""
         return self.results_dir
+    
+    def save_checkpoint_metrics(self, metrics_computer, model_name: str, random_seed: int):
+        """Save checkpoint metrics to JSON file in training_results folder"""
+        if self.results_dir and metrics_computer and metrics_computer.metrics_history:
+            # Create training_results folder
+            training_results_dir = os.path.join(self.results_dir, "training_results")
+            os.makedirs(training_results_dir, exist_ok=True)
+            
+            # Prepare checkpoint data
+            checkpoint_data = {
+                'model_name': model_name,
+                'seed': random_seed,
+                'checkpoint_frequency': self.config.checkpoint_frequency,
+                'total_iterations': self.config.training_iterations,
+                'checkpoints': []
+            }
+            
+            # Extract metrics from each checkpoint
+            for metrics in metrics_computer.metrics_history:
+                checkpoint_entry = {
+                    'iteration': metrics.iteration,
+                    'train_rmse': float(metrics.train_rmse),
+                    'test_rmse': float(metrics.test_rmse),
+                    'train_nlpd': float(metrics.train_nlpd),
+                    'test_nlpd': float(metrics.test_nlpd),
+                    'elbo_loss': float(metrics.elbo_loss)
+                }
+                checkpoint_data['checkpoints'].append(checkpoint_entry)
+            
+            # Save to JSON file
+            checkpoint_file = os.path.join(training_results_dir, f"{model_name}_{random_seed}_checkpoint_metrics.json")
+            with open(checkpoint_file, 'w') as f:
+                json.dump(checkpoint_data, f, indent=2)
+            
+            self.log_training(f"Checkpoint metrics saved: training_results/{os.path.basename(checkpoint_file)}")
+            return checkpoint_file
+    
+    def save_checkpoint_plot(self, metrics_computer, model_name: str, random_seed: int):
+        """Create and save training progress plot with RMSE and NLPD subplots"""
+        if self.results_dir and metrics_computer and metrics_computer.metrics_history:
+            import matplotlib.pyplot as plt
+            
+            # Extract data for plotting
+            iterations = [m.iteration for m in metrics_computer.metrics_history]
+            train_rmse = [m.train_rmse for m in metrics_computer.metrics_history]
+            test_rmse = [m.test_rmse for m in metrics_computer.metrics_history]
+            train_nlpd = [m.train_nlpd for m in metrics_computer.metrics_history]
+            test_nlpd = [m.test_nlpd for m in metrics_computer.metrics_history]
+            
+            # Create figure with two subplots
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+            
+            # Plot RMSE
+            ax1.plot(iterations, train_rmse, 'b-', label='Train RMSE', linewidth=2)
+            ax1.plot(iterations, test_rmse, 'r-', label='Test RMSE', linewidth=2)
+            ax1.set_xlabel('Iteration')
+            ax1.set_ylabel('RMSE')
+            ax1.set_title(f'Training Progress - RMSE (Seed: {random_seed})')
+            ax1.legend()
+            ax1.grid(True, alpha=0.3)
+            
+            # Plot NLPD
+            ax2.plot(iterations, train_nlpd, 'b-', label='Train NLPD', linewidth=2)
+            ax2.plot(iterations, test_nlpd, 'r-', label='Test NLPD', linewidth=2)
+            ax2.set_xlabel('Iteration')
+            ax2.set_ylabel('NLPD')
+            ax2.set_title(f'Training Progress - NLPD (Seed: {random_seed})')
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
+            
+            # Adjust layout
+            plt.tight_layout()
+            
+            # Save plot
+            plot_filename = f"{model_name}_{random_seed}_training_progress.png"
+            plot_path = os.path.join(self.plots_dir, plot_filename)
+            fig.savefig(plot_path, dpi=300, bbox_inches='tight')
+            plt.close(fig)
+            
+            self.log_training(f"Training progress plot saved: plots/{plot_filename}")
+            return plot_path
 
 
 def save_iteration_model(model, model_name, iteration, random_seed, results_dir):
