@@ -106,21 +106,31 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     import numpy as np
     import pathlib
     
+    print(f"[DEBUG] Starting create_standardized_scattered_plot for model_type={model_type}, model_name={model_name}")
+    
     # Use exact same styling as original plot_report function
     plt.style.use('ggplot')
     plt.figure(figsize=(12,4))
     
     # Get model parameters exactly like original GP-LVM
     if model_type == "ssvi":
+        print("[DEBUG] Processing SSVI model parameters...")
         # For SSVI models - convert to same format as original GP-LVM
         inv_lengthscale = model.gp.beta.detach().cpu().numpy().flatten()
         lengthscales = (1.0 / model.gp.beta).detach().cpu()
         latent_dim = config.latent_dim
+        print(f"[DEBUG] SSVI inv_lengthscale shape: {inv_lengthscale.shape}, device: CPU")
     else:
+        print("[DEBUG] Processing original GP-LVM model parameters...")
         # For original GP-LVM models - use exact same approach as original
-        inv_lengthscale = 1/model.covar_module.base_kernel.lengthscale.detach().cpu().numpy().flatten()
-        lengthscales = model.covar_module.base_kernel.lengthscale.detach().cpu()
+        # Ensure lengthscale is moved to CPU before numpy conversion
+        print(f"[DEBUG] lengthscale device before detach: {model.covar_module.base_kernel.lengthscale.device}")
+        lengthscales_cpu = model.covar_module.base_kernel.lengthscale.detach().cpu()
+        print(f"[DEBUG] lengthscales_cpu device after detach.cpu(): {lengthscales_cpu.device}")
+        inv_lengthscale = (1/lengthscales_cpu).numpy().flatten()
+        lengthscales = lengthscales_cpu
         latent_dim = model.X.latent_dim
+        print(f"[DEBUG] Original GP-LVM inv_lengthscale shape: {inv_lengthscale.shape}, device: CPU")
     
     # Print lengthscales exactly like original plot_report
     print(inv_lengthscale)
@@ -137,7 +147,9 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     plt.ylabel('Latent dim 2', fontsize='small')
     
     # Get latent representations - exactly like original GP-LVM
+    print("[DEBUG] Getting latent representations...")
     if model_type == "ssvi":
+        print("[DEBUG] Processing SSVI latent representations...")
         # For SSVI models - use full dataset and sample to get scattered representation
         with torch.no_grad():
             U_samples = model.get_u_samples()
@@ -148,50 +160,76 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
             # Take mean across U samples to get scattered representation
             X_mean = mu_x.mean(dim=0).detach().cpu().numpy()
+            print(f"[DEBUG] SSVI X_mean shape: {X_mean.shape}, device: CPU")
     else:
+        print("[DEBUG] Processing original GP-LVM latent representations...")
         # For original GP-LVM models - use exact same approach as original plot_report
         with torch.no_grad():
             model_name_class = model.X.__class__.__name__
+            print(f"[DEBUG] Model class: {model_name_class}")
             if model_name_class == 'VariationalLatentVariable':  # 'gauss' model
+                print("[DEBUG] Using VariationalLatentVariable (gauss model)...")
                 # Use variational parameters directly (like original)
+                print(f"[DEBUG] q_mu device before detach: {model.X.q_mu.device}")
                 X_mean = model.X.q_mu.detach().cpu().numpy()
+                print(f"[DEBUG] gauss X_mean shape: {X_mean.shape}, device: CPU")
             elif model_name_class == 'NNEncoder':  # 'nn_gauss' model
+                print("[DEBUG] Using NNEncoder (nn_gauss model)...")
                 # Use Y_train on the same device as the model to avoid device mismatch
                 # Ensure Y_train is on the same device as the model before calling mu()
+                print(f"[DEBUG] Y_train device: {Y_train.device}")
+                print(f"[DEBUG] model.X.mu_layers[0].weight device: {model.X.mu_layers[0].weight.device}")
                 Y_train_device = Y_train.to(model.X.mu_layers[0].weight.device) if Y_train.device != model.X.mu_layers[0].weight.device else Y_train
-                X_mean = model.X.mu(Y_train_device).detach().cpu().numpy()
+                print(f"[DEBUG] Y_train_device device: {Y_train_device.device}")
+                X_mean_result = model.X.mu(Y_train_device)
+                print(f"[DEBUG] X_mean_result device before detach: {X_mean_result.device}")
+                X_mean = X_mean_result.detach().cpu().numpy()
+                print(f"[DEBUG] nn_gauss X_mean shape: {X_mean.shape}, device: CPU")
             else:
+                print("[DEBUG] Using fallback (direct latent values)...")
                 # Fallback: use direct latent values (like original)
                 X_mean = model.X.X.detach().cpu().numpy()
+                print(f"[DEBUG] fallback X_mean shape: {X_mean.shape}, device: CPU")
     
     # Plot points for each label (exactly like original plot_report but scattered only)
     # Use exact same colors as original oilflow experiment: ['r', 'b', 'g']
     colors = ['r', 'b', 'g']
     # Handle labels - convert to numpy if it's a tensor
+    print("[DEBUG] Processing labels...")
     if hasattr(labels_train, 'cpu'):
+        print(f"[DEBUG] labels_train device before cpu(): {labels_train.device}")
         labels_train_np = labels_train.cpu().numpy()
+        print(f"[DEBUG] labels_train_np shape: {labels_train_np.shape}, device: CPU")
     else:
+        print("[DEBUG] labels_train is already numpy array")
         labels_train_np = labels_train
     
     # Use exact same loop structure as original plot_report
+    print("[DEBUG] Creating scatter plot...")
     for i, label in enumerate(np.unique(labels_train_np)):
         X_i = X_mean[labels_train_np == label]
         plt.scatter(X_i[:, l1], X_i[:, l2], c=[colors[i]], label=label)
         # Note: No error bars (X_scales=None) as requested - scattered only
+    print("[DEBUG] Scatter plot completed")
     
     # Subplot 2: Inverse lengthscales (exactly like original plot_report)
+    print("[DEBUG] Creating lengthscale bar plot...")
     plt.subplot(132)
     plt.bar(np.arange(latent_dim), height=inv_lengthscale, color='teal')
     plt.title('Inverse Lengthscale with SE-ARD kernel', fontsize='small')
     plt.xlabel('Latent dims', fontsize='small')
+    print("[DEBUG] Lengthscale bar plot completed")
     
     # Subplot 3: Loss curve (exactly like original plot_report)
+    print("[DEBUG] Creating loss curve plot...")
     plt.subplot(133)
     plt.plot(losses, label='batch_size=100', color='orange')
     plt.xlabel('Steps', fontsize='small')
     plt.title('Neg. ELBO Loss', fontsize='small')
+    print("[DEBUG] Loss curve plot completed")
     
     plt.tight_layout()
+    print("[DEBUG] Layout tightened")
     
     # Use model name (gauss/nn_gauss) instead of class name for consistency
     if model_name == 'VariationalLatentVariable':
@@ -219,10 +257,14 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         os.makedirs(plots_subdir, exist_ok=True)
         plot_path = os.path.join(plots_subdir, plot_filename)
     
+    print("[DEBUG] Saving plot to file...")
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    print("[DEBUG] Plot saved successfully")
     plt.close()
+    print("[DEBUG] Plot closed")
     
     print(f"Standardized scattered plots saved to: {plot_path}")
+    print("[DEBUG] create_standardized_scattered_plot completed successfully")
 
 # Removed old plotting functions - now using create_standardized_scattered_plot for consistency
 

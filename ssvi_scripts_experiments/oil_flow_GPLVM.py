@@ -274,17 +274,21 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         
         # Create standardized scattered plots (same as original generalised_gplvm_code but scattered)
         if logger.get_results_dir():
+            print(f"[DEBUG] About to create standardized scattered plot for {model_name}")
             # Import function only when needed to avoid directory creation issues
             from src.ssvi_alignment_utils import create_standardized_scattered_plot
             # lb_train is already a numpy array from train_test_split, no need to convert
             # Use Y_train on the same device as model to avoid device mismatch
             create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
+            print(f"[DEBUG] Standardized scattered plot completed for {model_name}")
         
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')
+        print(f"[DEBUG] About to save model for {model_name}")
         
         # Save model using logger (now saves to pre_trained_models like original code)
         logger.save_model(model, model_name, config.random_seed)
+        print(f"[DEBUG] Model saved successfully for {model_name}")
 
         ####################### Testing Framework ################################################
         if config.enable_testing:
