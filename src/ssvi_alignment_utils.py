@@ -109,6 +109,10 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     print(f"[DEBUG] Starting create_standardized_scattered_plot for model_type={model_type}, model_name={model_name}")
     print(f"[DEBUG] Y_train device in plotting function: {Y_train.device}")
     print(f"[DEBUG] labels_train type in plotting function: {type(labels_train)}")
+    print(f"[DEBUG] losses type in plotting function: {type(losses)}")
+    print(f"[DEBUG] losses length: {len(losses)}")
+    print(f"[DEBUG] losses[0] type: {type(losses[0])}")
+    print(f"[DEBUG] losses[0] value: {losses[0]}")
     
     # Use exact same styling as original plot_report function
     plt.style.use('ggplot')
@@ -234,7 +238,12 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     # Subplot 3: Loss curve (exactly like original plot_report)
     print("[DEBUG] Creating loss curve plot...")
     plt.subplot(133)
-    plt.plot(losses, label='batch_size=100', color='orange')
+    print(f"[DEBUG] About to plot losses, losses type: {type(losses)}")
+    print(f"[DEBUG] losses[0] type: {type(losses[0])}")
+    # Ensure losses are Python floats for matplotlib
+    losses_floats = [float(x) for x in losses]
+    print(f"[DEBUG] Converted losses to floats, losses_floats[0] type: {type(losses_floats[0])}")
+    plt.plot(losses_floats, label='batch_size=100', color='orange')
     plt.xlabel('Steps', fontsize='small')
     plt.title('Neg. ELBO Loss', fontsize='small')
     print("[DEBUG] Loss curve plot completed")
