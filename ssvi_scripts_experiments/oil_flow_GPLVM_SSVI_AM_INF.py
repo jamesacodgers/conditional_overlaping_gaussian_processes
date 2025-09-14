@@ -98,7 +98,6 @@ class OilFlowSSVIConfig:
     # === Metrics Configuration ===
     enable_metrics: bool = True  # Compute evaluation metrics
     metrics_frequency: int = 100  # Compute metrics every N iterations
-    test_size: float = 0.2  # Fraction of data for testing
     split_random_seed: int = 42  # Seed for train/test split (separate from training seed)
 
     # === Visualization Configuration ===
@@ -404,6 +403,7 @@ def get_fast_config():
         gradient_log_frequency=25,
         enable_metrics=True,
         metrics_frequency=50,
+        test_size_int=100,  # 900 train, 100 test
         save_training_plots=True,
         plot_save_frequency=100,
         plot_training=True,

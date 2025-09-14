@@ -109,22 +109,35 @@ def load_config_with_overrides(config_path: str = None,
 
 def ensure_config_dir_exists():
     """Ensure config directory exists"""
-    config_dir = "ssvi_scripts_experiments/original_gplvm_configs"
+    # Check if we're already in ssvi_scripts_experiments folder
+    current_dir = os.getcwd()
+    if current_dir.endswith('ssvi_scripts_experiments'):
+        # We're already in ssvi_scripts_experiments, so just create original_gplvm_configs
+        config_dir = "original_gplvm_configs"
+    else:
+        # We're in project root, create full path
+        config_dir = "ssvi_scripts_experiments/original_gplvm_configs"
+    
     os.makedirs(config_dir, exist_ok=True)
     return config_dir
 
 def print_available_configs():
     """Print available configuration files"""
     config_dir = ensure_config_dir_exists()
-    config_files = [f for f in os.listdir(config_dir) if f.endswith('.yaml')]
     
-    if config_files:
-        print("Available configuration files:")
-        for config_file in sorted(config_files):
-            print(f"  {config_file}")
+    # Check if config directory exists and has files
+    if os.path.exists(config_dir):
+        config_files = [f for f in os.listdir(config_dir) if f.endswith('.yaml')]
+        
+        if config_files:
+            print("Available configuration files:")
+            for config_file in sorted(config_files):
+                print(f"  {config_file}")
+        else:
+            print("No configuration files found.")
+            print(f"Config directory: {config_dir}")
     else:
-        print("No configuration files found.")
-        print(f"Config directory: {config_dir}")
+        print(f"Config directory does not exist: {config_dir}")
 
 def save_config_to_yaml(config: OriginalGPLVMConfig, filepath: str):
     """Save configuration to YAML file"""
