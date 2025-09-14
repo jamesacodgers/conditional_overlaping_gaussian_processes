@@ -49,8 +49,10 @@ def compute_checkpoint_metrics(model, model_name: str, Y_train: torch.Tensor, Y_
         X_train_scales = model.get_X_scales(Y_train)
         
         # Compute training reconstruction
+        # Ensure X_train_mean is on correct device and dtype (it's already a tensor)
+        X_train_mean_device = X_train_mean.to(dtype=torch.float32) if X_train_mean.dtype != torch.float32 else X_train_mean
         Y_train_recon, Y_train_pred_covar = model.reconstruct_y(
-            torch.tensor(X_train_mean, dtype=torch.float32), Y_train, ae=ae, model_name=model_name)
+            X_train_mean_device, Y_train, ae=ae, model_name=model_name)
         
         # Compute training RMSE
         train_rmse = rmse(Y_train, Y_train_recon.T)
@@ -99,8 +101,10 @@ def compute_checkpoint_metrics(model, model_name: str, Y_train: torch.Tensor, Y_
                 X_test_mean = X_test.q_mu.detach()
         
         # Compute test reconstruction
+        # Ensure X_test_mean is on correct device and dtype (it's already a tensor)
+        X_test_mean_device = X_test_mean.to(dtype=torch.float32) if X_test_mean.dtype != torch.float32 else X_test_mean
         Y_test_recon, Y_test_pred_covar = model.reconstruct_y(
-            torch.tensor(X_test_mean, dtype=torch.float32), Y_test, ae=ae, model_name=model_name)
+            X_test_mean_device, Y_test, ae=ae, model_name=model_name)
         
         # Compute test RMSE
         test_rmse = rmse(Y_test, Y_test_recon.T)

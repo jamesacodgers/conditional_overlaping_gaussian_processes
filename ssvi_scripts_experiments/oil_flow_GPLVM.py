@@ -318,8 +318,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             elif model_name == 'gauss':
                    X_test_mean = X_test.q_mu.detach()
        
-            Y_test_recon, Y_test_pred_covar = model.reconstruct_y(torch.tensor(X_test_mean, dtype=torch.float32, device=config.device), Y_test, ae=ae, model_name=model_name)
-            Y_train_recon, Y_train_pred_covar = model.reconstruct_y(torch.tensor(X_train_mean, dtype=torch.float32, device=config.device), Y_train, ae=ae, model_name=model_name)
+            # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
+            X_test_mean_device = X_test_mean.to(dtype=torch.float32, device=config.device) if X_test_mean.dtype != torch.float32 or X_test_mean.device != config.device else X_test_mean
+            X_train_mean_device = X_train_mean.to(dtype=torch.float32, device=config.device) if X_train_mean.dtype != torch.float32 or X_train_mean.device != config.device else X_train_mean
+            
+            Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test, ae=ae, model_name=model_name)
+            Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train, ae=ae, model_name=model_name)
             
             # ################################
             # Compute the metrics:
