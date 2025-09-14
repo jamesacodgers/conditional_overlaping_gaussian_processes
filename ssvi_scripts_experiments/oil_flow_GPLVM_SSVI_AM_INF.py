@@ -326,19 +326,19 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                 # Generate filename with iteration number
                 plot_filename = f"oilflow_ssvi_iter_{i}_seed_{config.random_seed}.png"
 
-                # Use the existing visualization function (save only, no display)
-                visualize_ssvi_results(
-                    model=model,
-                    y=y,
-                    labels=labels,
-                    losses=losses,
-                    config=config,
-                    logger=logger,
-                    save_filename=plot_filename,
-                    show_plot=False
+                # Create plots/checkpoints subdirectory for organized checkpoint storage
+                plots_checkpoints_dir = os.path.join(logger.get_results_dir(), 'plots', 'checkpoints')
+                os.makedirs(plots_checkpoints_dir, exist_ok=True)
+
+                # Use the standardized plotting function for checkpoints
+                from src.ssvi_alignment_utils import create_standardized_scattered_plot
+                create_standardized_scattered_plot(
+                    model, losses, labels, config, plots_checkpoints_dir, 
+                    "ssvi", config.random_seed, y, model_type="ssvi", 
+                    custom_filename=plot_filename
                 )
 
-                print(f"    Training plots saved: {plot_filename}")
+                print(f"    Training plots saved: plots/checkpoints/{plot_filename}")
 
             except Exception as e:
                 print(f"    Warning: Error saving training plots at iteration {i}: {e}")

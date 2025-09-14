@@ -205,8 +205,8 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         plot_filename = f"oilflow_{model_short_name}_{random_seed}.png"
     
     # Create plots subdirectory only if we're not already in a plots directory
-    if os.path.basename(results_dir) == 'plots':
-        # We're already in a plots directory, save directly here
+    if os.path.basename(results_dir) == 'plots' or os.path.basename(results_dir) == 'checkpoints':
+        # We're already in a plots directory or checkpoints subdirectory, save directly here
         plot_path = os.path.join(results_dir, plot_filename)
     else:
         # Create plots subdirectory for better organization
@@ -393,10 +393,10 @@ class SSVIOriginalGPLVMResultsLogger:
 
 def save_iteration_model(model, model_name, iteration, random_seed, results_dir):
     """
-    Save model at specific iteration (only to pre_trained_models like original code)
+    Save model at specific iteration to pre_trained_models/checkpoints folder
     """
-    # Save to pre_trained_models folder (like original generalised_gplvm_code)
-    pre_trained_dir = os.path.join(results_dir, 'pre_trained_models')
+    # Save to pre_trained_models/checkpoints folder for organized checkpoint storage
+    pre_trained_dir = os.path.join(results_dir, 'pre_trained_models', 'checkpoints')
     os.makedirs(pre_trained_dir, exist_ok=True)
     
     filename = f'oilflow_{model_name}_iter_{iteration}_seed_{random_seed}.pkl'
@@ -410,13 +410,17 @@ def save_iteration_model(model, model_name, iteration, random_seed, results_dir)
 
 def create_iteration_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, iteration, model_type="original"):
     """
-    Create iteration-based plot (like SSVI does)
+    Create iteration-based plot saved to plots/checkpoints folder
     """
     plot_filename = f"oilflow_{model_name}_iter_{iteration}_seed_{random_seed}.png"
     
-    # Create the standardized plot with custom filename
+    # Create plots/checkpoints subdirectory for organized checkpoint storage
+    plots_checkpoints_dir = os.path.join(results_dir, 'plots', 'checkpoints')
+    os.makedirs(plots_checkpoints_dir, exist_ok=True)
+    
+    # Create the standardized plot with custom filename in checkpoints folder
     create_standardized_scattered_plot(
-        model, losses, labels_train, config, results_dir, 
+        model, losses, labels_train, config, plots_checkpoints_dir, 
         model_name, random_seed, Y_train, model_type=model_type, 
         custom_filename=plot_filename
     )
