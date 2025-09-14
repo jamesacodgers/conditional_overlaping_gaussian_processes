@@ -71,7 +71,7 @@ class OilFlowModel(BayesianGPLVM):
         
         # Locations Z corresponding to u_{d}, they can be randomly initialized or 
         # regularly placed with shape (n_inducing x latent_dim).
-        self.inducing_inputs = torch.randn(n_inducing, latent_dim)
+        self.inducing_inputs = torch.randn(n_inducing, latent_dim, device=torch.get_default_device())
     
         # Sparse Variational Formulation
         q_u = CholeskyVariationalDistribution(n_inducing, batch_shape=self.batch_shape) 
@@ -125,8 +125,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     Y_train, Y_test = train_test_split(Y.numpy(), test_size=config.test_size, random_state=config.random_seed)
     lb_train, lb_test = train_test_split(labels, test_size=config.test_size, random_state=config.random_seed)
     
-    Y_train = torch.tensor(Y_train, dtype=torch.float32)
-    Y_test = torch.tensor(Y_test, dtype=torch.float32)
+    Y_train = torch.tensor(Y_train, dtype=torch.float32, device=config.device)
+    Y_test = torch.tensor(Y_test, dtype=torch.float32, device=config.device)
     
     # Setting shapes
     N = len(Y_train)
@@ -149,14 +149,14 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         logger.log_training(f"Starting training for model: {model_name}")
         
         # Define prior for X
-        X_prior_mean = torch.zeros(N, latent_dim)  # shape: N x Q
+        X_prior_mean = torch.zeros(N, latent_dim, device=config.device)  # shape: N x Q
         X_prior_mean_test = X_prior_mean[0:len(Y_test),:]
     
         # Initialise X with PCA or 0s.
         if pca == True:
               X_init = _init_pca(Y_train, latent_dim) # Initialise X to PCA 
         else:
-              X_init = torch.nn.Parameter(torch.zeros(N, latent_dim))
+              X_init = torch.nn.Parameter(torch.zeros(N, latent_dim, device=config.device))
         
         # Each inference model differs in its latent variable configuration / 
         # LatentVariable (X)
@@ -178,8 +178,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
             ae = True
             nn_layers = config.nn_layers
-            prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1]))
-            prior_x_test = MultivariateNormalPrior(X_prior_mean_test, torch.eye(X_prior_mean.shape[1]))
+            prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1], device=config.device))
+            prior_x_test = MultivariateNormalPrior(X_prior_mean_test, torch.eye(X_prior_mean.shape[1], device=config.device))
             X = NNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
             
         # Initialise model, likelihood, elbo and optimizer
@@ -273,7 +273,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         # Store original jitter
                         original_jitter = model.X.jitter
                         # Create jitter for test data size
-                        test_jitter = torch.eye(latent_dim).unsqueeze(0) * 1e-5
+                        test_jitter = torch.eye(latent_dim, device=config.device).unsqueeze(0) * 1e-5
                         model.X.jitter = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
                         
                         # Call encoder directly
@@ -314,8 +314,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             elif model_name == 'gauss':
                    X_test_mean = X_test.q_mu.detach()
        
-            Y_test_recon, Y_test_pred_covar = model.reconstruct_y(torch.tensor(X_test_mean, dtype=torch.float32), Y_test, ae=ae, model_name=model_name)
-            Y_train_recon, Y_train_pred_covar = model.reconstruct_y(torch.tensor(X_train_mean, dtype=torch.float32), Y_train, ae=ae, model_name=model_name)
+            Y_test_recon, Y_test_pred_covar = model.reconstruct_y(torch.tensor(X_test_mean, dtype=torch.float32, device=config.device), Y_test, ae=ae, model_name=model_name)
+            Y_train_recon, Y_train_pred_covar = model.reconstruct_y(torch.tensor(X_train_mean, dtype=torch.float32, device=config.device), Y_train, ae=ae, model_name=model_name)
             
             # ################################
             # Compute the metrics:
