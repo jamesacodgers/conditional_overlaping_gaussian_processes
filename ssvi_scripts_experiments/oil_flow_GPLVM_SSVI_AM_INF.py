@@ -86,8 +86,8 @@ class OilFlowSSVIConfig:
     P: int = 8  # Number of samples for SSVI (like original)
     trainable_V: bool = True
 
-    # === Progress Reporting ===
-    log_frequency: int = 100  # Log every N iterations
+    # === Checkpoint Configuration ===
+    checkpoint_frequency: int = 100  # Save models, plots, metrics, and log progress every N iterations
 
     # === Advanced Logging ===
     enable_gradient_logging: bool = False  # Log gradients and parameter changes
@@ -97,12 +97,10 @@ class OilFlowSSVIConfig:
 
     # === Metrics Configuration ===
     enable_metrics: bool = True  # Compute evaluation metrics
-    metrics_frequency: int = 100  # Compute metrics every N iterations
     split_random_seed: int = 42  # Seed for train/test split (separate from training seed)
 
     # === Visualization Configuration ===
     save_training_plots: bool = True  # Save training result plots during training
-    plot_save_frequency: int = 100  # Save plots every N iterations
     plot_training: bool = True  # Plot training progress
     plot_latent_space: bool = True  # Plot latent space visualization
     plot_hyperparams: bool = True  # Plot model hyperparameters
@@ -272,7 +270,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
     # Initialize metrics computer if enabled
     metrics_computer = None
     if config.enable_metrics and split_data is not None:
-        print(f"Metrics computation enabled (frequency: every {config.metrics_frequency} iterations)")
+        print(f"Metrics computation enabled (frequency: every {config.checkpoint_frequency} iterations)")
         metrics_computer = SSVIMetricsComputer(device=config.device)
 
     start_time = time.time()
@@ -290,7 +288,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
         # Metrics computation (periodic)
         if (metrics_computer is not None and
                 config.enable_metrics and
-                i % config.metrics_frequency == 0):
+                i % config.checkpoint_frequency == 0):
 
             print(f"  Computing metrics at iteration {i}...")
             try:
@@ -321,7 +319,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
 
         # Training plot saving (periodic)
         if (logger and config.save_training_plots and
-                i > 0 and i % config.plot_save_frequency == 0):
+                i > 0 and i % config.checkpoint_frequency == 0):
 
             print(f"  Saving training plots at iteration {i}...")
             try:
@@ -347,7 +345,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
 
         # Training model saving (periodic) - save iteration models like original GP-LVM
         if (logger and logger.get_results_dir() and
-                i > 0 and i % config.plot_save_frequency == 0):
+                i > 0 and i % config.checkpoint_frequency == 0):
 
             print(f"  Saving iteration {i} model...")
             try:
@@ -364,7 +362,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
             logger.log_gradients(i, loss, gradient_info)
 
         # Progress reporting
-        if i % config.log_frequency == 0:
+        if i % config.checkpoint_frequency == 0:
             elapsed = time.time() - start_time
             message = f"Iteration {i}/{config.training_iterations}: Loss={loss:.4f}, Time={elapsed:.1f}s"
             print(f"Iteration {i}/{config.training_iterations}")
@@ -398,14 +396,12 @@ def get_fast_config():
         local_lr=2e-3,
         global_lr=1e-2,
         P=4,
-        log_frequency=50,
+        checkpoint_frequency=50,
         enable_gradient_logging=True,
         gradient_log_frequency=25,
         enable_metrics=True,
-        metrics_frequency=50,
         test_size_int=100,  # 900 train, 100 test
         save_training_plots=True,
-        plot_save_frequency=100,
         plot_training=True,
         plot_latent_space=True,
         plot_hyperparams=True
