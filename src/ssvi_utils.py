@@ -100,97 +100,36 @@ class SSVIResultsLogger:
 
 
 def visualize_ssvi_results(model, y, labels, losses, config, logger, save_filename: str = "training_results.png", show_plot: bool = True):
-    """Visualize SSVI training results and latent space"""
+    """Visualize SSVI training results and latent space using standardized plotting"""
     
-    if not (hasattr(config, 'plot_training') and config.plot_training or
-            hasattr(config, 'plot_latent_space') and config.plot_latent_space or
-            hasattr(config, 'plot_hyperparams') and config.plot_hyperparams):
-        return
+    # Use the standardized plotting function for consistency
+    from src.ssvi_alignment_utils import create_standardized_scattered_plot
     
-    # SSVI models don't need test preparation - encoder handles everything
-    
-    with torch.no_grad():
-        # Color mapping for labels (assuming 3 classes)
-        c = ["r", "g", "b"]
-        colors = [c[int(i)-1] for i in labels]
+    # Create a temporary directory for the plot
+    import tempfile
+    import os
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Create the standardized plot
+        create_standardized_scattered_plot(model, losses, labels, config, temp_dir, "ssvi", config.random_seed, y, model_type="ssvi")
         
-        plot_flags = [
-            hasattr(config, 'plot_training') and config.plot_training,
-            hasattr(config, 'plot_latent_space') and config.plot_latent_space,
-            hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
-        ]
-        n_plots = sum(plot_flags)
-        # Use exact same figure size as original GP-LVM
-        fig = plt.figure(figsize=(12, 4))
+        # Read the plot file and save it using the logger
+        plot_path = os.path.join(temp_dir, f"oilflow_ssvi_scattered_seed_{config.random_seed}.png")
+        if os.path.exists(plot_path):
+            # Copy the plot to the logger's plots directory
+            import shutil
+            logger_plot_path = os.path.join(logger.plots_dir, save_filename)
+            shutil.copy2(plot_path, logger_plot_path)
+            logger.log_training(f"Plot saved: plots/{save_filename}")
         
-        # Plot 1: Latent space visualization (subplot 131)
-        if plot_flags[1]:
-            plt.subplot(131)
-            
-            # Find the two most informative dimensions (smallest lengthscales = largest beta)
-            # This matches the original GP-LVM approach exactly
-            lengthscales = 1 / model.gp.beta.flatten()
-            values, indices = torch.topk(lengthscales, k=2, largest=False)
-            l1 = indices.numpy().flatten()[0]
-            l2 = indices.numpy().flatten()[1]
-            
-            # Get latent representations using SSVI amortized inference (like NNEncoder model)
-            # This should produce the cross-shaped pattern similar to NNEncoder
-            with torch.no_grad():
-                # Sample U for SSVI
-                U_samples = model.get_u_samples()
-                
-                # Preprocess encoder input to handle missing data (consistent with training)
-                if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                    y_encoder_input = torch.where(torch.isnan(y), torch.zeros_like(y), y)
-                else:
-                    y_encoder_input = y
-                
-                # Get latent means using SSVI amortized inference (like model.X.mu() in original)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
-                # Take the mean across P samples to get final latent representation
-                X_mean = mu_x.mean(dim=0).detach().cpu().numpy()  # [N, A]
-            
-            # Plot latent representations grouped by labels (exactly like original GP-LVM)
-            # Handle labels - convert to numpy if it's a tensor
-            if hasattr(labels, 'cpu'):
-                labels_np = labels.cpu().numpy()
-            else:
-                labels_np = labels
-                
-            unique_labels = np.unique(labels_np)
-            for i, label in enumerate(unique_labels):
-                X_i = X_mean[labels_np == label]
-                plt.scatter(X_i[:, l1], X_i[:, l2], c=[colors[i]], label=label)
-            
-            plt.xlabel('Latent dim 1', fontsize='small')
-            plt.ylabel('Latent dim 2', fontsize='small') 
-            plt.title('2d latent subspace [ssvi]', fontsize='small')
-        
-        # Plot 2: Hyperparameters (inverse lengthscales) - subplot 132
-        if plot_flags[2]:
-            plt.subplot(132)
-            inv_lengthscales = model.gp.beta.flatten().cpu()
-            plt.bar(range(len(inv_lengthscales)), inv_lengthscales, 
-                   color="teal")
-            plt.xlabel('Latent dims', fontsize='small')
-            plt.title('Inverse Lengthscale with SE-ARD kernel', fontsize='small')
-        
-        # Plot 3: Training curve - subplot 133
-        if plot_flags[0]:
-            plt.subplot(133)
-            plt.plot(losses, label='batch_size=100', color='orange')
-            plt.xlabel('Steps', fontsize='small')
-            plt.title('Neg. ELBO Loss', fontsize='small')
-        
-        plt.tight_layout()
-        
-        # Save plot
-        logger.save_plots(fig, save_filename)
         if show_plot:
+            # Display the plot
+            import matplotlib.pyplot as plt
+            fig = plt.figure(figsize=(12, 4))
+            img = plt.imread(plot_path)
+            plt.imshow(img)
+            plt.axis('off')
             plt.show()
-        else:
-            plt.close(fig)  # Close figure to free memory
+            plt.close(fig)
 
 
 def plot_metrics_history(metrics_computer, 
@@ -218,10 +157,10 @@ def plot_metrics_history(metrics_computer,
     train_nlpd = [m.train_nlpd for m in metrics_computer.metrics_history]
     test_nlpd = [m.test_nlpd for m in metrics_computer.metrics_history]
     elbo_loss = [m.elbo_loss for m in metrics_computer.metrics_history]
-    effective_dims = [m.effective_latent_dims for m in metrics_computer.metrics_history]
+    # Remove effective dimensions computation
     
-    # Create subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
+    # Create subplots - only 3 plots, no plot 4
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(12, 4))
     
     # Plot 1: RMSE comparison (train vs test)
     ax1.plot(iterations, train_rmse, 'b-', label='Train RMSE', linewidth=2)
@@ -248,132 +187,12 @@ def plot_metrics_history(metrics_computer,
     ax3.set_title('Training Loss (ELBO)')
     ax3.grid(True, alpha=0.3)
     
-    # Plot 4: Effective latent dimensions
-    ax4.plot(iterations, effective_dims, 'purple', linewidth=2)
-    ax4.set_xlabel('Iteration')
-    ax4.set_ylabel('Effective Dimensions')
-    ax4.set_title('Model Complexity (Effective Latent Dims)')
-    ax4.grid(True, alpha=0.3)
     
     plt.tight_layout()
     
     # Save plot if logger provided
     if logger:
         logger.save_plots(fig, "metrics_progression.png")
-    
-    if show_plot:
-        plt.show()
-    
-    return fig
-
-
-def plot_final_metrics_summary(metrics_computer,
-                              model,
-                              logger: SSVIResultsLogger = None,
-                              show_plot: bool = True) -> plt.Figure:
-    """
-    Create summary plots of final model performance metrics
-    
-    Args:
-        metrics_computer: SSVIMetricsComputer with computed metrics
-        model: Trained SSVI GP-LVM model
-        logger: Optional logger for saving plots
-        show_plot: Whether to display the plot
-        
-    Returns:
-        matplotlib Figure object
-    """
-    if not hasattr(metrics_computer, 'metrics_history') or not metrics_computer.metrics_history:
-        print("No metrics available for summary")
-        return None
-    
-    # Get final metrics
-    final_metrics = metrics_computer.metrics_history[-1]
-    metrics_summary = metrics_computer.get_metrics_summary()
-    
-    # Create figure with subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
-    
-    # Plot 1: Train vs Test RMSE comparison
-    categories = ['Train RMSE', 'Test RMSE']
-    values = [final_metrics.train_rmse, final_metrics.test_rmse]
-    colors = ['blue', 'red']
-    
-    bars1 = ax1.bar(categories, values, color=colors, alpha=0.7)
-    ax1.set_ylabel('RMSE')
-    ax1.set_title('Final Reconstruction Performance')
-    ax1.grid(True, alpha=0.3)
-    
-    # Add value labels on bars
-    for bar, value in zip(bars1, values):
-        height = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2., height,
-                f'{value:.4f}', ha='center', va='bottom')
-    
-    # Plot 2: Train vs Test NLPD comparison  
-    categories = ['Train NLPD', 'Test NLPD']
-    values = [final_metrics.train_nlpd, final_metrics.test_nlpd]
-    
-    bars2 = ax2.bar(categories, values, color=colors, alpha=0.7)
-    ax2.set_ylabel('NLPD (lower is better)')
-    ax2.set_title('Final Uncertainty Quantification')
-    ax2.grid(True, alpha=0.3)
-    
-    # Add value labels on bars
-    for bar, value in zip(bars2, values):
-        height = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width()/2., height,
-                f'{value:.3f}', ha='center', va='bottom')
-    
-    # Plot 3: Latent space utilization
-    with torch.no_grad():
-        if hasattr(model, 'gp') and hasattr(model.gp, 'beta'):
-            lengthscales = (1.0 / model.gp.beta.flatten()).cpu()
-            dims = range(len(lengthscales))
-            
-            ax3.bar(dims, lengthscales, color='green', alpha=0.7)
-            ax3.set_xlabel('Latent Dimension')
-            ax3.set_ylabel('Lengthscale')
-            ax3.set_title(f'Lengthscales ({final_metrics.effective_latent_dims}/{final_metrics.total_latent_dims} effective)')
-            ax3.grid(True, alpha=0.3)
-        else:
-            ax3.text(0.5, 0.5, 'Lengthscales not available', ha='center', va='center', transform=ax3.transAxes)
-            ax3.set_title('Lengthscales (Not Available)')
-    
-    # Plot 4: Summary metrics table
-    ax4.axis('tight')
-    ax4.axis('off')
-    
-    # Create summary table
-    summary_data = [
-        ['Metric', 'Value'],
-        ['Train RMSE', f'{final_metrics.train_rmse:.4f}'],
-        ['Test RMSE', f'{final_metrics.test_rmse:.4f}'],
-        ['Train NLPD', f'{final_metrics.train_nlpd:.3f}'],
-        ['Test NLPD', f'{final_metrics.test_nlpd:.3f}'],
-        ['Overfitting Ratio', f'{metrics_summary.get("overfitting_ratio", 0):.3f}'],
-        ['Effective Dims', f'{final_metrics.effective_latent_dims}/{final_metrics.total_latent_dims}'],
-        ['Final Loss', f'{final_metrics.elbo_loss:.4f}']
-    ]
-    
-    table = ax4.table(cellText=summary_data, cellLoc='center', loc='center',
-                     colWidths=[0.5, 0.5])
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1, 2)
-    
-    # Style header row
-    for i in range(len(summary_data[0])):
-        table[(0, i)].set_facecolor('#4CAF50')
-        table[(0, i)].set_text_props(weight='bold', color='white')
-    
-    ax4.set_title('Model Performance Summary')
-    
-    plt.tight_layout()
-    
-    # Save plot if logger provided
-    if logger:
-        logger.save_plots(fig, "final_metrics_summary.png")
     
     if show_plot:
         plt.show()
@@ -465,13 +284,13 @@ Test NLPD:         {final_metrics.test_nlpd:.6f}
 
 MODEL ANALYSIS:
 Overfitting Ratio: {summary.get('overfitting_ratio', float('inf')):.6f}
-Effective Dims:    {final_metrics.effective_latent_dims}/{final_metrics.total_latent_dims}
+# Effective dimensions removed
 Final Loss:        {final_metrics.elbo_loss:.6f}
 Total Iterations:  {summary.get('total_iterations', 0)}{lengthscales_info}
 
 PAPER-STYLE COMPARISON FORMAT:
-Method     | Train RMSE | Test RMSE | Train NLPD | Test NLPD | Effective Dims
-GP-LVM SSVI| {final_metrics.train_rmse:.4f}     | {final_metrics.test_rmse:.4f}    | {final_metrics.train_nlpd:.3f}     | {final_metrics.test_nlpd:.3f}     | {final_metrics.effective_latent_dims}/{final_metrics.total_latent_dims}
+Method     | Train RMSE | Test RMSE | Train NLPD | Test NLPD
+GP-LVM SSVI| {final_metrics.train_rmse:.4f}     | {final_metrics.test_rmse:.4f}    | {final_metrics.train_nlpd:.3f}     | {final_metrics.test_nlpd:.3f}
 
 TRAINING PROGRESSION:
 """
@@ -480,7 +299,7 @@ TRAINING PROGRESSION:
     for i, metrics in enumerate(metrics_computer.metrics_history):
         text_content += f"Iter {metrics.iteration:4d}: Train RMSE={metrics.train_rmse:.4f}, Test RMSE={metrics.test_rmse:.4f}, "
         text_content += f"Train NLPD={metrics.train_nlpd:.3f}, Test NLPD={metrics.test_nlpd:.3f}, "
-        text_content += f"Effective Dims={metrics.effective_latent_dims}/{metrics.total_latent_dims}\n"
+        # Remove effective dimensions from text output
     
     text_content += f"\n=== End of Summary ===\n"
     

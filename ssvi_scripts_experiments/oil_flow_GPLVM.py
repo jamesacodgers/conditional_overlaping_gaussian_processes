@@ -236,13 +236,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         
         # We only want scattered plots (SSVI-matched outputs) in the plots folder
         
-        # Create scattered plots to match SSVI output style
+        # Create standardized scattered plots (same as original generalised_gplvm_code but scattered)
         if logger.get_results_dir():
             plots_dir = os.path.join(logger.get_results_dir(), 'plots')
             os.makedirs(plots_dir, exist_ok=True)
             # Import function only when needed to avoid directory creation issues
-            from src.ssvi_alignment_utils import create_scattered_plots_for_original_gplvm
-            create_scattered_plots_for_original_gplvm(model, loss_list, lb_train, config, plots_dir, model.X.__class__.__name__, config.random_seed, Y_train)
+            from src.ssvi_alignment_utils import create_standardized_scattered_plot
+            create_standardized_scattered_plot(model, loss_list, lb_train, config, plots_dir, model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
         
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')

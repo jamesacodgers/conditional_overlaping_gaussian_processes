@@ -31,7 +31,6 @@ class SSVIMetrics:
     test_nlpd: float = 0.0
     
     # Model complexity metrics
-    effective_latent_dims: int = 0
     total_latent_dims: int = 0
     
     # Training progression
@@ -46,7 +45,6 @@ class SSVIMetrics:
             'test_rmse': self.test_rmse,
             'train_nlpd': self.train_nlpd,
             'test_nlpd': self.test_nlpd,
-            'effective_latent_dims': self.effective_latent_dims,
             'total_latent_dims': self.total_latent_dims,
             'elbo_loss': self.elbo_loss
         }
@@ -257,39 +255,13 @@ class SSVIMetricsComputer:
         model.train()
         return nlpd
     
-    def compute_effective_latent_dims(self, model, threshold: float = 0.1) -> Tuple[int, int]:
-        """
-        Compute number of effective latent dimensions based on lengthscales
-        
-        Args:
-            model: SSVI GP-LVM model
-            threshold: Threshold for considering a dimension effective (relative to max)
-            
-        Returns:
-            (effective_dims, total_dims)
-        """
-        with torch.no_grad():
-            # Get lengthscales (1/beta)
-            if hasattr(model.gp, 'beta'):
-                lengthscales = 1.0 / model.gp.beta.flatten()
-            else:
-                # Fallback if beta not available
-                return 0, 0
-            
-            # Normalize by maximum lengthscale
-            max_lengthscale = lengthscales.max()
-            relative_lengthscales = lengthscales / max_lengthscale
-            
-            # Count dimensions above threshold
-            effective_dims = (relative_lengthscales > threshold).sum().item()
-            total_dims = len(lengthscales)
-            
-        return effective_dims, total_dims
+    # Remove effective latent dimensions computation
     
     def compute_full_metrics(self, 
                            model, 
                            y_train: torch.Tensor, 
                            y_test: torch.Tensor,
+                           config,
                            train_indices: Optional[torch.Tensor] = None,
                            test_indices: Optional[torch.Tensor] = None,
                            iteration: int = 0,
@@ -301,7 +273,8 @@ class SSVIMetricsComputer:
         Args:
             model: SSVI GP-LVM model
             y_train: Training data
-            y_test: Test data  
+            y_test: Test data
+            config: Configuration object with latent_dim
             train_indices: Optional training indices for subset
             test_indices: Optional test indices for subset
             iteration: Current training iteration
@@ -326,9 +299,8 @@ class SSVIMetricsComputer:
             metrics.test_nlpd = self.compute_nlpd(model, y_test, test_indices, uncertainty_samples)
             
             # Model complexity
-            effective_dims, total_dims = self.compute_effective_latent_dims(model)
-            metrics.effective_latent_dims = effective_dims
-            metrics.total_latent_dims = total_dims
+            # Remove effective dimensions computation
+            metrics.total_latent_dims = config.latent_dim
             
         except Exception as e:
             print(f"Warning: Error computing metrics at iteration {iteration}: {e}")
@@ -351,7 +323,7 @@ class SSVIMetricsComputer:
             'final_test_rmse': final_metrics.test_rmse,
             'final_train_nlpd': final_metrics.train_nlpd,
             'final_test_nlpd': final_metrics.test_nlpd,
-            'final_effective_dims': final_metrics.effective_latent_dims,
+            # Remove effective dimensions from summary
             'total_latent_dims': final_metrics.total_latent_dims,
             'overfitting_ratio': final_metrics.test_rmse / final_metrics.train_rmse if final_metrics.train_rmse > 0 else float('inf'),
             'total_iterations': len(self.metrics_history)

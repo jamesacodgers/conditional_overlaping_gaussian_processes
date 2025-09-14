@@ -33,7 +33,7 @@ import time
 sys.path.insert(0, os.getcwd())
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, \
+from src.ssvi_utils import visualize_ssvi_results, plot_metrics_history, \
     save_metrics_to_json, save_metrics_to_text
 from src.ssvi_alignment_utils import SSVIOriginalGPLVMResultsLogger
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
@@ -495,9 +495,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 json.dump(metrics_summary, f, indent=2)
             logger.log_training(f"Metrics summary saved: {metrics_summary_path}")
         
-        # Create final SSVI plots in the same plots folder as training plots
-        from src.ssvi_alignment_utils import create_ssvi_plots_like_original
-        create_ssvi_plots_like_original(model, losses, labels, config, ssvi_results_dir, "ssvi", config.random_seed, y)
+        # Create standardized scattered plots (same as original generalised_gplvm_code but scattered)
+        from src.ssvi_alignment_utils import create_standardized_scattered_plot
+        create_standardized_scattered_plot(model, losses, labels, config, ssvi_results_dir, "ssvi", config.random_seed, y, model_type="ssvi")
         
         # Create experiment summary in exact original GP LVM format
         experiment_summary = {

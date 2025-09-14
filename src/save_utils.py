@@ -92,7 +92,6 @@ def save_paper_style_metrics(model, split_data, losses, logger, config, metrics_
             "test_rmse": float(metrics_summary.get('final_test_rmse', 0.0)),
             "train_nlpd": float(metrics_summary.get('final_train_nlpd', 0.0)),
             "test_nlpd": float(metrics_summary.get('final_test_nlpd', 0.0)),
-            "effective_latent_dims": int(metrics_summary.get('final_effective_dims', config.latent_dim)),
             "total_latent_dims": int(config.latent_dim),
             "overfitting_ratio": float(metrics_summary.get('overfitting_ratio', 1.0))
         },
