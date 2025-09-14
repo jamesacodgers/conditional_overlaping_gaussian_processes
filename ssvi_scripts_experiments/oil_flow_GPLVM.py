@@ -44,8 +44,7 @@ from gpytorch.kernels import ScaleKernel, RBFKernel
 from gpytorch.distributions import MultivariateNormal
 from sklearn.model_selection import train_test_split
 
-# Import visualization and metrics
-from utils.visualisation import plot_report
+# Import metrics
 from utils.metrics import rmse
 
 # Import configuration system
@@ -235,24 +234,15 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         X_train_mean = model.get_X_mean(Y_train)
         X_train_scales = model.get_X_scales(Y_train)
         
-        # Save plots to results directory
+        # We only want scattered plots (SSVI-matched outputs) in the plots folder
+        
+        # Create scattered plots to match SSVI output style
         if logger.get_results_dir():
             plots_dir = os.path.join(logger.get_results_dir(), 'plots')
             os.makedirs(plots_dir, exist_ok=True)
-            # Change to results directory temporarily for plot_report
-            original_cwd = os.getcwd()
-            os.chdir(logger.get_results_dir())
-            plot_save_path = f'oilflow_{model_name}_{config.random_seed}'
-        else:
-            # Fallback to current directory if no results directory
-            os.makedirs('plots', exist_ok=True)
-            plot_save_path = f'oilflow_{model_name}_{config.random_seed}'
-        
-        plot_report(model, loss_list, lb_train, colors=config.plot_colors, save=plot_save_path, X_mean=X_train_mean, X_scales=X_train_scales, model_name=model.X.__class__.__name__)
-        
-        # Restore original working directory if we changed it
-        if logger.get_results_dir():
-            os.chdir(original_cwd)
+            # Import function only when needed to avoid directory creation issues
+            from src.ssvi_alignment_utils import create_scattered_plots_for_original_gplvm
+            create_scattered_plots_for_original_gplvm(model, loss_list, lb_train, config, plots_dir, model.X.__class__.__name__, config.random_seed, Y_train)
         
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')

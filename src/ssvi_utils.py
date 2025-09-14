@@ -29,17 +29,21 @@ class SSVIResultsLogger:
             # Determine correct results path based on current working directory
             # Organize results by experiment type: SSVI vs Original GP-LVM
             if "gplvm" in experiment_name.lower():
-                results_folder = "oil_flow_original_gplvm_results"
+                results_folder = "orig_gplvm_results"
             else:
-                results_folder = "oil_flow_ssvi_results"
+                results_folder = "ssvi_results"
                 
             if os.path.basename(os.getcwd()) == "ssvi_scripts_experiments":
                 # Running from within ssvi_scripts_experiments directory
                 self.results_dir = f"results/{results_folder}/{experiment_name}_res_{timestamp}"
             else:
-                # Running from project root
-                self.results_dir = f"ssvi_scripts_experiments/results/{results_folder}/{experiment_name}_res_{timestamp}"
+                # Running from project root - use results directory directly
+                self.results_dir = f"results/{results_folder}/{experiment_name}_res_{timestamp}"
             os.makedirs(self.results_dir, exist_ok=True)
+            
+            # Create plots subdirectory
+            self.plots_dir = os.path.join(self.results_dir, "plots")
+            os.makedirs(self.plots_dir, exist_ok=True)
             
             # Initialize log files
             self.training_log_path = os.path.join(self.results_dir, "training_log.txt")
@@ -81,11 +85,11 @@ class SSVIResultsLogger:
                 f.write(json.dumps(log_entry) + '\n')
     
     def save_plots(self, figure, filename: str):
-        """Save matplotlib figure to results directory"""
+        """Save matplotlib figure to plots subdirectory"""
         if self.results_dir:
-            plot_path = os.path.join(self.results_dir, filename)
+            plot_path = os.path.join(self.plots_dir, filename)
             figure.savefig(plot_path, dpi=300, bbox_inches='tight')
-            self.log_training(f"Plot saved: {filename}")
+            self.log_training(f"Plot saved: plots/{filename}")
     
     def get_results_dir(self):
         """Get results directory path"""
@@ -95,7 +99,7 @@ class SSVIResultsLogger:
 
 
 
-def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False):
+def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True):
     """Visualize SSVI training results and latent space"""
     
     if not (hasattr(config, 'plot_training') and config.plot_training or
@@ -103,14 +107,7 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             hasattr(config, 'plot_hyperparams') and config.plot_hyperparams):
         return
     
-    # Prepare GP-LVM model for test visualization if needed (SSVI doesn't need this)
-    if hasattr(model, 'prepare_for_test_metrics') and is_test_data:
-        # Only oil_flow_GPLVM needs test preparation for test data visualization
-        # Use provided optimization steps or default from config
-        if n_optimization_steps is None:
-            # Use single config value for all test optimization
-            n_optimization_steps = getattr(config, 'test_optimization_steps', 50)
-        model.prepare_for_test_metrics(y, config, n_optimization_steps=n_optimization_steps)
+    # SSVI models don't need test preparation - encoder handles everything
     
     with torch.no_grad():
         # Color mapping for labels (assuming 3 classes)
@@ -123,64 +120,68 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
         ]
         n_plots = sum(plot_flags)
-        fig_width = 4 * n_plots
-        fig = plt.figure(figsize=(fig_width, 4))
+        # Use exact same figure size as original GP-LVM
+        fig = plt.figure(figsize=(12, 4))
         
-        plot_idx = 1
-        
-        # Plot 1: Training curve
-        if plot_flags[0]:
-            plt.subplot(1, n_plots, plot_idx)
-            plt.plot(losses, 'b-', alpha=0.7)
-            plt.xlabel('Iteration')
-            plt.ylabel('Loss')
-            plt.title('SSVI Training Curve')
-            plt.grid(True, alpha=0.3)
-            plot_idx += 1
-        
-        # Plot 2: Latent space visualization
+        # Plot 1: Latent space visualization (subplot 131)
         if plot_flags[1]:
-            plt.subplot(1, n_plots, plot_idx)
+            plt.subplot(131)
             
-            # Find the two most informative dimensions (largest lengthscales = smallest beta)
+            # Find the two most informative dimensions (smallest lengthscales = largest beta)
+            # This matches the original GP-LVM approach exactly
             lengthscales = 1 / model.gp.beta.flatten()
-            top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
-            dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
-            lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
-            # Get latent variables using new explicit training method
-            U = model.get_u_samples()  # [P, M, C, Lx]
+            values, indices = torch.topk(lengthscales, k=2, largest=False)
+            l1 = indices.numpy().flatten()[0]
+            l2 = indices.numpy().flatten()[1]
             
-            # Handle missing data if enabled
-            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                # Preprocess encoder input to handle missing data (replace NaN with zeros)
-                y_encoder_input = torch.where(torch.isnan(y), torch.zeros_like(y), y)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+            # Get latent representations using SSVI amortized inference (like NNEncoder model)
+            # This should produce the cross-shaped pattern similar to NNEncoder
+            with torch.no_grad():
+                # Sample U for SSVI
+                U_samples = model.get_u_samples()
+                
+                # Preprocess encoder input to handle missing data (consistent with training)
+                if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                    y_encoder_input = torch.where(torch.isnan(y), torch.zeros_like(y), y)
+                else:
+                    y_encoder_input = y
+                
+                # Get latent means using SSVI amortized inference (like model.X.mu() in original)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                # Take the mean across P samples to get final latent representation
+                X_mean = mu_x.mean(dim=0).detach().cpu().numpy()  # [N, A]
+            
+            # Plot latent representations grouped by labels (exactly like original GP-LVM)
+            # Handle labels - convert to numpy if it's a tensor
+            if hasattr(labels, 'cpu'):
+                labels_np = labels.cpu().numpy()
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y, U)  # [P, N, A]
+                labels_np = labels
+                
+            unique_labels = np.unique(labels_np)
+            for i, label in enumerate(unique_labels):
+                X_i = X_mean[labels_np == label]
+                plt.scatter(X_i[:, l1], X_i[:, l2], c=[colors[i]], label=label)
             
-            mu_x = mu_x.cpu().numpy()  # Move to CPU for plotting
-            
-            # Plot samples from all P samples with transparency
-            for p in range(model.P):
-                # Use top 2 most informative latent dimensions
-                plt.scatter(mu_x[p, :, dim1], mu_x[p, :, dim2], 
-                           c=colors, alpha=0.6, s=20)
-            
-            plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
-            plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})') 
-            plt.title(f'Latent Space - Top 2 Informative Dims (P={model.P} samples)')
-            plot_idx += 1
+            plt.xlabel('Latent dim 1', fontsize='small')
+            plt.ylabel('Latent dim 2', fontsize='small') 
+            plt.title('2d latent subspace [ssvi]', fontsize='small')
         
-        # Plot 3: Hyperparameters (lengthscales)
+        # Plot 2: Hyperparameters (inverse lengthscales) - subplot 132
         if plot_flags[2]:
-            plt.subplot(1, n_plots, plot_idx)
-            lengthscales = (1 / model.gp.beta.flatten()).cpu()
-            plt.bar(range(len(lengthscales)), lengthscales, 
-                   color="blue", alpha=0.7)
-            plt.xlabel('Latent Dimension')
-            plt.ylabel('Lengthscale')
-            plt.title('GP Lengthscales')
-            plt.grid(True, alpha=0.3)
+            plt.subplot(132)
+            inv_lengthscales = model.gp.beta.flatten().cpu()
+            plt.bar(range(len(inv_lengthscales)), inv_lengthscales, 
+                   color="teal")
+            plt.xlabel('Latent dims', fontsize='small')
+            plt.title('Inverse Lengthscale with SE-ARD kernel', fontsize='small')
+        
+        # Plot 3: Training curve - subplot 133
+        if plot_flags[0]:
+            plt.subplot(133)
+            plt.plot(losses, label='batch_size=100', color='orange')
+            plt.xlabel('Steps', fontsize='small')
+            plt.title('Neg. ELBO Loss', fontsize='small')
         
         plt.tight_layout()
         

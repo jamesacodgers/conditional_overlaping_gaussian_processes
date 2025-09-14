@@ -20,11 +20,10 @@ class OriginalGPLVMResultsLogger:
         self.results_dir = None
         
         if config.save_results:
-            # Create results directory with proper naming convention
             timestamp = datetime.now().strftime("%m_%d_%H_%M")
             self.results_dir = os.path.join(
                 config.results_dir, 
-                f"oil_flow_orig_gplvm_{experiment_name}_res_{timestamp}"
+                f"orig_{experiment_name}_{timestamp}"
             )
             os.makedirs(self.results_dir, exist_ok=True)
             

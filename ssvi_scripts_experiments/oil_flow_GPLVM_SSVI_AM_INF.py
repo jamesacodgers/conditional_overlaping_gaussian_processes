@@ -453,8 +453,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     print(f"  Inducing points: {model.gp.Vx.shape}")
     print(f"  Latent variables: {model.mu_x.shape}")
 
-    # Disable SSVI logger - we'll use original GP LVM outputs only
-    logger = None
+    # Enable SSVI logger for plots and logging
+    logger = SSVIResultsLogger(config, config_name) if config.save_results else None
 
     # Train model
     print(f"\nTraining model...")
@@ -467,8 +467,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     test_loss = model.train_step(test_y, test_indices)
     print(f"Test step loss: {test_loss:.4f}")
 
-    # Skip visualization since we're using original GP LVM outputs only
-    print(f"\nSkipping SSVI visualization - using original GP LVM outputs...")
+    # SSVI visualization is now enabled via logger
+    print(f"\nSSVI visualization enabled - plots will be saved during training...")
 
     # Create SSVI logger to match original GP LVM structure
     if config.save_results:
