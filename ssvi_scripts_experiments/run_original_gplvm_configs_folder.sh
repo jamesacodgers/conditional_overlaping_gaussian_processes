@@ -160,9 +160,9 @@ run_config() {
     
     local exit_code=$?
     if [[ $exit_code -eq 0 ]]; then
-        echo "✓ Successfully completed: $config_file"
+        echo "[OK] Successfully completed: $config_file"
     else
-        echo "✗ Failed to run: $config_file (exit code: $exit_code)"
+        echo "[FAILED] Failed to run: $config_file (exit code: $exit_code)"
     fi
     
     echo ""

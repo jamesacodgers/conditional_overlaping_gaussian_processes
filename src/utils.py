@@ -132,7 +132,7 @@ def plot_preds(R_test, cond_preds: torch.distributions.Distribution = None, mf_p
             # for mean in means:
             #     plt.scatter(R_test[:,0], mean, c="green", alpha=0.1)
             lb,ub = get_struc_ci(cond_preds)
-            tot_mean = means.mean(dim=0).numpy()
+            tot_mean = means.mean(dim=0).cpu().numpy()
             err = np.array(np.vstack([tot_mean - lb,ub-tot_mean])) # technically this could fail if mean isn't inside 95% ci
             plt.errorbar(R_test[:,0], means.mean(dim=0), yerr=err, color = CB_color_cycle[0], ls = "None", marker = ".", markersize = 10, capsize=5, label = "hierarchical VI ")
         if mf_preds: 

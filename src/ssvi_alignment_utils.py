@@ -35,8 +35,12 @@ def load_oilflow_data_for_ssvi(config):
     N, d, q, X, Y, labels = load_real_data(config.dataset)
     
     # Create train/test split (same as original)
-    Y_train, Y_test = train_test_split(Y.numpy(), test_size=config.test_size_int, random_state=config.random_seed)
-    lb_train, lb_test = train_test_split(labels, test_size=config.test_size_int, random_state=config.random_seed)
+    # Ensure tensors are on CPU before converting to numpy
+    Y_cpu = Y.cpu() if Y.is_cuda else Y
+    labels_cpu = labels.cpu() if hasattr(labels, 'is_cuda') and labels.is_cuda else labels
+    
+    Y_train, Y_test = train_test_split(Y_cpu.numpy(), test_size=config.test_size_int, random_state=config.random_seed)
+    lb_train, lb_test = train_test_split(labels_cpu, test_size=config.test_size_int, random_state=config.random_seed)
     
     Y_train = torch.tensor(Y_train, dtype=torch.float32, device=config.device)
     Y_test = torch.tensor(Y_test, dtype=torch.float32, device=config.device)
@@ -114,7 +118,7 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         latent_dim = config.latent_dim
     else:
         # For original GP-LVM models - use exact same approach as original
-        inv_lengthscale = 1/model.covar_module.base_kernel.lengthscale.detach().numpy().flatten()
+        inv_lengthscale = 1/model.covar_module.base_kernel.lengthscale.detach().cpu().numpy().flatten()
         lengthscales = model.covar_module.base_kernel.lengthscale
         latent_dim = model.X.latent_dim
     
@@ -123,8 +127,8 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     
     # Get top 2 smallest lengthscales (exactly like original GP-LVM)
     values, indices = torch.topk(lengthscales, k=2, largest=False)
-    l1 = indices.numpy().flatten()[0]
-    l2 = indices.numpy().flatten()[1]
+    l1 = indices.cpu().numpy().flatten()[0]
+    l2 = indices.cpu().numpy().flatten()[1]
     
     # Subplot 1: 2D latent subspace (exactly like original plot_report)
     plt.subplot(131)
@@ -150,14 +154,14 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             model_name_class = model.X.__class__.__name__
             if model_name_class == 'VariationalLatentVariable':  # 'gauss' model
                 # Use variational parameters directly (like original)
-                X_mean = model.X.q_mu.detach().numpy()
+                X_mean = model.X.q_mu.detach().cpu().numpy()
             elif model_name_class == 'NNEncoder':  # 'nn_gauss' model
                 # Use encoder methods (like original)
                 model.X.jitter = 1e-5
-                X_mean = model.X.mu(torch.tensor(Y_train, dtype=torch.float32)).detach().numpy()
+                X_mean = model.X.mu(torch.tensor(Y_train, dtype=torch.float32)).detach().cpu().numpy()
             else:
                 # Fallback: use direct latent values (like original)
-                X_mean = model.X.X.detach().numpy()
+                X_mean = model.X.X.detach().cpu().numpy()
     
     # Plot points for each label (exactly like original plot_report but scattered only)
     # Use exact same colors as original oilflow experiment: ['r', 'b', 'g']
