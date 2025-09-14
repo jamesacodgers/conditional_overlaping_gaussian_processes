@@ -124,7 +124,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     # Load data
     N, d, q, X, Y, labels = load_real_data(config.dataset)
     
-    Y_train, Y_test = train_test_split(Y.cpu().numpy(), test_size=config.test_size, random_state=config.random_seed)
+    # Ensure Y is on CPU before converting to numpy for sklearn
+    Y_cpu = Y.cpu() if Y.is_cuda else Y
+    Y_train, Y_test = train_test_split(Y_cpu.numpy(), test_size=config.test_size, random_state=config.random_seed)
     lb_train, lb_test = train_test_split(labels, test_size=config.test_size, random_state=config.random_seed)
     
     Y_train = torch.tensor(Y_train, dtype=torch.float32, device=config.device)
