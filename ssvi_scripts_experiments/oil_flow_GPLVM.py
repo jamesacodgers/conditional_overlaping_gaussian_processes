@@ -127,7 +127,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     # Ensure Y is on CPU before converting to numpy for sklearn
     Y_cpu = Y.cpu() if Y.is_cuda else Y
     Y_train, Y_test = train_test_split(Y_cpu.numpy(), test_size=config.test_size, random_state=config.random_seed)
-    lb_train, lb_test = train_test_split(labels, test_size=config.test_size, random_state=config.random_seed)
+    
+    # Ensure labels are numpy array (not CUDA tensor) before train_test_split
+    labels_cpu = labels.cpu().numpy() if hasattr(labels, 'cpu') else labels
+    lb_train, lb_test = train_test_split(labels_cpu, test_size=config.test_size, random_state=config.random_seed)
     
     Y_train = torch.tensor(Y_train, dtype=torch.float32, device=config.device)
     Y_test = torch.tensor(Y_test, dtype=torch.float32, device=config.device)
@@ -273,10 +276,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if logger.get_results_dir():
             # Import function only when needed to avoid directory creation issues
             from src.ssvi_alignment_utils import create_standardized_scattered_plot
-            # Ensure lb_train is on CPU before passing to plotting function
-            lb_train_cpu = lb_train.cpu() if hasattr(lb_train, 'cpu') else lb_train
+            # lb_train is already a numpy array from train_test_split, no need to convert
             # Use Y_train on the same device as model to avoid device mismatch
-            create_standardized_scattered_plot(model, loss_list, lb_train_cpu, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
+            create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
         
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')

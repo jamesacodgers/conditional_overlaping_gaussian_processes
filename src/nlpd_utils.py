@@ -123,7 +123,7 @@ def compute_nlpd_ssvi_style(model, Y_true, X_mean, X_covar=None, likelihood=None
         log_pred_density = torch.logsumexp(log_probs, dim=0) - np.log(n_samples)
         
         # Negative log predictive density (average over batch)
-        nlpd = -log_pred_density.mean().item()
+        nlpd = -log_pred_density.mean().cpu().item()
     
     model.train()
     if likelihood:
