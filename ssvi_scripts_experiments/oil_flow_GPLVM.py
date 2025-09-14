@@ -327,6 +327,18 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
             print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
             
+            # 2) Negative Test log-likelihood (NLPD) - using original GP-LVM approach
+            if model_name == 'gauss':
+                # For variational gauss model, use the final test loss
+                nll = losses_test[-1]/len(Y_test)
+            elif model_name == 'nn_gauss':
+                # For encoder nn_gauss model, compute log probability directly
+                with torch.no_grad():
+                    Y_star = model(torch.tensor(X_test_mean, dtype=torch.float32))
+                    nll = -torch.sum(Y_star.log_prob(Y_test.T))/len(Y_test)
+            
+            print(f'Test NLPD {model_name} = ' + str(nll))
+            
             # Save training results (convert tensors to floats for JSON serialization)
             logger.save_training_results(model_name, config.random_seed, loss_list, noise_trace, 
                                         float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train), 
@@ -336,11 +348,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             results_summary[model_name] = {
                 'train_rmse': float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train),
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
+                'test_nlpd': float(nll.item()) if hasattr(nll, 'item') else float(nll),
                 'final_loss': float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
             
-            logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}")
+            logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Test NLPD: {nll:.4f}")
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)
