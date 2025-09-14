@@ -252,7 +252,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if logger.get_results_dir():
             # Import function only when needed to avoid directory creation issues
             from src.ssvi_alignment_utils import create_standardized_scattered_plot
-            create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
+            # Ensure lb_train and Y_train are on CPU before passing to plotting function
+            lb_train_cpu = lb_train.cpu() if hasattr(lb_train, 'cpu') else lb_train
+            Y_train_cpu = Y_train.cpu() if Y_train.is_cuda else Y_train
+            create_standardized_scattered_plot(model, loss_list, lb_train_cpu, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train_cpu, model_type="original")
         
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')
