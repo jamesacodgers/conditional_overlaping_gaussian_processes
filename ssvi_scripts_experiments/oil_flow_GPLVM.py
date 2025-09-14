@@ -261,7 +261,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
         # Save models & training info
         
-        print(model.covar_module.base_kernel.lengthscale.detach().cpu())
+        print(model.covar_module.base_kernel.lengthscale.detach().cpu().numpy())
         model_dict[model_name + '_' + str(config.random_seed)] = model
         noise_trace_dict[model_name + '_' + str(config.random_seed)] = noise_trace
         
@@ -291,6 +291,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         print(f"[DEBUG] Model saved successfully for {model_name}")
 
         ####################### Testing Framework ################################################
+        print(f"[DEBUG] About to start testing framework for {model_name}")
         if config.enable_testing:
         #Compute latent test & reconstructions
             with torch.no_grad():
