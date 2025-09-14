@@ -237,7 +237,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
         # Save models & training info
         
-        print(model.covar_module.base_kernel.lengthscale)
+        print(model.covar_module.base_kernel.lengthscale.detach().cpu())
         model_dict[model_name + '_' + str(config.random_seed)] = model
         noise_trace_dict[model_name + '_' + str(config.random_seed)] = noise_trace
         

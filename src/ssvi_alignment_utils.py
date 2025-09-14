@@ -114,12 +114,12 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     if model_type == "ssvi":
         # For SSVI models - convert to same format as original GP-LVM
         inv_lengthscale = model.gp.beta.detach().cpu().numpy().flatten()
-        lengthscales = 1.0 / model.gp.beta
+        lengthscales = (1.0 / model.gp.beta).detach().cpu()
         latent_dim = config.latent_dim
     else:
         # For original GP-LVM models - use exact same approach as original
         inv_lengthscale = 1/model.covar_module.base_kernel.lengthscale.detach().cpu().numpy().flatten()
-        lengthscales = model.covar_module.base_kernel.lengthscale
+        lengthscales = model.covar_module.base_kernel.lengthscale.detach().cpu()
         latent_dim = model.X.latent_dim
     
     # Print lengthscales exactly like original plot_report
