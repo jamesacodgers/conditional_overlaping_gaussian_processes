@@ -14,7 +14,6 @@ import torch
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
 

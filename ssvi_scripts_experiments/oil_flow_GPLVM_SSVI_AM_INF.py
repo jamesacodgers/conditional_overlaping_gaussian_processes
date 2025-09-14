@@ -508,34 +508,27 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         from src.ssvi_alignment_utils import create_standardized_scattered_plot
         create_standardized_scattered_plot(model, losses, labels, config, ssvi_results_dir, "ssvi", config.random_seed, y, model_type="ssvi")
         
-        # Create experiment summary in exact original GP LVM format
-        experiment_summary = {
+        # Create initial experiment summary (will be updated by integrate_original_gplvm_outputs)
+        # This creates a placeholder that will be overwritten with complete metrics
+        initial_summary = {
             'ssvi': {
-                'train_rmse': 0.0,  # Will be updated below
-                'test_rmse': 0.0,   # Will be updated below
-                'train_nlpd': 0.0,  # Will be updated below
-                'test_nlpd': 0.0,   # Will be updated below
+                'train_rmse': 0.0,
+                'test_rmse': 0.0,
+                'train_nlpd': 0.0,
+                'test_nlpd': 0.0,
                 'final_loss': float(losses[-1]),
-                'final_noise': float(model.sigma2) if hasattr(model, 'sigma2') else 0.0
+                'final_noise': float(model.sigma2) if hasattr(model, 'sigma2') else 0.0,
+                'model_name': 'ssvi',
+                'random_seed': config.random_seed,
+                'loss_history': [float(loss) for loss in losses]
             }
         }
         
-        # Add metrics if available
-        if metrics_computer is not None and config.enable_metrics:
-            metrics_data = metrics_computer.get_metrics_summary()
-            experiment_summary['ssvi'].update({
-                'train_rmse': metrics_data.get('final_train_rmse', 0.0),
-                'test_rmse': metrics_data.get('final_test_rmse', 0.0),
-                'train_nlpd': metrics_data.get('final_train_nlpd', 0.0),
-                'test_nlpd': metrics_data.get('final_test_nlpd', 0.0)
-            })
-        
-        # Save experiment summary (same as original GP LVM)
+        # Save initial summary (will be updated later with complete metrics)
         summary_path = os.path.join(ssvi_results_dir, "experiment_summary.json")
         with open(summary_path, 'w') as f:
-            json.dump(experiment_summary, f, indent=2)
-        logger.log_training(f"Experiment summary saved: {summary_path}")
-        logger.log_training("=== SSVI Experiment Completed ===")
+            json.dump(initial_summary, f, indent=2)
+        logger.log_training(f"Initial experiment summary saved: {summary_path}")
         
         print(f"SSVI results saved to: {ssvi_results_dir}")
         print(f"Files created: config.json, training.log, experiment_summary.json")
@@ -546,15 +539,17 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     print(f"  Signal variances (sigma2_s): {model.gp.sigma2_s}")
     print(f"  Lengthscales (1/beta): {(1 / model.gp.beta).flatten()}")
 
-    # Add original GP LVM outputs (this will be the only output saving)
-    print(f"\n=== Saving Original GP LVM Outputs ===")
+    # Integrate original GP LVM outputs and create final experiment summary
+    # This will overwrite the initial summary with complete metrics including NLPD
+    print(f"\n=== Creating Final Experiment Summary ===")
     try:
         original_logger, original_results = integrate_original_gplvm_outputs(
-            model, config, config_name, losses, Y_train, Y_test, labels_train, labels_test, logger
+            model, config, config_name, losses, Y_train, Y_test, labels_train, labels_test, logger, metrics_computer
         )
-        print("Original GP LVM outputs successfully saved!")
+        print("Final experiment summary with complete metrics successfully created!")
+        logger.log_training("=== SSVI Experiment Completed ===")
     except Exception as e:
-        print(f"Warning: Could not save original GP LVM outputs: {e}")
+        print(f"Warning: Could not create final experiment summary: {e}")
 
     # Return final_metrics if computed, otherwise None
     final_metrics = None

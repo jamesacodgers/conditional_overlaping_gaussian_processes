@@ -312,7 +312,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             if model_name in ('point', 'map'):
                     X_test_mean = X_test.X
             elif model_name == 'gauss':
-                   X_test_mean = X_test.q_mu.detach().numpy()
+                   X_test_mean = X_test.q_mu.detach()
        
             Y_test_recon, Y_test_pred_covar = model.reconstruct_y(torch.tensor(X_test_mean, dtype=torch.float32), Y_test, ae=ae, model_name=model_name)
             Y_train_recon, Y_train_pred_covar = model.reconstruct_y(torch.tensor(X_train_mean, dtype=torch.float32), Y_train, ae=ae, model_name=model_name)

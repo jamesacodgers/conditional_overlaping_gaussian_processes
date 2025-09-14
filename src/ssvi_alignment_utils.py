@@ -230,19 +230,45 @@ def print_original_gplvm_summary(model_name, mse_train, mse_test, final_loss, fi
     print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
 
 
-def create_ssvi_results_summary(model_name, random_seed, losses, mse_train, mse_test, final_loss, final_noise):
+def create_unified_experiment_summary(model_name, random_seed, losses, mse_train, mse_test, final_loss, final_noise, train_nlpd, test_nlpd, model_type="ssvi"):
     """
-    Create results summary in the same format as original GP LVM
+    Create unified experiment summary in consistent format
+    
+    Args:
+        model_name: Name of the model (e.g., "ssvi", "gauss")
+        random_seed: Random seed used
+        losses: Training loss history
+        mse_train: Training RMSE
+        mse_test: Test RMSE  
+        final_loss: Final training loss
+        final_noise: Final noise parameter
+        train_nlpd: Training NLPD (always provided)
+        test_nlpd: Test NLPD (always provided)
+        model_type: Type of model for formatting ("ssvi" or "original")
+    
+    Returns:
+        Dictionary with unified experiment summary format
     """
-    return {
-        'model_name': model_name,
-        'random_seed': random_seed,
+    # Summary data in original GP-LVM format order with NLPD values always included
+    base_summary = {
         'train_rmse': float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train),
         'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
+        'train_nlpd': float(train_nlpd),
+        'test_nlpd': float(test_nlpd),
         'final_loss': float(final_loss),
         'final_noise': float(final_noise),
+        'model_name': model_name,
+        'random_seed': random_seed,
         'loss_history': [float(loss) for loss in losses]
     }
+    
+    # Return in appropriate format based on model type
+    if model_type == "ssvi":
+        # For SSVI, wrap in model name for consistency with original format
+        return {model_name: base_summary}
+    else:
+        # For original GP-LVM, return flat format
+        return base_summary
 
 
 class SSVIOriginalGPLVMResultsLogger:
@@ -398,7 +424,7 @@ def create_iteration_plot(model, losses, labels_train, config, results_dir, mode
     return plot_filename
 
 
-def integrate_original_gplvm_outputs(model, config, config_name, losses, Y_train, Y_test, labels_train, labels_test, logger=None):
+def integrate_original_gplvm_outputs(model, config, config_name, losses, Y_train, Y_test, labels_train, labels_test, logger=None, metrics_computer=None):
     """
     Integrate original GP LVM outputs into SSVI training
     This function should be called after SSVI training is complete
@@ -415,6 +441,14 @@ def integrate_original_gplvm_outputs(model, config, config_name, losses, Y_train
     print("Computing metrics using original GP LVM method...")
     mse_train, mse_test = compute_original_gplvm_metrics(model, Y_train, Y_test, config)
     
+    # Get NLPD values from metrics_computer if available
+    train_nlpd = None
+    test_nlpd = None
+    if metrics_computer is not None and metrics_computer.metrics_history:
+        final_metrics = metrics_computer.metrics_history[-1]
+        train_nlpd = final_metrics.train_nlpd
+        test_nlpd = final_metrics.test_nlpd
+    
     # Print summary in original format (exactly like original GP LVM)
     print_original_gplvm_summary("ssvi", mse_train, mse_test, losses[-1] if losses else 0.0, 0.0)
     
@@ -427,7 +461,13 @@ def integrate_original_gplvm_outputs(model, config, config_name, losses, Y_train
     # Save training results
     logger.save_training_results("ssvi", config.random_seed, losses, [], mse_train, mse_test)
     
-    # Create final summary
-    results_summary = create_ssvi_results_summary("ssvi", config.random_seed, losses, mse_train, mse_test, losses[-1] if losses else 0.0, 0.0)
+    # Create final summary with NLPD values using unified function
+    results_summary = create_unified_experiment_summary(
+        "ssvi", config.random_seed, losses, mse_train, mse_test, 
+        losses[-1] if losses else 0.0, 0.0, train_nlpd, test_nlpd, model_type="ssvi"
+    )
+    
+    # Save the final summary with NLPD values
+    logger.save_final_summary(results_summary)
     
     return logger, results_summary
