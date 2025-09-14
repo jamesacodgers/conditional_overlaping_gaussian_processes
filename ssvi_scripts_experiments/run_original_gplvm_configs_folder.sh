@@ -33,7 +33,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Default values
-DEVICE="cpu"
+DEVICE=""  # Empty means use config file setting
 TRAINING_STEPS=""
 CONFIG_NAME=""
 CONFIG_SUBFOLDER=""
@@ -128,11 +128,20 @@ run_config() {
     echo "=========================================="
     echo "Running Original GP-LVM with config: $config_file"
     echo "Config path: $config_path"
-    echo "Device: $DEVICE"
+    if [[ -n "$DEVICE" ]]; then
+        echo "Device: $DEVICE (override)"
+    else
+        echo "Device: Using config file setting"
+    fi
     echo "=========================================="
     
     # Build command
-    local cmd="python ssvi_scripts_experiments/oil_flow_GPLVM.py --config \"$config_path\" --device \"$DEVICE\""
+    local cmd="python ssvi_scripts_experiments/oil_flow_GPLVM.py --config \"$config_path\""
+    
+    # Only add device parameter if explicitly specified
+    if [[ -n "$DEVICE" ]]; then
+        cmd="$cmd --device \"$DEVICE\""
+    fi
     
     # Add optional parameters
     if [[ -n "$TRAINING_STEPS" ]]; then
@@ -164,7 +173,11 @@ run_config() {
 echo "Original GP-LVM Configuration Folder Runner"
 echo "Project root: $PROJECT_ROOT"
 echo "Config directory: $CONFIG_DIR"
-echo "Device: $DEVICE"
+if [[ -n "$DEVICE" ]]; then
+    echo "Device: $DEVICE (override)"
+else
+    echo "Device: Using config file setting"
+fi
 echo ""
 
 # Get list of YAML config files
