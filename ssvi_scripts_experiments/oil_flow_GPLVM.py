@@ -300,18 +300,20 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 if model_name != 'iaf':
                     # For nn_gauss, fix jitter size mismatch by temporarily adjusting it
                     if model_name == 'nn_gauss':
-                        # Store original jitter
-                        original_jitter = model.X.jitter
+                        # Store original jitter buffer
+                        original_jitter_buffer = model.X.jitter_buffer.clone()
                         # Create jitter for test data size
                         test_jitter = torch.eye(latent_dim, device=config.device).unsqueeze(0) * 1e-5
-                        model.X.jitter = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
+                        new_jitter_buffer = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
+                        # Modify the actual buffer used in computation
+                        model.X.jitter_buffer = new_jitter_buffer.to(device=config.device)
                         
                         # Call encoder directly
                         X_test_mean = model.X.mu(Y_test)
                         X_test_covar = model.X.sigma(Y_test)
                         
-                        # Restore original jitter
-                        model.X.jitter = original_jitter
+                        # Restore original jitter buffer
+                        model.X.jitter_buffer = original_jitter_buffer.to(device=config.device)
                     else:
                         X_test_mean, X_test_covar = model.predict_latent(Y_train, 
                                                                           Y_test, 
@@ -396,8 +398,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             results_summary[model_name] = {
                 'train_rmse': float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train),
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
-                'train_nlpd': float(train_nll.item()) if hasattr(train_nll, 'item') else float(train_nll),
-                'test_nlpd': float(test_nll.item()) if hasattr(test_nll, 'item') else float(test_nll),
+                'train_nlpd': float(train_nll),  # train_nll is already a float from compute_nlpd_ssvi_style
+                'test_nlpd': float(test_nll),    # test_nll is already a float from compute_nlpd_ssvi_style
                 'final_loss': float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
