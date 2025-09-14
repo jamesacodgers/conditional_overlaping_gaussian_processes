@@ -252,16 +252,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')
         
-        # Save model using logger
+        # Save model using logger (now saves to pre_trained_models like original code)
         logger.save_model(model, model_name, config.random_seed)
-        
-        # Also save to results directory for compatibility with original code
-        if logger.get_results_dir():
-            filename = f'oilflow_{model_name}_{config.random_seed}.pkl'
-            pre_trained_dir = os.path.join(logger.get_results_dir(), 'pre_trained_models')
-            os.makedirs(pre_trained_dir, exist_ok=True)
-            with open(os.path.join(pre_trained_dir, filename), 'wb') as file:
-                pkl.dump(model.state_dict(), file)
 
         ####################### Testing Framework ################################################
         if config.enable_testing:

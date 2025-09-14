@@ -73,30 +73,20 @@ def compute_original_gplvm_metrics(model, Y_train, Y_test, config):
 
 def save_ssvi_model_like_original(model, model_name, random_seed, results_dir):
     """
-    Save SSVI model in the same format as original GP LVM
+    Save SSVI model in the same format as original GP LVM (only pre_trained_models)
     """
-    # Save to models folder (exactly like original GP-LVM logger.save_model)
-    models_dir = os.path.join(results_dir, 'models')
-    os.makedirs(models_dir, exist_ok=True)
-    
-    filename = f'{model_name}_{random_seed}.pkl'
-    models_filepath = os.path.join(models_dir, filename)
-    
-    # Save model state dict (same as original)
-    with open(models_filepath, 'wb') as file:
-        pkl.dump(model.state_dict(), file)
-    
-    # Also save to pre_trained_models folder (exactly like original GP-LVM direct save)
+    # Save to pre_trained_models folder (exactly like original generalised_gplvm_code)
     pre_trained_dir = os.path.join(results_dir, 'pre_trained_models')
     os.makedirs(pre_trained_dir, exist_ok=True)
     
-    pre_trained_filename = f'oilflow_{model_name}_{random_seed}.pkl'
-    pre_trained_filepath = os.path.join(pre_trained_dir, pre_trained_filename)
+    filename = f'oilflow_{model_name}_{random_seed}.pkl'
+    filepath = os.path.join(pre_trained_dir, filename)
     
-    with open(pre_trained_filepath, 'wb') as file:
+    # Save model state dict (same as original)
+    with open(filepath, 'wb') as file:
         pkl.dump(model.state_dict(), file)
     
-    return models_filepath
+    return filepath
 
 
 def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, model_type="original", custom_filename=None):
@@ -377,14 +367,14 @@ class SSVIOriginalGPLVMResultsLogger:
 
 def save_iteration_model(model, model_name, iteration, random_seed, results_dir):
     """
-    Save model at specific iteration (like SSVI does)
+    Save model at specific iteration (only to pre_trained_models like original code)
     """
-    # Save to models folder with iteration number
-    models_dir = os.path.join(results_dir, 'models')
-    os.makedirs(models_dir, exist_ok=True)
+    # Save to pre_trained_models folder (like original generalised_gplvm_code)
+    pre_trained_dir = os.path.join(results_dir, 'pre_trained_models')
+    os.makedirs(pre_trained_dir, exist_ok=True)
     
-    filename = f'{model_name}_iter_{iteration}_seed_{random_seed}.pkl'
-    filepath = os.path.join(models_dir, filename)
+    filename = f'oilflow_{model_name}_iter_{iteration}_seed_{random_seed}.pkl'
+    filepath = os.path.join(pre_trained_dir, filename)
     
     with open(filepath, 'wb') as file:
         pkl.dump(model.state_dict(), file)

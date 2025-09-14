@@ -346,6 +346,19 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
             except Exception as e:
                 print(f"    Warning: Error saving training plots at iteration {i}: {e}")
 
+        # Training model saving (periodic) - save iteration models like original GP-LVM
+        if (logger and logger.get_results_dir() and
+                i > 0 and i % config.plot_save_frequency == 0):
+
+            print(f"  Saving iteration {i} model...")
+            try:
+                from src.ssvi_alignment_utils import save_iteration_model
+                save_iteration_model(model, "ssvi", i, config.random_seed, logger.get_results_dir())
+                print(f"    Iteration {i} model saved")
+
+            except Exception as e:
+                print(f"    Warning: Error saving iteration {i} model: {e}")
+
         # Gradient logging (only if logger provided and enabled)
         if logger and config.enable_gradient_logging and i % config.gradient_log_frequency == 0:
             gradient_info = model.get_gradient_info()

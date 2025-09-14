@@ -66,13 +66,14 @@ class OriginalGPLVMResultsLogger:
                 f.write(f"[{timestamp}] {message}\n")
     
     def save_model(self, model, model_name: str, seed: int):
-        """Save model state dict"""
+        """Save model state dict (only to pre_trained_models like original code)"""
         if self.results_dir:
-            model_dir = os.path.join(self.results_dir, "models")
-            os.makedirs(model_dir, exist_ok=True)
+            # Only save to pre_trained_models (like original generalised_gplvm_code)
+            pre_trained_dir = os.path.join(self.results_dir, 'pre_trained_models')
+            os.makedirs(pre_trained_dir, exist_ok=True)
             
-            filename = f"{model_name}_{seed}.pkl"
-            filepath = os.path.join(model_dir, filename)
+            filename = f'oilflow_{model_name}_{seed}.pkl'
+            filepath = os.path.join(pre_trained_dir, filename)
             
             with open(filepath, 'wb') as f:
                 pickle.dump(model.state_dict(), f)
