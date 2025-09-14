@@ -64,14 +64,16 @@ def _init_pca(Y, latent_dim):
     return torch.nn.Parameter(torch.matmul(Y, V[:,:latent_dim]))
 
 class OilFlowModel(BayesianGPLVM):
-     def __init__(self, n, data_dim, latent_dim, n_inducing, X, nn_layers=None):
+     def __init__(self, n, data_dim, latent_dim, n_inducing, X, nn_layers=None, device=None):
          
         self.n = n
         self.batch_shape = torch.Size([data_dim])
         
         # Locations Z corresponding to u_{d}, they can be randomly initialized or 
         # regularly placed with shape (n_inducing x latent_dim).
-        self.inducing_inputs = torch.randn(n_inducing, latent_dim, device=torch.get_default_device())
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.inducing_inputs = torch.randn(n_inducing, latent_dim, device=device)
     
         # Sparse Variational Formulation
         q_u = CholeskyVariationalDistribution(n_inducing, batch_shape=self.batch_shape) 
@@ -184,7 +186,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
         # Initialise model, likelihood, elbo and optimizer
         
-        model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers)
+        model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers, device=config.device)
         likelihood = GaussianLikelihood()
         elbo = VariationalELBO(likelihood, model, num_data=len(Y_train))
     
