@@ -243,8 +243,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             sample_batch = sample[batch_index_tensor]
             output_batch = model(sample_batch)
             loss = -elbo(output_batch, Y_train[batch_index_tensor].T).sum()
-            loss_list.append(loss.item())
-            noise_trace.append(np.round(likelihood.noise_covar.noise.item(),3))
+            loss_list.append(float(loss.item()))
+            noise_trace.append(float(np.round(likelihood.noise_covar.noise.item(),3)))
             iterator.set_description('Loss: ' + str(float(np.round(loss.item(),2))) + ", iter no: " + str(i))
             loss.backward()
             optimizer.step()
