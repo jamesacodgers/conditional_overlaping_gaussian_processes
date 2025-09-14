@@ -275,8 +275,25 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         
         ### Saving training report
         
+        print(f"[DEBUG] About to get X_train_mean for {model_name}")
         X_train_mean = model.get_X_mean(Y_train)
-        X_train_scales = model.get_X_scales(Y_train)
+        print(f"[DEBUG] X_train_mean obtained for {model_name}")
+        print(f"[DEBUG] About to get X_train_scales for {model_name}")
+        try:
+            X_train_scales = model.get_X_scales(Y_train)
+            print(f"[DEBUG] X_train_scales obtained for {model_name}")
+        except RuntimeError as e:
+            if "can't convert cuda" in str(e).lower():
+                print(f"[DEBUG] CUDA tensor error in get_X_scales, handling for {model_name}")
+                # For nn_gauss model, get_X_scales returns CUDA tensors that need CPU conversion
+                if model_name == 'nn_gauss':
+                    sigma_tensors = model.X.sigma(Y_train).detach()
+                    X_train_scales = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_tensors])
+                    print(f"[DEBUG] X_train_scales manually converted to CPU for {model_name}")
+                else:
+                    raise e
+            else:
+                raise e
         
         # We only want scattered plots (SSVI-matched outputs) in the plots folder
         
