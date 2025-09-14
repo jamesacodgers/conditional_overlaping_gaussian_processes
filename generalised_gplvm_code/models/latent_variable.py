@@ -74,11 +74,15 @@ class NNEncoder(LatentVariable):
 
         jitter = torch.eye(latent_dim).unsqueeze(0)*1e-5
         self.jitter = torch.cat([jitter for i in range(n)], axis=0)
+        # Register jitter as a buffer so it's properly handled by state_dict()
+        self.register_buffer('jitter_buffer', self.jitter)
         
     def to(self, device):
         """Move the encoder to the specified device, including jitter tensor"""
         super().to(device)
-        self.jitter = self.jitter.to(device)
+        # The jitter_buffer will be automatically moved by PyTorch's to() method
+        # Keep the old jitter attribute for backward compatibility
+        self.jitter = self.jitter_buffer
         return self
 
     def _get_mu_layers(self, layers):
@@ -121,7 +125,7 @@ class NNEncoder(LatentVariable):
 
         sg = sg.reshape(len(sg), self.latent_dim, self.latent_dim)
         sg = torch.einsum('aij,akj->aik', sg, sg)
-        return sg + self.jitter
+        return sg + self.jitter_buffer
 
     def forward(self, Y, batch_idx=None):
         mu = self.mu(Y)
