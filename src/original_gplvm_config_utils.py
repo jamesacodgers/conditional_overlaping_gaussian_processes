@@ -79,6 +79,11 @@ def load_config_with_overrides(config_path: str = None,
         # Load from YAML file
         with open(config_path, 'r') as f:
             config_dict = yaml.safe_load(f)
+        
+        # Convert nn_layers from list to tuple if needed (YAML doesn't support tuples natively)
+        if 'nn_layers' in config_dict and isinstance(config_dict['nn_layers'], list):
+            config_dict['nn_layers'] = tuple(config_dict['nn_layers'])
+        
         config = config_class(**config_dict)
         config_name = os.path.splitext(os.path.basename(config_path))[0]
     
