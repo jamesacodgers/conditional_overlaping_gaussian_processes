@@ -33,8 +33,9 @@ import time
 sys.path.insert(0, os.getcwd())
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, \
+from src.ssvi_utils import visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, \
     save_metrics_to_json, save_metrics_to_text
+from src.ssvi_alignment_utils import SSVIOriginalGPLVMResultsLogger
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser,
@@ -262,7 +263,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
 
 
 def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
-                        logger: SSVIResultsLogger = None, split_data=None, labels=None):
+                        logger: SSVIOriginalGPLVMResultsLogger = None, split_data=None, labels=None):
     """Training function for Oil Flow SSVI GP-LVM with optional logging and metrics"""
     losses = []
 
@@ -454,7 +455,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     print(f"  Latent variables: {model.mu_x.shape}")
 
     # Enable SSVI logger for plots and logging
-    logger = SSVIResultsLogger(config, config_name) if config.save_results else None
+    logger = SSVIOriginalGPLVMResultsLogger(config, config_name) if config.save_results else None
 
     # Train model
     print(f"\nTraining model...")
@@ -470,14 +471,13 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     # SSVI visualization is now enabled via logger
     print(f"\nSSVI visualization enabled - plots will be saved during training...")
 
-    # Create SSVI logger to match original GP LVM structure
-    if config.save_results:
-        ssvi_logger = SSVIOriginalGPLVMResultsLogger(config, config_name)
-        ssvi_results_dir = ssvi_logger.get_results_dir()
+    # Use the same logger that was used during training (no duplicate logger creation)
+    if config.save_results and logger:
+        ssvi_results_dir = logger.get_results_dir()
         
         # Log training completion
-        ssvi_logger.log_training("=== SSVI Training Completed ===")
-        ssvi_logger.log_training(f"Final Loss: {losses[-1]:.4f}")
+        logger.log_training("=== SSVI Training Completed ===")
+        logger.log_training(f"Final Loss: {losses[-1]:.4f}")
         
         # Save gradient logs if available (additional SSVI data)
         if hasattr(model, 'gradient_logs') and model.gradient_logs:
@@ -485,7 +485,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             with open(gradient_logs_path, 'w') as f:
                 for log_entry in model.gradient_logs:
                     f.write(json.dumps(log_entry) + '\n')
-            ssvi_logger.log_training(f"Gradient logs saved: {gradient_logs_path}")
+            logger.log_training(f"Gradient logs saved: {gradient_logs_path}")
         
         # Save metrics summary if available (additional SSVI data)
         if metrics_computer is not None and config.enable_metrics:
@@ -493,7 +493,11 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             metrics_summary_path = os.path.join(ssvi_results_dir, 'metrics_summary.json')
             with open(metrics_summary_path, 'w') as f:
                 json.dump(metrics_summary, f, indent=2)
-            ssvi_logger.log_training(f"Metrics summary saved: {metrics_summary_path}")
+            logger.log_training(f"Metrics summary saved: {metrics_summary_path}")
+        
+        # Create final SSVI plots in the same plots folder as training plots
+        from src.ssvi_alignment_utils import create_ssvi_plots_like_original
+        create_ssvi_plots_like_original(model, losses, labels, config, ssvi_results_dir, "ssvi", config.random_seed, y)
         
         # Create experiment summary in exact original GP LVM format
         experiment_summary = {
@@ -512,8 +516,11 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             })
         
         # Save experiment summary (same as original GP LVM)
-        ssvi_logger.save_final_summary(experiment_summary)
-        ssvi_logger.log_training("=== SSVI Experiment Completed ===")
+        summary_path = os.path.join(ssvi_results_dir, "experiment_summary.json")
+        with open(summary_path, 'w') as f:
+            json.dump(experiment_summary, f, indent=2)
+        logger.log_training(f"Experiment summary saved: {summary_path}")
+        logger.log_training("=== SSVI Experiment Completed ===")
         
         print(f"SSVI results saved to: {ssvi_results_dir}")
         print(f"Files created: config.json, training.log, experiment_summary.json")
@@ -528,7 +535,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     print(f"\n=== Saving Original GP LVM Outputs ===")
     try:
         original_logger, original_results = integrate_original_gplvm_outputs(
-            model, config, config_name, losses, Y_train, Y_test, labels_train, labels_test
+            model, config, config_name, losses, Y_train, Y_test, labels_train, labels_test, logger
         )
         print("Original GP LVM outputs successfully saved!")
     except Exception as e:

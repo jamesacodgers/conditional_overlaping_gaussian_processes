@@ -99,7 +99,7 @@ class SSVIResultsLogger:
 
 
 
-def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True):
+def visualize_ssvi_results(model, y, labels, losses, config, logger, save_filename: str = "training_results.png", show_plot: bool = True):
     """Visualize SSVI training results and latent space"""
     
     if not (hasattr(config, 'plot_training') and config.plot_training or
