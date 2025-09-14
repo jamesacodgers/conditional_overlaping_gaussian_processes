@@ -153,6 +153,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     for model_name in models:
         
         print(f"\n=== Training {model_name} model ===")
+        print(f"[DEBUG] Starting training loop for model: {model_name}")
         logger.log_training(f"Starting training for model: {model_name}")
         
         # Define prior for X
@@ -226,8 +227,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Training loop - optimises the objective wrt kernel hypers, variational params and inducing inputs
         # using the optimizer provided.
         
+        print(f"[DEBUG] Initializing loss_list and noise_trace for {model_name}")
         loss_list = []
         noise_trace = []
+        print(f"[DEBUG] Starting training iterations for {model_name}")
         
         iterator = trange(steps_per_model[model_name], leave=True)
         batch_size = config.batch_size
@@ -255,15 +258,20 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 print(f"  Saving iteration {i} model and plot...")
                 save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
                 create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "original")
+        print(f"[DEBUG] Training iterations completed for {model_name}, storing model")
         model.store(loss_list, likelihood)
         
         logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
+        print(f"[DEBUG] Model stored successfully for {model_name}")
             
         # Save models & training info
         
+        print(f"[DEBUG] About to print lengthscale for {model_name}")
         print(model.covar_module.base_kernel.lengthscale.detach().cpu().numpy())
+        print(f"[DEBUG] Lengthscale printed successfully for {model_name}")
         model_dict[model_name + '_' + str(config.random_seed)] = model
         noise_trace_dict[model_name + '_' + str(config.random_seed)] = noise_trace
+        print(f"[DEBUG] Model and noise_trace stored for {model_name}")
         
         ### Saving training report
         
@@ -281,6 +289,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # Use Y_train on the same device as model to avoid device mismatch
             create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
             print(f"[DEBUG] Standardized scattered plot completed for {model_name}")
+        else:
+            print(f"[DEBUG] No results directory, skipping plot creation for {model_name}")
         
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')
@@ -293,6 +303,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         ####################### Testing Framework ################################################
         print(f"[DEBUG] About to start testing framework for {model_name}")
         if config.enable_testing:
+            print(f"[DEBUG] Testing enabled, starting test computations for {model_name}")
         #Compute latent test & reconstructions
             with torch.no_grad():
                 model.eval()
@@ -395,9 +406,15 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             print(f'Test NLPD {model_name} = ' + str(test_nll))
             
             # Save training results (convert tensors to floats for JSON serialization)
-            logger.save_training_results(model_name, config.random_seed, loss_list, noise_trace, 
+            # Ensure all values in loss_list and noise_trace are Python floats
+            print(f"[DEBUG] About to save training results for {model_name}")
+            loss_list_floats = [float(x) for x in loss_list]
+            noise_trace_floats = [float(x) for x in noise_trace]
+            print(f"[DEBUG] Converted loss_list and noise_trace to floats for {model_name}")
+            logger.save_training_results(model_name, config.random_seed, loss_list_floats, noise_trace_floats, 
                                         float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train), 
                                         float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test))
+            print(f"[DEBUG] Training results saved successfully for {model_name}")
             
             # Store results for summary (convert tensors to floats for JSON serialization)
             results_summary[model_name] = {
@@ -410,10 +427,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             }
             
             logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nll:.4f}, Test NLPD: {test_nll:.4f}")
+            print(f"[DEBUG] Completed all processing for {model_name}")
     
     # Save final experiment summary
+    print(f"[DEBUG] About to save final experiment summary")
     logger.save_final_summary(results_summary)
     logger.log_training("=== Experiment completed ===")
+    print(f"[DEBUG] Final experiment summary saved successfully")
     
     return model_dict, noise_trace_dict, results_summary
 
