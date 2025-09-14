@@ -12,7 +12,7 @@ Usage examples:
     python ssvi_scripts_experiments/oil_flow_GPLVM.py
     
     # Run with base config
-    python ssvi_scripts_experiments/oil_flow_GPLVM.py --config ssvi_scripts_experiments/original_gplvm_configs/original_gplvm_base_config.yaml
+    python ssvi_scripts_experiments/oil_flow_GPLVM.py --config ssvi_scripts_experiments/original_gplvm_configs/base_lr_0001_s7.yaml
     
     # Run with fast config and overrides
     python ssvi_scripts_experiments/oil_flow_GPLVM.py --config ssvi_scripts_experiments/original_gplvm_configs/original_gplvm_fast_config.yaml --training-steps 100 --device cuda

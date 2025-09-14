@@ -8,23 +8,23 @@
 # specified subfolder within the original_gplvm_configs directory.
 #
 # Usage examples:
-#   # Run all configs in random_grid_hypers_configs subfolder
-#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/random_grid_hypers_configs
+#   # Run all configs in base_config_many_seeds subfolder
+#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/base_config_many_seeds
 #
 #   # Run all configs in missing_data_configs subfolder
 #   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/missing_data_configs
 #
 #   # Run specific config file from a subfolder
-#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/random_grid_hypers_configs original_gplvm_config_001.yaml
+#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/base_config_many_seeds original_gplvm_config_001.yaml
 #
 #   # Run with custom device
-#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/random_grid_hypers_configs --device cuda
+#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/base_config_many_seeds --device cuda
 #
 #   # Run with custom training steps
-#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/random_grid_hypers_configs --training-steps 200
+#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/base_config_many_seeds --training-steps 200
 #
 #   # Run specific config with overrides
-#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/random_grid_hypers_configs original_gplvm_config_001.yaml --device cuda --training-steps 150
+#   ./run_original_gplvm_configs_folder.sh original_gplvm_configs/base_config_many_seeds original_gplvm_config_001.yaml --device cuda --training-steps 150
 #
 # =============================================================================
 

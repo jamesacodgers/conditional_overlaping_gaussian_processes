@@ -152,4 +152,4 @@ def save_config_to_yaml(config: OriginalGPLVMConfig, filepath: str):
 def get_base_config_path():
     """Get path to base configuration file"""
     config_dir = ensure_config_dir_exists()
-    return os.path.join(config_dir, "original_gplvm_base_config.yaml")
+    return os.path.join(config_dir, "base_lr_0001_s7.yaml")

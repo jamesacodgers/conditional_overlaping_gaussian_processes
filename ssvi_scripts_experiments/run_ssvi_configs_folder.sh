@@ -8,23 +8,23 @@
 # subfolder within the ssvi_configs directory.
 #
 # Usage examples:
-#   # Run all configs in random_grid_hypers_configs subfolder
-#   ./run_ssvi_configs_folder.sh ssvi_configs/random_grid_hypers_configs
+#   # Run all configs in base_config_many_seeds subfolder
+#   ./run_ssvi_configs_folder.sh ssvi_configs/base_config_many_seeds
 #
 #   # Run all configs in missing_data_configs subfolder
 #   ./run_ssvi_configs_folder.sh ssvi_configs/missing_data_configs
 #
 #   # Run specific config file from a subfolder
-#   ./run_ssvi_configs_folder.sh ssvi_configs/random_grid_hypers_configs ssvi_config_001.yaml
+#   ./run_ssvi_configs_folder.sh ssvi_configs/base_config_many_seeds ssvi_config_001.yaml
 #
 #   # Run with custom device
-#   ./run_ssvi_configs_folder.sh ssvi_configs/random_grid_hypers_configs --device cuda
+#   ./run_ssvi_configs_folder.sh ssvi_configs/base_config_many_seeds --device cuda
 #
 #   # Run with custom training iterations
-#   ./run_ssvi_configs_folder.sh ssvi_configs/random_grid_hypers_configs --training-iterations 200
+#   ./run_ssvi_configs_folder.sh ssvi_configs/base_config_many_seeds --training-iterations 200
 #
 #   # Run specific config with overrides
-#   ./run_ssvi_configs_folder.sh ssvi_configs/random_grid_hypers_configs ssvi_config_001.yaml --device cuda --training-iterations 150
+#   ./run_ssvi_configs_folder.sh ssvi_configs/base_config_many_seeds ssvi_config_001.yaml --device cuda --training-iterations 150
 #
 # =============================================================================
 
