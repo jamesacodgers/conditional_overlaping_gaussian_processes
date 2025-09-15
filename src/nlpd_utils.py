@@ -53,8 +53,6 @@ def compute_nlpd_ssvi_style(model, Y_true, X_mean, X_covar=None, likelihood=None
         N, D = Y_true.shape
         log_probs = []
         
-        print(f"[DEBUG] NLPD: Y_true device: {Y_true.device}")
-        print(f"[DEBUG] NLPD: Y_true shape: {Y_true.shape}")
         
         # Ensure X_mean is a tensor (convert from numpy if necessary)
         if not isinstance(X_mean, torch.Tensor):
@@ -62,20 +60,14 @@ def compute_nlpd_ssvi_style(model, Y_true, X_mean, X_covar=None, likelihood=None
         
         # Ensure X_mean is on the same device as Y_true
         if X_mean.device != Y_true.device:
-            print(f"[DEBUG] NLPD: Moving X_mean from {X_mean.device} to {Y_true.device}")
             X_mean = X_mean.to(Y_true.device)
         
-        print(f"[DEBUG] NLPD: X_mean device: {X_mean.device}")
-        print(f"[DEBUG] NLPD: X_mean shape: {X_mean.shape}")
         
         for _ in range(n_samples):
             if X_covar is not None:
-                print(f"[DEBUG] NLPD: X_covar device: {X_covar.device}")
-                print(f"[DEBUG] NLPD: X_covar shape: {X_covar.shape}")
                 
                 # Ensure X_covar is on the same device as Y_true
                 if X_covar.device != Y_true.device:
-                    print(f"[DEBUG] NLPD: Moving X_covar from {X_covar.device} to {Y_true.device}")
                     X_covar = X_covar.to(Y_true.device)
                 
                 # Sample from variational posterior q(x) = N(mu_x, sigma_x^2) - SSVI style
@@ -87,15 +79,11 @@ def compute_nlpd_ssvi_style(model, Y_true, X_mean, X_covar=None, likelihood=None
                     # Already diagonal covariance case (gauss model)
                     sigma_x = torch.sqrt(torch.diagonal(X_covar, dim1=-2, dim2=-1))  # [N, latent_dim]
                 
-                print(f"[DEBUG] NLPD: sigma_x device: {sigma_x.device}")
-                print(f"[DEBUG] NLPD: sigma_x shape: {sigma_x.shape}")
                 
                 # SSVI-style sampling: x_sample = mu_x + sigma_x * epsilon
                 epsilon = torch.randn_like(X_mean)
                 X_sample = X_mean + sigma_x * epsilon
                 
-                print(f"[DEBUG] NLPD: X_sample device: {X_sample.device}")
-                print(f"[DEBUG] NLPD: X_sample shape: {X_sample.shape}")
             else:
                 # Use point estimates (no uncertainty in latent)
                 X_sample = X_mean
@@ -104,17 +92,11 @@ def compute_nlpd_ssvi_style(model, Y_true, X_mean, X_covar=None, likelihood=None
             # Get GP predictive mean and variance separately like SSVI
             Y_star = model(X_sample)
             
-            print(f"[DEBUG] NLPD: Y_star.mean shape: {Y_star.mean.shape}")
-            print(f"[DEBUG] NLPD: Y_star.variance shape: {Y_star.variance.shape}")
-            print(f"[DEBUG] NLPD: Y_true shape: {Y_true.shape}")
-            print(f"[DEBUG] NLPD: X_sample shape: {X_sample.shape}")
             
             # Extract mean and variance from GP distribution
             f_mean = Y_star.mean.T  # [N, D] - transpose to match SSVI format
             f_var = Y_star.variance.T  # [N, D] - transpose to match SSVI format
             
-            print(f"[DEBUG] NLPD: f_mean shape after transpose: {f_mean.shape}")
-            print(f"[DEBUG] NLPD: f_var shape after transpose: {f_var.shape}")
             
             # Add observation noise like SSVI does
             if likelihood is not None:

@@ -153,7 +153,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     for model_name in models:
         
         print(f"\n=== Training {model_name} model ===")
-        print(f"[DEBUG] Starting training loop for model: {model_name}")
         logger.log_training(f"Starting training for model: {model_name}")
         
         # Define prior for X
@@ -227,10 +226,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Training loop - optimises the objective wrt kernel hypers, variational params and inducing inputs
         # using the optimizer provided.
         
-        print(f"[DEBUG] Initializing loss_list and noise_trace for {model_name}")
         loss_list = []
         noise_trace = []
-        print(f"[DEBUG] Starting training iterations for {model_name}")
         
         iterator = trange(steps_per_model[model_name], leave=True)
         batch_size = config.batch_size
@@ -258,88 +255,53 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 print(f"  Saving iteration {i} model and plot...")
                 save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
                 create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "original")
-        print(f"[DEBUG] Training iterations completed for {model_name}, storing model")
         model.store(loss_list, likelihood)
         
         logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
-        print(f"[DEBUG] Model stored successfully for {model_name}")
             
         # Save models & training info
         
-        print(f"[DEBUG] About to print lengthscale for {model_name}")
         print(model.covar_module.base_kernel.lengthscale.detach().cpu().numpy())
-        print(f"[DEBUG] Lengthscale printed successfully for {model_name}")
         model_dict[model_name + '_' + str(config.random_seed)] = model
         noise_trace_dict[model_name + '_' + str(config.random_seed)] = noise_trace
-        print(f"[DEBUG] Model and noise_trace stored for {model_name}")
         
         ### Saving training report
         
-        print(f"[DEBUG] About to get X_train_mean for {model_name}")
         X_train_mean = model.get_X_mean(Y_train)
-        print(f"[DEBUG] X_train_mean obtained for {model_name}")
-        print(f"[DEBUG] About to get X_train_scales for {model_name}")
-        print(f"[DEBUG] Y_train device: {Y_train.device}")
-        print(f"[DEBUG] model.X class: {model.X.__class__.__name__}")
         try:
             X_train_scales = model.get_X_scales(Y_train)
-            print(f"[DEBUG] X_train_scales obtained for {model_name}")
-            print(f"[DEBUG] X_train_scales type: {type(X_train_scales)}")
-            if hasattr(X_train_scales, 'shape'):
-                print(f"[DEBUG] X_train_scales shape: {X_train_scales.shape}")
         except (RuntimeError, TypeError) as e:
-            print(f"[DEBUG] Error caught: {e}")
             if "can't convert cuda" in str(e).lower():
-                print(f"[DEBUG] CUDA tensor error in get_X_scales, handling for {model_name}")
                 # For nn_gauss model, get_X_scales returns CUDA tensors that need CPU conversion
                 if model_name == 'nn_gauss':
                     sigma_tensors = model.X.sigma(Y_train).detach()
                     X_train_scales = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_tensors])
-                    print(f"[DEBUG] X_train_scales manually converted to CPU for {model_name}")
                 else:
                     raise e
             else:
                 raise e
         except Exception as e:
-            print(f"[DEBUG] Unexpected error in get_X_scales: {e}")
-            print(f"[DEBUG] Error type: {type(e)}")
             raise e
         
         # We only want scattered plots (SSVI-matched outputs) in the plots folder
         
         # Create standardized scattered plots (same as original generalised_gplvm_code but scattered)
         if logger.get_results_dir():
-            print(f"[DEBUG] About to create standardized scattered plot for {model_name}")
-            print(f"[DEBUG] logger.get_results_dir(): {logger.get_results_dir()}")
-            print(f"[DEBUG] model.X.__class__.__name__: {model.X.__class__.__name__}")
-            print(f"[DEBUG] Y_train device: {Y_train.device}")
-            print(f"[DEBUG] lb_train type: {type(lb_train)}")
             # Import function only when needed to avoid directory creation issues
             from src.ssvi_alignment_utils import create_standardized_scattered_plot
-            print(f"[DEBUG] About to call create_standardized_scattered_plot for {model_name}")
-            print(f"[DEBUG] loss_list type: {type(loss_list)}")
-            print(f"[DEBUG] loss_list length: {len(loss_list)}")
-            print(f"[DEBUG] loss_list[0] type: {type(loss_list[0])}")
-            print(f"[DEBUG] loss_list[0] value: {loss_list[0]}")
             # lb_train is already a numpy array from train_test_split, no need to convert
             # Use Y_train on the same device as model to avoid device mismatch
             create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
-            print(f"[DEBUG] Standardized scattered plot completed for {model_name}")
         else:
-            print(f"[DEBUG] No results directory, skipping plot creation for {model_name}")
+            pass
         
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')
-        print(f"[DEBUG] About to save model for {model_name}")
-        
         # Save model using logger (now saves to pre_trained_models like original code)
         logger.save_model(model, model_name, config.random_seed)
-        print(f"[DEBUG] Model saved successfully for {model_name}")
 
         ####################### Testing Framework ################################################
-        print(f"[DEBUG] About to start testing framework for {model_name}")
         if config.enable_testing:
-            print(f"[DEBUG] Testing enabled, starting test computations for {model_name}")
         #Compute latent test & reconstructions
             with torch.no_grad():
                 model.eval()
@@ -399,15 +361,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                    X_test_mean = X_test.q_mu.detach()
        
             # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
-            print(f"[DEBUG] Before device conversion - X_test_mean device: {X_test_mean.device}, dtype: {X_test_mean.dtype}")
-            print(f"[DEBUG] Before device conversion - X_train_mean device: {X_train_mean.device}, dtype: {X_train_mean.dtype}")
-            print(f"[DEBUG] Target device: {config.device}")
             
             X_test_mean_device = X_test_mean.to(dtype=torch.float32, device=config.device) if X_test_mean.dtype != torch.float32 or X_test_mean.device != config.device else X_test_mean
             X_train_mean_device = X_train_mean.to(dtype=torch.float32, device=config.device) if X_train_mean.dtype != torch.float32 or X_train_mean.device != config.device else X_train_mean
             
-            print(f"[DEBUG] After device conversion - X_test_mean_device device: {X_test_mean_device.device}, dtype: {X_test_mean_device.dtype}")
-            print(f"[DEBUG] After device conversion - X_train_mean_device device: {X_train_mean_device.device}, dtype: {X_train_mean_device.dtype}")
             
             Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test, ae=ae, model_name=model_name)
             Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train, ae=ae, model_name=model_name)
@@ -426,37 +383,25 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # 2) Negative log-likelihood (NLPD) - using SSVI-style approach for consistency
             
             # Train NLPD
-            print(f"[DEBUG] About to compute train NLPD for {model_name}")
-            print(f"[DEBUG] Y_train shape: {Y_train.shape}")
-            print(f"[DEBUG] X_train_mean_device shape: {X_train_mean_device.shape}")
             
             if model_name == 'gauss':
                 # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
                 X_train_covar = torch.diag_embed(torch.exp(model.X.q_log_sigma)**2)  # [N, latent_dim, latent_dim]
-                print(f"[DEBUG] X_train_covar shape (gauss): {X_train_covar.shape}")
                 train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean_device, X_train_covar, likelihood, n_samples=50)
             elif model_name == 'nn_gauss':
                 # For encoder nn_gauss model, use SSVI-style approach with encoder variance
                 X_train_covar = model.X.sigma(Y_train)  # [N, latent_dim, latent_dim] - full covariance matrix
-                print(f"[DEBUG] X_train_covar shape (nn_gauss): {X_train_covar.shape}")
                 train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean_device, X_train_covar, likelihood, n_samples=50)
             
-            print(f"[DEBUG] Train NLPD computation completed for {model_name}")
             
             # Test NLPD
-            print(f"[DEBUG] About to compute test NLPD for {model_name}")
-            print(f"[DEBUG] Y_test shape: {Y_test.shape}")
-            print(f"[DEBUG] X_test_mean_device shape: {X_test_mean_device.shape}")
             
             if model_name == 'gauss':
                 # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
                 X_test_covar = torch.diag_embed(torch.exp(X_test.q_log_sigma)**2)  # [N_test, latent_dim, latent_dim]
-                print(f"[DEBUG] X_test_covar shape (gauss): {X_test_covar.shape}")
                 test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean_device, X_test_covar, likelihood, n_samples=50)
             elif model_name == 'nn_gauss':
                 # For encoder nn_gauss model, use SSVI-style approach with encoder variance
-                print(f"[DEBUG] About to call model.X.sigma(Y_test)")
-                print(f"[DEBUG] Y_test shape before sigma call: {Y_test.shape}")
                 
                 # Use the same jitter approach for NLPD computation
                 # Store original jitter
@@ -471,7 +416,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 # Restore original jitter
                 model.X.jitter = original_jitter
                 
-                print(f"[DEBUG] X_test_covar shape (nn_gauss): {X_test_covar.shape}")
                 test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean_device, X_test_covar, likelihood, n_samples=50)
             
             print(f'Train NLPD {model_name} = ' + str(train_nll))
@@ -479,14 +423,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
             # Save training results (convert tensors to floats for JSON serialization)
             # Ensure all values in loss_list and noise_trace are Python floats
-            print(f"[DEBUG] About to save training results for {model_name}")
             loss_list_floats = [float(x) for x in loss_list]
             noise_trace_floats = [float(x) for x in noise_trace]
-            print(f"[DEBUG] Converted loss_list and noise_trace to floats for {model_name}")
             logger.save_training_results(model_name, config.random_seed, loss_list_floats, noise_trace_floats, 
                                         float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train), 
                                         float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test))
-            print(f"[DEBUG] Training results saved successfully for {model_name}")
             
             # Store results for summary (convert tensors to floats for JSON serialization)
             results_summary[model_name] = {
@@ -499,13 +440,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             }
             
             logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nll:.4f}, Test NLPD: {test_nll:.4f}")
-            print(f"[DEBUG] Completed all processing for {model_name}")
     
     # Save final experiment summary
-    print(f"[DEBUG] About to save final experiment summary")
     logger.save_final_summary(results_summary)
     logger.log_training("=== Experiment completed ===")
-    print(f"[DEBUG] Final experiment summary saved successfully")
     
     return model_dict, noise_trace_dict, results_summary
 
