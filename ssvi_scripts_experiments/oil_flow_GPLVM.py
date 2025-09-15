@@ -250,7 +250,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             optimizer.step()
             
             # Save iteration-based models and plots (like SSVI does)
-            if logger and logger.get_results_dir() and i > 0 and i % 100 == 0:
+            if logger and logger.get_results_dir() and i > 0 and i % config.checkpoint_frequency == 0:
                 from src.ssvi_alignment_utils import save_iteration_model, create_iteration_plot
                 print(f"  Saving iteration {i} model and plot...")
                 save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())

@@ -47,6 +47,10 @@ def create_argument_parser():
     parser.add_argument('--test-iterations', type=int, default=None,
                        help='Number of iterations for test phase evaluation')
     
+    # Checkpointing configuration
+    parser.add_argument('--checkpoint-frequency', type=int, default=None,
+                       help='Checkpoint frequency for saving models and plots')
+    
     # Results configuration
     parser.add_argument('--results-dir', type=str, default=None,
                        help='Results directory')

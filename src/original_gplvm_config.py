@@ -43,6 +43,9 @@ class OriginalGPLVMConfig:
     results_dir: str = "ssvi_scripts_experiments/oil_flow_results/original_gplvm_results"
     experiment_name: str = "fast"
     
+    # === Checkpointing Configuration ===
+    checkpoint_frequency: int = 2000  # Save models, plots, metrics, and log progress every N iterations
+    
     # === Visualization Configuration ===
     save_plots: bool = True
     plot_colors: List[str] = None  # Will be set to ['r', 'b', 'g'] if None
@@ -111,7 +114,8 @@ def get_fast_config():
         n_inducing=15,
         learning_rate=0.002,
         random_seed=42,
-        test_iterations=200
+        test_iterations=200,
+        checkpoint_frequency=50  # Save models, plots, metrics, and log progress every N iterations
     )
 
 def get_base_config():
