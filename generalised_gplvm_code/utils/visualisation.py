@@ -73,7 +73,7 @@ def plot_lengthscales(models, Y_trains, labels, colors, plot_order, model_names,
         values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=2,largest=False)
         
         plt.subplot(1,4,j+1)
-        plt.bar(np.arange(latent_dim), height=inv_lengthscale.detach().cpu().numpy().flatten(), color='teal')
+        plt.bar(np.arange(latent_dim), height=inv_lengthscale.detach().numpy().flatten(), color='teal')
         #plt.title('Inverse lengthscale with SE-ARD kernel (10d)', fontsize='small')
         plt.xlabel('Latent dims', fontsize='medium')
         plt.xticks(np.arange(0,10))

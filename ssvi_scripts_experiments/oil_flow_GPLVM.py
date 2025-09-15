@@ -350,22 +350,19 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
             if ae is True:
                 if model_name != 'iaf':
-                    # For nn_gauss, fix jitter size mismatch by temporarily adjusting it
                     if model_name == 'nn_gauss':
-                        # Store original jitter buffer
-                        original_jitter_buffer = model.X.jitter_buffer.clone()
+                        # Store original jitter
+                        original_jitter = model.X.jitter
                         # Create jitter for test data size
-                        test_jitter = torch.eye(latent_dim, device=config.device).unsqueeze(0) * 1e-5
-                        new_jitter_buffer = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
-                        # Modify the actual buffer used in computation
-                        model.X.jitter_buffer = new_jitter_buffer.to(device=config.device)
+                        test_jitter = torch.eye(latent_dim).unsqueeze(0) * 1e-5
+                        model.X.jitter = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
                         
                         # Call encoder directly
                         X_test_mean = model.X.mu(Y_test)
                         X_test_covar = model.X.sigma(Y_test)
                         
-                        # Restore original jitter buffer
-                        model.X.jitter_buffer = original_jitter_buffer.to(device=config.device)
+                        # Restore original jitter
+                        model.X.jitter = original_jitter
                     else:
                         X_test_mean, X_test_covar = model.predict_latent(Y_train, 
                                                                           Y_test, 
@@ -461,20 +458,18 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 print(f"[DEBUG] About to call model.X.sigma(Y_test)")
                 print(f"[DEBUG] Y_test shape before sigma call: {Y_test.shape}")
                 
-                # Use the same jitter buffer approach that works in the main code
-                # Store original jitter buffer
-                original_jitter_buffer = model.X.jitter_buffer.clone()
+                # Use the same jitter approach for NLPD computation
+                # Store original jitter
+                original_jitter = model.X.jitter
                 # Create jitter for test data size
-                test_jitter = torch.eye(latent_dim, device=config.device).unsqueeze(0) * 1e-5
-                new_jitter_buffer = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
-                # Modify the actual buffer used in computation
-                model.X.jitter_buffer = new_jitter_buffer.to(device=config.device)
+                test_jitter = torch.eye(latent_dim).unsqueeze(0) * 1e-5
+                model.X.jitter = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
                 
                 # Now call sigma safely
                 X_test_covar = model.X.sigma(Y_test)  # [N_test, latent_dim, latent_dim] - full covariance matrix
                 
-                # Restore original jitter buffer
-                model.X.jitter_buffer = original_jitter_buffer.to(device=config.device)
+                # Restore original jitter
+                model.X.jitter = original_jitter
                 
                 print(f"[DEBUG] X_test_covar shape (nn_gauss): {X_test_covar.shape}")
                 test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean_device, X_test_covar, likelihood, n_samples=50)
