@@ -179,7 +179,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             ae = False
             prior_x = NormalPrior(X_prior_mean, torch.ones_like(X_prior_mean))
             prior_x_test = NormalPrior(X_prior_mean_test, torch.ones_like(X_prior_mean_test))
-            X = VariationalLatentVariable(X_init, prior_x, latent_dim)
+            X = VariationalLatentVariable(X_init, prior_x, data_dim)  # CORRECT: constructor expects data_dim
         
         elif model_name == 'nn_gauss':
             
