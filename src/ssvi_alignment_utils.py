@@ -168,94 +168,51 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         with torch.no_grad():
             model_name_class = model.X.__class__.__name__
             if model_name_class == 'VariationalLatentVariable':  # 'gauss' model
-                # Use variational parameters directly (like original)
-                X_mean = model.X.q_mu.detach().cpu().numpy()
+                # Variational GP-LVM (gauss)
+                mu_x = model.X.q_mu.detach().cpu().numpy()
+                sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma).detach().cpu().numpy()
             elif model_name_class == 'NNEncoder':  # 'nn_gauss' model
-                # Use Y_train on the same device as the model to avoid device mismatch
-                # Ensure Y_train is on the same device as the model before calling mu()
                 Y_train_device = Y_train.to(model.X.mu_layers[0].weight.device) if Y_train.device != model.X.mu_layers[0].weight.device else Y_train
-                X_mean_result = model.X.mu(Y_train_device)
-                X_mean_detached = X_mean_result.detach()
-                X_mean_cpu = X_mean_detached.cpu()
-                X_mean = X_mean_cpu.numpy()
-            else:
-                # Fallback: use direct latent values (like original)
-                X_mean = model.X.X.detach().cpu().numpy()
+                mu_x_result = model.X.mu(Y_train_device)
+                sigma_x_result = model.X.sigma(Y_train_device)
+                mu_x = mu_x_result.detach().cpu().numpy()
+                sigma_x = np.array([torch.sqrt(x.diag()).detach().cpu().numpy() for x in sigma_x_result.detach()])
     
-    # Plot points using original GP-LVM strategy
+    # Common setup for all model types
+    # Handle labels - convert to numpy if it's a tensor
+    if hasattr(labels_train, 'cpu'):
+        labels_train_np = labels_train.cpu().numpy()
+    else:
+        labels_train_np = labels_train
+    
+    # Create color mapping (same for all models)
+    c = ["r", "g", "b"]
+    colors = [c[int(i)-1] for i in labels_train_np]
+    
+    # Common plotting parameters
+    P_samples = 64  # Match SSVI P value
+    alpha = 0.15
+    
+    # Plot points using SSVI sampling approach for all models
     if model_type == "ssvi":
-        # Handle labels - convert to numpy if it's a tensor
-        if hasattr(labels_train, 'cpu'):
-            labels_train_np = labels_train.cpu().numpy()
-        else:
-            labels_train_np = labels_train
-        
-        # Create color mapping exactly like original GP-LVM
-        c = ["r", "g", "b"]
-        colors = [c[int(i)-1] for i in labels_train_np]
-        
-        # Plot all P samples with alpha=0.1 (EXACTLY like original GP-LVM)
-        # Original GP-LVM uses sampling from variational distribution:
-        # sample_1 = torch.distributions.Normal(struc_model.mu_x[i,:,4], struc_model.Sigma_x[i,:,4].sqrt()).sample()
-        # sample_2 = torch.distributions.Normal(struc_model.mu_x[i,:,0], struc_model.Sigma_x[i,:,0].sqrt()).sample()
-        # plt.scatter(sample_1, sample_2, alpha=0.1, color=colors)
-        
-        # Plot all P samples with sampling (shows uncertainty) but visually consistent
-        for i in range(X_mean.shape[0]):  # Loop over P samples (same as struc_model.P)
-            # Sample from variational distribution (shows uncertainty)
+        # SSVI: use pre-computed mu_x_all and sigma_x_all
+        for i in range(X_mean.shape[0]):  # Loop over P samples
             sample_1 = torch.distributions.Normal(X_mean[i, :, l1], X_sigma[i, :, l1]).sample()
             sample_2 = torch.distributions.Normal(X_mean[i, :, l2], X_sigma[i, :, l2]).sample()
-            # Move to CPU and plot with same visual style as original GP-LVM
             plt.scatter(sample_1.detach().cpu().numpy(), 
-                       sample_2.detach().cpu().numpy(),  alpha=0.15, color=colors)
+                       sample_2.detach().cpu().numpy(), alpha=alpha, color=colors)
     else:
-        # For original GP-LVM models - adapt to match SSVI plotting style
-        # Handle labels - convert to numpy if it's a tensor
-        if hasattr(labels_train, 'cpu'):
-            labels_train_np = labels_train.cpu().numpy()
-        else:
-            labels_train_np = labels_train
+        # Original GP-LVM: use same torch.distributions.Normal approach with P_samples
+        # Convert numpy arrays to torch tensors for consistent sampling
+        mu_x_torch = torch.from_numpy(mu_x)
+        sigma_x_torch = torch.from_numpy(sigma_x)
         
-        # Create color mapping exactly like SSVI
-        c = ["r", "g", "b"]
-        colors = [c[int(i)-1] for i in labels_train_np]
-        
-        # For original GP-LVM, use SSVI sampling approach with correct ingredients for each model type
-        if hasattr(model.X, 'q_mu') and hasattr(model.X, 'q_log_sigma'):
-            # Variational GP-LVM (gauss): use variational parameters directly
-            # Ingredients: q_mu (means) and q_log_sigma (log stds)
-            mu_x = model.X.q_mu.detach().cpu().numpy()
-            sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma).detach().cpu().numpy()
-            
-            # SSVI sampling approach: sample from N(mu_x, sigma_x^2)
-            P_samples = 64  # Match SSVI P value
-            for p in range(P_samples):
-                sample_1 = np.random.normal(mu_x[:, l1], sigma_x[:, l1])
-                sample_2 = np.random.normal(mu_x[:, l2], sigma_x[:, l2])
-                plt.scatter(sample_1, sample_2, alpha=0.15, color=colors)
-                
-        elif hasattr(model.X, 'mu') and hasattr(model.X, 'sigma'):
-            # NN Encoder GP-LVM (nn_gauss): use encoder functions
-            # Ingredients: mu(Y) (encoder means) and sigma(Y) (encoder covariances)
-            # Keep Y_train on the same device as the model
-            Y_train_device = Y_train.to(model.X.mu_layers[0].weight.device) if Y_train.device != model.X.mu_layers[0].weight.device else Y_train
-            mu_x_result = model.X.mu(Y_train_device)
-            sigma_x_result = model.X.sigma(Y_train_device)
-            
-            # Convert to numpy (move to CPU first)
-            mu_x = mu_x_result.detach().cpu().numpy()
-            sigma_x_diag = np.array([torch.sqrt(x.diag()).detach().cpu().numpy() for x in sigma_x_result.detach()])
-            
-            # SSVI sampling approach: sample from N(mu_x, sigma_x_diag^2)
-            P_samples = 64  # Match SSVI P value
-            for p in range(P_samples):
-                sample_1 = np.random.normal(mu_x[:, l1], sigma_x_diag[:, l1])
-                sample_2 = np.random.normal(mu_x[:, l2], sigma_x_diag[:, l2])
-                plt.scatter(sample_1, sample_2, alpha=0.15, color=colors)
-                
-        else:
-            # Point estimate GP-LVM: just plot the means (no uncertainty)
-            plt.scatter(X_mean[:, l1], X_mean[:, l2], alpha=0.15, color=colors)
+        # Sample P_samples times using torch.distributions.Normal (same as SSVI)
+        for p in range(P_samples):
+            sample_1 = torch.distributions.Normal(mu_x_torch[:, l1], sigma_x_torch[:, l1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_torch[:, l2], sigma_x_torch[:, l2]).sample()
+            plt.scatter(sample_1.detach().cpu().numpy(), 
+                       sample_2.detach().cpu().numpy(), alpha=alpha, color=colors)
     
     # Subplot 2: Inverse lengthscales (exactly like original plot_report)
     plt.subplot(132)
