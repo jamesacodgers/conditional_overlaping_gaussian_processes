@@ -477,10 +477,12 @@ class NormalCoordinatorCustom:
         data_squared_term = (D_train_clean**2 * observed_mask.float()).sum()
         
         # Cross term: D_train @ s_obs_expectation @ R_train but only for observed dimensions
-        cross_term = torch.sum(
-            D_train_clean[...,None,:] @ s_obs_expectation @ R_train[...,None] * observed_mask[...,None,:],
-            dim=[-1,-2,-3]
-        )
+        estimated_signal = (s_obs_expectation @ R_train[...,None]).squeeze(-1)  # [P, batch_size, M]
+        cross_term = (D_train_clean[None,:,:] * estimated_signal * observed_mask.float()).sum(dim=[-1,-2])
+        # cross_term = torch.sum(
+        #     D_train_clean[...,None,:] @ s_obs_expectation @ R_train[...,None] * observed_mask[...,None,:],
+        #     dim=[-1,-2,-3]
+        # )
         
         # Quadratic term: R_train @ s_obs_outer_expectation @ R_train but only for observed dimensions
         quad_term = torch.sum(

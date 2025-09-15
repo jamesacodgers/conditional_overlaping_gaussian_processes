@@ -233,7 +233,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
             P=config.P,
             trainable_V=config.trainable_V,
             encoder_hidden_dims=config.encoder_hidden_dims,
-            local_lr=config.local_lr,
+            local_lr=config.local_lr, 
             global_lr=config.global_lr,
             device=config.device,
             enable_missing_data=config.enable_missing_data
