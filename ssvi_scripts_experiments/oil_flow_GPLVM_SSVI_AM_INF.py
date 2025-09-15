@@ -447,7 +447,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     
     # Create Vx and mu_x for SSVI model
     Vx = torch.randn(config.n_inducing, config.latent_dim, device=config.device)
-    mu_x = torch.randn(y.shape[0], config.latent_dim, device=config.device)
+    # Use PCA initialization for better starting point (like examples script)
+    mu_x, _, _ = torch.pca_lowrank(y, config.latent_dim)
+    mu_x = mu_x / mu_x.std(dim=0)
     
     # Create split_data for compatibility
     split_data = {
