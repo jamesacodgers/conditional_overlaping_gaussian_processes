@@ -287,8 +287,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             print(f"[DEBUG] X_train_scales type: {type(X_train_scales)}")
             if hasattr(X_train_scales, 'shape'):
                 print(f"[DEBUG] X_train_scales shape: {X_train_scales.shape}")
-        except RuntimeError as e:
-            print(f"[DEBUG] RuntimeError caught: {e}")
+        except (RuntimeError, TypeError) as e:
+            print(f"[DEBUG] Error caught: {e}")
             if "can't convert cuda" in str(e).lower():
                 print(f"[DEBUG] CUDA tensor error in get_X_scales, handling for {model_name}")
                 # For nn_gauss model, get_X_scales returns CUDA tensors that need CPU conversion

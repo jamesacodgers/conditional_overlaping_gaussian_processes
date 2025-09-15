@@ -28,19 +28,19 @@ def plot_quad_latents(models, Y_trains, labels, colors, plot_order, model_names,
                 
         values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=2,largest=False)
         
-        l1 = indices.cpu().numpy().flatten()[0]
-        l2 = indices.cpu().numpy().flatten()[1]
+        l1 = indices.numpy().flatten()[0]
+        l2 = indices.numpy().flatten()[1]
         
         if m_name in ('point', 'map'):
-            X_mean = model.X.X.detach().cpu().numpy()
+            X_mean = model.X.X.detach().numpy()
             X_scales = None
         elif m_name == 'gauss':
-            X_mean = model.X.q_mu.detach().cpu().numpy()
-            X_scales = torch.nn.functional.softplus(model.X.q_log_sigma).detach().cpu().numpy()
+            X_mean = model.X.q_mu.detach().numpy()
+            X_scales = torch.nn.functional.softplus(model.X.q_log_sigma).detach().numpy()
         elif m_name == 'nn_gauss':
             model.X.jitter = 1e-5
-            X_mean = model.X.mu(torch.Tensor(Y_train)).detach().cpu().numpy()
-            X_scales = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in model.X.sigma(torch.Tensor(Y_train)).detach()])
+            X_mean = model.X.mu(torch.Tensor(Y_train)).detach().numpy()
+            X_scales = np.array([torch.sqrt(x.diag()).numpy() for x in model.X.sigma(torch.Tensor(Y_train)).detach()])
         
         print(m_name)
         print(j)
