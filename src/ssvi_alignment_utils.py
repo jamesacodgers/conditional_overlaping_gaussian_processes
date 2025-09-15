@@ -107,13 +107,13 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     import pathlib
     
     
-    # Use exact same styling as original plot_report function
-    plt.style.use('ggplot')
+    # Use white background styling
+    plt.style.use('default')  # Use default matplotlib style with white background
     plt.figure(figsize=(12,4))
     
     # Get model parameters exactly like original GP-LVM
     if model_type == "ssvi":
-        # For SSVI models - convert to same format as original GP-LVM
+        # For SSVI models - beta is already inverse lengthscales, so use directly
         inv_lengthscale = model.gp.beta.detach().cpu().numpy().flatten()
         lengthscales = (1.0 / model.gp.beta).detach().cpu()
         latent_dim = config.latent_dim
@@ -126,31 +126,43 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         latent_dim = model.X.latent_dim
     
     # Print lengthscales exactly like original plot_report
-    print(inv_lengthscale)
+    print(f"Inverse lengthscales ({model_type}): {inv_lengthscale}")
     
-    # Get top 2 smallest lengthscales (exactly like original GP-LVM)
+    # Use top dimensions selection (same for both SSVI and original GP-LVM)
     values, indices = torch.topk(lengthscales, k=2, largest=False)
     l1 = indices.cpu().numpy().flatten()[0]
     l2 = indices.cpu().numpy().flatten()[1]
     
+    print(f"Selected dimensions: l1={l1}, l2={l2}")
+    print(f"Selected lengthscales: {values}")
+    
     # Subplot 1: 2D latent subspace (exactly like original plot_report)
     plt.subplot(131)
     plt.title(f'2d latent subspace [{model_name}]', fontsize='small')
-    plt.xlabel('Latent dim 1', fontsize='small')
-    plt.ylabel('Latent dim 2', fontsize='small')
+    # Use consistent labels for both SSVI and original GP-LVM
+    plt.xlabel(f'Latent dim {l1}', fontsize='small')
+    plt.ylabel(f'Latent dim {l2}', fontsize='small')
     
-    # Get latent representations - exactly like original GP-LVM
+    # Get latent representations - use original GP-LVM plotting strategy
     if model_type == "ssvi":
-        # For SSVI models - use full dataset and sample to get scattered representation
+        # For SSVI models - use the exact same approach as original GP-LVM example
         with torch.no_grad():
             U_samples = model.get_u_samples()
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 y_encoder_input = torch.where(torch.isnan(Y_train), torch.zeros_like(Y_train), Y_train)
             else:
                 y_encoder_input = Y_train
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
-            # Take mean across U samples to get scattered representation
-            X_mean = mu_x.mean(dim=0).detach().cpu().numpy()
+            
+            # Get latent variables for all P samples (like original GP-LVM)
+            mu_x_all, sigma_x_all = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            # mu_x_all shape: [P, N, latent_dim] - same as original GP-LVM mu_x
+            
+            print(f"SSVI latent variables shape: {mu_x_all.shape}")
+            print(f"SSVI P samples: {mu_x_all.shape[0]}, N data points: {mu_x_all.shape[1]}, latent dims: {mu_x_all.shape[2]}")
+            
+            # Store mu_x_all and sigma_x_all for plotting (like original GP-LVM struc_model.mu_x and struc_model.Sigma_x)
+            X_mean = mu_x_all  # Keep as tensor for direct access like original
+            X_sigma = sigma_x_all  # Keep as tensor for sampling like original
     else:
         # For original GP-LVM models - use exact same approach as original plot_report
         with torch.no_grad():
@@ -170,26 +182,58 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
                 # Fallback: use direct latent values (like original)
                 X_mean = model.X.X.detach().cpu().numpy()
     
-    # Plot points for each label (exactly like original plot_report but scattered only)
-    # Use exact same colors as original oilflow experiment: ['r', 'b', 'g']
-    colors = ['r', 'b', 'g']
-    # Handle labels - convert to numpy if it's a tensor
-    if hasattr(labels_train, 'cpu'):
-        labels_train_np = labels_train.cpu().numpy()
+    # Plot points using original GP-LVM strategy
+    if model_type == "ssvi":
+        # Handle labels - convert to numpy if it's a tensor
+        if hasattr(labels_train, 'cpu'):
+            labels_train_np = labels_train.cpu().numpy()
+        else:
+            labels_train_np = labels_train
+        
+        # Create color mapping exactly like original GP-LVM
+        c = ["r", "g", "b"]
+        colors = [c[int(i)-1] for i in labels_train_np]
+        
+        # Plot all P samples with alpha=0.1 (EXACTLY like original GP-LVM)
+        # Original GP-LVM uses sampling from variational distribution:
+        # sample_1 = torch.distributions.Normal(struc_model.mu_x[i,:,4], struc_model.Sigma_x[i,:,4].sqrt()).sample()
+        # sample_2 = torch.distributions.Normal(struc_model.mu_x[i,:,0], struc_model.Sigma_x[i,:,0].sqrt()).sample()
+        # plt.scatter(sample_1, sample_2, alpha=0.1, color=colors)
+        
+        # Plot all P samples with sampling (shows uncertainty) but visually consistent
+        for i in range(X_mean.shape[0]):  # Loop over P samples (same as struc_model.P)
+            # Sample from variational distribution (shows uncertainty)
+            sample_1 = torch.distributions.Normal(X_mean[i, :, l1], X_sigma[i, :, l1]).sample()
+            sample_2 = torch.distributions.Normal(X_mean[i, :, l2], X_sigma[i, :, l2]).sample()
+            # Move to CPU and plot with same visual style as original GP-LVM
+            plt.scatter(sample_1.detach().cpu().numpy(), 
+                       sample_2.detach().cpu().numpy(),  alpha=0.15, color=colors)
     else:
-        labels_train_np = labels_train
-    
-    # Use exact same loop structure as original plot_report
-    for i, label in enumerate(np.unique(labels_train_np)):
-        X_i = X_mean[labels_train_np == label]
-        plt.scatter(X_i[:, l1], X_i[:, l2], c=[colors[i]], label=label)
-        # Note: No error bars (X_scales=None) as requested - scattered only
+        # For original GP-LVM models - use exact same approach as original plot_report
+        colors = ['r', 'b', 'g']
+        # Handle labels - convert to numpy if it's a tensor
+        if hasattr(labels_train, 'cpu'):
+            labels_train_np = labels_train.cpu().numpy()
+        else:
+            labels_train_np = labels_train
+        
+        # Use exact same loop structure as original plot_report
+        for i, label in enumerate(np.unique(labels_train_np)):
+            X_i = X_mean[labels_train_np == label]
+            plt.scatter(X_i[:, l1], X_i[:, l2], c=[colors[i]], label=label)
+            # Note: No error bars (X_scales=None) as requested - scattered only
     
     # Subplot 2: Inverse lengthscales (exactly like original plot_report)
     plt.subplot(132)
-    plt.bar(np.arange(latent_dim), height=inv_lengthscale, color='teal')
-    plt.title('Inverse Lengthscale with SE-ARD kernel', fontsize='small')
-    plt.xlabel('Latent dims', fontsize='small')
+    if model_type == "ssvi":
+        # Use same approach as original GP-LVM: plt.bar(range(Vx.shape[1]), 1/struc_model.gp.beta.flatten(), color="blue", alpha=1)
+        plt.bar(range(latent_dim), inv_lengthscale, color="blue", alpha=1)
+        plt.title('Inverse Lengthscale with SE-ARD kernel', fontsize='small')
+        plt.xlabel('Latent dims', fontsize='small')
+    else:
+        plt.bar(np.arange(latent_dim), height=inv_lengthscale, color='teal')
+        plt.title('Inverse Lengthscale with SE-ARD kernel', fontsize='small')
+        plt.xlabel('Latent dims', fontsize='small')
     
     # Subplot 3: Loss curve (exactly like original plot_report)
     plt.subplot(133)
