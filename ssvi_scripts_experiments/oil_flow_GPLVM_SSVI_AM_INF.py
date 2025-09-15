@@ -30,7 +30,11 @@ import json
 from datetime import datetime
 import time
 
-sys.path.insert(0, os.getcwd())
+# Get the project root directory (parent of ssvi_scripts_experiments)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Add both project root and generalised_gplvm_code to path
+sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 from src.ssvi_utils import visualize_ssvi_results, plot_metrics_history, \
@@ -93,7 +97,7 @@ class OilFlowSSVIConfig:
     enable_gradient_logging: bool = False  # Log gradients and parameter changes
     gradient_log_frequency: int = 50  # Log gradients every N iterations
     save_results: bool = True  # Save results to folder
-    results_dir: str = "ssvi_scripts_experiments/oil_flow_results/ssvi_results"  # Results directory
+    results_dir: str = "oil_flow_results/ssvi_results"  # Results directory (relative to current working directory)
 
     # === Metrics Configuration ===
     enable_metrics: bool = True  # Compute evaluation metrics

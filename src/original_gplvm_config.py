@@ -40,7 +40,7 @@ class OriginalGPLVMConfig:
     
     # === Results Configuration ===
     save_results: bool = True
-    results_dir: str = "ssvi_scripts_experiments/oil_flow_results/original_gplvm_results"
+    results_dir: str = "oil_flow_results/original_gplvm_results"  # Relative to current working directory
     experiment_name: str = "fast"
     
     # === Checkpointing Configuration ===

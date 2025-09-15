@@ -26,15 +26,13 @@ class SSVIResultsLogger:
             # Create results directory with timestamp
             timestamp = datetime.now().strftime("%d_%m_%H_%M")
             
-            # Use results_dir from config if available, otherwise use default structure
+            # Use results_dir from config (should always be available)
             if hasattr(config, 'results_dir') and config.results_dir:
+                # Use results_dir as specified in config (relative to current working directory)
+                # This allows the config to control whether paths are relative to project root or current directory
                 results_folder = config.results_dir
             else:
-                # Fallback: Determine correct results path based on experiment type
-                if "gplvm" in experiment_name.lower():
-                    results_folder = "ssvi_scripts_experiments/oil_flow_results/original_gplvm_results"
-                else:
-                    results_folder = "ssvi_scripts_experiments/oil_flow_results/ssvi_results"
+                raise ValueError("config.results_dir must be set. Please ensure your config file has a results_dir field.")
                 
             # Create results directory with seed
             seed = getattr(config, 'random_seed', 7)  # Default to 7 if not available
