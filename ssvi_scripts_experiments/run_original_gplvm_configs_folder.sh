@@ -142,8 +142,11 @@ run_config() {
     fi
     echo "=========================================="
     
+    # Extract config name from filename (remove .yaml extension)
+    local config_name=$(basename "$config_file" .yaml)
+    
     # Build command (now running from ssvi_scripts_experiments directory)
-    local cmd="python oil_flow_GPLVM.py --config \"$config_path\""
+    local cmd="python oil_flow_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
     
     # Only add device parameter if explicitly specified
     if [[ -n "$DEVICE" ]]; then
@@ -159,6 +162,7 @@ run_config() {
         cmd="$cmd --test-iterations \"$TEST_ITERATIONS\""
     fi
     
+    # Override config name if explicitly provided
     if [[ -n "$CONFIG_NAME" ]]; then
         cmd="$cmd --config-name \"$CONFIG_NAME\""
     fi

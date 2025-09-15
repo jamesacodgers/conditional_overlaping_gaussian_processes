@@ -35,6 +35,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 # Default values
 DEVICE=""  # Empty means use config file setting
 TRAINING_ITERATIONS=""
+TEST_ITERATIONS=""
 CONFIG_NAME=""
 CONFIG_SUBFOLDER=""
 SPECIFIC_CONFIG=""
@@ -48,6 +49,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --training-iterations)
             TRAINING_ITERATIONS="$2"
+            shift 2
+            ;;
+        --test-iterations)
+            TEST_ITERATIONS="$2"
             shift 2
             ;;
         --config-name)
@@ -64,6 +69,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --device DEVICE          Device to use (cpu, cuda) [default: cpu]"
             echo "  --training-iterations N  Override training iterations"
+            echo "  --test-iterations N      Override test iterations"
             echo "  --config-name NAME       Custom config name for results"
             echo "  --help, -h               Show this help message"
             echo ""
@@ -135,8 +141,11 @@ run_config() {
     fi
     echo "=========================================="
     
+    # Extract config name from filename (remove .yaml extension)
+    local config_name=$(basename "$config_file" .yaml)
+    
     # Build command (now running from ssvi_scripts_experiments directory)
-    local cmd="python oil_flow_GPLVM_SSVI_AM_INF.py --config \"$config_path\""
+    local cmd="python oil_flow_GPLVM_SSVI_AM_INF.py --config \"$config_path\" --config-name \"$config_name\""
     
     # Only add device parameter if explicitly specified
     if [[ -n "$DEVICE" ]]; then
@@ -148,6 +157,11 @@ run_config() {
         cmd="$cmd --training-iterations \"$TRAINING_ITERATIONS\""
     fi
     
+    if [[ -n "$TEST_ITERATIONS" ]]; then
+        cmd="$cmd --test-iterations \"$TEST_ITERATIONS\""
+    fi
+    
+    # Override config name if explicitly provided
     if [[ -n "$CONFIG_NAME" ]]; then
         cmd="$cmd --config-name \"$CONFIG_NAME\""
     fi
