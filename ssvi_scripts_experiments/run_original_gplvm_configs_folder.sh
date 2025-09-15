@@ -142,8 +142,8 @@ run_config() {
     fi
     echo "=========================================="
     
-    # Build command
-    local cmd="python ssvi_scripts_experiments/oil_flow_GPLVM.py --config \"$config_path\""
+    # Build command (now running from ssvi_scripts_experiments directory)
+    local cmd="python oil_flow_GPLVM.py --config \"$config_path\""
     
     # Only add device parameter if explicitly specified
     if [[ -n "$DEVICE" ]]; then
