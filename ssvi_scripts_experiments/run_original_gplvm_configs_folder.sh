@@ -124,8 +124,8 @@ if [[ ! -d "$CONFIG_DIR" ]]; then
     exit 1
 fi
 
-# Change to project root directory
-cd "$PROJECT_ROOT" || exit 1
+# Change to ssvi_scripts_experiments directory so relative paths in configs resolve correctly
+cd "$SCRIPT_DIR" || exit 1
 
 # Function to run a single config
 run_config() {
