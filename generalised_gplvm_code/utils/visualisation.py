@@ -28,19 +28,19 @@ def plot_quad_latents(models, Y_trains, labels, colors, plot_order, model_names,
                 
         values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=2,largest=False)
         
-        l1 = indices.numpy().flatten()[0]
-        l2 = indices.numpy().flatten()[1]
+        l1 = indices.cpu().numpy().flatten()[0]
+        l2 = indices.cpu().numpy().flatten()[1]
         
         if m_name in ('point', 'map'):
-            X_mean = model.X.X.detach().numpy()
+            X_mean = model.X.X.detach().cpu().numpy()
             X_scales = None
         elif m_name == 'gauss':
-            X_mean = model.X.q_mu.detach().numpy()
-            X_scales = torch.nn.functional.softplus(model.X.q_log_sigma).detach().numpy()
+            X_mean = model.X.q_mu.detach().cpu().numpy()
+            X_scales = torch.nn.functional.softplus(model.X.q_log_sigma).detach().cpu().numpy()
         elif m_name == 'nn_gauss':
             model.X.jitter = 1e-5
-            X_mean = model.X.mu(torch.Tensor(Y_train)).detach().numpy()
-            X_scales = np.array([torch.sqrt(x.diag()).numpy() for x in model.X.sigma(torch.Tensor(Y_train)).detach()])
+            X_mean = model.X.mu(torch.Tensor(Y_train)).detach().cpu().numpy()
+            X_scales = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in model.X.sigma(torch.Tensor(Y_train)).detach()])
         
         print(m_name)
         print(j)
@@ -73,7 +73,7 @@ def plot_lengthscales(models, Y_trains, labels, colors, plot_order, model_names,
         values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=2,largest=False)
         
         plt.subplot(1,4,j+1)
-        plt.bar(np.arange(latent_dim), height=inv_lengthscale.detach().numpy().flatten(), color='teal')
+        plt.bar(np.arange(latent_dim), height=inv_lengthscale.detach().cpu().numpy().flatten(), color='teal')
         #plt.title('Inverse lengthscale with SE-ARD kernel (10d)', fontsize='small')
         plt.xlabel('Latent dims', fontsize='medium')
         plt.xticks(np.arange(0,10))
@@ -147,8 +147,8 @@ def plot_report(model, losses, labels, colors, save, X_mean, X_scales=None, mode
     
     values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=2,largest=False)
     
-    l1 = indices.numpy().flatten()[0]
-    l2 = indices.numpy().flatten()[1]
+    l1 = indices.cpu().numpy().flatten()[0]
+    l2 = indices.cpu().numpy().flatten()[1]
 
     plt.subplot(131)
     #sn_samples = torch.distributions.MultivariateNormal(torch.zeros(2), torch.eye(2)).sample((2000,))
@@ -166,7 +166,7 @@ def plot_report(model, losses, labels, colors, save, X_mean, X_scales=None, mode
             plt.errorbar(X_i[:, l1], X_i[:, l2], xerr=scale_i[:,l1], yerr=scale_i[:,l2], label=label,c=colors[i], fmt='none')
         
     plt.subplot(132)
-    plt.bar(np.arange(latent_dim), height=inv_lengthscale.detach().numpy().flatten(), color='teal')
+    plt.bar(np.arange(latent_dim), height=inv_lengthscale.detach().cpu().numpy().flatten(), color='teal')
     plt.title('Inverse Lengthscale with SE-ARD kernel', fontsize='small')
     plt.xlabel('Latent dims', fontsize='small')
     

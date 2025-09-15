@@ -279,10 +279,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         X_train_mean = model.get_X_mean(Y_train)
         print(f"[DEBUG] X_train_mean obtained for {model_name}")
         print(f"[DEBUG] About to get X_train_scales for {model_name}")
+        print(f"[DEBUG] Y_train device: {Y_train.device}")
+        print(f"[DEBUG] model.X class: {model.X.__class__.__name__}")
         try:
             X_train_scales = model.get_X_scales(Y_train)
             print(f"[DEBUG] X_train_scales obtained for {model_name}")
+            print(f"[DEBUG] X_train_scales type: {type(X_train_scales)}")
+            if hasattr(X_train_scales, 'shape'):
+                print(f"[DEBUG] X_train_scales shape: {X_train_scales.shape}")
         except RuntimeError as e:
+            print(f"[DEBUG] RuntimeError caught: {e}")
             if "can't convert cuda" in str(e).lower():
                 print(f"[DEBUG] CUDA tensor error in get_X_scales, handling for {model_name}")
                 # For nn_gauss model, get_X_scales returns CUDA tensors that need CPU conversion
@@ -294,6 +300,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     raise e
             else:
                 raise e
+        except Exception as e:
+            print(f"[DEBUG] Unexpected error in get_X_scales: {e}")
+            print(f"[DEBUG] Error type: {type(e)}")
+            raise e
         
         # We only want scattered plots (SSVI-matched outputs) in the plots folder
         
@@ -387,10 +397,20 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     X_test_mean = X_test.X
             elif model_name == 'gauss':
                    X_test_mean = X_test.q_mu.detach()
+            elif model_name == 'nn_gauss':
+                   # For nn_gauss, X_test is the latent variable object, we need to get the mean
+                   X_test_mean = X_test.q_mu.detach()
        
             # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
+            print(f"[DEBUG] Before device conversion - X_test_mean device: {X_test_mean.device}, dtype: {X_test_mean.dtype}")
+            print(f"[DEBUG] Before device conversion - X_train_mean device: {X_train_mean.device}, dtype: {X_train_mean.dtype}")
+            print(f"[DEBUG] Target device: {config.device}")
+            
             X_test_mean_device = X_test_mean.to(dtype=torch.float32, device=config.device) if X_test_mean.dtype != torch.float32 or X_test_mean.device != config.device else X_test_mean
             X_train_mean_device = X_train_mean.to(dtype=torch.float32, device=config.device) if X_train_mean.dtype != torch.float32 or X_train_mean.device != config.device else X_train_mean
+            
+            print(f"[DEBUG] After device conversion - X_test_mean_device device: {X_test_mean_device.device}, dtype: {X_test_mean_device.dtype}")
+            print(f"[DEBUG] After device conversion - X_train_mean_device device: {X_train_mean_device.device}, dtype: {X_train_mean_device.dtype}")
             
             Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test, ae=ae, model_name=model_name)
             Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train, ae=ae, model_name=model_name)
@@ -409,24 +429,55 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # 2) Negative log-likelihood (NLPD) - using SSVI-style approach for consistency
             
             # Train NLPD
+            print(f"[DEBUG] About to compute train NLPD for {model_name}")
+            print(f"[DEBUG] Y_train shape: {Y_train.shape}")
+            print(f"[DEBUG] X_train_mean_device shape: {X_train_mean_device.shape}")
+            
             if model_name == 'gauss':
                 # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
                 X_train_covar = torch.diag_embed(torch.exp(model.X.q_log_sigma)**2)  # [N, latent_dim, latent_dim]
-                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean, X_train_covar, likelihood, n_samples=50)
+                print(f"[DEBUG] X_train_covar shape (gauss): {X_train_covar.shape}")
+                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean_device, X_train_covar, likelihood, n_samples=50)
             elif model_name == 'nn_gauss':
                 # For encoder nn_gauss model, use SSVI-style approach with encoder variance
                 X_train_covar = model.X.sigma(Y_train)  # [N, latent_dim, latent_dim] - full covariance matrix
-                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean, X_train_covar, likelihood, n_samples=50)
+                print(f"[DEBUG] X_train_covar shape (nn_gauss): {X_train_covar.shape}")
+                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean_device, X_train_covar, likelihood, n_samples=50)
+            
+            print(f"[DEBUG] Train NLPD computation completed for {model_name}")
             
             # Test NLPD
+            print(f"[DEBUG] About to compute test NLPD for {model_name}")
+            print(f"[DEBUG] Y_test shape: {Y_test.shape}")
+            print(f"[DEBUG] X_test_mean_device shape: {X_test_mean_device.shape}")
+            
             if model_name == 'gauss':
                 # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
                 X_test_covar = torch.diag_embed(torch.exp(X_test.q_log_sigma)**2)  # [N_test, latent_dim, latent_dim]
-                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean, X_test_covar, likelihood, n_samples=50)
+                print(f"[DEBUG] X_test_covar shape (gauss): {X_test_covar.shape}")
+                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean_device, X_test_covar, likelihood, n_samples=50)
             elif model_name == 'nn_gauss':
                 # For encoder nn_gauss model, use SSVI-style approach with encoder variance
+                print(f"[DEBUG] About to call model.X.sigma(Y_test)")
+                print(f"[DEBUG] Y_test shape before sigma call: {Y_test.shape}")
+                
+                # Use the same jitter buffer approach that works in the main code
+                # Store original jitter buffer
+                original_jitter_buffer = model.X.jitter_buffer.clone()
+                # Create jitter for test data size
+                test_jitter = torch.eye(latent_dim, device=config.device).unsqueeze(0) * 1e-5
+                new_jitter_buffer = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
+                # Modify the actual buffer used in computation
+                model.X.jitter_buffer = new_jitter_buffer.to(device=config.device)
+                
+                # Now call sigma safely
                 X_test_covar = model.X.sigma(Y_test)  # [N_test, latent_dim, latent_dim] - full covariance matrix
-                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean, X_test_covar, likelihood, n_samples=50)
+                
+                # Restore original jitter buffer
+                model.X.jitter_buffer = original_jitter_buffer.to(device=config.device)
+                
+                print(f"[DEBUG] X_test_covar shape (nn_gauss): {X_test_covar.shape}")
+                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean_device, X_test_covar, likelihood, n_samples=50)
             
             print(f'Train NLPD {model_name} = ' + str(train_nll))
             print(f'Test NLPD {model_name} = ' + str(test_nll))

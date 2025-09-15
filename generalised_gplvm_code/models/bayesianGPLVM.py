@@ -199,8 +199,16 @@ class BayesianGPLVM(ApproximateGP):
              return torch.nn.functional.softplus(self.X.q_log_sigma).detach()
          
          elif self.X.__class__.__name__ == 'NNEncoder':
+             print(f"[DEBUG] get_X_scales: Processing NNEncoder case")
+             print(f"[DEBUG] get_X_scales: Y device: {Y.device}")
+             sigma_tensors = self.X.sigma(Y).detach()
+             print(f"[DEBUG] get_X_scales: sigma_tensors device: {sigma_tensors[0].device}")
+             print(f"[DEBUG] get_X_scales: sigma_tensors length: {len(sigma_tensors)}")
              
-             return np.array([torch.sqrt(x.diag()) for x in self.X.sigma(Y).detach()])
+             # Convert CUDA tensors to CPU before numpy conversion
+             result = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_tensors])
+             print(f"[DEBUG] get_X_scales: result shape: {result.shape}")
+             return result
          
     def store(self, losses, likelihood):
         

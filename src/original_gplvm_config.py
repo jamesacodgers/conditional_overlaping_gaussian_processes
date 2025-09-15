@@ -105,6 +105,7 @@ class OriginalGPLVMConfig:
 def get_fast_config():
     """Fast configuration for testing"""
     return OriginalGPLVMConfig(
+        device="cuda",  # Use CUDA device
         training_steps={'gauss': 200, 'nn_gauss': 200},
         batch_size=50,
         n_inducing=15,
