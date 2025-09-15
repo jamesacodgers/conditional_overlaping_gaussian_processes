@@ -209,19 +209,53 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             plt.scatter(sample_1.detach().cpu().numpy(), 
                        sample_2.detach().cpu().numpy(),  alpha=0.15, color=colors)
     else:
-        # For original GP-LVM models - use exact same approach as original plot_report
-        colors = ['r', 'b', 'g']
+        # For original GP-LVM models - adapt to match SSVI plotting style
         # Handle labels - convert to numpy if it's a tensor
         if hasattr(labels_train, 'cpu'):
             labels_train_np = labels_train.cpu().numpy()
         else:
             labels_train_np = labels_train
         
-        # Use exact same loop structure as original plot_report
-        for i, label in enumerate(np.unique(labels_train_np)):
-            X_i = X_mean[labels_train_np == label]
-            plt.scatter(X_i[:, l1], X_i[:, l2], c=[colors[i]], label=label)
-            # Note: No error bars (X_scales=None) as requested - scattered only
+        # Create color mapping exactly like SSVI
+        c = ["r", "g", "b"]
+        colors = [c[int(i)-1] for i in labels_train_np]
+        
+        # For original GP-LVM, use SSVI sampling approach with correct ingredients for each model type
+        if hasattr(model.X, 'q_mu') and hasattr(model.X, 'q_log_sigma'):
+            # Variational GP-LVM (gauss): use variational parameters directly
+            # Ingredients: q_mu (means) and q_log_sigma (log stds)
+            mu_x = model.X.q_mu.detach().cpu().numpy()
+            sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma).detach().cpu().numpy()
+            
+            # SSVI sampling approach: sample from N(mu_x, sigma_x^2)
+            P_samples = 64  # Match SSVI P value
+            for p in range(P_samples):
+                sample_1 = np.random.normal(mu_x[:, l1], sigma_x[:, l1])
+                sample_2 = np.random.normal(mu_x[:, l2], sigma_x[:, l2])
+                plt.scatter(sample_1, sample_2, alpha=0.15, color=colors)
+                
+        elif hasattr(model.X, 'mu') and hasattr(model.X, 'sigma'):
+            # NN Encoder GP-LVM (nn_gauss): use encoder functions
+            # Ingredients: mu(Y) (encoder means) and sigma(Y) (encoder covariances)
+            # Keep Y_train on the same device as the model
+            Y_train_device = Y_train.to(model.X.mu_layers[0].weight.device) if Y_train.device != model.X.mu_layers[0].weight.device else Y_train
+            mu_x_result = model.X.mu(Y_train_device)
+            sigma_x_result = model.X.sigma(Y_train_device)
+            
+            # Convert to numpy (move to CPU first)
+            mu_x = mu_x_result.detach().cpu().numpy()
+            sigma_x_diag = np.array([torch.sqrt(x.diag()).detach().cpu().numpy() for x in sigma_x_result.detach()])
+            
+            # SSVI sampling approach: sample from N(mu_x, sigma_x_diag^2)
+            P_samples = 64  # Match SSVI P value
+            for p in range(P_samples):
+                sample_1 = np.random.normal(mu_x[:, l1], sigma_x_diag[:, l1])
+                sample_2 = np.random.normal(mu_x[:, l2], sigma_x_diag[:, l2])
+                plt.scatter(sample_1, sample_2, alpha=0.15, color=colors)
+                
+        else:
+            # Point estimate GP-LVM: just plot the means (no uncertainty)
+            plt.scatter(X_mean[:, l1], X_mean[:, l2], alpha=0.15, color=colors)
     
     # Subplot 2: Inverse lengthscales (exactly like original plot_report)
     plt.subplot(132)
