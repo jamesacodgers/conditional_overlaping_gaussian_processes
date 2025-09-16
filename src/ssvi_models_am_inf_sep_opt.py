@@ -464,7 +464,7 @@ class NormalCoordinatorCustom:
             return self._get_const_train_missing_data(D_train, R_train, s_obs_expectation, s_obs_outer_expectation)
         
         # Standard likelihood computation for complete data
-        return -(D_train.shape[1] * D_train.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
+        return -(D_train.shape[1] * D_train.shape[0])/2*torch.log(2*torch.pi*self.module.sigma2) - 1/(2*self.module.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
     
     def _get_const_train_missing_data(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
         """

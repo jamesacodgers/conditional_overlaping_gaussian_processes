@@ -420,11 +420,11 @@ def get_fast_config():
     return OilFlowSSVIConfig(
         training_iterations=5000,
         batch_size=50,
-        n_inducing_points=8,
+        n_inducing_points=16,
         encoder_hidden_dims=[128, 64],
         local_lr=2e-3,
         global_lr=1e-2,
-        P=4,
+        P=16,
         log_frequency=50,
         enable_gradient_logging=True,
         gradient_log_frequency=25,
@@ -436,8 +436,8 @@ def get_fast_config():
         plot_latent_space=True,
         plot_hyperparams=True,
         # === Missing Data Configuration ===
-        enable_missing_data=True,      # Enable missing data reconstruction capability
-        missing_data_ratio=0.01,        # Fraction of dimensions to artificially mask (for testing)
+        enable_missing_data=False,      # Enable missing data reconstruction capability
+        missing_data_ratio=0,        # Fraction of dimensions to artificially mask (for testing)
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
         missing_data_seed=123          # Seed for reproducible missing data patterns
     )
