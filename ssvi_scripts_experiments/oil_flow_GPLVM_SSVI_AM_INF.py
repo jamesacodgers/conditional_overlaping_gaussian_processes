@@ -418,7 +418,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
 def get_fast_config():
     """Fast configuration for testing with missing data enabled"""
     return OilFlowSSVIConfig(
-        training_iterations=200,
+        training_iterations=5000,
         batch_size=50,
         n_inducing_points=8,
         encoder_hidden_dims=[128, 64],
@@ -437,7 +437,7 @@ def get_fast_config():
         plot_hyperparams=True,
         # === Missing Data Configuration ===
         enable_missing_data=True,      # Enable missing data reconstruction capability
-        missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
+        missing_data_ratio=0.01,        # Fraction of dimensions to artificially mask (for testing)
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
         missing_data_seed=123          # Seed for reproducible missing data patterns
     )
