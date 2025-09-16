@@ -149,13 +149,22 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
             # Get latent variables using new explicit training method
             U = model.get_u_samples()  # [P, M, C, Lx]
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y, U)  # [P, N, A]
+            
+            # Handle missing data if enabled
+            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                # Preprocess encoder input to handle missing data (replace NaN with zeros)
+                y_encoder_input = torch.where(torch.isnan(y), torch.zeros_like(y), y)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+            else:
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y, U)  # [P, N, A]
+            
             mu_x = mu_x.cpu().numpy()  # Move to CPU for plotting
+            
             # Plot samples from all P samples with transparency
             for p in range(model.P):
                 # Use top 2 most informative latent dimensions
                 plt.scatter(mu_x[p, :, dim1], mu_x[p, :, dim2], 
-                           c=colors, alpha=0.15, s=10)
+                           c=colors, alpha=0.6, s=20)
             
             plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
             plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})') 

@@ -10,7 +10,8 @@ import numpy as np
 
 class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
     def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, 
-                 encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001, device="auto"):
+                 encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001, device="auto", 
+                 enable_missing_data=False):
         # Resolve device if auto
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -32,6 +33,11 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         # Move encoder to device
         self.encoder = self.encoder.to(device)
+        
+        # Missing data capability
+        self.enable_missing_data = enable_missing_data
+        if self.enable_missing_data:
+            print("Missing data reconstruction enabled")
         
         # Separate optimizers for different learning rates
         self._setup_optimizers(local_lr, global_lr)
@@ -171,7 +177,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             K_VV_inv[None, None, None, :, :, :] @
             U_samples[:, None, :, :, :, None]
         )[..., 0, 0]
-
+    
     def _s_outer_expectation_given_U(self, kernel_outer_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
         """
         kernel_outer_expectation: [P, N, C, C, L, L]
@@ -333,6 +339,75 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             info['sigma2_value'] = self.gp.sigma2.item()
         
         return info
+    
+    def reconstruct_missing_data(self, y_observed, missing_mask=None, n_samples=50):
+        """
+        Reconstruct missing dimensions using amortized inference and GP decoding.
+        
+        Args:
+            y_observed: Data with missing values as NaN [batch_size, output_dim]
+            missing_mask: Boolean mask [batch_size, output_dim] where True=missing (optional)
+            n_samples: Number of samples for Monte Carlo reconstruction
+            
+        Returns:
+            y_reconstructed: Complete data with reconstructed missing values
+            reconstruction_std: Standard deviation of reconstructions
+        """
+        if not self.enable_missing_data:
+            raise ValueError("Missing data reconstruction not enabled. Set enable_missing_data=True in model constructor.")
+        
+        from src.missing_data_utils import reconstruct_missing_dimensions
+        return reconstruct_missing_dimensions(self, y_observed, missing_mask, n_samples)
+    
+    def gplvm_elbo_with_missing_data(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask):
+        """
+        Extended gplvm_elbo that handles missing data by modifying the coordinator's likelihood computation.
+        Uses the original ELBO structure but handles missing data in the coordinator.
+        
+        Raises:
+            ValueError: If missing data functionality is not enabled or missing_mask is not provided
+        """
+        
+        n_observed = (~missing_mask).sum().item()
+        
+        # STUFF
+
+        kernel_train_expectation = self._get_lv_kernel_expectation(mu_x, Sigma_x)
+        kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x,Sigma_x)
+
+        s_train_expectation = self._s_expectation_given_U(kernel_expectation=kernel_train_expectation,
+                                                         U_samples=U_samples)
+        s_train_expectation = s_train_expectation[..., 0]  # [P, N, M] since C=1 for GP-LVM        
+        
+        y_sqr_clean = (y[~missing_mask] ** 2).sum() # 1
+        cross_clean = (y[None,:,:] * s_train_expectation * (~missing_mask)[None,:,:]).sum(dim=[-1,-2]).mean() 
+        # s_sqr_clean = .sum(dim=[-1,-2,-3]) # [P]
+
+        K_VV = self.gp.get_K_VV_matrix()               # L x L 
+        K_VV_inv_matrix = self.gp.get_K_VV_inv_matrix() # L x L
+        kernel_train_outer_expectation = kernel_train_outer_expectation[..., 0, 0, :, :]  # [P, N, L, L] since C=1 for GP-LVM
+
+        # Reshape U from [P, M, C, L] to [P, M, C*L]
+        Pn = U_samples.shape[0]
+        u_vec = U_samples.reshape(Pn, self.M, self.C * self.Lx)
+
+        Ma = (u_vec[:, :, :, None] * u_vec[:, :, None, :] - K_VV[None, :, :]) # [P, M, L, L]
+        Ma = (K_VV_inv_matrix @ Ma @ K_VV_inv_matrix.transpose(-2, -1))
+
+        signal_squared = self.gp.sigma2_s[None, None,:] + (Ma[:, None, :, :, :] * kernel_train_outer_expectation[:,:,None,:,:]).sum(dim=[-2, -1])
+        signal_sqr_clean = (signal_squared[:,~missing_mask]).sum(dim=-1).mean()
+
+        normalising_const = -n_observed/2*torch.log(2*torch.pi*self.sigma2)
+
+        training_inner_elbo = normalising_const - 1/(2*self.sigma2)*(y_sqr_clean - 2* cross_clean + signal_sqr_clean) - self.get_kl_x_from(mu_x, Sigma_x)
+        
+        # Scale const_train for mini-batches to represent full dataset contribution
+        if batch_size != total_size:
+            training_inner_elbo = training_inner_elbo * (total_size / batch_size)
+        
+
+
+        return training_inner_elbo  - self.gp.get_kl_u()
 
 
 class NormalCoordinatorCustom:
@@ -358,9 +433,9 @@ class NormalCoordinatorCustom:
         
     def get_b_test(self, D_test, s_expectation: torch.Tensor):
         if self.linear_map is not None: 
-            return 1/(self.module.sigma2)*((D_test - (self.h[..., :]*s_expectation).sum(dim=-1))[..., None, None]*s_expectation[...,None]*self.linear_map[...,None,None,:,:]).sum(dim=[-2,-3]) # N x (C-1)
+            return 1/(self.module.sigma2)*((D_test - (self.h[..., :]*s_expectation).sum(dim=-1))[..., None, None]*s_expectation[...,None]*self.linear_map[...,None,None,:,:]).sum(dim=[-2,-3]) # N x (C-1)
         else:
-            return 1/(self.module.sigma2)*(D_test[:,:,None]*s_expectation).sum(dim=-2) # N x C 
+            return 1/(self.module.sigma2)*(D_test[:,:,None]*s_expectation).sum(dim=-2) # N x C 
 
                 
     def get_const_test(self, D_test, s_expectation: torch.Tensor, s_outer_expectation: torch.Tensor):
@@ -384,9 +459,64 @@ class NormalCoordinatorCustom:
         return 1/(self.module.sigma2)*((D_train[:,:,None]*s_unobs_expectation).sum(dim=-2) - (R_train[...,:,:,None]*s_outer_cross_expectation).sum(dim=-2))
                 
     def get_const_train(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
-        return -(D_train.shape[1] * D_train.shape[0])/2*torch.log(self.module.sigma2) - 1/(2*self.module.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
-               
-               # torch.einsum("nm, mc, cn", D_train, s_obs_expectation, R_train.T)                                                                          #    torch.einsum("nc, ncd, dn",R_train,s_obs_outer_expectation,R_train.T))
+        # Handle missing data if missing_mask is provided
+        if hasattr(self, 'missing_mask') and self.missing_mask is not None:
+            return self._get_const_train_missing_data(D_train, R_train, s_obs_expectation, s_obs_outer_expectation)
+        
+        # Standard likelihood computation for complete data
+        return -(D_train.shape[1] * D_train.shape[0])/2*torch.log(2*torch.pi*self.module.sigma2) - 1/(2*self.module.sigma2)*((D_train**2).sum(dim=[-1,-2]) - 2 * torch.sum(D_train[...,None,:] @ s_obs_expectation @ R_train[...,None], dim=[-1,-2,-3]) + torch.sum(R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None],dim=[-1,-2,-3]))
+    
+    def _get_const_train_missing_data(self, D_train, R_train, s_obs_expectation, s_obs_outer_expectation):
+        """
+        Compute likelihood term accounting for missing data following SVI paper formulation.
+        Only observed dimensions contribute to the likelihood.
+        
+        Mathematical formulation:
+        log p(y_obs | mu, sigma^2) = -0.5 * N * log(2*pi*sigma^2) - 0.5 * sum((y_obs - mu)^2)/sigma^2
+        where N = number of observed dimensions
+        """
+        missing_mask = self.missing_mask
+        
+        # Create observed mask (inverse of missing mask)
+        observed_mask = ~missing_mask  # [batch_size, output_dim]
+        
+        # Count observed elements for normalization
+        n_observed = observed_mask.sum()
+        
+        if n_observed == 0:
+            # All data missing - return zero likelihood
+            return torch.zeros(1, device=D_train.device)
+        
+        # Replace NaN values with zeros for computation (they'll be masked out)
+        D_train_clean = torch.where(missing_mask, torch.zeros_like(D_train), D_train)
+        
+        # Compute likelihood terms only for observed dimensions
+        # Data term: (D_train**2).sum() but only for observed dimensions
+        data_squared_term = (D_train_clean**2 * observed_mask.float()).sum()
+        
+        # Cross term: D_train @ s_obs_expectation @ R_train but only for observed dimensions
+        estimated_signal = (s_obs_expectation @ R_train[...,None]).squeeze(-1)  # [P, batch_size, M]
+        cross_term = (D_train_clean[None,:,:] * estimated_signal * observed_mask.float()).sum(dim=[-1,-2])
+        # cross_term = torch.sum(
+        #     D_train_clean[...,None,:] @ s_obs_expectation @ R_train[...,None] * observed_mask[...,None,:],
+        #     dim=[-1,-2,-3]
+        # )
+        
+        # Quadratic term: R_train @ s_obs_outer_expectation @ R_train but only for observed dimensions
+        quad_term = torch.sum(
+            R_train[...,None,:]@s_obs_outer_expectation@R_train[...,None] * observed_mask[...,None,:],
+            dim=[-1,-2,-3]
+        )
+        
+        # Complete Gaussian log-likelihood: -0.5 * N * log(2*pi*sigma^2) - 0.5 * sum((y-mu)^2)/sigma^2
+        log_likelihood = (
+            -n_observed/2 * torch.log(2 * torch.pi * self.module.sigma2) -
+            1/(2*self.module.sigma2) * (data_squared_term - 2 * cross_term + quad_term)
+        )
+        
+        return log_likelihood
+
+
     
     def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train, mu_x_train, Sigma_x_train, s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
         # Again same reason to override as in elbo

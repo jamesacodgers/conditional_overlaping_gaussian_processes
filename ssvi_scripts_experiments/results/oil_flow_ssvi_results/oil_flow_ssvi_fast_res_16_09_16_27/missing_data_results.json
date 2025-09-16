@@ -1,0 +1,45 @@
+{
+  "experiment_info": {
+    "timestamp": "2025-09-16T16:27:49.445777",
+    "model_type": "GP LVM SSVI",
+    "model_description": "GP-LVM with Stochastic Structured Variational Inference",
+    "dataset": "Oil Flow",
+    "paper_reference": "Generalised GPLVM with SVI"
+  },
+  "data_info": {
+    "train_samples": 800,
+    "test_samples": 200,
+    "data_dimensions": 12,
+    "missing_pattern": "random",
+    "missing_percentage": 25.0,
+    "total_elements": 9600,
+    "missing_elements": 2400
+  },
+  "hyperparameters": {
+    "reconstruction_samples": 50,
+    "latent_dim": 6,
+    "inducing_points": 8,
+    "P_samples": 4
+  },
+  "reconstruction_metrics": {
+    "train": {
+      "rmse": 0.4590434730052948,
+      "mae": 0.35665208101272583,
+      "relative_error": 8.660408020019531,
+      "mean_uncertainty": 0.06914015114307404
+    },
+    "test": {
+      "rmse": 0.4835069179534912,
+      "mae": 0.37996211647987366,
+      "relative_error": 5.11779260635376,
+      "mean_uncertainty": 0.0668230727314949
+    }
+  },
+  "paper_style_summary": {
+    "dataset": "Oil Flow",
+    "missing_percentage": 25.0,
+    "train_rmse": 0.4590434730052948,
+    "test_rmse": 0.4835069179534912,
+    "quality_assessment": "Fair"
+  }
+}
