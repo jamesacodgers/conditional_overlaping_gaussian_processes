@@ -177,7 +177,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             K_VV_inv[None, None, None, :, :, :] @
             U_samples[:, None, :, :, :, None]
         )[..., 0, 0]
-
+    
     def _s_outer_expectation_given_U(self, kernel_outer_expectation: torch.Tensor, U_samples: torch.Tensor) -> torch.Tensor:
         """
         kernel_outer_expectation: [P, N, C, C, L, L]
@@ -359,7 +359,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         from src.missing_data_utils import reconstruct_missing_dimensions
         return reconstruct_missing_dimensions(self, y_observed, missing_mask, n_samples)
     
-    def gplvm_elbo_with_missing_data(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask=None):
+    def gplvm_elbo_with_missing_data(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask):
         """
         Extended gplvm_elbo that handles missing data by modifying the coordinator's likelihood computation.
         Uses the original ELBO structure but handles missing data in the coordinator.
@@ -367,29 +367,47 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         Raises:
             ValueError: If missing data functionality is not enabled or missing_mask is not provided
         """
-        if not self.enable_missing_data:
-            raise ValueError(
-                "Missing data functionality not enabled. Set enable_missing_data=True in model constructor "
-                "to use gplvm_elbo_with_missing_data(). Use gplvm_elbo() for standard computation."
-            )
         
-        if missing_mask is None:
-            raise ValueError(
-                "missing_mask is required for gplvm_elbo_with_missing_data(). "
-                "Provide a boolean tensor indicating missing values, or use gplvm_elbo() for standard computation."
-            )
+        n_observed = (~missing_mask).sum().item()
         
-        # Store missing mask in coordinator for likelihood computation
-        self.coordinator.missing_mask = missing_mask
+        # STUFF
+
+        kernel_train_expectation = self._get_lv_kernel_expectation(mu_x, Sigma_x)
+        kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x,Sigma_x)
+
+        s_train_expectation = self._s_expectation_given_U(kernel_expectation=kernel_train_expectation,
+                                                         U_samples=U_samples)
+        s_train_expectation = s_train_expectation[..., 0]  # [P, N, M] since C=1 for GP-LVM        
         
-        # Use standard ELBO computation - coordinator will handle missing data internally
-        elbo_result = self.gplvm_elbo(y, mu_x, Sigma_x, U_samples, batch_size, total_size)
+        y_sqr_clean = (y[~missing_mask] ** 2).sum() # 1
+        cross_clean = (y[None,:,:] * s_train_expectation * (~missing_mask)[None,:,:]).sum(dim=[-1,-2]).mean() 
+        # s_sqr_clean = .sum(dim=[-1,-2,-3]) # [P]
+
+        K_VV = self.gp.get_K_VV_matrix()               # L x L 
+        K_VV_inv_matrix = self.gp.get_K_VV_inv_matrix() # L x L
+        kernel_train_outer_expectation = kernel_train_outer_expectation[..., 0, 0, :, :]  # [P, N, L, L] since C=1 for GP-LVM
+
+        # Reshape U from [P, M, C, L] to [P, M, C*L]
+        Pn = U_samples.shape[0]
+        u_vec = U_samples.reshape(Pn, self.M, self.C * self.Lx)
+
+        Ma = (u_vec[:, :, :, None] * u_vec[:, :, None, :] - K_VV[None, :, :]) # [P, M, L, L]
+        Ma = (K_VV_inv_matrix @ Ma @ K_VV_inv_matrix.transpose(-2, -1))
+
+        signal_squared = self.gp.sigma2_s[None, None,:] + (Ma[:, None, :, :, :] * kernel_train_outer_expectation[:,:,None,:,:]).sum(dim=[-2, -1])
+        signal_sqr_clean = (signal_squared[:,~missing_mask]).sum(dim=-1).mean()
+
+        normalising_const = -n_observed/2*torch.log(2*torch.pi*self.sigma2)
+
+        training_inner_elbo = normalising_const - 1/(2*self.sigma2)*(y_sqr_clean - 2* cross_clean + signal_sqr_clean) - self.get_kl_x_from(mu_x, Sigma_x)
         
-        # Clean up
-        if hasattr(self.coordinator, 'missing_mask'):
-            delattr(self.coordinator, 'missing_mask')
+        # Scale const_train for mini-batches to represent full dataset contribution
+        if batch_size != total_size:
+            training_inner_elbo = training_inner_elbo * (total_size / batch_size)
         
-        return elbo_result
+
+
+        return training_inner_elbo  - self.gp.get_kl_u()
 
 
 class NormalCoordinatorCustom:
