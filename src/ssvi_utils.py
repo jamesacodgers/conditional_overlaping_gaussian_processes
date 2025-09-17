@@ -104,15 +104,7 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             hasattr(config, 'plot_latent_space') and config.plot_latent_space or
             hasattr(config, 'plot_hyperparams') and config.plot_hyperparams):
         return
-    
-    # Prepare GP-LVM model for test visualization if needed (SSVI doesn't need this)
-    if hasattr(model, 'prepare_for_test_metrics') and is_test_data:
-        # Only oil_flow_GPLVM needs test preparation for test data visualization
-        # Use provided optimization steps or default from config
-        if n_optimization_steps is None:
-            # Use single config value for all test optimization
-            n_optimization_steps = getattr(config, 'test_optimization_steps', 50)
-        model.prepare_for_test_metrics(y, config, n_optimization_steps=n_optimization_steps)
+
     
     with torch.no_grad():
         # Color mapping for labels (assuming 3 classes)
