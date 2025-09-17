@@ -81,6 +81,7 @@ class OilFlowSSVIConfig:
     
     # === Progress Reporting ===
     log_frequency: int = 100  # Log every N iterations
+    checkpoint_frequency: int = 100  # Save checkpoint models every N iterations
     
     # === Advanced Logging ===
     enable_gradient_logging: bool = False  # Log gradients and parameter changes
@@ -95,8 +96,7 @@ class OilFlowSSVIConfig:
     split_random_seed: int = 42            # Seed for train/test split (separate from training seed)
     
     # === Visualization Configuration ===
-    save_training_plots: bool = True       # Save training result plots during training
-    plot_save_frequency: int = 100         # Save plots every N iterations
+    save_training_plots: bool = True       # Save training result plots during training (saved with checkpoints)
     plot_training: bool = True             # Plot training progress
     plot_latent_space: bool = True         # Plot latent space visualization  
     plot_hyperparams: bool = True          # Plot model hyperparameters
@@ -363,33 +363,33 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
             except Exception as e:
                 print(f"    Warning: Error computing metrics at iteration {i}: {e}")
         
-        # Training plot saving (periodic)  
-        if (logger and config.save_training_plots and 
-            i > 0 and i % config.plot_save_frequency == 0):
-            
-            print(f"  Saving training plots at iteration {i}...")
+        # Checkpoint saving (models and plots together)
+        if (logger and i > 0 and i % config.checkpoint_frequency == 0):
+            print(f"  Saving checkpoint at iteration {i}...")
             try:
-                # Generate filename with iteration number
-                plot_filename = f"training_results_iter_{i}.png"
+                # Save checkpoint model
+                checkpoint_filename = f"oilflow_ssvi_iter_{i}_seed_{config.random_seed}.pkl"
+                logger.save_model(model, checkpoint_filename, is_checkpoint=True)
+                print(f"    Checkpoint model saved: {checkpoint_filename}")
                 
-                # Use the existing visualization function (save only, no display)
-                # Save as checkpoint plot (iteration-based)
-                visualize_ssvi_results(
-                    model=model,
-                    y=y,
-                    labels=labels,
-                    losses=losses,
-                    config=config,
-                    logger=logger,
-                    save_filename=plot_filename,
-                    show_plot=False,
-                    is_checkpoint=True
-                )
-                
-                print(f"    Training plots saved: {plot_filename}")
+                # Save checkpoint plot (if enabled)
+                if config.save_training_plots:
+                    plot_filename = f"training_results_iter_{i}.png"
+                    visualize_ssvi_results(
+                        model=model,
+                        y=y,
+                        labels=labels,
+                        losses=losses,
+                        config=config,
+                        logger=logger,
+                        save_filename=plot_filename,
+                        show_plot=False,
+                        is_checkpoint=True
+                    )
+                    print(f"    Checkpoint plot saved: {plot_filename}")
                 
             except Exception as e:
-                print(f"    Warning: Error saving training plots at iteration {i}: {e}")
+                print(f"    Warning: Error saving checkpoint at iteration {i}: {e}")
         
         # Gradient logging (only if logger provided and enabled)
         if logger and config.enable_gradient_logging and i % config.gradient_log_frequency == 0:
@@ -431,12 +431,12 @@ def get_fast_config():
         global_lr=1e-2,
         P=16,
         log_frequency=50,
+        checkpoint_frequency=100,  # Save checkpoint models every 100 iterations
         enable_gradient_logging=True,
         gradient_log_frequency=25,
         enable_metrics=True,
         metrics_frequency=50,
         save_training_plots=True,
-        plot_save_frequency=100,
         plot_training=True,
         plot_latent_space=True,
         plot_hyperparams=True,
@@ -561,6 +561,11 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     
     # Print final model parameters
     print_final_model_parameters(model, "GP LVM SSVI")
+    
+    # Save final model (like original GP-LVM)
+    if logger:
+        print("Saving final model...")
+        logger.save_model(model, f"oilflow_ssvi_{config.random_seed}.pkl", is_checkpoint=False)
     
     # Return final_metrics if computed, otherwise None
     final_metrics = None
