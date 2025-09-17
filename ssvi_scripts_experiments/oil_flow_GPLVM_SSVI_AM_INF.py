@@ -33,10 +33,10 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, save_metrics_to_json, save_metrics_to_text
+from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
-from src.save_utils import save_paper_style_metrics, print_final_model_parameters
+from src.save_utils import print_final_model_parameters
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
@@ -537,14 +537,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         print("Generating final metrics summary plots...")
         plot_final_metrics_summary(metrics_computer, model, logger, show_plot=False)
         
-        # Save metrics to JSON and text
+        # Save checkpoint metrics and training losses in structured format
         if logger:
-            print("Saving complete metrics to JSON...")
-            save_metrics_to_json(metrics_computer, logger)
-            print("Saving metrics summary to text...")
-            save_metrics_to_text(metrics_computer, logger, model)
-            
-            # Save checkpoint metrics and training losses in structured format
             print("Saving checkpoint metrics...")
             logger.save_checkpoint_metrics(metrics_computer, "oilflow_ssvi", config.random_seed)
             print("Saving training losses...")
@@ -572,13 +566,6 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     if metrics_computer is not None and metrics_computer.metrics_history:
         final_metrics = metrics_computer.metrics_history[-1]
     
-    # Save standard paper metrics for all experiments (missing data enabled/disabled)
-    if logger and split_data is not None:
-        save_paper_style_metrics(
-            model, split_data, losses, logger, config, metrics_computer, final_metrics,
-            model_type="GP LVM SSVI", 
-            model_description="GP-LVM with Stochastic Structured Variational Inference"
-        )
     
     # Save experiment summary
     if logger:
