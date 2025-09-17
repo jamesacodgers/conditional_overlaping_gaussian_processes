@@ -71,14 +71,14 @@ class SSVIMetricsComputer:
         Returns:
             x_sample: Sampled latent variables [batch_size, latent_dim]
         """
-        # Sample one of the P samples randomly
-        sample_idx = torch.randint(0, model.P, (1,)).item()
-        mu_sample = mu_x[sample_idx]  # [batch_size, latent_dim]
-        sigma_sample = sigma_x[sample_idx]  # [batch_size, latent_dim]
+        # Average over all P samples to get the marginal variational distribution
+        # This is mathematically equivalent to the Original GP-LVM approach
+        mu_avg = mu_x.mean(dim=0)  # [batch_size, latent_dim]
+        sigma_avg = sigma_x.mean(dim=0)  # [batch_size, latent_dim]
         
-        # Sample from the latent variable distribution q(x) = N(mu_x, sigma_x^2)
-        epsilon = torch.randn_like(sigma_sample)
-        x_sample = mu_sample + sigma_sample * epsilon
+        # Sample from the averaged latent variable distribution q(x) = N(mu_avg, sigma_avg^2)
+        epsilon = torch.randn_like(sigma_avg)
+        x_sample = mu_avg + sigma_avg * epsilon
         
         return x_sample
     
@@ -86,17 +86,15 @@ class SSVIMetricsComputer:
                      model, 
                      y_true: torch.Tensor, 
                      batch_indices: Optional[torch.Tensor] = None,
-                     n_samples: int = 10,
-                     is_test_data: bool = False) -> float:
+                     n_samples: int = 10) -> float:
         """
         Compute Root Mean Square Error for reconstruction
         
         Args:
-            model: GP-LVM model (SSVI or structured)
+            model: SSVI GP-LVM model
             y_true: True observations [N, D] or [batch_size, D]
             batch_indices: Optional indices if using subset of data
             n_samples: Number of samples for Monte Carlo estimation
-            is_test_data: Whether this is test data (determines which method to call)
             
         Returns:
             RMSE value
@@ -118,11 +116,8 @@ class SSVIMetricsComputer:
             # Preprocess encoder input to handle missing data (consistent with training)
             y_encoder_input = torch.where(torch.isnan(y_batch), torch.zeros_like(y_batch), y_batch)
             
-            # Get latent representations for this batch using explicit method
-            if is_test_data:
-                mu_x, sigma_x = model.get_mu_sigma_x_test_samples(y_encoder_input, U_samples)
-            else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            # Get latent representations for this batch using SSVI encoder
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
             
             # Sample from latent distribution for reconstruction
             reconstructions = []
@@ -172,17 +167,15 @@ class SSVIMetricsComputer:
                      model, 
                      y_true: torch.Tensor, 
                      batch_indices: Optional[torch.Tensor] = None,
-                     n_samples: int = 50,
-                     is_test_data: bool = False) -> float:
+                     n_samples: int = 50) -> float:
         """
         Compute Negative Log Predictive Density for uncertainty quantification
         
         Args:
-            model: GP-LVM model (SSVI or structured)
+            model: SSVI GP-LVM model
             y_true: True observations [N, D] or [batch_size, D]
             batch_indices: Optional indices if using subset of data
             n_samples: Number of samples for Monte Carlo estimation
-            is_test_data: Whether this is test data (determines which method to call)
             
         Returns:
             NLPD value (lower is better)
@@ -202,11 +195,8 @@ class SSVIMetricsComputer:
             # Preprocess encoder input to handle missing data (consistent with training)
             y_encoder_input = torch.where(torch.isnan(y_batch), torch.zeros_like(y_batch), y_batch)
             
-            # Get latent representations for this batch using explicit method
-            if is_test_data:
-                mu_x, sigma_x = model.get_mu_sigma_x_test_samples(y_encoder_input, U_samples)
-            else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            # Get latent representations for this batch using SSVI encoder
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
             
             log_probs = []
             
@@ -326,14 +316,14 @@ class SSVIMetricsComputer:
         metrics.elbo_loss = elbo_loss
         
         try:
-            # Reconstruction metrics with explicit train/test flags
-            metrics.train_rmse = self.compute_rmse(model, y_train, train_indices, n_samples, is_test_data=False)
-            metrics.test_rmse = self.compute_rmse(model, y_test, test_indices, n_samples, is_test_data=True)
+            # Reconstruction metrics using SSVI encoder
+            metrics.train_rmse = self.compute_rmse(model, y_train, train_indices, n_samples)
+            metrics.test_rmse = self.compute_rmse(model, y_test, test_indices, n_samples)
             
             # Uncertainty metrics (computationally expensive, use fewer samples)
             uncertainty_samples = min(10, n_samples)
-            metrics.train_nlpd = self.compute_nlpd(model, y_train, train_indices, uncertainty_samples, is_test_data=False)
-            metrics.test_nlpd = self.compute_nlpd(model, y_test, test_indices, uncertainty_samples, is_test_data=True)
+            metrics.train_nlpd = self.compute_nlpd(model, y_train, train_indices, uncertainty_samples)
+            metrics.test_nlpd = self.compute_nlpd(model, y_test, test_indices, uncertainty_samples)
             
             # Model complexity
             effective_dims, total_dims = self.compute_effective_latent_dims(model)
