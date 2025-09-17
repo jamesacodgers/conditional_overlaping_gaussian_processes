@@ -42,6 +42,22 @@ class SSVIResultsLogger:
             # Create plots subdirectory
             self.plots_dir = os.path.join(self.results_dir, "plots")
             os.makedirs(self.plots_dir, exist_ok=True)
+            
+            # Create plots/checkpoints subdirectory for iteration plots
+            self.plots_checkpoints_dir = os.path.join(self.plots_dir, "checkpoints")
+            os.makedirs(self.plots_checkpoints_dir, exist_ok=True)
+            
+            # Create pre_trained_models subdirectory
+            self.models_dir = os.path.join(self.results_dir, "pre_trained_models")
+            os.makedirs(self.models_dir, exist_ok=True)
+            
+            # Create pre_trained_models/checkpoints subdirectory for iteration models
+            self.models_checkpoints_dir = os.path.join(self.models_dir, "checkpoints")
+            os.makedirs(self.models_checkpoints_dir, exist_ok=True)
+            
+            # Create training_results subdirectory
+            self.training_results_dir = os.path.join(self.results_dir, "training_results")
+            os.makedirs(self.training_results_dir, exist_ok=True)
 
             # Initialize log files
             self.training_log_path = os.path.join(self.results_dir, "training_log.txt")
@@ -82,12 +98,85 @@ class SSVIResultsLogger:
             with open(self.gradient_log_path, 'a') as f:
                 f.write(json.dumps(log_entry) + '\n')
     
-    def save_plots(self, figure, filename: str):
-        """Save matplotlib figure to plots subdirectory"""
+    def save_plots(self, figure, filename: str, is_checkpoint: bool = False):
+        """Save matplotlib figure to plots subdirectory or checkpoints subdirectory"""
         if self.results_dir:
-            plot_path = os.path.join(self.plots_dir, filename)
+            if is_checkpoint:
+                plot_path = os.path.join(self.plots_checkpoints_dir, filename)
+                self.log_training(f"Checkpoint plot saved: plots/checkpoints/{filename}")
+            else:
+                plot_path = os.path.join(self.plots_dir, filename)
+                self.log_training(f"Plot saved: plots/{filename}")
             figure.savefig(plot_path, dpi=300, bbox_inches='tight')
-            self.log_training(f"Plot saved: plots/{filename}")
+    
+    def save_model(self, model, filename: str, is_checkpoint: bool = False):
+        """Save model to pre_trained_models subdirectory or checkpoints subdirectory"""
+        if self.results_dir:
+            import pickle
+            if is_checkpoint:
+                model_path = os.path.join(self.models_checkpoints_dir, filename)
+                self.log_training(f"Checkpoint model saved: pre_trained_models/checkpoints/{filename}")
+            else:
+                model_path = os.path.join(self.models_dir, filename)
+                self.log_training(f"Model saved: pre_trained_models/{filename}")
+            
+            with open(model_path, 'wb') as f:
+                pickle.dump(model, f)
+    
+    def save_checkpoint_metrics(self, metrics_computer, model_name: str, random_seed: int):
+        """Save checkpoint metrics to JSON file in training_results folder"""
+        if self.results_dir and metrics_computer and metrics_computer.metrics_history:
+            # Prepare checkpoint data
+            checkpoint_data = {
+                'model_name': model_name,
+                'seed': random_seed,
+                'total_iterations': getattr(self.config, 'training_iterations', 0),
+                'checkpoints': []
+            }
+            
+            # Extract metrics from each checkpoint
+            for metrics in metrics_computer.metrics_history:
+                checkpoint_entry = {
+                    'iteration': metrics.iteration,
+                    'train_rmse': float(metrics.train_rmse),
+                    'test_rmse': float(metrics.test_rmse),
+                    'train_nlpd': float(metrics.train_nlpd),
+                    'test_nlpd': float(metrics.test_nlpd),
+                    'elbo_loss': float(metrics.elbo_loss)
+                }
+                checkpoint_data['checkpoints'].append(checkpoint_entry)
+            
+            # Save to JSON file
+            checkpoint_file = os.path.join(self.training_results_dir, f"{model_name}_{random_seed}_checkpoint_metrics.json")
+            with open(checkpoint_file, 'w') as f:
+                json.dump(checkpoint_data, f, indent=2)
+            
+            self.log_training(f"Checkpoint metrics saved: training_results/{os.path.basename(checkpoint_file)}")
+    
+    def save_training_losses(self, losses, model_name: str, random_seed: int):
+        """Save training losses to JSON file in training_results folder"""
+        if self.results_dir:
+            losses_data = {
+                'model_name': model_name,
+                'seed': random_seed,
+                'losses': [float(loss) for loss in losses],
+                'total_iterations': len(losses)
+            }
+            
+            losses_file = os.path.join(self.training_results_dir, f"{model_name}_{random_seed}_losses.json")
+            with open(losses_file, 'w') as f:
+                json.dump(losses_data, f, indent=2)
+            
+            self.log_training(f"Training losses saved: training_results/{os.path.basename(losses_file)}")
+    
+    def save_experiment_summary(self, summary_data):
+        """Save final experiment summary in same format as original GP LVM"""
+        if self.results_dir:
+            summary_file = os.path.join(self.results_dir, "experiment_summary.json")
+            with open(summary_file, 'w') as f:
+                json.dump(summary_data, f, indent=2)
+            
+            self.log_training(f"Experiment summary saved: {os.path.basename(summary_file)}")
     
     def get_results_dir(self):
         """Get results directory path"""
@@ -97,7 +186,7 @@ class SSVIResultsLogger:
 
 
 
-def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False):
+def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False):
     """Visualize SSVI training results and latent space"""
     
     if not (hasattr(config, 'plot_training') and config.plot_training or
@@ -179,7 +268,7 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
         plt.tight_layout()
         
         # Save plot
-        logger.save_plots(fig, save_filename)
+        logger.save_plots(fig, save_filename, is_checkpoint=is_checkpoint)
         if show_plot:
             plt.show()
         else:

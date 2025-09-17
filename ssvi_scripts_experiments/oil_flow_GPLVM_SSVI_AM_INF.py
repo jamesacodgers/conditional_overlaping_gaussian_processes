@@ -30,7 +30,7 @@ import json
 from datetime import datetime
 import time
 
-sys.path.insert(0, os.getcwd())
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, save_metrics_to_json, save_metrics_to_text
@@ -373,6 +373,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                 plot_filename = f"training_results_iter_{i}.png"
                 
                 # Use the existing visualization function (save only, no display)
+                # Save as checkpoint plot (iteration-based)
                 visualize_ssvi_results(
                     model=model,
                     y=y,
@@ -381,7 +382,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                     config=config,
                     logger=logger,
                     save_filename=plot_filename,
-                    show_plot=False
+                    show_plot=False,
+                    is_checkpoint=True
                 )
                 
                 print(f"    Training plots saved: {plot_filename}")
@@ -421,7 +423,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
 def get_fast_config():
     """Fast configuration for testing with missing data enabled"""
     return OilFlowSSVIConfig(
-        training_iterations=5000,
+        training_iterations=200,
         batch_size=50,
         n_inducing_points=16,
         encoder_hidden_dims=[128, 64],
@@ -541,6 +543,12 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             save_metrics_to_json(metrics_computer, logger)
             print("Saving metrics summary to text...")
             save_metrics_to_text(metrics_computer, logger, model)
+            
+            # Save checkpoint metrics and training losses in structured format
+            print("Saving checkpoint metrics...")
+            logger.save_checkpoint_metrics(metrics_computer, "oilflow_ssvi", config.random_seed)
+            print("Saving training losses...")
+            logger.save_training_losses(losses, "oilflow_ssvi", config.random_seed)
 
     
     # Comprehensive missing data reconstruction experiment if enabled
@@ -566,6 +574,29 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             model_type="GP LVM SSVI", 
             model_description="GP-LVM with Stochastic Structured Variational Inference"
         )
+    
+    # Save experiment summary
+    if logger:
+        # Create experiment summary with only the model-specific performance metrics
+        experiment_summary = {}
+        
+        # Add model-specific performance metrics if available
+        if summary:
+            # Convert tensor to float for JSON serialization
+            final_noise = getattr(model, 'sigma2', 1.0)
+            if hasattr(final_noise, 'item'):
+                final_noise = final_noise.item()
+            
+            experiment_summary['oilflow_ssvi'] = {
+                'train_rmse': summary.get('final_train_rmse', 0.0),
+                'test_rmse': summary.get('final_test_rmse', 0.0),
+                'train_nlpd': summary.get('final_train_nlpd', 0.0),
+                'test_nlpd': summary.get('final_test_nlpd', 0.0),
+                'final_loss': losses[-1] if losses else 0.0,
+                'final_noise': float(final_noise)  # Ensure it's a Python float
+            }
+        
+        logger.save_experiment_summary(experiment_summary)
     
     return model, losses, config, metrics_computer, final_metrics
 
