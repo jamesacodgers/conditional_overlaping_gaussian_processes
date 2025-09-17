@@ -12,7 +12,7 @@ Usage examples:
     python ssvi_scripts_experiments/oil_flow_GPLVM.py
     
     # Run with base config
-    python ssvi_scripts_experiments/oil_flow_GPLVM.py --config ssvi_scripts_experiments/original_gplvm_configs/original_gplvm_base_config.yaml
+    python ssvi_scripts_experiments/oil_flow_GPLVM.py --config ssvi_scripts_experiments/original_gplvm_configs/base_lr_0001_s7.yaml
     
     # Run with fast config and overrides
     python ssvi_scripts_experiments/oil_flow_GPLVM.py --config ssvi_scripts_experiments/original_gplvm_configs/original_gplvm_fast_config.yaml --training-steps 100 --device cuda
@@ -44,9 +44,9 @@ from gpytorch.kernels import ScaleKernel, RBFKernel
 from gpytorch.distributions import MultivariateNormal
 from sklearn.model_selection import train_test_split
 
-# Import visualization and metrics
-from utils.visualisation import plot_report
+# Import metrics
 from utils.metrics import rmse
+from src.nlpd_utils import compute_nlpd_ssvi_style
 
 # Import configuration system
 from src.original_gplvm_config import OriginalGPLVMConfig, get_fast_config
@@ -64,14 +64,16 @@ def _init_pca(Y, latent_dim):
     return torch.nn.Parameter(torch.matmul(Y, V[:,:latent_dim]))
 
 class OilFlowModel(BayesianGPLVM):
-     def __init__(self, n, data_dim, latent_dim, n_inducing, X, nn_layers=None):
+     def __init__(self, n, data_dim, latent_dim, n_inducing, X, nn_layers=None, device=None):
          
         self.n = n
         self.batch_shape = torch.Size([data_dim])
         
         # Locations Z corresponding to u_{d}, they can be randomly initialized or 
         # regularly placed with shape (n_inducing x latent_dim).
-        self.inducing_inputs = torch.randn(n_inducing, latent_dim)
+        if device is None:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.inducing_inputs = torch.randn(n_inducing, latent_dim, device=device)
     
         # Sparse Variational Formulation
         q_u = CholeskyVariationalDistribution(n_inducing, batch_shape=self.batch_shape) 
@@ -122,11 +124,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     # Load data
     N, d, q, X, Y, labels = load_real_data(config.dataset)
     
-    Y_train, Y_test = train_test_split(Y.numpy(), test_size=config.test_size, random_state=config.random_seed)
-    lb_train, lb_test = train_test_split(labels, test_size=config.test_size, random_state=config.random_seed)
+    # Ensure Y is on CPU before converting to numpy for sklearn
+    Y_cpu = Y.cpu() if Y.is_cuda else Y
+    Y_train, Y_test = train_test_split(Y_cpu.numpy(), test_size=config.test_size, random_state=config.random_seed)
     
-    Y_train = torch.Tensor(Y_train)
-    Y_test = torch.Tensor(Y_test)
+    # Ensure labels are numpy array (not CUDA tensor) before train_test_split
+    labels_cpu = labels.cpu().numpy() if hasattr(labels, 'cpu') else labels
+    lb_train, lb_test = train_test_split(labels_cpu, test_size=config.test_size, random_state=config.random_seed)
+
+    Y_train = torch.tensor(Y_train, dtype=torch.float32, device=config.device)
+    Y_test = torch.tensor(Y_test, dtype=torch.float32, device=config.device)
     
     # Setting shapes
     N = len(Y_train)
@@ -149,14 +156,14 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         logger.log_training(f"Starting training for model: {model_name}")
         
         # Define prior for X
-        X_prior_mean = torch.zeros(N, latent_dim)  # shape: N x Q
+        X_prior_mean = torch.zeros(N, latent_dim, device=config.device)  # shape: N x Q
         X_prior_mean_test = X_prior_mean[0:len(Y_test),:]
     
         # Initialise X with PCA or 0s.
         if pca == True:
               X_init = _init_pca(Y_train, latent_dim) # Initialise X to PCA 
         else:
-              X_init = torch.nn.Parameter(torch.zeros(N, latent_dim))
+              X_init = torch.nn.Parameter(torch.zeros(N, latent_dim, device=config.device))
         
         # Each inference model differs in its latent variable configuration / 
         # LatentVariable (X)
@@ -172,22 +179,41 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             ae = False
             prior_x = NormalPrior(X_prior_mean, torch.ones_like(X_prior_mean))
             prior_x_test = NormalPrior(X_prior_mean_test, torch.ones_like(X_prior_mean_test))
-            X = VariationalLatentVariable(X_init, prior_x, latent_dim)
+            X = VariationalLatentVariable(X_init, prior_x, data_dim)  # CORRECT: constructor expects data_dim
         
         elif model_name == 'nn_gauss':
             
             ae = True
             nn_layers = config.nn_layers
-            prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1]))
-            prior_x_test = MultivariateNormalPrior(X_prior_mean_test, torch.eye(X_prior_mean.shape[1]))
+            prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1], device=config.device))
+            prior_x_test = MultivariateNormalPrior(X_prior_mean_test, torch.eye(X_prior_mean.shape[1], device=config.device))
             X = NNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
             
         # Initialise model, likelihood, elbo and optimizer
         
-        model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers)
+        model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers, device=config.device)
         likelihood = GaussianLikelihood()
         elbo = VariationalELBO(likelihood, model, num_data=len(Y_train))
-    
+
+        # Move model and likelihood to CUDA if available (like original experiments)
+        if config.device == 'cuda' and torch.cuda.is_available():
+            model = model.cuda()
+            likelihood = likelihood.cuda()
+            # Also move the latent variable (X) to CUDA using proper to() method
+            if hasattr(model, 'X'):
+                model.X = model.X.to(config.device)
+
+        # Fix device placement for NNEncoder tensors (created on CPU in original code)
+        if model_name == 'nn_gauss' and hasattr(model.X, 'jitter'):
+            # Use the proper to() method which handles jitter tensor
+            model.X = model.X.to(config.device)
+            # Also ensure prior_x tensors are on correct device
+            if hasattr(model.X, 'prior_x'):
+                if hasattr(model.X.prior_x, 'loc'):
+                    model.X.prior_x.loc = model.X.prior_x.loc.to(config.device)
+                if hasattr(model.X.prior_x, 'covariance_matrix'):
+                    model.X.prior_x.covariance_matrix = model.X.prior_x.covariance_matrix.to(config.device)
+
         optimizer = torch.optim.Adam([
         {'params': model.parameters()},
         {'params': likelihood.parameters()}
@@ -207,66 +233,67 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         batch_size = config.batch_size
         for i in iterator: 
             batch_index = model._get_batch_idx(batch_size)
+            # Convert batch_index to torch tensor on correct device for CUDA compatibility
+            batch_index_tensor = torch.tensor(batch_index, device=config.device)
             optimizer.zero_grad()
             if model_name in ['point','map', 'gauss']:
                 sample = model.sample_latent_variable()  # a full sample returns latent x across all N
             else:
                 sample = model.sample_latent_variable(Y_train)
-            sample_batch = sample[batch_index]
+            sample_batch = sample[batch_index_tensor]
             output_batch = model(sample_batch)
-            loss = -elbo(output_batch, Y_train[batch_index].T).sum()
-            loss_list.append(loss.item())
-            noise_trace.append(np.round(likelihood.noise_covar.noise.item(),3))
+            loss = -elbo(output_batch, Y_train[batch_index_tensor].T).sum()
+            loss_list.append(float(loss.item()))
+            noise_trace.append(float(np.round(likelihood.noise_covar.noise.item(),3)))
             iterator.set_description('Loss: ' + str(float(np.round(loss.item(),2))) + ", iter no: " + str(i))
             loss.backward()
             optimizer.step()
+
+            # Save iteration-based models and plots (like SSVI does)
+            if logger and logger.get_results_dir() and i > 0 and i % config.checkpoint_frequency == 0:
+                from src.ssvi_alignment_utils import save_iteration_model, create_iteration_plot
+                print(f"  Saving iteration {i} model and plot...")
+                save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
+                create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "original")
         model.store(loss_list, likelihood)
         
         logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
             
         # Save models & training info
         
-        print(model.covar_module.base_kernel.lengthscale)
+        print(model.covar_module.base_kernel.lengthscale.detach().cpu().numpy())
         model_dict[model_name + '_' + str(config.random_seed)] = model
         noise_trace_dict[model_name + '_' + str(config.random_seed)] = noise_trace
         
         ### Saving training report
         
         X_train_mean = model.get_X_mean(Y_train)
-        X_train_scales = model.get_X_scales(Y_train)
+        try:
+            X_train_scales = model.get_X_scales(Y_train)
+        except (RuntimeError, TypeError) as e:
+            if "can't convert cuda" in str(e).lower():
+                # For nn_gauss model, get_X_scales returns CUDA tensors that need CPU conversion
+                if model_name == 'nn_gauss':
+                    sigma_tensors = model.X.sigma(Y_train).detach()
+                    X_train_scales = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_tensors])
+                else:
+                    raise e
         
         # Save plots to results directory
         if logger.get_results_dir():
-            plots_dir = os.path.join(logger.get_results_dir(), 'plots')
-            os.makedirs(plots_dir, exist_ok=True)
-            # Change to results directory temporarily for plot_report
-            original_cwd = os.getcwd()
-            os.chdir(logger.get_results_dir())
-            plot_save_path = f'oilflow_{model_name}_{config.random_seed}'
+            # Import function only when needed to avoid directory creation issues
+            from src.ssvi_alignment_utils import create_standardized_scattered_plot
+            # lb_train is already a numpy array from train_test_split, no need to convert
+            # Use Y_train on the same device as model to avoid device mismatch
+            create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
         else:
-            # Fallback to current directory if no results directory
-            os.makedirs('plots', exist_ok=True)
-            plot_save_path = f'oilflow_{model_name}_{config.random_seed}'
-        
-        plot_report(model, loss_list, lb_train, colors=config.plot_colors, save=plot_save_path, X_mean=X_train_mean, X_scales=X_train_scales, model_name=model.X.__class__.__name__)
-        
-        # Restore original working directory if we changed it
-        if logger.get_results_dir():
-            os.chdir(original_cwd)
+            pass
         
         #### Saving model with seed 
         print(f'Saving {model_name} {config.random_seed}')
         
         # Save model using logger
         logger.save_model(model, model_name, config.random_seed)
-        
-        # Also save to results directory for compatibility with original code
-        if logger.get_results_dir():
-            filename = f'oilflow_{model_name}_{config.random_seed}.pkl'
-            pre_trained_dir = os.path.join(logger.get_results_dir(), 'pre_trained_models')
-            os.makedirs(pre_trained_dir, exist_ok=True)
-            with open(os.path.join(pre_trained_dir, filename), 'wb') as file:
-                pkl.dump(model.state_dict(), file)
 
         ####################### Testing Framework ################################################
         if config.enable_testing:
@@ -324,11 +351,19 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             if model_name in ('point', 'map'):
                     X_test_mean = X_test.X
             elif model_name == 'gauss':
-                   X_test_mean = X_test.q_mu.detach().numpy()
+                   X_test_mean = X_test.q_mu.detach()
+            elif model_name == 'nn_gauss':
+                   # For nn_gauss, X_test is the latent variable object, we need to get the mean
+                   X_test_mean = X_test.q_mu.detach() # CHECK LATER HERE
        
-            Y_test_recon, Y_test_pred_covar = model.reconstruct_y(torch.Tensor(X_test_mean), Y_test, ae=ae, model_name=model_name)
-            Y_train_recon, Y_train_pred_covar = model.reconstruct_y(torch.Tensor(X_train_mean), Y_train, ae=ae, model_name=model_name)
-            
+            # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
+            X_test_mean_device = X_test_mean.to(dtype=torch.float32, device=config.device)
+            X_train_mean_device = X_train_mean.to(dtype=torch.float32, device=config.device)
+
+
+            Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test, ae=ae, model_name=model_name)
+            Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train, ae=ae, model_name=model_name)
+
             # ################################
             # Compute the metrics:
             
@@ -340,8 +375,52 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
             print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
             
+            # 2) Negative log-likelihood (NLPD) - using SSVI-style approach for consistency
+
+            # Train NLPD
+
+            if model_name == 'gauss':
+                # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
+                X_train_covar = torch.diag_embed(torch.exp(model.X.q_log_sigma)**2)  # [N, latent_dim, latent_dim]
+                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean_device, X_train_covar, likelihood, n_samples=50)
+            elif model_name == 'nn_gauss':
+                # For encoder nn_gauss model, use SSVI-style approach with encoder variance
+                X_train_covar = model.X.sigma(Y_train)  # [N, latent_dim, latent_dim] - full covariance matrix
+                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean_device, X_train_covar, likelihood, n_samples=50)
+
+
+            # Test NLPD
+
+            if model_name == 'gauss':
+                # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
+                X_test_covar = torch.diag_embed(torch.exp(X_test.q_log_sigma)**2)  # [N_test, latent_dim, latent_dim]
+                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean_device, X_test_covar, likelihood, n_samples=50)
+            elif model_name == 'nn_gauss':
+                # For encoder nn_gauss model, use SSVI-style approach with encoder variance
+
+                # Use the same jitter approach for NLPD computation
+                # Store original jitter
+                original_jitter = model.X.jitter
+                # Create jitter for test data size
+                test_jitter = torch.eye(latent_dim).unsqueeze(0) * 1e-5
+                model.X.jitter = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
+
+                # Now call sigma safely
+                X_test_covar = model.X.sigma(Y_test)  # [N_test, latent_dim, latent_dim] - full covariance matrix
+
+                # Restore original jitter
+                model.X.jitter = original_jitter
+
+                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean_device, X_test_covar, likelihood, n_samples=50)
+
+            print(f'Train NLPD {model_name} = ' + str(train_nll))
+            print(f'Test NLPD {model_name} = ' + str(test_nll))
+
             # Save training results (convert tensors to floats for JSON serialization)
-            logger.save_training_results(model_name, config.random_seed, loss_list, noise_trace, 
+            # Ensure all values in loss_list and noise_trace are Python floats
+            loss_list_floats = [float(x) for x in loss_list]
+            noise_trace_floats = [float(x) for x in noise_trace]
+            logger.save_training_results(model_name, config.random_seed, loss_list_floats, noise_trace_floats,
                                         float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train), 
                                         float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test))
             
@@ -349,11 +428,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             results_summary[model_name] = {
                 'train_rmse': float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train),
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
+                'train_nlpd': float(train_nll),  # train_nll is already a float from compute_nlpd_ssvi_style
+                'test_nlpd': float(test_nll),    # test_nll is already a float from compute_nlpd_ssvi_style
                 'final_loss': float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
             
-            logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}")
+            logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nll:.4f}, Test NLPD: {test_nll:.4f}")
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)

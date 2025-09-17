@@ -26,21 +26,23 @@ class SSVIResultsLogger:
             # Create results directory with timestamp
             timestamp = datetime.now().strftime("%d_%m_%H_%M")
             
-            # Determine correct results path based on current working directory
-            # Organize results by experiment type: SSVI vs Original GP-LVM
-            if "gplvm" in experiment_name.lower():
-                results_folder = "oil_flow_original_gplvm_results"
+            # Use results_dir from config (should always be available)
+            if hasattr(config, 'results_dir') and config.results_dir:
+                # Use results_dir as specified in config (relative to current working directory)
+                # This allows the config to control whether paths are relative to project root or current directory
+                results_folder = config.results_dir
             else:
-                results_folder = "oil_flow_ssvi_results"
-                
-            if os.path.basename(os.getcwd()) == "ssvi_scripts_experiments":
-                # Running from within ssvi_scripts_experiments directory
-                self.results_dir = f"results/{results_folder}/{experiment_name}_res_{timestamp}"
-            else:
-                # Running from project root
-                self.results_dir = f"ssvi_scripts_experiments/results/{results_folder}/{experiment_name}_res_{timestamp}"
+                raise ValueError("config.results_dir must be set. Please ensure your config file has a results_dir field.")
+
+            # Create results directory with seed
+            seed = getattr(config, 'random_seed', 7)  # Default to 7 if not available
+            self.results_dir = f"{results_folder}/{experiment_name}_seed_{seed}_{timestamp}"
             os.makedirs(self.results_dir, exist_ok=True)
             
+            # Create plots subdirectory
+            self.plots_dir = os.path.join(self.results_dir, "plots")
+            os.makedirs(self.plots_dir, exist_ok=True)
+
             # Initialize log files
             self.training_log_path = os.path.join(self.results_dir, "training_log.txt")
             self.gradient_log_path = os.path.join(self.results_dir, "gradient_log.jsonl")
@@ -81,11 +83,11 @@ class SSVIResultsLogger:
                 f.write(json.dumps(log_entry) + '\n')
     
     def save_plots(self, figure, filename: str):
-        """Save matplotlib figure to results directory"""
+        """Save matplotlib figure to plots subdirectory"""
         if self.results_dir:
-            plot_path = os.path.join(self.results_dir, filename)
+            plot_path = os.path.join(self.plots_dir, filename)
             figure.savefig(plot_path, dpi=300, bbox_inches='tight')
-            self.log_training(f"Plot saved: {filename}")
+            self.log_training(f"Plot saved: plots/{filename}")
     
     def get_results_dir(self):
         """Get results directory path"""

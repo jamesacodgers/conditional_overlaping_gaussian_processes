@@ -119,6 +119,13 @@ def create_argument_parser() -> argparse.ArgumentParser:
     )
     
     parser.add_argument(
+        '--test-iterations',
+        type=int,
+        default=None,
+        help='Override number of test iterations'
+    )
+
+    parser.add_argument(
         '--batch-size',
         type=int,
         default=None,
@@ -211,6 +218,9 @@ def load_config_with_overrides(config_path: Optional[str] = None,
         if args.training_iterations is not None:
             config.training_iterations = args.training_iterations
             
+        if args.test_iterations is not None:
+            config.test_iterations = args.test_iterations
+
         if args.batch_size is not None:
             config.batch_size = args.batch_size
             
