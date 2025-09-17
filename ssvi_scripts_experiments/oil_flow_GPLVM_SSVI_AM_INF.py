@@ -57,6 +57,8 @@ class OilFlowSSVIConfig:
     # === Data Configuration ===
     data_url: str = "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"
     latent_dim: int = 6  # A = 6 from original
+    test_size_int: int = 50  # Number of test samples (like original GP LVM)
+    random_seed: int = 7  # Random seed for reproducibility
     
     # === Model Architecture ===
     n_inducing_points: int = 64
@@ -84,7 +86,8 @@ class OilFlowSSVIConfig:
     enable_gradient_logging: bool = False  # Log gradients and parameter changes
     gradient_log_frequency: int = 50       # Log gradients every N iterations
     save_results: bool = True              # Save results to folder
-    
+    results_dir: str = "oil_flow_results/ssvi_results"  # Results directory (relative to current working directory)
+
     # === Metrics Configuration ===
     enable_metrics: bool = True            # Compute evaluation metrics
     metrics_frequency: int = 100           # Compute metrics every N iterations
@@ -452,6 +455,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     # Set device from config
     torch.set_default_device(config.device)
     
+    # Set random seed (same as original GPLVM code)
+    torch.manual_seed(config.random_seed)
+
     # Print configuration
     config.print_config()
     
