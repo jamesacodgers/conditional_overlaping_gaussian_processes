@@ -5,15 +5,15 @@ from scipy.optimize import bisect
 
 def get_mf_ci(preds, dim = 0, alpha = 0.05 ):
     with torch.no_grad():
-        mu = preds.mean[:,dim].numpy()
-        sigma2 = preds.mean[:,dim,dim].numpy()
+        mu = preds.mean[:,dim].cpu().numpy()
+        sigma2 = preds.mean[:,dim,dim].cpu().numpy()
         dist = norm(mu, np.sqrt(sigma2))
         return dist.ppf(alpha/2), dist.ppf(1-alpha/2)
 
 def get_struc_ci(preds, dim=0, alpha=0.05):
     with torch.no_grad():
-        mus = preds.mean[:,:,dim].numpy()
-        sigma2s = preds.covariance_matrix[:,:,dim,dim].numpy()
+        mus = preds.mean[:,:,dim].cpu().numpy()
+        sigma2s = preds.covariance_matrix[:,:,dim,dim].cpu().numpy()
         def f_lb(a,dists):
             return dists.cdf(a).mean() - alpha/2
         def f_ub(a,dists):

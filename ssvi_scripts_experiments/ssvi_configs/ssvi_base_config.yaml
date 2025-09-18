@@ -13,7 +13,7 @@ n_inducing_points: 64
 encoder_hidden_dims: [128, 64, 32]
 
 # Training Configuration
-training_iterations: 200
+training_iterations: 60000
 batch_size: 128
 
 # Learning Rates
@@ -32,20 +32,19 @@ plot_training: true
 plot_latent_space: true
 plot_hyperparams: true
 
-# Progress Reporting
-log_frequency: 100  # Log every N iterations
+# Checkpoint Configuration
+checkpoint_frequency: 2000  # Save models, plots, metrics, and log progress every N iterations
 
 # Advanced Logging
 enable_gradient_logging: true
 gradient_log_frequency: 50  # Log gradients every N iterations
 save_results: true  # Save results to folder
+results_dir: "oil_flow_results/ssvi_results"  # Fixed: relative to current working directory
 
 # Metrics Configuration
 enable_metrics: true
-metrics_frequency: 100  # Compute metrics every N iterations
-test_size: 0.2  # Fraction of data for testing
-split_random_seed: 42  # Seed for train/test split
+test_size_int: 100  # Number of test samples (like original GP LVM) - 900 train, 100 test
+random_seed: 7  # Random seed for reproducibility (matches original GP-LVM base config)
 
 # Visualization Configuration
 save_training_plots: true
-plot_save_frequency: 100  # Save plots every N iterations

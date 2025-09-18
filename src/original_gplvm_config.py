@@ -40,8 +40,11 @@ class OriginalGPLVMConfig:
     
     # === Results Configuration ===
     save_results: bool = True
-    results_dir: str = "results/oil_flow_original_gplvm_results"
+    results_dir: str = "oil_flow_results/original_gplvm_results"  # Relative to current working directory
     experiment_name: str = "fast"
+    
+    # === Checkpointing Configuration ===
+    checkpoint_frequency: int = 2000  # Save models, plots, metrics, and log progress every N iterations
     
     # === Visualization Configuration ===
     save_plots: bool = True
@@ -50,6 +53,21 @@ class OriginalGPLVMConfig:
     # === Testing Configuration ===
     enable_testing: bool = True  # Enable test evaluation
     test_iterations: int = 200  # Number of iterations for test phase (default for fast config)
+    
+    # === Additional Configuration from oilflow_expt.py ===
+    # Prior configuration for different models
+    prior_type: dict = None  # Will be set to {'gauss': 'normal', 'nn_gauss': 'multivariate'} if None
+    
+    # Kernel configuration
+    kernel_type: str = "rbf"  # Kernel type (RBF from oilflow_expt.py)
+    use_ard: bool = True  # ARD (Automatic Relevance Determination) for RBF kernel
+    
+    # Mean function configuration
+    mean_function: str = "zero"  # ZeroMean() in oilflow_expt.py
+    
+    # Variational configuration
+    variational_strategy: str = "cholesky"  # CholeskyVariationalDistribution in oilflow_expt.py
+    learn_inducing_locations: bool = True  # learn_inducing_locations=True in oilflow_expt.py
     
     def __post_init__(self):
         """Set default values and resolve device if not specified"""
@@ -61,6 +79,9 @@ class OriginalGPLVMConfig:
         
         if self.plot_colors is None:
             self.plot_colors = ['r', 'b', 'g']
+        
+        if self.prior_type is None:
+            self.prior_type = {'gauss': 'normal', 'nn_gauss': 'multivariate'}
         
         # Resolve device configuration
         if self.device == "auto":
@@ -87,21 +108,31 @@ class OriginalGPLVMConfig:
 def get_fast_config():
     """Fast configuration for testing"""
     return OriginalGPLVMConfig(
+        device="cuda",  # Use CUDA device
         training_steps={'gauss': 200, 'nn_gauss': 200},
         batch_size=50,
         n_inducing=15,
         learning_rate=0.002,
         random_seed=42,
-        test_iterations=200
+        test_iterations=200,
+        checkpoint_frequency=50  # Save models, plots, metrics, and log progress every N iterations
     )
 
 def get_base_config():
-    """Base configuration matching original paper settings"""
+    """Base configuration matching oilflow_expt.py settings"""
     return OriginalGPLVMConfig(
         training_steps={'gauss': 60000, 'nn_gauss': 60000},
         batch_size=100,
         n_inducing=25,
         learning_rate=0.001,
         random_seed=7,
-        test_iterations=5000
+        test_iterations=5000,
+        latent_dim=12,
+        pca_init=False,
+        prior_type={'gauss': 'normal', 'nn_gauss': 'multivariate'},
+        kernel_type="rbf",
+        use_ard=True,
+        mean_function="zero",
+        variational_strategy="cholesky",
+        learn_inducing_locations=True
     )

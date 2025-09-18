@@ -43,6 +43,14 @@ def create_argument_parser():
     parser.add_argument('--learning-rate', type=float, default=None,
                        help='Learning rate')
     
+    # Testing configuration
+    parser.add_argument('--test-iterations', type=int, default=None,
+                       help='Number of iterations for test phase evaluation')
+    
+    # Checkpointing configuration
+    parser.add_argument('--checkpoint-frequency', type=int, default=None,
+                       help='Checkpoint frequency for saving models and plots')
+    
     # Results configuration
     parser.add_argument('--results-dir', type=str, default=None,
                        help='Results directory')
@@ -79,6 +87,11 @@ def load_config_with_overrides(config_path: str = None,
         # Load from YAML file
         with open(config_path, 'r') as f:
             config_dict = yaml.safe_load(f)
+        
+        # Convert nn_layers from list to tuple if needed (YAML doesn't support tuples natively)
+        if 'nn_layers' in config_dict and isinstance(config_dict['nn_layers'], list):
+            config_dict['nn_layers'] = tuple(config_dict['nn_layers'])
+        
         config = config_class(**config_dict)
         config_name = os.path.splitext(os.path.basename(config_path))[0]
     
@@ -109,22 +122,35 @@ def load_config_with_overrides(config_path: str = None,
 
 def ensure_config_dir_exists():
     """Ensure config directory exists"""
-    config_dir = "ssvi_scripts_experiments/original_gplvm_configs"
+    # Check if we're already in ssvi_scripts_experiments folder
+    current_dir = os.getcwd()
+    if current_dir.endswith('ssvi_scripts_experiments'):
+        # We're already in ssvi_scripts_experiments, so just create original_gplvm_configs
+        config_dir = "original_gplvm_configs"
+    else:
+        # We're in project root, create full path
+        config_dir = "ssvi_scripts_experiments/original_gplvm_configs"
+    
     os.makedirs(config_dir, exist_ok=True)
     return config_dir
 
 def print_available_configs():
     """Print available configuration files"""
     config_dir = ensure_config_dir_exists()
-    config_files = [f for f in os.listdir(config_dir) if f.endswith('.yaml')]
     
-    if config_files:
-        print("Available configuration files:")
-        for config_file in sorted(config_files):
-            print(f"  {config_file}")
+    # Check if config directory exists and has files
+    if os.path.exists(config_dir):
+        config_files = [f for f in os.listdir(config_dir) if f.endswith('.yaml')]
+        
+        if config_files:
+            print("Available configuration files:")
+            for config_file in sorted(config_files):
+                print(f"  {config_file}")
+        else:
+            print("No configuration files found.")
+            print(f"Config directory: {config_dir}")
     else:
-        print("No configuration files found.")
-        print(f"Config directory: {config_dir}")
+        print(f"Config directory does not exist: {config_dir}")
 
 def save_config_to_yaml(config: OriginalGPLVMConfig, filepath: str):
     """Save configuration to YAML file"""
@@ -139,4 +165,4 @@ def save_config_to_yaml(config: OriginalGPLVMConfig, filepath: str):
 def get_base_config_path():
     """Get path to base configuration file"""
     config_dir = ensure_config_dir_exists()
-    return os.path.join(config_dir, "original_gplvm_base_config.yaml")
+    return os.path.join(config_dir, "base_lr_0001_s7.yaml")
