@@ -56,11 +56,12 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         # Plot 2: Latent space visualization (exactly like SSVI)
         plt.subplot(1, n_plots, plot_idx)
         
-        # Find the two most informative dimensions (largest lengthscales = smallest beta)
-        lengthscales = 1 / model.covar_module.base_kernel.lengthscale.flatten()
-        top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
-        dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
-        lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
+        # Find the two most informative dimensions (copy original approach exactly)
+        inv_lengthscale = 1 / model.covar_module.base_kernel.lengthscale
+        values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=2, largest=False)
+        dim1 = indices.cpu().numpy().flatten()[0]  # Move to CPU first
+        dim2 = indices.cpu().numpy().flatten()[1]  # Move to CPU first
+        lengthscales_cpu = inv_lengthscale.flatten().cpu()  # Move to CPU for string formatting
         
         # Get latent variables (use mu_x directly, no sampling)
         model_name_class = model.X.__class__.__name__
