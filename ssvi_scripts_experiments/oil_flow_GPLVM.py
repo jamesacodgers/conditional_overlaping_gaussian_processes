@@ -46,7 +46,6 @@ from sklearn.model_selection import train_test_split
 
 # Import metrics
 from utils.metrics import rmse
-from src.nlpd_utils import compute_nlpd_ssvi_style
 
 # Import configuration system
 from src.original_gplvm_config import OriginalGPLVMConfig, get_fast_config
@@ -56,6 +55,7 @@ from src.original_gplvm_config_utils import (
 )
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.data_utils import download_oilflow_data_if_needed
+from src.nlpd_utils import compute_nlpd_nll_based
 
 plt.style.use('ggplot')
 
@@ -375,46 +375,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
             print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
             
-            # 2) Negative log-likelihood (NLPD) - using SSVI-style approach for consistency
+            # 2) Negative Log Predictive Density (NLPD) - using NLL-based approach inspired by movie_lens_large_expt.py
 
-            # Train NLPD
+            # Train NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
+            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
+            
+            # Test NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
+            test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
 
-            if model_name == 'gauss':
-                # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
-                X_train_covar = torch.diag_embed(torch.exp(model.X.q_log_sigma)**2)  # [N, latent_dim, latent_dim]
-                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean_device, X_train_covar, likelihood, n_samples=50)
-            elif model_name == 'nn_gauss':
-                # For encoder nn_gauss model, use SSVI-style approach with encoder variance
-                X_train_covar = model.X.sigma(Y_train)  # [N, latent_dim, latent_dim] - full covariance matrix
-                train_nll = compute_nlpd_ssvi_style(model, Y_train, X_train_mean_device, X_train_covar, likelihood, n_samples=50)
-
-
-            # Test NLPD
-
-            if model_name == 'gauss':
-                # For variational gauss model, use SSVI-style Monte Carlo with latent uncertainty
-                X_test_covar = torch.diag_embed(torch.exp(X_test.q_log_sigma)**2)  # [N_test, latent_dim, latent_dim]
-                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean_device, X_test_covar, likelihood, n_samples=50)
-            elif model_name == 'nn_gauss':
-                # For encoder nn_gauss model, use SSVI-style approach with encoder variance
-
-                # Use the same jitter approach for NLPD computation
-                # Store original jitter
-                original_jitter = model.X.jitter
-                # Create jitter for test data size
-                test_jitter = torch.eye(latent_dim).unsqueeze(0) * 1e-5
-                model.X.jitter = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
-
-                # Now call sigma safely
-                X_test_covar = model.X.sigma(Y_test)  # [N_test, latent_dim, latent_dim] - full covariance matrix
-
-                # Restore original jitter
-                model.X.jitter = original_jitter
-
-                test_nll = compute_nlpd_ssvi_style(model, Y_test, X_test_mean_device, X_test_covar, likelihood, n_samples=50)
-
-            print(f'Train NLPD {model_name} = ' + str(train_nll))
-            print(f'Test NLPD {model_name} = ' + str(test_nll))
+            print(f'Train NLPD {model_name} = ' + str(train_nlpd))
+            print(f'Test NLPD {model_name} = ' + str(test_nlpd))
 
             # Save training results (convert tensors to floats for JSON serialization)
             # Ensure all values in loss_list and noise_trace are Python floats
@@ -428,13 +398,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             results_summary[model_name] = {
                 'train_rmse': float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train),
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
-                'train_nlpd': float(train_nll),  # train_nll is already a float from compute_nlpd_ssvi_style
-                'test_nlpd': float(test_nll),    # test_nll is already a float from compute_nlpd_ssvi_style
+                'train_nlpd': float(train_nlpd),  # train_nlpd is already a float from compute_nlpd_nll_based
+                'test_nlpd': float(test_nlpd),    # test_nlpd is already a float from compute_nlpd_nll_based
                 'final_loss': float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
             
-            logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nll:.4f}, Test NLPD: {test_nll:.4f}")
+            logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)

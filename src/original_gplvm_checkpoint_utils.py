@@ -9,7 +9,7 @@ import numpy as np
 import os
 import json
 from typing import Tuple, List
-from .nlpd_utils import compute_nlpd_ssvi_style
+from .nlpd_utils import compute_nlpd_nll_based
 
 # Import rmse function - need to handle the path properly
 import sys
@@ -19,7 +19,8 @@ from utils.metrics import rmse
 
 
 def compute_checkpoint_metrics(model, model_name: str, Y_train: torch.Tensor, Y_test: torch.Tensor,
-                             likelihood, ae: bool, prior_x_test=None, config=None) -> Tuple[float, float, float, float]:
+                             likelihood, ae: bool, prior_x_test=None, config=None, 
+                             losses_train=None, losses_test=None) -> Tuple[float, float, float, float]:
     """
     Compute RMSE and NLPD metrics for train and test data at a checkpoint
     
@@ -32,6 +33,8 @@ def compute_checkpoint_metrics(model, model_name: str, Y_train: torch.Tensor, Y_
         ae: Whether using autoencoder (True for nn_gauss)
         prior_x_test: Prior for test latent variables
         config: Configuration object
+        losses_train: Training loss list (optional, for point/map/gauss models)
+        losses_test: Test loss list (optional, for point/map/gauss models)
         
     Returns:
         Tuple of (train_rmse, test_rmse, train_nlpd, test_nlpd)
@@ -57,13 +60,8 @@ def compute_checkpoint_metrics(model, model_name: str, Y_train: torch.Tensor, Y_
         # Compute training RMSE
         train_rmse = rmse(Y_train, Y_train_recon.T)
         
-        # Compute training NLPD
-        if model_name == 'gauss':
-            X_train_covar = torch.diag_embed(torch.exp(model.X.q_log_sigma)**2)
-            train_nlpd = compute_nlpd_ssvi_style(model, Y_train, X_train_mean, X_train_covar, likelihood, n_samples=50)
-        elif model_name == 'nn_gauss':
-            X_train_covar = model.X.sigma(Y_train)
-            train_nlpd = compute_nlpd_ssvi_style(model, Y_train, X_train_mean, X_train_covar, likelihood, n_samples=50)
+        # Compute training NLPD using NLL-based approach
+        train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, losses_train)
         
         # Get test latent variables
         if ae is True:
@@ -109,12 +107,8 @@ def compute_checkpoint_metrics(model, model_name: str, Y_train: torch.Tensor, Y_
         # Compute test RMSE
         test_rmse = rmse(Y_test, Y_test_recon.T)
         
-        # Compute test NLPD
-        if model_name == 'gauss':
-            X_test_covar = torch.diag_embed(torch.exp(X_test.q_log_sigma)**2)
-            test_nlpd = compute_nlpd_ssvi_style(model, Y_test, X_test_mean, X_test_covar, likelihood, n_samples=50)
-        elif model_name == 'nn_gauss':
-            test_nlpd = compute_nlpd_ssvi_style(model, Y_test, X_test_mean, X_test_covar, likelihood, n_samples=50)
+        # Compute test NLPD using NLL-based approach
+        test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
         
         # Convert tensors to floats
         train_rmse_val = float(train_rmse.item()) if hasattr(train_rmse, 'item') else float(train_rmse)
@@ -126,7 +120,7 @@ def compute_checkpoint_metrics(model, model_name: str, Y_train: torch.Tensor, Y_
 
 
 def save_checkpoint(model, model_name: str, iteration: int, Y_train: torch.Tensor, Y_test: torch.Tensor,
-                   likelihood, ae: bool, config, logger, prior_x_test=None):
+                   likelihood, ae: bool, config, logger, prior_x_test=None, losses_train=None, losses_test=None):
     """
     Save checkpoint metrics and plot
     
@@ -141,11 +135,13 @@ def save_checkpoint(model, model_name: str, iteration: int, Y_train: torch.Tenso
         config: Configuration object
         logger: Results logger
         prior_x_test: Prior for test latent variables
+        losses_train: Training loss list (optional, for point/map/gauss models)
+        losses_test: Test loss list (optional, for point/map/gauss models)
     """
     if logger and logger.get_results_dir():
         # Compute metrics
         train_rmse, test_rmse, train_nlpd, test_nlpd = compute_checkpoint_metrics(
-            model, model_name, Y_train, Y_test, likelihood, ae, prior_x_test, config)
+            model, model_name, Y_train, Y_test, likelihood, ae, prior_x_test, config, losses_train, losses_test)
         
         # Save metrics to JSON
         logger.save_checkpoint_metrics(model_name, config.random_seed, iteration,
