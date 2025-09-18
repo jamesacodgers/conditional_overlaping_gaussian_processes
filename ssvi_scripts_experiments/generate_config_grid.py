@@ -60,9 +60,9 @@ def generate_config_grid():
     
     # Parameter ranges
     n_inducing_values = [8, 32, 128]
-    init_lengthscales_values = [0.01, 0.1, 1.0]
-    init_output_noise_scale_values = [0.01, 0.1, 1.0]
-    batch_size_values = [32, 128, 512]
+    init_lengthscales_values = [0.1, 1.0]
+    init_output_noise_scale_values = [0.1, 1.0]
+    batch_size_values = [32, 128]
     random_seed_values = [7, 11, 17]
     
     # Base configuration paths
