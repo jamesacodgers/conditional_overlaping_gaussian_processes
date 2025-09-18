@@ -286,14 +286,14 @@ def preprocess_data_for_missing_training(data: torch.Tensor,
     print(f"Creating missing data pattern...")
     print(f"  Missing ratio: {config.missing_data_ratio}")
     print(f"  Pattern type: random")
-    print(f"  Seed: {config.missing_data_seed}")
+    print(f"  Seed: {config.random_seed}")
     
     # Create missing data pattern
     masked_data, missing_mask = create_missing_data_pattern(
         data, 
         missing_ratio=config.missing_data_ratio,
         pattern_type="random",  # Could be made configurable
-        seed=config.missing_data_seed
+        seed=config.random_seed
     )
     
     n_missing = missing_mask.sum().item()

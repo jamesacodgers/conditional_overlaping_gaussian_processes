@@ -105,7 +105,6 @@ class OilFlowSSVIConfig:
     enable_missing_data: bool = False      # Enable missing data reconstruction capability
     missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
     reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
-    missing_data_seed: int = 123           # Seed for reproducible missing data patterns
     
     def __post_init__(self):
         """Set default encoder architecture and resolve device if not specified"""
@@ -128,6 +127,9 @@ class OilFlowSSVIConfig:
         print(f"Encoder: {self.encoder_hidden_dims} hidden dims")
         print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")
         print(f"Learning rates: Local={self.local_lr}, Global={self.global_lr}")
+        print(f"Random seed: {self.random_seed}")
+        print(f"Init lengthscales: {self.init_lengthscales}")
+        print(f"Init output noise scale: {self.init_output_noise_scale}")
         print(f"SSVI: P={self.P} samples")
         print(f"Logging: Save results={self.save_results}, Gradients={self.enable_gradient_logging}")
         if self.enable_gradient_logging:
@@ -454,7 +456,8 @@ def get_fast_config():
         enable_missing_data=False,      # Enable missing data reconstruction capability
         missing_data_ratio=0,        # Fraction of dimensions to artificially mask (for testing)
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
-        missing_data_seed=123          # Seed for reproducible missing data patterns
+        # === Random Seed Configuration ===
+        random_seed=7                  # Random seed for reproducibility (matches SSVI base config)
     )
 
 def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
@@ -467,8 +470,12 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     # Set device from config
     torch.set_default_device(config.device)
     
-    # Set random seed (same as original GPLVM code)
+    # Set random seed for reproducibility (same as original GPLVM code)
     torch.manual_seed(config.random_seed)
+    np.random.seed(config.random_seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(config.random_seed)
+        torch.cuda.manual_seed_all(config.random_seed)
 
     # Print configuration
     config.print_config()

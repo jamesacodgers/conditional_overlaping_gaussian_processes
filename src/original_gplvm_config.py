@@ -26,6 +26,10 @@ class OriginalGPLVMConfig:
     n_inducing: int = 25  # Number of inducing points
     pca_init: bool = False  # Whether to initialize with PCA
     
+    # === GP Hyperparameters ===
+    init_lengthscales: float = 2.0  # Initial lengthscales value (default matches GPyTorch RBFKernel)
+    init_output_noise_scale: float = 2.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
+    
     # === Model Selection ===
     models: List[str] = None  # Will be set to ['gauss', 'nn_gauss'] if None
     
@@ -100,6 +104,9 @@ class OriginalGPLVMConfig:
         print(f"Latent dim: {self.latent_dim}, Inducing points: {self.n_inducing}")
         print(f"Training steps: {self.training_steps}")
         print(f"Batch size: {self.batch_size}, Learning rate: {self.learning_rate}")
+        print(f"Random seed: {self.random_seed}")
+        print(f"Init lengthscales: {self.init_lengthscales}")
+        print(f"Init output noise scale: {self.init_output_noise_scale}")
         print(f"Save results: {self.save_results}")
         if self.save_results:
             print(f"Results dir: {self.results_dir}")
@@ -115,7 +122,10 @@ def get_fast_config():
         learning_rate=0.002,
         random_seed=42,
         test_iterations=200,
-        checkpoint_frequency=50  # Save models, plots, metrics, and log progress every N iterations
+        checkpoint_frequency=50,  # Save models, plots, metrics, and log progress every N iterations
+        # === GP Hyperparameters ===
+        init_lengthscales=2.0,  # Initial lengthscales value (default matches GPyTorch RBFKernel)
+        init_output_noise_scale=2.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
     )
 
 def get_base_config():
@@ -134,5 +144,8 @@ def get_base_config():
         use_ard=True,
         mean_function="zero",
         variational_strategy="cholesky",
-        learn_inducing_locations=True
+        learn_inducing_locations=True,
+        # === GP Hyperparameters ===
+        init_lengthscales=2.0,  # Initial lengthscales value (default matches GPyTorch RBFKernel)
+        init_output_noise_scale=2.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
     )

@@ -16,8 +16,8 @@ training_iterations: 1000  # Same as original
 learning_rate: 0.01  # 1e-2 from original
 
 # GP Hyperparameters
-sigma2: 1.0
-beta: null  # Lengthscales (null = auto initialization)
+init_lengthscales: 2.0  # Initial lengthscales value (default matches GPyTorch RBFKernel)
+init_output_noise_scale: 2.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
 sigma2_s: null  # Signal variances (null = auto)
 P: 8  # Number of samples for structured GP-LVM (same as original)
 trainable_V: true

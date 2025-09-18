@@ -65,7 +65,7 @@ def _init_pca(Y, latent_dim):
     return torch.nn.Parameter(torch.matmul(Y, V[:,:latent_dim]))
 
 class OilFlowModel(BayesianGPLVM):
-     def __init__(self, n, data_dim, latent_dim, n_inducing, X, nn_layers=None, device=None):
+     def __init__(self, n, data_dim, latent_dim, n_inducing, X, nn_layers=None, device=None, config=None):
          
         self.n = n
         self.batch_shape = torch.Size([data_dim])
@@ -85,6 +85,19 @@ class OilFlowModel(BayesianGPLVM):
         #self.mean_module = ConstantMean(ard_num_dims=latent_dim)
         self.mean_module = ZeroMean()
         self.covar_module = ScaleKernel(RBFKernel(ard_num_dims=latent_dim))
+        
+        # Initialize kernel parameters from config if provided
+        if config is not None:
+            # CRITICAL: To match SSVI formula, we need to use 1/sqrt(init_lengthscales)
+            # SSVI: exp(-0.5 * ||x-x'||2 * lengthscales)  
+            # GPyTorch: exp(-0.5 * ||x-x'||2 / lengthscale2)
+            # So: lengthscale2 = 1/lengthscales -> lengthscale = 1/sqrt(lengthscales)
+            with torch.no_grad():
+                # Set lengthscales to match SSVI formula
+                effective_lengthscale = 1.0 / torch.sqrt(torch.tensor(config.init_lengthscales, device=device))
+                self.covar_module.base_kernel.lengthscale.fill_(torch.log(effective_lengthscale))
+                # Set outputscale: GPyTorch uses log space, so we need log(init_output_noise_scale)
+                self.covar_module.outputscale.fill_(torch.log(torch.tensor(config.init_output_noise_scale, device=device)))
 
      def forward(self, X):
         mean_x = self.mean_module(X)
@@ -116,8 +129,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     if logger.get_results_dir():
         print(f"Results will be saved to: {logger.get_results_dir()}")
     
-    # Set random seed
+    # Set random seed for reproducibility
     torch.manual_seed(config.random_seed)
+    np.random.seed(config.random_seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(config.random_seed)
+        torch.cuda.manual_seed_all(config.random_seed)
     
     # Download data if needed
     download_oilflow_data_if_needed()
@@ -192,8 +209,14 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
         # Initialise model, likelihood, elbo and optimizer
         
-        model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers, device=config.device)
+        model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers, device=config.device, config=config)
         likelihood = GaussianLikelihood()
+        
+        # Initialize likelihood noise from config if provided
+        if config is not None:
+            with torch.no_grad():
+                # GPyTorch uses log space, so we need log(init_output_noise_scale)
+                likelihood.noise.fill_(torch.log(torch.tensor(config.init_output_noise_scale, device=config.device)))
         elbo = VariationalELBO(likelihood, model, num_data=len(Y_train))
 
         # Move model and likelihood to CUDA if available (like original experiments)
