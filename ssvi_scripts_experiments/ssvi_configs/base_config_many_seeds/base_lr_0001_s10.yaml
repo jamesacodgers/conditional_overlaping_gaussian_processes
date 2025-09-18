@@ -21,9 +21,9 @@ local_lr: 0.001   # Encoder parameters
 global_lr: 0.001  # GP hyperparameters
 
 # GP Hyperparameters
-sigma2: 1.0
-beta: [1.0]  # Initial beta values (will be converted to tensor)
 sigma2_s: null  # Signal variances (null = auto)
+init_lengthscales: 1.0  # Initial lengthscales value (1/beta) - default matches current standard
+init_output_noise_scale: 1.0  # Initial output noise scale (sigma2) - default matches current standard
 P: 64  # Number of samples for SSVI
 trainable_V: true
 

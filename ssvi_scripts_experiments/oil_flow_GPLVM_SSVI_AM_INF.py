@@ -73,9 +73,9 @@ class OilFlowSSVIConfig:
     global_lr: float = 1e-2  # GP hyperparameters (higher like in original)
     
     # === GP Hyperparameters ===
-    sigma2: float = 1.0
-    beta: Any = None         # Lengthscales (None = auto)
     sigma2_s: Any = None     # Signal variances (None = auto)
+    init_lengthscales: float = 1.0  # Initial lengthscales value (1/beta) - default matches current standard
+    init_output_noise_scale: float = 1.0  # Initial output noise scale (sigma2) - default matches current standard
     P: int = 8               # Number of samples for SSVI (like original)
     trainable_V: bool = True
     
@@ -225,13 +225,20 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
     """Oil Flow SSVI GP-LVM with Amortized Inference"""
     
     def __init__(self, config: OilFlowSSVIConfig, Vx, mu_x, M):
+        # Use init_lengthscales to create beta values
+        # beta = 1/lengthscales, so for init_lengthscales=1.0, beta=[1,1,1,1,1,1]
+        beta = [[1.0/config.init_lengthscales] * config.latent_dim] * 1  # C=1 for GP-LVM
+        
+        # Use init_output_noise_scale for sigma2 initialization
+        sigma2 = config.init_output_noise_scale
+        
         # Initialize underlying SSVI model
         super().__init__(
             Vx=Vx,
             M=M,  # Observation dimension
             mu_x=mu_x,
-            sigma2=config.sigma2,
-            beta=config.beta,
+            sigma2=sigma2,
+            beta=beta,
             sigma2_s=config.sigma2_s,
             P=config.P,
             trainable_V=config.trainable_V,
@@ -440,6 +447,9 @@ def get_fast_config():
         plot_training=True,
         plot_latent_space=True,
         plot_hyperparams=True,
+        # === GP Hyperparameters ===
+        init_lengthscales=1.0,          # Initial lengthscales value (1/beta) - default matches current standard
+        init_output_noise_scale=1.0,    # Initial output noise scale (sigma2) - default matches current standard
         # === Missing Data Configuration ===
         enable_missing_data=False,      # Enable missing data reconstruction capability
         missing_data_ratio=0,        # Fraction of dimensions to artificially mask (for testing)

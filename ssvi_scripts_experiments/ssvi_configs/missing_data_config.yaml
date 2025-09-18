@@ -19,7 +19,8 @@ reconstruction_samples: 50       # Number of samples for reconstruction
 missing_data_seed: 123           # Seed for reproducible missing patterns
 
 # === GP Hyperparameters ===
-sigma2: 1.0                      # Observation noise
+init_lengthscales: 1.0           # Initial lengthscales value (1/beta) - default matches current standard
+init_output_noise_scale: 1.0     # Initial output noise scale (sigma2) - default matches current standard
 P: 4                             # Number of structured samples
 trainable_V: true                # Learn inducing point locations
 
