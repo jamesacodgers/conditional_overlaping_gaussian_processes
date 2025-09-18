@@ -1,0 +1,23 @@
+=== Oil Flow SSVI GP-LVM Training Session ===
+Model: 16 inducing points, latent_dim=6
+Training: 200 iter, batch=50
+Learning rates: Local=0.002, Global=0.01
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': 0.7410151958465576, 'test_rmse': 0.7635289430618286, 'train_nlpd': 16.827329635620117, 'test_nlpd': 16.92915153503418, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 16878.501953125}
+Iteration 0/200: Loss=16878.5020, Time=0.8s
+Metrics at iteration 50: {'iteration': 50, 'train_rmse': 0.52229905128479, 'test_rmse': 0.5363921523094177, 'train_nlpd': 14.912226676940918, 'test_nlpd': 14.966347694396973, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 13277.3046875}
+Iteration 50/200: Loss=13277.3047, Time=3.9s
+Metrics at iteration 100: {'iteration': 100, 'train_rmse': 0.4594668745994568, 'test_rmse': 0.4612730145454407, 'train_nlpd': 11.161701202392578, 'test_nlpd': 11.171303749084473, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 9794.9365234375}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_100_seed_7.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_100.png
+Iteration 100/200: Loss=9794.9365, Time=8.2s
+Metrics at iteration 150: {'iteration': 150, 'train_rmse': 0.4642299711704254, 'test_rmse': 0.4632784426212311, 'train_nlpd': 8.912932395935059, 'test_nlpd': 8.89360237121582, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 8021.79833984375}
+Iteration 150/200: Loss=8021.7983, Time=11.4s
+Training completed! Final Loss: 6978.5459, Total time: 14.2s (14.1 iter/s)
+Plot saved: plots/training_results.png
+Final comprehensive metrics computed: {'iteration': 200, 'train_rmse': 0.463749498128891, 'test_rmse': 0.46324771642684937, 'train_nlpd': 8.09437084197998, 'test_nlpd': 8.085232734680176, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 6978.5458984375}
+Plot saved: plots/metrics_progression.png
+Plot saved: plots/final_metrics_summary.png
+Checkpoint metrics saved: training_results/oilflow_ssvi_7_checkpoint_metrics.json
+Training losses saved: training_results/oilflow_ssvi_7_losses.json
+Model saved: pre_trained_models/oilflow_ssvi_7.pkl
+Experiment summary saved: experiment_summary.json
