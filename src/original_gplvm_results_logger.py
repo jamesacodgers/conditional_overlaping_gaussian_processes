@@ -27,6 +27,10 @@ class OriginalGPLVMResultsLogger:
             )
             os.makedirs(self.results_dir, exist_ok=True)
             
+            # Create subdirectories
+            self.training_results_dir = os.path.join(self.results_dir, "training_results")
+            os.makedirs(self.training_results_dir, exist_ok=True)
+            
             # Save configuration
             self.save_config()
             
@@ -124,6 +128,36 @@ class OriginalGPLVMResultsLogger:
                 json.dump(results_summary, f, indent=2)
             
             self.log_training(f"Experiment summary saved: {summary_file}")
+    
+    def save_checkpoint_metrics(self, train_rmse_list, train_nlpd_list, metrics_iterations, 
+                               metrics_losses, model_name: str, random_seed: int):
+        """Save checkpoint metrics to JSON file in training_results folder (train metrics only)"""
+        if self.results_dir and train_rmse_list and train_nlpd_list:
+            # Prepare checkpoint data (train metrics only)
+            checkpoint_data = {
+                'model_name': model_name,
+                'seed': random_seed,
+                'total_iterations': getattr(self.config, 'training_steps', {}).get(model_name, 0),
+                'checkpoints': []
+            }
+            
+            # Extract metrics from each checkpoint
+            for i, (iteration, train_rmse, train_nlpd, loss) in enumerate(zip(
+                metrics_iterations, train_rmse_list, train_nlpd_list, metrics_losses)):
+                checkpoint_entry = {
+                    'iteration': iteration,
+                    'train_rmse': float(train_rmse),
+                    'train_nlpd': float(train_nlpd),
+                    'elbo_loss': float(loss)
+                }
+                checkpoint_data['checkpoints'].append(checkpoint_entry)
+            
+            # Save to JSON file
+            checkpoint_file = os.path.join(self.training_results_dir, f"{model_name}_{random_seed}_checkpoint_metrics.json")
+            with open(checkpoint_file, 'w') as f:
+                json.dump(checkpoint_data, f, indent=2)
+            
+            self.log_training(f"Checkpoint metrics saved: training_results/{os.path.basename(checkpoint_file)}")
     
     def get_results_dir(self) -> Optional[str]:
         """Get results directory path"""

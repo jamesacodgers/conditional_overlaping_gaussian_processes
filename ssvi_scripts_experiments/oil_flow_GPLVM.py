@@ -298,6 +298,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, 
                                    metrics_losses, logger.get_results_dir(), model_name, config.random_seed)
             
+            # Save checkpoint metrics to JSON (train metrics only)
+            logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
+                                         metrics_losses, model_name, config.random_seed)
+            
         # Save models & training info
         
         print(model.covar_module.base_kernel.lengthscale.detach().cpu().numpy())
