@@ -19,46 +19,50 @@ sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 
 def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, model_type="original", custom_filename=None):
     """
-    Create standardized scattered plots that match the original generalised_gplvm_code plot_report function exactly
-    but use scattered points instead of error bars.
+    Create standardized scattered plots that match the SSVI plotting exactly.
     
-    This function replicates the exact structure and styling of the original plot_report function from
-    generalised_gplvm_code/utils/visualisation.py but removes error bars for scattered visualization.
+    This function replicates the exact structure and styling of the SSVI visualization
+    from src/ssvi_utils.py with the same subplot order and styling.
     """
     import matplotlib.pyplot as plt
     import torch
     import numpy as np
     import pathlib
     
+    # Use default matplotlib style to match SSVI (override any global ggplot style)
+    plt.style.use('default')
     
-    # Use white background styling
-    plt.style.use('default')  # Use default matplotlib style with white background
-    plt.figure(figsize=(12,4))
-
-    lengthscales_cpu = model.covar_module.base_kernel.lengthscale.detach().cpu()
-    inv_lengthscale = (1/lengthscales_cpu).numpy().flatten()
-    lengthscales = lengthscales_cpu
-    latent_dim = model.X.latent_dim
-    
-    # Print lengthscales exactly like original plot_report
-    print(f"Inverse lengthscales ({model_type}): {inv_lengthscale}")
-    
-    # Use top dimensions selection (same for both SSVI and original GP-LVM)
-    values, indices = torch.topk(lengthscales, k=2, largest=False)
-    l1 = indices.cpu().numpy().flatten()[0]
-    l2 = indices.cpu().numpy().flatten()[1]
-    
-    print(f"Selected dimensions: l1={l1}, l2={l2}")
-    print(f"Selected lengthscales: {values}")
-    
-    # Subplot 1: 2D latent subspace (exactly like original plot_report)
-    plt.subplot(131)
-    plt.title(f'2d latent subspace [{model_name}]', fontsize='small')
-    # Use consistent labels for both SSVI and original GP-LVM
-    plt.xlabel(f'Latent dim {l1}', fontsize='small')
-    plt.ylabel(f'Latent dim {l2}', fontsize='small')
-
     with torch.no_grad():
+        # Color mapping for labels (exactly like SSVI)
+        c = ["r", "g", "b"]
+        colors = [c[int(i)-1] for i in labels_train]
+        
+        # Create figure with same layout as SSVI (3 subplots)
+        n_plots = 3
+        fig_width = 4 * n_plots
+        fig = plt.figure(figsize=(fig_width, 4))
+        
+        plot_idx = 1
+        
+        # Plot 1: Training curve (exactly like SSVI)
+        plt.subplot(1, n_plots, plot_idx)
+        plt.plot(losses, 'b-', alpha=0.7)
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.title('ELBO Training Curve')
+        plt.grid(True, alpha=0.3)
+        plot_idx += 1
+        
+        # Plot 2: Latent space visualization (exactly like SSVI)
+        plt.subplot(1, n_plots, plot_idx)
+        
+        # Find the two most informative dimensions (largest lengthscales = smallest beta)
+        lengthscales = 1 / model.covar_module.base_kernel.lengthscale.flatten()
+        top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
+        dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
+        lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
+        
+        # Get latent variables (use mu_x directly, no sampling)
         model_name_class = model.X.__class__.__name__
         if model_name_class == 'VariationalLatentVariable':  # 'gauss' model
             # Variational GP-LVM (gauss)
@@ -69,51 +73,27 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             mu_x_result = model.X.mu(Y_train_device)
             sigma_x_result = model.X.sigma(Y_train_device)
             mu_x = mu_x_result.detach().cpu().numpy()
-            sigma_x = np.array([torch.sqrt(x.diag()).detach().cpu().numpy() for x in sigma_x_result.detach()])
-    
-    # Common setup for all model types
-    # Handle labels - convert to numpy if it's a tensor
-    if hasattr(labels_train, 'cpu'):
-        labels_train_np = labels_train.cpu().numpy()
-    else:
-        labels_train_np = labels_train
-    
-    # Create color mapping (same for all models)
-    c = ["r", "g", "b"]
-    colors = [c[int(i)-1] for i in labels_train_np]
-    
-    # Common plotting parameters
-    P_samples = 64  # Match SSVI P value
-    alpha = 0.15
-
-    # Original GP-LVM: use same torch.distributions.Normal approach with P_samples
-    # Convert numpy arrays to torch tensors for consistent sampling
-    mu_x_torch = torch.from_numpy(mu_x)
-    sigma_x_torch = torch.from_numpy(sigma_x)
-
-    # Sample P_samples times using torch.distributions.Normal (same as SSVI)
-    for p in range(P_samples):
-        sample_1 = torch.distributions.Normal(mu_x_torch[:, l1], sigma_x_torch[:, l1]).sample()
-        sample_2 = torch.distributions.Normal(mu_x_torch[:, l2], sigma_x_torch[:, l2]).sample()
-        plt.scatter(sample_1.detach().cpu().numpy(),
-                    sample_2.detach().cpu().numpy(), alpha=alpha, color=colors)
-    
-    # Subplot 2: Inverse lengthscales (exactly like original plot_report)
-    plt.subplot(132)
-
-    plt.bar(np.arange(latent_dim), height=inv_lengthscale, color='teal')
-    plt.title('Inverse Lengthscale with SE-ARD kernel', fontsize='small')
-    plt.xlabel('Latent dims', fontsize='small')
-    
-    # Subplot 3: Loss curve (exactly like original plot_report)
-    plt.subplot(133)
-    # Ensure losses are Python floats for matplotlib
-    losses_floats = [float(x) for x in losses]
-    plt.plot(losses_floats, label='batch_size=100', color='orange')
-    plt.xlabel('Steps', fontsize='small')
-    plt.title('Neg. ELBO Loss', fontsize='small')
-    
-    plt.tight_layout()
+        
+        # Plot mu_x directly (no sampling) - exactly like SSVI
+        plt.scatter(mu_x[:, dim1], mu_x[:, dim2], 
+                   c=colors, alpha=0.6, s=20)
+        
+        plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
+        plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})') 
+        plt.title(f'Latent Space - Top 2 Informative Dims')
+        plot_idx += 1
+        
+        # Plot 3: Hyperparameters (lengthscales) - exactly like SSVI
+        plt.subplot(1, n_plots, plot_idx)
+        lengthscales_plot = (1 / model.covar_module.base_kernel.lengthscale.flatten()).cpu()
+        plt.bar(range(len(lengthscales_plot)), lengthscales_plot, 
+               color="blue", alpha=0.7)
+        plt.xlabel('Latent Dimension')
+        plt.ylabel('Lengthscale')
+        plt.title('GP Lengthscales')
+        plt.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
     
     # Use model name (gauss/nn_gauss) instead of class name for consistency
     if model_name == 'VariationalLatentVariable':
