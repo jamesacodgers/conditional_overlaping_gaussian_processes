@@ -500,7 +500,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     print(f"  Latent variables: {model.mu_x.shape}")
     
     # Initialize logger with config-based naming
-    experiment_name = f"oil_flow_ssvi_{config_name}"
+    experiment_name = f"ssvi_{config_name}"
     logger = SSVIResultsLogger(config, experiment_name=experiment_name)
     if logger.results_dir:
         print(f"Results will be saved to: {logger.results_dir}")
@@ -516,7 +516,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     
     # Visualize results
     print(f"\nVisualizing results...")
-    visualize_ssvi_results(model, y, labels, losses, config, logger)
+    visualize_ssvi_results(model, y, labels, losses, config, logger, show_plot=False)
     
     # Generate final metrics and plots if metrics were computed
     if metrics_computer is not None and config.enable_metrics and split_data is not None:
