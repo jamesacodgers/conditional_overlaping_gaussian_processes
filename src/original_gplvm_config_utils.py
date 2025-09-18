@@ -35,6 +35,12 @@ def create_argument_parser():
     parser.add_argument('--pca-init', action='store_true',
                        help='Initialize with PCA')
     
+    # GP Hyperparameters
+    parser.add_argument('--init-lengthscales', type=float, default=None,
+                       help='Initial lengthscales value')
+    parser.add_argument('--init-output-noise-scale', type=float, default=None,
+                       help='Initial output noise scale')
+    
     # Training configuration
     parser.add_argument('--training-steps', type=int, default=None,
                        help='Number of training steps (applied to all models)')

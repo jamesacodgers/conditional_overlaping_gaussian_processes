@@ -133,6 +133,27 @@ def create_argument_parser() -> argparse.ArgumentParser:
     )
     
     parser.add_argument(
+        '--n-inducing-points',
+        type=int,
+        default=None,
+        help='Override number of inducing points'
+    )
+    
+    parser.add_argument(
+        '--init-lengthscales',
+        type=float,
+        default=None,
+        help='Override initial lengthscales value'
+    )
+    
+    parser.add_argument(
+        '--init-output-noise-scale',
+        type=float,
+        default=None,
+        help='Override initial output noise scale'
+    )
+    
+    parser.add_argument(
         '--local-lr',
         type=float,
         default=None,
