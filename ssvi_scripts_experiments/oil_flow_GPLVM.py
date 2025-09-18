@@ -56,6 +56,7 @@ from src.original_gplvm_config_utils import (
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.data_utils import download_oilflow_data_if_needed
 from src.nlpd_utils import compute_nlpd_nll_based
+from src.original_gplvm_metrics_plot import plot_metrics_progression
 
 plt.style.use('ggplot')
 
@@ -229,6 +230,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         loss_list = []
         noise_trace = []
         
+        # Metrics tracking for progression plot (train only)
+        train_rmse_list = []
+        train_nlpd_list = []
+        metrics_iterations = []
+        metrics_losses = []
+        
         iterator = trange(steps_per_model[model_name], leave=True)
         batch_size = config.batch_size
         for i in iterator: 
@@ -248,6 +255,33 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             iterator.set_description('Loss: ' + str(float(np.round(loss.item(),2))) + ", iter no: " + str(i))
             loss.backward()
             optimizer.step()
+            
+            # Compute training metrics periodically for progression plot (including iter 0)
+            if i % config.checkpoint_frequency == 0:
+                try:
+                    with torch.no_grad():
+                        model.eval()
+                        # Get training latent variables
+                        X_train_mean = model.get_X_mean(Y_train)
+                        # Compute training reconstruction
+                        Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
+                        # Compute training RMSE
+                        train_rmse = rmse(Y_train, Y_train_recon.T)
+                        # Compute training NLPD
+                        train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
+                        
+                        # Store metrics
+                        train_rmse_list.append(float(train_rmse.item()) if hasattr(train_rmse, 'item') else float(train_rmse))
+                        train_nlpd_list.append(float(train_nlpd))
+                        metrics_iterations.append(i)
+                        metrics_losses.append(float(loss.item()))
+                        
+                        print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}")
+                        
+                except Exception as e:
+                    print(f"  Warning: Could not compute metrics at iteration {i}: {e}")
+                finally:
+                    model.train()
 
             # Save iteration-based models and plots (like SSVI does)
             if logger and logger.get_results_dir() and i > 0 and i % config.checkpoint_frequency == 0:
@@ -258,6 +292,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         model.store(loss_list, likelihood)
         
         logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
+        
+        # Save metrics progression plot (train metrics only)
+        if logger.get_results_dir() and train_rmse_list and train_nlpd_list:
+            plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, 
+                                   metrics_losses, logger.get_results_dir(), model_name, config.random_seed)
             
         # Save models & training info
         
