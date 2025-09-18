@@ -92,7 +92,7 @@ class OilFlowSSVIConfig:
     # === Metrics Configuration ===
     enable_metrics: bool = True            # Compute evaluation metrics
     metrics_frequency: int = 100           # Compute metrics every N iterations
-    test_size: float = 0.2                 # Fraction of data for testing
+    test_size: float = 0.1                 # Fraction of data for testing
     split_random_seed: int = 42            # Seed for train/test split (separate from training seed)
     
     # === Visualization Configuration ===
@@ -160,8 +160,8 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
             test_size=config.test_size, 
             random_seed=config.split_random_seed
         )
-        print(f"Train set: {y_train.shape[0]} samples")
-        print(f"Test set: {y_test.shape[0]} samples")
+        print(f"Data split shapes - Train: {y_train.shape}, Test: {y_test.shape}")
+        print(f"Labels split shapes - Train: {labels_train.shape}, Test: {labels_test.shape}")
         
         # Use training data for model initialization
         y = y_train
@@ -457,7 +457,9 @@ def get_fast_config():
         missing_data_ratio=0,        # Fraction of dimensions to artificially mask (for testing)
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
         # === Random Seed Configuration ===
-        random_seed=7                  # Random seed for reproducibility (matches SSVI base config)
+        random_seed=7,                 # Random seed for reproducibility (matches SSVI base config)
+        # === Test Size Configuration ===
+        test_size=0.2                  # Fast config uses 0.2 (20% for testing)
     )
 
 def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):

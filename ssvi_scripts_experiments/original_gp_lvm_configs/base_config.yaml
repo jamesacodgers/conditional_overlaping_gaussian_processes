@@ -10,6 +10,7 @@ latent_dim: 6  # A = 6 from original script
 
 # Model Architecture (Structured GP-LVM only)
 n_inducing_points: 12  # M = 12 from original script
+pca_init: true  # Initialize latent variables with PCA
 
 # Training Configuration
 training_iterations: 1000  # Same as original
@@ -39,7 +40,7 @@ results_dir: "oil_flow_results/original_gplvm_results"  # Fixed: relative to cur
 # Metrics Configuration (re-enabled with adapter for tensor compatibility)
 enable_metrics: true
 metrics_frequency: 100  # Compute metrics every N iterations
-test_size: 0.2  # Fraction of data for testing
+test_size: 0.1  # Fraction of data for testing
 split_random_seed: 42  # Seed for train/test split
 
 # Visualization Configuration

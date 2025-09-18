@@ -18,13 +18,13 @@ class OriginalGPLVMConfig:
     
     # === Data Configuration ===
     dataset: str = "oilflow"  # Dataset to use
-    test_size: int = 50  # Number of test samples
+    test_size: float = 0.1  # Fraction of data for testing
     random_seed: int = 7  # Random seed for reproducibility
     
     # === Model Configuration ===
     latent_dim: int = 12  # Latent dimension
     n_inducing: int = 25  # Number of inducing points
-    pca_init: bool = False  # Whether to initialize with PCA
+    pca_init: bool = True  # Whether to initialize with PCA
     
     # === GP Hyperparameters ===
     init_lengthscales: float = 2.0  # Initial lengthscales value (default matches GPyTorch RBFKernel)
@@ -122,6 +122,7 @@ def get_fast_config():
         learning_rate=0.002,
         random_seed=42,
         test_iterations=200,
+        test_size=0.2,  # Fast config uses 0.2 (20% for testing)
         checkpoint_frequency=50,  # Save models, plots, metrics, and log progress every N iterations
         # === GP Hyperparameters ===
         init_lengthscales=2.0,  # Initial lengthscales value (default matches GPyTorch RBFKernel)
@@ -138,7 +139,7 @@ def get_base_config():
         random_seed=7,
         test_iterations=5000,
         latent_dim=12,
-        pca_init=False,
+        pca_init=True,
         prior_type={'gauss': 'normal', 'nn_gauss': 'multivariate'},
         kernel_type="rbf",
         use_ard=True,

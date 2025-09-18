@@ -142,16 +142,27 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     # Load data
     N, d, q, X, Y, labels = load_real_data(config.dataset)
     
-    # Ensure Y is on CPU before converting to numpy for sklearn
+    # Ensure data is on CPU before converting to numpy for sklearn
     Y_cpu = Y.cpu() if Y.is_cuda else Y
-    Y_train, Y_test = train_test_split(Y_cpu.numpy(), test_size=config.test_size, random_state=config.random_seed)
-    
-    # Ensure labels are numpy array (not CUDA tensor) before train_test_split
     labels_cpu = labels.cpu().numpy() if hasattr(labels, 'cpu') else labels
-    lb_train, lb_test = train_test_split(labels_cpu, test_size=config.test_size, random_state=config.random_seed)
-
-    Y_train = torch.tensor(Y_train, dtype=torch.float32, device=config.device)
-    Y_test = torch.tensor(Y_test, dtype=torch.float32, device=config.device)
+    Y_np = Y_cpu.numpy()
+    indices = np.arange(len(Y))
+    
+    # Split data and labels together to maintain correspondence
+    train_indices, test_indices, Y_train_np, Y_test_np, lb_train_np, lb_test_np = train_test_split(
+        indices, Y_np, labels_cpu,
+        test_size=config.test_size,
+        random_state=config.random_seed
+    )
+    
+    # Convert back to tensors on original device
+    Y_train = torch.tensor(Y_train_np, dtype=torch.float32, device=config.device)
+    Y_test = torch.tensor(Y_test_np, dtype=torch.float32, device=config.device)
+    lb_train = lb_train_np  # Keep as numpy array for compatibility
+    lb_test = lb_test_np    # Keep as numpy array for compatibility
+    
+    print(f"Data split shapes - Train: {Y_train.shape}, Test: {Y_test.shape}")
+    print(f"Labels split shapes - Train: {lb_train.shape}, Test: {lb_test.shape}")
     
     # Setting shapes
     N = len(Y_train)

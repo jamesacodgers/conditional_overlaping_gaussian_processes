@@ -4,6 +4,7 @@
 # === Basic Model Configuration ===
 latent_dim: 4                    # Latent space dimensionality (smaller for GP-LVM)
 n_inducing_points: 8             # Number of inducing points
+pca_init: true                   # Initialize latent variables with PCA
 P: 4                             # Number of structured samples
 
 # === Training Configuration ===
@@ -23,7 +24,7 @@ trainable_V: true                # Learn inducing point locations
 # === Evaluation Configuration ===
 enable_metrics: true             # Compute evaluation metrics
 metrics_frequency: 100           # Compute metrics every N iterations
-test_size: 0.2                   # Fraction for test set
+test_size: 0.1                   # Fraction for test set
 test_optimization_steps: 50      # Steps for test latent variable optimization
 
 # === Visualization Configuration ===

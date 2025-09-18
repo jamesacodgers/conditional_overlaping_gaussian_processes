@@ -6,13 +6,13 @@ device: "cuda"
 
 # Data Configuration  
 dataset: "oilflow"
-test_size: 100  # Matches SSVI base config: test_size_int: 100
+test_size: 0.1  # Fraction of data for testing
 random_seed: 8
 
 # Model Configuration (matching SSVI base config)
 latent_dim: 10  # Matches SSVI base config: latent_dim: 10
 n_inducing: 64  # Matches SSVI base config: n_inducing_points: 64
-pca_init: false  # Matches oilflow_expt.py: pca = False
+pca_init: true   # Initialize latent variables with PCA
 
 # Models to run (from oilflow_expt.py models list)
 models: ["gauss", "nn_gauss"]
