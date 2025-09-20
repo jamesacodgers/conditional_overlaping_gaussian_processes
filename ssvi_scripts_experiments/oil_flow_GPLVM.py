@@ -56,7 +56,7 @@ from src.original_gplvm_config_utils import (
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.data_utils import download_oilflow_data_if_needed
 from src.nlpd_utils import compute_nlpd_nll_based
-from src.original_gplvm_metrics_plot import plot_metrics_progression
+from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims
 
 plt.style.use('ggplot')
 
@@ -267,6 +267,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Metrics tracking for progression plot (train only)
         train_rmse_list = []
         train_nlpd_list = []
+        effective_dims_list = []
         metrics_iterations = []
         metrics_losses = []
         
@@ -304,13 +305,17 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         # Compute training NLPD
                         train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
                         
+                        # Compute effective dimensions
+                        effective_dims, total_dims = compute_effective_latent_dims(model)
+                        
                         # Store metrics
                         train_rmse_list.append(float(train_rmse.item()) if hasattr(train_rmse, 'item') else float(train_rmse))
                         train_nlpd_list.append(float(train_nlpd))
+                        effective_dims_list.append(effective_dims)
                         metrics_iterations.append(i)
                         metrics_losses.append(float(loss.item()))
                         
-                        print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}")
+                        print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, Effective dims: {effective_dims}/{total_dims}")
                         
                 except Exception as e:
                     print(f"  Warning: Could not compute metrics at iteration {i}: {e}")
@@ -330,11 +335,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Save metrics progression plot (train metrics only)
         if logger.get_results_dir() and train_rmse_list and train_nlpd_list:
             plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, 
-                                   metrics_losses, logger.get_results_dir(), model_name, config.random_seed)
+                                   metrics_losses, effective_dims_list, logger.get_results_dir(), model_name, config.random_seed)
             
             # Save checkpoint metrics to JSON (train metrics only)
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
-                                         metrics_losses, model_name, config.random_seed)
+                                         metrics_losses, model_name, config.random_seed, effective_dims_list)
             
         # Save models & training info
         

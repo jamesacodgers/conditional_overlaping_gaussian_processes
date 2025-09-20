@@ -130,7 +130,7 @@ class OriginalGPLVMResultsLogger:
             self.log_training(f"Experiment summary saved: {summary_file}")
     
     def save_checkpoint_metrics(self, train_rmse_list, train_nlpd_list, metrics_iterations, 
-                               metrics_losses, model_name: str, random_seed: int):
+                               metrics_losses, model_name: str, random_seed: int, effective_dims_list=None):
         """Save checkpoint metrics to JSON file in training_results folder (train metrics only)"""
         if self.results_dir and train_rmse_list and train_nlpd_list:
             # Prepare checkpoint data (train metrics only)
@@ -150,6 +150,9 @@ class OriginalGPLVMResultsLogger:
                     'train_nlpd': float(train_nlpd),
                     'elbo_loss': float(loss)
                 }
+                # Add effective dimensions if available
+                if effective_dims_list and i < len(effective_dims_list):
+                    checkpoint_entry['effective_dims'] = int(effective_dims_list[i])
                 checkpoint_data['checkpoints'].append(checkpoint_entry)
             
             # Save to JSON file
