@@ -59,15 +59,15 @@ def generate_config_grid():
     """Generate grid of configurations for both SSVI and Original GP-LVM"""
     
     # Parameter ranges
-    n_inducing_values = [8, 32, 128]
-    init_lengthscales_values = [0.1, 1.0]
-    init_output_noise_scale_values = [0.1, 1.0]
+    n_inducing_values = [8, 32, 64]
+    init_lengthscales_values = [0.01, 1.0]
+    init_output_noise_scale_values = [0.01, 1.0]
     batch_size_values = [32, 128]
     random_seed_values = [7, 11, 17]
     
     # Base configuration paths
-    ssvi_base_config = "ssvi_configs/base_config_many_seeds/base_lr_0001_s7.yaml"
-    orig_base_config = "original_gp_lvm_configs/base_config_many_seeds/base_lr_0001_s7.yaml"
+    ssvi_base_config = "ssvi_configs/base_lr_0001_s7.yaml"
+    orig_base_config = "original_gp_lvm_configs/base_lr_0001_s7.yaml"
     
     # Output folder names
     output_folder_name = "my_exp_configs"
