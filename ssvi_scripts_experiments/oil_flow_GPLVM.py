@@ -89,10 +89,13 @@ class OilFlowModel(BayesianGPLVM):
         # Initialize kernel parameters from config if provided
         if config is not None:
             with torch.no_grad():
-                # Set lengthscales to match SSVI formula
-                effective_lengthscale = 1.0 / torch.sqrt(torch.tensor(config.init_lengthscales, device=device))
-                print(f"  DEBUG GP-LVM: Setting lengthscale to {effective_lengthscale}")
-                self.covar_module.base_kernel.initialize(lengthscale=effective_lengthscale)
+                # Set lengthscales to match SSVI formula mathematically
+                # SSVI: K = exp(-0.5 * d^2 / init_lengthscales)
+                # GP-LVM: K = exp(-0.5 * d^2 / lengthscale^2)
+                # For equivalence: lengthscale = sqrt(init_lengthscales)
+                lengthscale_device = torch.sqrt(torch.tensor(config.init_lengthscales, device=device))
+                print(f"  DEBUG GP-LVM: Setting lengthscale to sqrt({config.init_lengthscales}) = {lengthscale_device.item():.6f}")
+                self.covar_module.base_kernel.initialize(lengthscale=lengthscale_device)
                 print(f"  DEBUG GP-LVM: After setting, lengthscale = {self.covar_module.base_kernel.lengthscale.flatten()[0]}")
 
 
