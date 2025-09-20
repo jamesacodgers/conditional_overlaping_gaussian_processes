@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 
-def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, model_type="original", custom_filename=None):
+def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, model_type="original", custom_filename=None, train_indices=None):
     """
     Create standardized scattered plots that match the SSVI plotting exactly.
     
@@ -124,6 +124,61 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     plt.close()
     
     print(f"Standardized scattered plots saved to: {plot_path}")
+    
+    # Generate fractions plot using the same mu_x and top dimensions
+    try:
+        # Load fractions data (assume it was extracted during data loading)
+        frctn_path = pathlib.Path(".") / "DataTrnFrctns.txt"
+
+        if not frctn_path.exists():
+            raise FileNotFoundError(f"DataTrnFrctns.txt not found. Make sure it was extracted during data loading.")
+
+        w = np.loadtxt(frctn_path)  # (N, 2)
+        w3 = 1.0 - w.sum(axis=1, keepdims=True)  # (N, 1)
+        fractions = np.concatenate((w, w3), axis=1)  # (N, 3)
+        
+        # Debug: print fractions shapes
+        print(f"Debug - fractions shape before subsetting: {fractions.shape}")
+        print(f"Debug - Y_train shape: {Y_train.shape}")
+        
+        # Subset fractions data to match training data using train_indices
+        train_indices_cpu = train_indices.cpu().numpy()
+        fractions = fractions[train_indices_cpu]
+        print(f"Debug - fractions shape after subsetting with train_indices: {fractions.shape}")
+        
+        # Create fractions plot using the same mu_x and top dimensions from above
+        fig_frac, ax_frac = plt.subplots(1, 1, figsize=(7.5, 6))
+        
+        # Use the same top 2 dimensions that were calculated above
+        scatter = ax_frac.scatter(mu_x[:, dim1], mu_x[:, dim2], c=fractions, s=20, alpha=0.6)
+        ax_frac.set_title("Latent Space Colored by Fractions")
+        ax_frac.set_xlabel(f'mu_{dim1}')
+        ax_frac.set_ylabel(f'mu_{dim2}')
+        
+        # Add colorbar
+        cbar = plt.colorbar(scatter, ax=ax_frac)
+        cbar.set_label('Fractions')
+        
+        # Ensure equal aspect ratio for square plot
+        ax_frac.set_aspect("equal", adjustable='box')
+        fig_frac.tight_layout()
+        
+        # Save fractions plot with same naming pattern as main plot
+        fractions_filename = plot_filename.replace('oilflow_', 'latent_space_by_fractions_')
+        
+        if os.path.basename(results_dir) == 'plots' or os.path.basename(results_dir) == 'checkpoints':
+            frac_plot_path = os.path.join(results_dir, fractions_filename)
+        else:
+            plots_subdir = os.path.join(results_dir, 'plots')
+            os.makedirs(plots_subdir, exist_ok=True)
+            frac_plot_path = os.path.join(plots_subdir, fractions_filename)
+        
+        fig_frac.savefig(frac_plot_path, dpi=300, bbox_inches='tight')
+        print(f"Saved fractions plot to: {frac_plot_path}")
+        plt.close(fig_frac)
+        
+    except FileNotFoundError as e:
+        print(f"Warning: Could not create fractions plot: {e}")
 
 
 def save_iteration_model(model, model_name, iteration, random_seed, results_dir):
@@ -143,7 +198,7 @@ def save_iteration_model(model, model_name, iteration, random_seed, results_dir)
     return filepath
 
 
-def create_iteration_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, iteration, model_type="original"):
+def create_iteration_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, iteration, model_type="original", train_indices=None):
     """
     Create iteration-based plot saved to plots/checkpoints folder
     """
@@ -157,7 +212,7 @@ def create_iteration_plot(model, losses, labels_train, config, results_dir, mode
     create_standardized_scattered_plot(
         model, losses, labels_train, config, plots_checkpoints_dir, 
         model_name, random_seed, Y_train, model_type=model_type, 
-        custom_filename=plot_filename
+        custom_filename=plot_filename, train_indices=train_indices
     )
     
     return plot_filename

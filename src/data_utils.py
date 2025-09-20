@@ -28,10 +28,12 @@ def download_oilflow_data_if_needed():
     with tarfile.open('3PhData.tar.gz', 'r') as f:
         f.extract('DataTrn.txt')
         f.extract('DataTrnLbls.txt')
+        f.extract('DataTrnFrctns.txt')
     
     # Copy to expected location
     shutil.copy2('DataTrn.txt', 'data/oil_data.txt')
     shutil.copy2('DataTrnLbls.txt', 'data/oil_labels.txt')
+    shutil.copy2('DataTrnFrctns.txt', 'data/oil_fractions.txt')
     
     # Clean up temporary files
     if os.path.exists('3PhData.tar.gz'):
@@ -40,5 +42,7 @@ def download_oilflow_data_if_needed():
         os.remove('DataTrn.txt')
     if os.path.exists('DataTrnLbls.txt'):
         os.remove('DataTrnLbls.txt')
+    if os.path.exists('DataTrnFrctns.txt'):
+        os.remove('DataTrnFrctns.txt')
     
     print("Oilflow data downloaded and set up successfully!")

@@ -328,7 +328,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 from src.ssvi_alignment_utils import save_iteration_model, create_iteration_plot
                 print(f"  Saving iteration {i} model and plot...")
                 save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
-                create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "original")
+                create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "original", train_indices=torch.from_numpy(train_indices).to(Y_train.device))
         model.store(loss_list, likelihood)
         
         logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
@@ -368,7 +368,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             from src.ssvi_alignment_utils import create_standardized_scattered_plot
             # lb_train is already a numpy array from train_test_split, no need to convert
             # Use Y_train on the same device as model to avoid device mismatch
-            create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original")
+            create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original", train_indices=torch.from_numpy(train_indices).to(Y_train.device))
         else:
             pass
         
