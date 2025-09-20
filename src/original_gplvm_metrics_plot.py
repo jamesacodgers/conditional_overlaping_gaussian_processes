@@ -15,7 +15,7 @@ def compute_effective_latent_dims(model, threshold: float = 0.1):
     
     This matches the SSVI approach by converting to the same scale:
     - SSVI: lengthscales = 1/beta (direct init_lengthscales scale)
-    - GP-LVM: kernel_lengthscales = exp(log_lengthscales) -> convert to init_lengthscales = 1/kernel_lengthscales^2
+    - GP-LVM: kernel_lengthscales = exp(log_lengthscales) -> convert to init_lengthscales = kernel_lengthscales^2
     - Both now represent informativeness on the same init_lengthscales scale
     - Conversion ensures fair comparison between models
     
@@ -30,11 +30,11 @@ def compute_effective_latent_dims(model, threshold: float = 0.1):
         # Get lengthscales from GPyTorch model
         if hasattr(model, 'covar_module') and hasattr(model.covar_module, 'base_kernel'):
             # GPyTorch stores lengthscales in log space, so we need to exponentiate
-            kernel_lengthscales = model.covar_module.base_kernel.lengthscale.exp().flatten()
+            kernel_lengthscales = model.covar_module.base_kernel.lengthscale.flatten()
             
             # Convert back to init_lengthscales scale for fair comparison with SSVI
-            # GP-LVM: lengthscale = 1/sqrt(init_lengthscales) -> init_lengthscales = 1/lengthscale^2
-            lengthscales = 1.0 / (kernel_lengthscales ** 2)
+            # GP-LVM: lengthscale = sqrt(init_lengthscales) -> init_lengthscales = lengthscale^2
+            lengthscales = kernel_lengthscales ** 2
             
             # Normalize by maximum lengthscale (exactly like SSVI)
             max_lengthscale = lengthscales.max()
