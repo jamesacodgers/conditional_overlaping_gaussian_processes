@@ -146,6 +146,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     with tarfile.open('3PhData.tar.gz', 'r') as f:
         f.extract('DataTrn.txt')
         f.extract('DataTrnLbls.txt')
+        f.extract('DataTrnFrctns.txt')
     
     # Load data and move to device
     y_full = torch.Tensor(np.loadtxt(fname='DataTrn.txt')).to(config.device)
@@ -386,7 +387,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                         logger=logger,
                         save_filename=plot_filename,
                         show_plot=False,
-                        is_checkpoint=True
+                        is_checkpoint=True,
+                        train_indices=split_data['train_indices']
                     )
                     print(f"    Checkpoint plot saved: {plot_filename}")
                 
@@ -509,7 +511,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     
     # Visualize results
     print(f"\nVisualizing results...")
-    visualize_ssvi_results(model, y_train, labels_train, losses, config, logger, show_plot=False)
+    visualize_ssvi_results(model, y_train, labels_train, losses, config, logger, show_plot=False, train_indices=split_data['train_indices'])
     
     # Generate final metrics and plots if metrics were computed
     if metrics_computer is not None and config.enable_metrics and split_data is not None:

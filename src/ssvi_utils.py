@@ -13,6 +13,7 @@ import json
 from datetime import datetime
 from dataclasses import dataclass
 from typing import Any, List
+from pathlib import Path
 
 
 class SSVIResultsLogger:
@@ -186,7 +187,7 @@ class SSVIResultsLogger:
 
 
 
-def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False):
+def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False, train_indices: torch.Tensor = None):
     """Visualize SSVI training results and latent space"""
     
     if not (hasattr(config, 'plot_training') and config.plot_training or
@@ -253,6 +254,54 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})') 
             plt.title(f'Latent Space - Top 2 Informative Dims (P={model.P} samples)')
             plot_idx += 1
+        
+        # Generate fractions plot using the same mu_x and top dimensions
+        try:
+            # Load fractions data (assume it was extracted during data loading)
+            frctn_path = Path(".") / "DataTrnFrctns.txt"
+
+            if not frctn_path.exists():
+                raise FileNotFoundError(f"DataTrnFrctns.txt not found. Make sure it was extracted during data loading.")
+
+            w = np.loadtxt(frctn_path)  # (N, 2)
+            w3 = 1.0 - w.sum(axis=1, keepdims=True)  # (N, 1)
+            fractions = np.concatenate((w, w3), axis=1)  # (N, 3)
+            
+            # Debug: print fractions shapes
+            print(f"Debug - fractions shape before subsetting: {fractions.shape}")
+            print(f"Debug - y_train shape: {y_train.shape}")
+            
+            # Subset fractions data to match training data using train_indices
+            train_indices_cpu = train_indices.cpu().numpy()
+            fractions = fractions[train_indices_cpu]
+            print(f"Debug - fractions shape after subsetting with train_indices: {fractions.shape}")
+            
+            # Create fractions plot using the same mu_x and top dimensions from above
+            # Make figure wider to account for colorbar, but keep plot area square
+            fig_frac, ax_frac = plt.subplots(1, 1, figsize=(7.5, 6))
+            
+            # Use the same top 2 dimensions that were calculated above
+            # Plot samples from all P samples with transparency (consistent with latent dims plot)
+            for p in range(model.P):
+                scatter = ax_frac.scatter(mu_x[p, :, dim1], mu_x[p, :, dim2], c=fractions, s=20, alpha=0.6)
+            ax_frac.set_title("Latent Space Colored by Fractions")
+            ax_frac.set_xlabel(f'mu_{dim1}')
+            ax_frac.set_ylabel(f'mu_{dim2}')
+            
+            # Add colorbar
+            cbar = plt.colorbar(scatter, ax=ax_frac)
+            cbar.set_label('Fractions')
+            
+            # Ensure equal aspect ratio for square plot
+            ax_frac.set_aspect("equal", adjustable='box')
+            fig_frac.tight_layout()
+            
+            # Save fractions plot
+            logger.save_plots(fig_frac, "latent_space_by_fractions.png", is_checkpoint=is_checkpoint)
+            plt.close(fig_frac)
+            
+        except FileNotFoundError as e:
+            print(f"Warning: Could not create fractions plot: {e}")
         
         # Plot 3: Hyperparameters (lengthscales)
         if plot_flags[2]:
