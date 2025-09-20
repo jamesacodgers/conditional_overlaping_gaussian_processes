@@ -186,7 +186,7 @@ class SSVIResultsLogger:
 
 
 
-def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False):
+def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False):
     """Visualize SSVI training results and latent space"""
     
     if not (hasattr(config, 'plot_training') and config.plot_training or
@@ -198,7 +198,7 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
     with torch.no_grad():
         # Color mapping for labels (assuming 3 classes)
         c = ["r", "g", "b"]
-        colors = [c[int(i)-1] for i in labels]
+        colors = [c[int(i)-1] for i in labels_train]
         
         plot_flags = [
             hasattr(config, 'plot_training') and config.plot_training,
@@ -236,10 +236,10 @@ def visualize_ssvi_results(model, y, labels, losses, config, logger: SSVIResults
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 # Preprocess encoder input to handle missing data (replace NaN with zeros)
-                y_encoder_input = torch.where(torch.isnan(y), torch.zeros_like(y), y)
+                y_encoder_input = torch.where(torch.isnan(y_train), torch.zeros_like(y_train), y_train)
                 mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
             
             mu_x = mu_x.cpu().numpy()  # Move to CPU for plotting
             

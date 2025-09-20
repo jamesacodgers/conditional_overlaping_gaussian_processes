@@ -310,8 +310,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
     
 
 
-def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig, 
-                        logger: SSVIResultsLogger = None, split_data=None, labels=None):
+def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIConfig,
+                        logger: SSVIResultsLogger = None, split_data=None, labels_train=None):
     """Training function for Oil Flow SSVI GP-LVM with optional logging and metrics"""
     losses = []
     
@@ -328,9 +328,9 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
     
     for i in range(config.training_iterations):
         # Sample batch indices
-        N = y.shape[0]
-        batch_indices = torch.randperm(N, device=y.device)[:config.batch_size]
-        y_batch = y[batch_indices]
+        N = y_train.shape[0]
+        batch_indices = torch.randperm(N, device=y_train.device)[:config.batch_size]
+        y_batch = y_train[batch_indices]
         
         # Training step - U sampling happens inside automatically each step
         loss = model.train_step(y_batch, batch_indices)
@@ -379,8 +379,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y, config: OilFlowSSVIConfig,
                     plot_filename = f"training_results_iter_{i}.png"
                     visualize_ssvi_results(
                         model=model,
-                        y=y,
-                        labels=labels,
+                        y_train=y_train,
+                        labels_train=labels_train,
                         losses=losses,
                         config=config,
                         logger=logger,
