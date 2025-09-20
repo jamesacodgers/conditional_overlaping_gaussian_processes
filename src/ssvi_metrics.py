@@ -85,15 +85,13 @@ class SSVIMetricsComputer:
     def compute_rmse(self, 
                      model, 
                      y_true: torch.Tensor, 
-                     batch_indices: Optional[torch.Tensor] = None,
                      n_samples: int = 10) -> float:
         """
         Compute Root Mean Square Error for reconstruction
         
         Args:
             model: SSVI GP-LVM model
-            y_true: True observations [N, D] or [batch_size, D]
-            batch_indices: Optional indices if using subset of data
+            y_true: True observations [N, D]
             n_samples: Number of samples for Monte Carlo estimation
             
         Returns:
@@ -101,20 +99,11 @@ class SSVIMetricsComputer:
         """
         model.eval()
         with torch.no_grad():
-            if batch_indices is not None:
-                # Get subset of data
-                y_batch = y_true[batch_indices]
-            else:
-                # Use full dataset
-                y_batch = y_true
-                N = y_true.shape[0]
-                batch_indices = torch.arange(N, device=y_true.device)
-            
             # Sample U for both model types
             U_samples = model.get_u_samples()
             
             # Preprocess encoder input to handle missing data (consistent with training)
-            y_encoder_input = torch.where(torch.isnan(y_batch), torch.zeros_like(y_batch), y_batch)
+            y_encoder_input = torch.where(torch.isnan(y_true), torch.zeros_like(y_true), y_true)
             
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
@@ -139,7 +128,7 @@ class SSVIMetricsComputer:
             # Compute RMSE - handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 # Handle missing data: create mask for observed values
-                missing_mask = torch.isnan(y_batch)
+                missing_mask = torch.isnan(y_true)
                 observed_mask = ~missing_mask
                 
                 # Check if we have any observed data
@@ -150,13 +139,13 @@ class SSVIMetricsComputer:
                 
                 # Compute RMSE only on observed values
                 # Replace NaN values in y_batch with zeros for computation (they'll be masked out)
-                y_batch_clean = torch.where(observed_mask, y_batch, torch.zeros_like(y_batch))
-                squared_errors = (y_batch_clean - y_pred) ** 2
+                y_true_clean = torch.where(observed_mask, y_true, torch.zeros_like(y_true))
+                squared_errors = (y_true_clean - y_pred) ** 2
                 observed_squared_errors = squared_errors * observed_mask.float()
                 mse = observed_squared_errors.sum() / observed_mask.sum()
             else:
                 # Standard RMSE computation for complete data
-                mse = torch.mean((y_batch - y_pred) ** 2)
+                mse = torch.mean((y_true - y_pred) ** 2)
             
             rmse = torch.sqrt(mse).item()
             
@@ -166,15 +155,13 @@ class SSVIMetricsComputer:
     def compute_nlpd(self, 
                      model, 
                      y_true: torch.Tensor, 
-                     batch_indices: Optional[torch.Tensor] = None,
                      n_samples: int = 50) -> float:
         """
         Compute Negative Log Predictive Density for uncertainty quantification
         
         Args:
             model: SSVI GP-LVM model
-            y_true: True observations [N, D] or [batch_size, D]
-            batch_indices: Optional indices if using subset of data
+            y_true: True observations [N, D]
             n_samples: Number of samples for Monte Carlo estimation
             
         Returns:
@@ -182,18 +169,11 @@ class SSVIMetricsComputer:
         """
         model.eval()
         with torch.no_grad():
-            if batch_indices is not None:
-                y_batch = y_true[batch_indices]
-            else:
-                y_batch = y_true
-                N = y_true.shape[0]
-                batch_indices = torch.arange(N, device=y_true.device)
-            
             # Sample U for both model types
             U_samples = model.get_u_samples()
             
             # Preprocess encoder input to handle missing data (consistent with training)
-            y_encoder_input = torch.where(torch.isnan(y_batch), torch.zeros_like(y_batch), y_batch)
+            y_encoder_input = torch.where(torch.isnan(y_true), torch.zeros_like(y_true), y_true)
             
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
@@ -223,7 +203,7 @@ class SSVIMetricsComputer:
                 # Handle missing data if enabled
                 if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                     # Mask out missing values in log probability computation
-                    missing_mask = torch.isnan(y_batch)
+                    missing_mask = torch.isnan(y_true)
                     observed_mask = ~missing_mask
                     
                     # Check if we have any observed data
@@ -232,17 +212,17 @@ class SSVIMetricsComputer:
                         model.train()
                         return float('nan')
                     
-                    # Replace NaN values in y_batch with zeros for computation (they'll be masked out)
-                    y_batch_clean = torch.where(observed_mask, y_batch, torch.zeros_like(y_batch))
+                    # Replace NaN values in y_true with zeros for computation (they'll be masked out)
+                    y_true_clean = torch.where(observed_mask, y_true, torch.zeros_like(y_true))
                     
                     # Compute log probability under Gaussian
-                    log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch_clean - f_mean)**2 / f_var
+                    log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true_clean - f_mean)**2 / f_var
                     
                     log_prob_masked = log_prob * observed_mask.float()
                     log_probs.append(log_prob_masked.sum(dim=-1))  # Sum over observed dimensions only
                 else:
                     # Standard computation for complete data
-                    log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch - f_mean)**2 / f_var
+                    log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true - f_mean)**2 / f_var
                     log_probs.append(log_prob.sum(dim=-1))  # Sum over dimensions
                     
             
@@ -290,8 +270,6 @@ class SSVIMetricsComputer:
                            model, 
                            y_train: torch.Tensor, 
                            y_test: torch.Tensor,
-                           train_indices: Optional[torch.Tensor] = None,
-                           test_indices: Optional[torch.Tensor] = None,
                            iteration: int = 0,
                            elbo_loss: float = 0.0,
                            n_samples: int = 20) -> SSVIMetrics:
@@ -302,8 +280,6 @@ class SSVIMetricsComputer:
             model: SSVI GP-LVM model
             y_train: Training data
             y_test: Test data  
-            train_indices: Optional training indices for subset
-            test_indices: Optional test indices for subset
             iteration: Current training iteration
             elbo_loss: Current ELBO loss
             n_samples: Number of samples for Monte Carlo
@@ -317,13 +293,12 @@ class SSVIMetricsComputer:
         
         try:
             # Reconstruction metrics using SSVI encoder
-            metrics.train_rmse = self.compute_rmse(model, y_train, train_indices, n_samples)
-            metrics.test_rmse = self.compute_rmse(model, y_test, test_indices, n_samples)
+            metrics.train_rmse = self.compute_rmse(model, y_train, n_samples)
+            metrics.test_rmse = self.compute_rmse(model, y_test, n_samples)
             
             # Uncertainty metrics (computationally expensive, use fewer samples)
-            uncertainty_samples = min(10, n_samples)
-            metrics.train_nlpd = self.compute_nlpd(model, y_train, train_indices, uncertainty_samples)
-            metrics.test_nlpd = self.compute_nlpd(model, y_test, test_indices, uncertainty_samples)
+            metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
+            metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
             
             # Model complexity
             effective_dims, total_dims = self.compute_effective_latent_dims(model)
