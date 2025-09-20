@@ -40,7 +40,7 @@ def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iteration
     # Plot 2: NLPD comparison (train only - exactly like SSVI but only train line)
     ax2.plot(metrics_iterations, train_nlpd_list, 'b-', label='Train NLPD', linewidth=2)
     ax2.set_xlabel('Iteration')
-    ax2.set_ylabel('NLPD (lower is better)')
+    ax2.set_ylabel('NLPD')
     ax2.set_title('Predictive Density (NLPD)')  # Exact same title as SSVI
     ax2.legend()
     ax2.grid(True, alpha=0.3)
@@ -57,7 +57,7 @@ def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iteration
     # Save plot to plots directory
     plots_dir = os.path.join(results_dir, 'plots')
     os.makedirs(plots_dir, exist_ok=True)
-    plot_path = os.path.join(plots_dir, 'metrics_progression.png')
+    plot_path = os.path.join(plots_dir, f'metrics_progression_{model_name}.png')
     
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close()

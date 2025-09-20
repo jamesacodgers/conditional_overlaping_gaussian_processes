@@ -290,8 +290,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             loss.backward()
             optimizer.step()
             
-            # Compute training metrics periodically for progression plot (including iter 0)
-            if i % config.checkpoint_frequency == 0:
+            # Compute training metrics periodically for progression plot (including iter 0 and final iteration)
+            if i % config.metrics_frequency == 0 or i == steps_per_model[model_name] - 1:
                 try:
                     with torch.no_grad():
                         model.eval()

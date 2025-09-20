@@ -49,6 +49,7 @@ class OriginalGPLVMConfig:
     
     # === Checkpointing Configuration ===
     checkpoint_frequency: int = 2000  # Save models, plots, metrics, and log progress every N iterations
+    metrics_frequency: int = 100      # Compute metrics every N iterations (more frequent than checkpoints)
     
     # === Visualization Configuration ===
     save_plots: bool = True
@@ -124,6 +125,7 @@ def get_fast_config():
         test_iterations=200,
         test_size=0.2,  # Fast config uses 0.2 (20% for testing)
         checkpoint_frequency=50,  # Save models, plots, metrics, and log progress every N iterations
+        metrics_frequency=50,     # Compute metrics every N iterations (matches SSVI fast config)
         # === GP Hyperparameters ===
         init_lengthscales=2.0,  # Initial lengthscales value (default matches GPyTorch RBFKernel)
         init_output_noise_scale=2.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
