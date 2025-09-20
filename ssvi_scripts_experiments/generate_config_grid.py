@@ -66,8 +66,8 @@ def generate_config_grid():
     random_seed_values = [7, 11, 17]
     
     # Base configuration paths
-    ssvi_base_config = "ssvi_configs/base_config_many_seeds/base_lr_0001_s7.yaml"
-    orig_base_config = "original_gp_lvm_configs/base_config_many_seeds/base_lr_0001_s7.yaml"
+    ssvi_base_config = "ssvi_configs/base_lr_0001_s7.yaml"
+    orig_base_config = "original_gp_lvm_configs/base_lr_0001_s7.yaml"
     
     # Output folder names
     output_folder_name = "my_exp_configs"
