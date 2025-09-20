@@ -61,7 +61,8 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=2, largest=False)
         dim1 = indices.cpu().numpy().flatten()[0]  # Move to CPU first
         dim2 = indices.cpu().numpy().flatten()[1]  # Move to CPU first
-        lengthscales_cpu = inv_lengthscale.flatten().cpu()  # Move to CPU for string formatting
+        # For consistency with SSVI, use sqrt(lengthscale) for axis labels too
+        lengthscales_cpu = torch.sqrt(inv_lengthscale.flatten()).cpu()  # Move to CPU for string formatting
         
         # Get latent variables (use mu_x directly, no sampling)
         model_name_class = model.X.__class__.__name__
@@ -84,9 +85,13 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         plt.title(f'Latent Space - Top 2 Informative Dims')
         plot_idx += 1
         
-        # Plot 3: Hyperparameters (lengthscales) - exactly like SSVI
+        # Plot 3: Hyperparameters (lengthscales) - consistent with SSVI
         plt.subplot(1, n_plots, plot_idx)
-        lengthscales_plot = (1 / model.covar_module.base_kernel.lengthscale.flatten()).cpu()
+        # For mathematical consistency with SSVI version:
+        # SSVI: K = exp(-0.5 * d^2 / init_lengthscales)
+        # GP-LVM: K = exp(-0.5 * d^2 / lengthscale^2) 
+        # For equivalence: lengthscale = sqrt(init_lengthscales)
+        lengthscales_plot = torch.sqrt(1 / model.covar_module.base_kernel.lengthscale.flatten()).cpu()
         plt.bar(range(len(lengthscales_plot)), lengthscales_plot, 
                color="blue", alpha=0.7)
         plt.xlabel('Latent Dimension')
