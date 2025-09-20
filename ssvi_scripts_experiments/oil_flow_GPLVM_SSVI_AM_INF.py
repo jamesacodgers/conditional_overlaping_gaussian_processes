@@ -153,33 +153,26 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     labels_full = (labels_full @ torch.diag(torch.tensor([1, 2, 3], device=config.device, dtype=labels_full.dtype))).sum(axis=1)
     
     # Create train/test split if metrics enabled
-    if config.enable_metrics:
-        print(f"Creating train/test split (test_size={config.test_size})...")
-        y_train, y_test, labels_train, labels_test, train_indices, test_indices = create_train_test_split(
-            y_full, labels_full, 
-            test_size=config.test_size, 
-            random_seed=config.split_random_seed
-        )
-        print(f"Data split shapes - Train: {y_train.shape}, Test: {y_test.shape}")
-        print(f"Labels split shapes - Train: {labels_train.shape}, Test: {labels_test.shape}")
-        
-        # Use training data for model initialization
-        y = y_train
-        labels = labels_train
-        split_data = {
-            'y_train': y_train,
-            'y_test': y_test,
-            'labels_train': labels_train,
-            'labels_test': labels_test,
-            'train_indices': train_indices,
-            'test_indices': test_indices
-        }
-    else:
-        # Use full dataset
-        y = y_full
-        labels = labels_full
-        split_data = None
+    print(f"Creating train/test split (test_size={config.test_size})...")
+    y_train, y_test, labels_train, labels_test, train_indices, test_indices = create_train_test_split(
+        y_full, labels_full,
+        test_size=config.test_size,
+        random_seed=config.split_random_seed
+    )
+    print(f"Data split shapes - Train: {y_train.shape}, Test: {y_test.shape}")
+    print(f"Labels split shapes - Train: {labels_train.shape}, Test: {labels_test.shape}")
 
+    # Use training data for model initialization
+    y = y_train
+    labels = labels_train
+    split_data = {
+        'y_train': y_train,
+        'y_test': y_test,
+        'labels_train': labels_train,
+        'labels_test': labels_test,
+        'train_indices': train_indices,
+        'test_indices': test_indices
+    }
     # Initialize inducing points and latent variables (following original)
     Vx = torch.randn(config.n_inducing_points, config.latent_dim, device=config.device)
     mu_x, _, _ = torch.pca_lowrank(y, config.latent_dim)
