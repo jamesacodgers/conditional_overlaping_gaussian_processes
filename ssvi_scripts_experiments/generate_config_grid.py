@@ -47,13 +47,13 @@ def update_config_parameter(config_text, param_name, new_value):
     
     return '\n'.join(updated_lines)
 
-def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, random_seed):
+def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed):
     """Create a valid filename from parameter values"""
     # Replace dots with nothing for valid filenames
     len_str = str(init_lengthscales).replace('.', '')
     sigm_str = str(init_output_noise_scale).replace('.', '')
     
-    return f"n_ind_{n_inducing}_len_{len_str}_sigm_{sigm_str}_s_{random_seed}.yaml"
+    return f"n_ind_{n_inducing}_len_{len_str}_sig_{sigm_str}_b_{batch_size}_s_{random_seed}.yaml"
 
 def generate_config_grid():
     """Generate grid of configurations for both SSVI and Original GP-LVM"""
@@ -104,7 +104,7 @@ def generate_config_grid():
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'random_seed', random_seed)
         
         # Create filename
-        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, random_seed)
+        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed)
         output_path = os.path.join(ssvi_output_folder, filename)
         
         # Save configuration
@@ -128,7 +128,7 @@ def generate_config_grid():
         orig_config_text = update_config_parameter(orig_config_text, 'random_seed', random_seed)
         
         # Create filename
-        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, random_seed)
+        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed)
         output_path = os.path.join(orig_output_folder, filename)
         
         # Save configuration
