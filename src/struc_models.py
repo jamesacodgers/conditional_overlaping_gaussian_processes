@@ -122,7 +122,7 @@ from src.mf_methods import MF_WS_GPLVM
     
 class Struc_WS_GPLVM(MF_WS_GPLVM):
     def __init__(self,P, V, M, C_obs, mu_x_train, mu_x_test, C_unobs=0, sigma2=1, weight_distribution="continuos", beta=None,sigma2_s=None, add_randn_to_lvs = False, trainable_V=True):
-        super(Struc_WS_GPLVM,self).__init__(V, M, C_obs, mu_x_train, mu_x_test, C_unobs=C_unobs, sigma2=sigma2, weight_distribution=weight_distribution, beta=None,sigma2_s=None, trainable_V=trainable_V)
+        super(Struc_WS_GPLVM,self).__init__(V, M, C_obs, mu_x_train, mu_x_test, C_unobs=C_unobs, sigma2=sigma2, weight_distribution=weight_distribution, beta=beta,sigma2_s=sigma2_s, trainable_V=trainable_V)
         self.P = P
 
         self._mu_u = torch.nn.Parameter(torch.zeros_like(self.gp._mu_u))
