@@ -476,7 +476,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     config.print_config()
     
     # Load oil flow data
-    y, labels, Vx, mu_x, split_data = load_oil_flow_data(config)
+    y_train, labels_train, Vx, mu_x, split_data = load_oil_flow_data(config)
     
     # Create model
     print("\nInitializing Oil Flow SSVI GP-LVM...")
@@ -484,7 +484,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         config=config,
         Vx=Vx,
         mu_x=mu_x,
-        M=y.shape[1]  # Observation dimension
+        M=y_train.shape[1]  # Observation dimension
     )
     
     print(f"Model initialized:")
@@ -505,11 +505,11 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     
     # Train model
     print(f"\nTraining model...")
-    losses, metrics_computer = train_oil_flow_ssvi(model, y, config, logger, split_data, labels)
+    losses, metrics_computer = train_oil_flow_ssvi(model, y_train, config, logger, split_data, labels_train)
     
     # Visualize results
     print(f"\nVisualizing results...")
-    visualize_ssvi_results(model, y, labels, losses, config, logger, show_plot=False)
+    visualize_ssvi_results(model, y_train, labels_train, losses, config, logger, show_plot=False)
     
     # Generate final metrics and plots if metrics were computed
     if metrics_computer is not None and config.enable_metrics and split_data is not None:
@@ -560,7 +560,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     # Comprehensive missing data reconstruction experiment if enabled
     if config.enable_missing_data:
         run_missing_data_reconstruction_experiment(
-            model, config, y, split_data, logger,
+            model, config, y_train, split_data, logger,
             model_type="GP LVM SSVI",
             model_description="GP-LVM with Stochastic Structured Variational Inference"
         )
