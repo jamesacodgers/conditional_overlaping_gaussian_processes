@@ -59,28 +59,23 @@ class SSVIMetricsComputer:
         self.device = device
         self.metrics_history: List[SSVIMetrics] = []
     
-    def _sample_latent_variables(self, mu_x: torch.Tensor, sigma_x: torch.Tensor, model) -> torch.Tensor:
+    def _sample_latent_variables(self, mu_avg: torch.Tensor, sigma_avg: torch.Tensor) -> torch.Tensor:
         """
-        Sample latent variables from the posterior distribution q(x) = N(mu_x, sigma_x^2)
+        Sample latent variables from the posterior distribution q(x) = N(mu_avg, sigma_avg^2)
         
         Args:
-            mu_x: Latent means [P, batch_size, latent_dim]
-            sigma_x: Latent standard deviations [P, batch_size, latent_dim]
-            model: GP-LVM model (used to get P value)
+            mu_avg: Averaged latent means [batch_size, latent_dim]
+            sigma_avg: Averaged latent standard deviations [batch_size, latent_dim]
             
         Returns:
             x_sample: Sampled latent variables [batch_size, latent_dim]
         """
-        # Average over all P samples to get the marginal variational distribution
-        # This is mathematically equivalent to the Original GP-LVM approach
-        mu_avg = mu_x.mean(dim=0)  # [batch_size, latent_dim]
-        sigma_avg = sigma_x.mean(dim=0)  # [batch_size, latent_dim]
-        
         # Sample from the averaged latent variable distribution q(x) = N(mu_avg, sigma_avg^2)
         epsilon = torch.randn_like(sigma_avg)
         x_sample = mu_avg + sigma_avg * epsilon
         
         return x_sample
+    
     
     def compute_rmse(self, 
                      model, 
@@ -108,11 +103,15 @@ class SSVIMetricsComputer:
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
             
+            # Compute averaged latent variables once before the loop (optimization)
+            mu_avg = mu_x.mean(dim=0)  # [batch_size, latent_dim]
+            sigma_avg = sigma_x.mean(dim=0)  # [batch_size, latent_dim]
+            
             # Sample from latent distribution for reconstruction
             reconstructions = []
             for i in range(n_samples):
-                # Sample latent variables using helper function
-                x_sample = self._sample_latent_variables(mu_x, sigma_x, model)
+                # Sample latent variables using pre-computed averages
+                x_sample = self._sample_latent_variables(mu_avg, sigma_avg)
                 
                 # Reconstruct through GP mean prediction using proper GP method
                 y_recon = model.gp.get_gp_expectation(x_sample)  # [batch_size, M, C]
@@ -178,11 +177,15 @@ class SSVIMetricsComputer:
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
             
+            # Compute averaged latent variables once before the loop (optimization)
+            mu_avg = mu_x.mean(dim=0)  # [batch_size, latent_dim]
+            sigma_avg = sigma_x.mean(dim=0)  # [batch_size, latent_dim]
+            
             log_probs = []
             
             for _ in range(n_samples):
-                # Sample latent variables using helper function
-                x_sample = self._sample_latent_variables(mu_x, sigma_x, model)
+                # Sample latent variables using pre-computed averages
+                x_sample = self._sample_latent_variables(mu_avg, sigma_avg)
                 
                 # Compute predictive distribution through GP using proper GP methods
                 
