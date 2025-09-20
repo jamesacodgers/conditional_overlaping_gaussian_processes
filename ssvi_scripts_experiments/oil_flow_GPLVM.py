@@ -88,16 +88,13 @@ class OilFlowModel(BayesianGPLVM):
         
         # Initialize kernel parameters from config if provided
         if config is not None:
-            # CRITICAL: To match SSVI formula, we need to use 1/sqrt(init_lengthscales)
-            # SSVI: exp(-0.5 * ||x-x'||2 * lengthscales)  
-            # GPyTorch: exp(-0.5 * ||x-x'||2 / lengthscale2)
-            # So: lengthscale2 = 1/lengthscales -> lengthscale = 1/sqrt(lengthscales)
             with torch.no_grad():
                 # Set lengthscales to match SSVI formula
                 effective_lengthscale = 1.0 / torch.sqrt(torch.tensor(config.init_lengthscales, device=device))
-                self.covar_module.base_kernel.lengthscale.fill_(torch.log(effective_lengthscale))
-                # Set outputscale: GPyTorch uses log space, so we need log(init_output_noise_scale)
-                self.covar_module.outputscale.fill_(torch.log(torch.tensor(config.init_output_noise_scale, device=device)))
+                print(f"  DEBUG GP-LVM: Setting lengthscale to {effective_lengthscale}")
+                self.covar_module.base_kernel.initialize(lengthscale=effective_lengthscale)
+                print(f"  DEBUG GP-LVM: After setting, lengthscale = {self.covar_module.base_kernel.lengthscale.flatten()[0]}")
+
 
      def forward(self, X):
         mean_x = self.mean_module(X)
@@ -226,8 +223,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Initialize likelihood noise from config if provided
         if config is not None:
             with torch.no_grad():
-                # GPyTorch uses log space, so we need log(init_output_noise_scale)
-                likelihood.noise.fill_(torch.log(torch.tensor(config.init_output_noise_scale, device=config.device)))
+                # Use initialize method for likelihood noise too
+                noise_scale = torch.tensor(config.init_output_noise_scale, device=config.device)
+                likelihood.initialize(noise=noise_scale)
         elbo = VariationalELBO(likelihood, model, num_data=len(Y_train))
 
         # Move model and likelihood to CUDA if available (like original experiments)
