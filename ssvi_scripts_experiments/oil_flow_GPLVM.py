@@ -349,7 +349,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         else:
                             X_train_mean = model.get_X_mean(Y_train)
                         # Compute training reconstruction
-                        Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
+                        if config.enable_missing_data and model_name == 'nn_gauss':
+                            # For nn_gauss with missing data, use cleaned input for reconstruction too
+                            Y_train_for_recon = Y_train.clone()
+                            Y_train_for_recon[torch.isnan(Y_train_for_recon)] = 0.0
+                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train_for_recon, ae=ae, model_name=model_name)
+                        else:
+                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
                         # Compute training RMSE (original approach)
                         if config.enable_missing_data:
                             train_rmse = rmse_missing_improved(Y_train_original.cpu().numpy(), Y_train_recon.T.detach().cpu().numpy())
@@ -523,8 +529,19 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             X_train_mean_device = X_train_mean.to(dtype=torch.float32, device=config.device)
 
 
-            Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test, ae=ae, model_name=model_name)
-            Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train, ae=ae, model_name=model_name)
+            # Compute reconstructions with proper missing data handling
+            if config.enable_missing_data and model_name == 'nn_gauss':
+                # For nn_gauss with missing data, use cleaned input for reconstruction
+                Y_test_for_recon = Y_test.clone()
+                Y_test_for_recon[torch.isnan(Y_test_for_recon)] = 0.0
+                Y_train_for_recon = Y_train.clone()
+                Y_train_for_recon[torch.isnan(Y_train_for_recon)] = 0.0
+                
+                Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test_for_recon, ae=ae, model_name=model_name)
+                Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train_for_recon, ae=ae, model_name=model_name)
+            else:
+                Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test, ae=ae, model_name=model_name)
+                Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train, ae=ae, model_name=model_name)
 
             # ################################
             # Compute the metrics:
