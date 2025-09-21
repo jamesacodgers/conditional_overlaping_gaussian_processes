@@ -461,11 +461,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         if config.enable_missing_data:
                             Y_test_for_encoder = Y_test.clone()
                             Y_test_for_encoder[torch.isnan(Y_test_for_encoder)] = 0.0
-                            X_test_mean = model.X.mu(Y_test_for_encoder)
-                            X_test_covar = model.X.sigma(Y_test_for_encoder)
+                            X_test_mean = model.X.mu(Y_test_for_encoder).detach()
+                            X_test_covar = model.X.sigma(Y_test_for_encoder).detach()
                         else:
-                            X_test_mean = model.X.mu(Y_test)
-                            X_test_covar = model.X.sigma(Y_test)
+                            X_test_mean = model.X.mu(Y_test).detach()
+                            X_test_covar = model.X.sigma(Y_test).detach()
                         
                         # Restore original jitter
                         model.X.jitter = original_jitter
