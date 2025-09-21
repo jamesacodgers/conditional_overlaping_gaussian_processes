@@ -587,30 +587,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             }
             
             logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
-            
-            # Generate missing data reconstruction visualization if enabled (following generalized experiments)
-            # This is done within the existing model loop, just like in the original experiments
-            if config.enable_missing_data and logger and logger.get_results_dir():
-                try:
-                    print(f"  Generating missing data reconstruction visualization for {model_name}...")
-                    
-                    # Create visualization showing original vs reconstructed data
-                    fig = plot_y_reconstruction(
-                        X_train_mean_device.detach().cpu().numpy(), 
-                        Y_train.detach().cpu().numpy(), 
-                        Y_train_recon.T.detach().cpu().numpy(), 
-                        title=f'{model_name} Missing Data Reconstruction (Train)'
-                    )
-                    
-                    # Save the plot
-                    import matplotlib.pyplot as plt
-                    plot_path = os.path.join(logger.get_results_dir(), f'missing_data_reconstruction_{model_name}_train.png')
-                    fig.savefig(plot_path, dpi=300, bbox_inches='tight')
-                    plt.close(fig)
-                    print(f"  Missing data reconstruction plot saved: {plot_path}")
-                    
-                except Exception as e:
-                    print(f"  Warning: Could not create missing data visualization: {e}")
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)
