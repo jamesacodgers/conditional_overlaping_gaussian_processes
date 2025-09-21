@@ -63,7 +63,7 @@ from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.data_utils import download_oilflow_data_if_needed
 from src.nlpd_utils import compute_nlpd_nll_based
 from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims
-from src.missing_data_utils import preprocess_data_for_missing_training
+from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 
 plt.style.use('ggplot')
@@ -352,7 +352,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
                         # Compute training RMSE (original approach)
                         if config.enable_missing_data:
-                            train_rmse = rmse_missing(Y_train_original.cpu(), Y_train_recon.T.detach().cpu())
+                            train_rmse = rmse_missing_improved(Y_train_original.cpu().numpy(), Y_train_recon.T.detach().cpu().numpy())
                         else:
                             train_rmse = rmse(Y_train, Y_train_recon.T)
                         # Compute training NLPD
@@ -531,8 +531,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
             # 1) Reconstruction error - Train & Test (original approach)
             if config.enable_missing_data:
-                mse_train = rmse_missing(Y_train_original.cpu(), Y_train_recon.T.detach().cpu())
-                mse_test = rmse_missing(Y_test_original.cpu(), Y_test_recon.T.detach().cpu())
+                mse_train = rmse_missing_improved(Y_train_original.cpu().numpy(), Y_train_recon.T.detach().cpu().numpy())
+                mse_test = rmse_missing_improved(Y_test_original.cpu().numpy(), Y_test_recon.T.detach().cpu().numpy())
             else:
                 mse_train = rmse(Y_train, Y_train_recon.T)
                 mse_test = rmse(Y_test, Y_test_recon.T)
@@ -579,9 +579,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     
                     # Create visualization showing original vs reconstructed data
                     fig = plot_y_reconstruction(
-                        X_train_mean_device.cpu().numpy(), 
-                        Y_train.cpu().numpy(), 
-                        Y_train_recon.T.cpu().numpy(), 
+                        X_train_mean_device.detach().cpu().numpy(), 
+                        Y_train.detach().cpu().numpy(), 
+                        Y_train_recon.T.detach().cpu().numpy(), 
                         title=f'{model_name} Missing Data Reconstruction (Train)'
                     )
                     

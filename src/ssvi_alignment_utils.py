@@ -72,8 +72,17 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma).detach().cpu().numpy()
         elif model_name_class == 'NNEncoder':  # 'nn_gauss' model
             Y_train_device = Y_train.to(model.X.mu_layers[0].weight.device) if Y_train.device != model.X.mu_layers[0].weight.device else Y_train
-            mu_x_result = model.X.mu(Y_train_device)
-            sigma_x_result = model.X.sigma(Y_train_device)
+            
+            # Handle missing data for nn_gauss plotting (same as training)
+            if torch.isnan(Y_train_device).any():
+                # Replace NaN values with zeros for encoder input (consistent with training)
+                Y_train_for_plotting = Y_train_device.clone()
+                Y_train_for_plotting[torch.isnan(Y_train_for_plotting)] = 0.0
+            else:
+                Y_train_for_plotting = Y_train_device
+            
+            mu_x_result = model.X.mu(Y_train_for_plotting)
+            sigma_x_result = model.X.sigma(Y_train_for_plotting)
             mu_x = mu_x_result.detach().cpu().numpy()
         
         # Plot mu_x directly (no sampling) - exactly like SSVI
