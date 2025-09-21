@@ -172,27 +172,43 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     print(f"Data split shapes - Train: {Y_train.shape}, Test: {Y_test.shape}")
     print(f"Labels split shapes - Train: {lb_train.shape}, Test: {lb_test.shape}")
     
-    # Apply missing data preprocessing if enabled (matching SSVI script for fair comparison)
+    # Apply missing data preprocessing if enabled (copying original approach)
     if config.enable_missing_data:
-        print(f"\n=== Missing Data Preprocessing ===")
-        Y_train_missing, train_missing_mask, missing_info = preprocess_data_for_missing_training(Y_train, config)
-        Y_test_missing, test_missing_mask, _ = preprocess_data_for_missing_training(Y_test, config)
+        print(f"\n=== Missing Data Preprocessing (Original Approach) ===")
         
-        # Store original data for evaluation (matching SSVI script)
+        # Store original data for evaluation
         Y_train_original = Y_train.clone()
         Y_test_original = Y_test.clone()
-        Y_train = Y_train_missing  # Use missing data for training
-        Y_test = Y_test_missing    # Use missing data for testing
         
+        # Create missing data pattern exactly like original code
+        torch.manual_seed(config.random_seed)
+        np.random.seed(config.random_seed)
+        
+        # Randomly set some values to NaN (like MovieLens data naturally has)
+        missing_ratio = config.missing_data_ratio
+        N_train, D_train = Y_train.shape
+        N_test, D_test = Y_test.shape
+        
+        # Training data - randomly mask dimensions
+        for i in range(N_train):
+            n_missing = int(missing_ratio * D_train)
+            missing_dims = torch.randperm(D_train)[:n_missing]
+            Y_train[i, missing_dims] = float('nan')
+        
+        # Test data - randomly mask dimensions  
+        for i in range(N_test):
+            n_missing = int(missing_ratio * D_test)
+            missing_dims = torch.randperm(D_test)[:n_missing]
+            Y_test[i, missing_dims] = float('nan')
+        
+        print(f"  Missing ratio: {missing_ratio}")
+        print(f"  Data now contains NaN values (like MovieLens)")
         print(f"Missing data preprocessing completed.")
         print("=" * 50)
     else:
         # No missing data - store None for consistency
         Y_train_original = None
         Y_test_original = None
-        train_missing_mask = None
-        test_missing_mask = None
-        missing_info = None
     
     # Setting shapes
     N = len(Y_train)
@@ -252,9 +268,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         
         model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers, device=config.device, config=config)
         
-        # Use missing data aware likelihood if enabled
+        # Use missing data aware likelihood if enabled (original approach)
         if config.enable_missing_data:
-            likelihood = GaussianLikelihoodWithMissingObs(batch_shape=model.batch_shape)
+            likelihood = GaussianLikelihoodWithMissingObs()
         else:
             likelihood = GaussianLikelihood()
         
@@ -317,7 +333,14 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             if model_name in ['point','map', 'gauss']:
                 sample = model.sample_latent_variable()  # a full sample returns latent x across all N
             else:
-                sample = model.sample_latent_variable(Y_train)
+                # For nn_gauss with missing data, replace NaN values for encoder input
+                if config.enable_missing_data:
+                    # Replace NaN values with zeros for encoder input (encoder can't handle NaN)
+                    Y_train_for_encoder = Y_train.clone()
+                    Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = 0.0
+                    sample = model.sample_latent_variable(Y_train_for_encoder)
+                else:
+                    sample = model.sample_latent_variable(Y_train)
             sample_batch = sample[batch_index_tensor]
             output_batch = model(sample_batch)
             loss = -elbo(output_batch, Y_train[batch_index_tensor].T).sum()
@@ -333,11 +356,20 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     with torch.no_grad():
                         model.eval()
                         # Get training latent variables
-                        X_train_mean = model.get_X_mean(Y_train)
+                        if config.enable_missing_data and model_name == 'nn_gauss':
+                            # For nn_gauss with missing data, use cleaned input for encoder
+                            Y_train_for_encoder = Y_train.clone()
+                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = 0.0
+                            X_train_mean = model.get_X_mean(Y_train_for_encoder)
+                        else:
+                            X_train_mean = model.get_X_mean(Y_train)
                         # Compute training reconstruction
                         Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
-                        # Compute training RMSE
-                        train_rmse = rmse(Y_train, Y_train_recon.T)
+                        # Compute training RMSE (original approach)
+                        if config.enable_missing_data:
+                            train_rmse = rmse_missing(Y_train_original.cpu(), Y_train_recon.T.detach().cpu())
+                        else:
+                            train_rmse = rmse(Y_train, Y_train_recon.T)
                         # Compute training NLPD
                         train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
                         
@@ -385,7 +417,14 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         
         ### Saving training report
         
-        X_train_mean = model.get_X_mean(Y_train)
+        # Get training latent variables (handle missing data for nn_gauss)
+        if config.enable_missing_data and model_name == 'nn_gauss':
+            # For nn_gauss with missing data, use cleaned input for encoder
+            Y_train_for_encoder = Y_train.clone()
+            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = 0.0
+            X_train_mean = model.get_X_mean(Y_train_for_encoder)
+        else:
+            X_train_mean = model.get_X_mean(Y_train)
         try:
             X_train_scales = model.get_X_scales(Y_train)
         except (RuntimeError, TypeError) as e:
@@ -433,22 +472,42 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         test_jitter = torch.eye(latent_dim).unsqueeze(0) * 1e-5
                         model.X.jitter = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
                         
-                        # Call encoder directly
-                        X_test_mean = model.X.mu(Y_test)
-                        X_test_covar = model.X.sigma(Y_test)
+                        # Call encoder directly (handle missing data)
+                        if config.enable_missing_data:
+                            Y_test_for_encoder = Y_test.clone()
+                            Y_test_for_encoder[torch.isnan(Y_test_for_encoder)] = 0.0
+                            X_test_mean = model.X.mu(Y_test_for_encoder)
+                            X_test_covar = model.X.sigma(Y_test_for_encoder)
+                        else:
+                            X_test_mean = model.X.mu(Y_test)
+                            X_test_covar = model.X.sigma(Y_test)
                         
                         # Restore original jitter
                         model.X.jitter = original_jitter
                     else:
-                        X_test_mean, X_test_covar = model.predict_latent(Y_train, 
-                                                                          Y_test, 
-                                                                          optimizer.defaults['lr'], 
-                                                                          likelihood, 
-                                                                          config.random_seed,
-                                                                          prior_x=prior_x_test, 
-                                                                          ae=True, 
-                                                                          model_name='nn_gauss', 
-                                                                          pca=pca)
+                        # For nn_gauss with missing data, use cleaned input for predict_latent
+                        if config.enable_missing_data:
+                            Y_train_for_encoder = Y_train.clone()
+                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = 0.0
+                            X_test_mean, X_test_covar = model.predict_latent(Y_train_for_encoder, 
+                                                                              Y_test, 
+                                                                              optimizer.defaults['lr'], 
+                                                                              likelihood, 
+                                                                              config.random_seed,
+                                                                              prior_x=prior_x_test, 
+                                                                              ae=True, 
+                                                                              model_name='nn_gauss', 
+                                                                              pca=pca)
+                        else:
+                            X_test_mean, X_test_covar = model.predict_latent(Y_train, 
+                                                                              Y_test, 
+                                                                              optimizer.defaults['lr'], 
+                                                                              likelihood, 
+                                                                              config.random_seed,
+                                                                              prior_x=prior_x_test, 
+                                                                              ae=True, 
+                                                                              model_name='nn_gauss', 
+                                                                              pca=pca)
                 else:
                     X_test_mean, X_flow_samples = model.predict_latent(Y_train, 
                                                                         Y_test, 
@@ -485,11 +544,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # ################################
             # Compute the metrics:
             
-            # 1) Reconstruction error - Train & Test
-            # Use rmse_missing when missing data is enabled (following generalized GPLVM experiments)
+            # 1) Reconstruction error - Train & Test (original approach)
             if config.enable_missing_data:
-                mse_train = rmse_missing(Y_train, Y_train_recon.T)
-                mse_test = rmse_missing(Y_test, Y_test_recon.T)
+                mse_train = rmse_missing(Y_train_original.cpu(), Y_train_recon.T.detach().cpu())
+                mse_test = rmse_missing(Y_test_original.cpu(), Y_test_recon.T.detach().cpu())
             else:
                 mse_train = rmse(Y_train, Y_train_recon.T)
                 mse_test = rmse(Y_test, Y_test_recon.T)
