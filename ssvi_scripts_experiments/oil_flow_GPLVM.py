@@ -38,6 +38,12 @@ from gpytorch.means import ConstantMean, ZeroMean
 from gpytorch.mlls import VariationalELBO
 from gpytorch.priors import NormalPrior, MultivariateNormalPrior
 from gpytorch.likelihoods import GaussianLikelihood
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'generalised_gplvm_code'))
+from models.likelihoods import GaussianLikelihoodWithMissingObs
+from utils.metrics import rmse_missing
+from utils.visualisation import plot_y_reconstruction
 from gpytorch.variational import VariationalStrategy
 from gpytorch.variational import CholeskyVariationalDistribution
 from gpytorch.kernels import ScaleKernel, RBFKernel
@@ -57,6 +63,8 @@ from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.data_utils import download_oilflow_data_if_needed
 from src.nlpd_utils import compute_nlpd_nll_based
 from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims
+from src.missing_data_utils import preprocess_data_for_missing_training
+from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 
 plt.style.use('ggplot')
 
@@ -110,7 +118,7 @@ class OilFlowModel(BayesianGPLVM):
          valid_indices = np.arange(self.n)
          batch_indices = np.random.choice(valid_indices, size=batch_size, replace=False)
          return np.sort(batch_indices)
-     
+
 def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     """Main function for Original GP LVM experiments"""
     
@@ -163,6 +171,28 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     
     print(f"Data split shapes - Train: {Y_train.shape}, Test: {Y_test.shape}")
     print(f"Labels split shapes - Train: {lb_train.shape}, Test: {lb_test.shape}")
+    
+    # Apply missing data preprocessing if enabled (matching SSVI script for fair comparison)
+    if config.enable_missing_data:
+        print(f"\n=== Missing Data Preprocessing ===")
+        Y_train_missing, train_missing_mask, missing_info = preprocess_data_for_missing_training(Y_train, config)
+        Y_test_missing, test_missing_mask, _ = preprocess_data_for_missing_training(Y_test, config)
+        
+        # Store original data for evaluation (matching SSVI script)
+        Y_train_original = Y_train.clone()
+        Y_test_original = Y_test.clone()
+        Y_train = Y_train_missing  # Use missing data for training
+        Y_test = Y_test_missing    # Use missing data for testing
+        
+        print(f"Missing data preprocessing completed.")
+        print("=" * 50)
+    else:
+        # No missing data - store None for consistency
+        Y_train_original = None
+        Y_test_original = None
+        train_missing_mask = None
+        test_missing_mask = None
+        missing_info = None
     
     # Setting shapes
     N = len(Y_train)
@@ -221,7 +251,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Initialise model, likelihood, elbo and optimizer
         
         model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers, device=config.device, config=config)
-        likelihood = GaussianLikelihood()
+        
+        # Use missing data aware likelihood if enabled
+        if config.enable_missing_data:
+            likelihood = GaussianLikelihoodWithMissingObs(batch_shape=model.batch_shape)
+        else:
+            likelihood = GaussianLikelihood()
         
         # Initialize likelihood noise from config if provided
         if config is not None:
@@ -451,9 +486,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # Compute the metrics:
             
             # 1) Reconstruction error - Train & Test
-            
-            mse_train = rmse(Y_train, Y_train_recon.T)
-            mse_test = rmse(Y_test, Y_test_recon.T)
+            # Use rmse_missing when missing data is enabled (following generalized GPLVM experiments)
+            if config.enable_missing_data:
+                mse_train = rmse_missing(Y_train, Y_train_recon.T)
+                mse_test = rmse_missing(Y_test, Y_test_recon.T)
+            else:
+                mse_train = rmse(Y_train, Y_train_recon.T)
+                mse_test = rmse(Y_test, Y_test_recon.T)
             
             print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
             print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
@@ -488,6 +527,30 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             }
             
             logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
+            
+            # Generate missing data reconstruction visualization if enabled (following generalized experiments)
+            # This is done within the existing model loop, just like in the original experiments
+            if config.enable_missing_data and logger and logger.get_results_dir():
+                try:
+                    print(f"  Generating missing data reconstruction visualization for {model_name}...")
+                    
+                    # Create visualization showing original vs reconstructed data
+                    fig = plot_y_reconstruction(
+                        X_train_mean_device.cpu().numpy(), 
+                        Y_train.cpu().numpy(), 
+                        Y_train_recon.T.cpu().numpy(), 
+                        title=f'{model_name} Missing Data Reconstruction (Train)'
+                    )
+                    
+                    # Save the plot
+                    import matplotlib.pyplot as plt
+                    plot_path = os.path.join(logger.get_results_dir(), f'missing_data_reconstruction_{model_name}_train.png')
+                    fig.savefig(plot_path, dpi=300, bbox_inches='tight')
+                    plt.close(fig)
+                    print(f"  Missing data reconstruction plot saved: {plot_path}")
+                    
+                except Exception as e:
+                    print(f"  Warning: Could not create missing data visualization: {e}")
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)

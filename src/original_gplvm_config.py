@@ -59,6 +59,11 @@ class OriginalGPLVMConfig:
     enable_testing: bool = True  # Enable test evaluation
     test_iterations: int = 200  # Number of iterations for test phase (default for fast config)
     
+    # === Missing Data Configuration ===
+    enable_missing_data: bool = False      # Enable missing data reconstruction capability
+    missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
+    reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
+    
     # === Additional Configuration from oilflow_expt.py ===
     # Prior configuration for different models
     prior_type: dict = None  # Will be set to {'gauss': 'normal', 'nn_gauss': 'multivariate'} if None
@@ -111,6 +116,7 @@ class OriginalGPLVMConfig:
         print(f"Save results: {self.save_results}")
         if self.save_results:
             print(f"Results dir: {self.results_dir}")
+        print(f"Missing data: {self.enable_missing_data} (ratio: {self.missing_data_ratio})")
         print("=" * 50)
 
 def get_fast_config():
