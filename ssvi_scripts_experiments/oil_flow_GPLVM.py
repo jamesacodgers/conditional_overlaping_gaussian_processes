@@ -172,37 +172,22 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     print(f"Data split shapes - Train: {Y_train.shape}, Test: {Y_test.shape}")
     print(f"Labels split shapes - Train: {lb_train.shape}, Test: {lb_test.shape}")
     
-    # Apply missing data preprocessing if enabled (copying original approach)
+    # Apply missing data preprocessing if enabled (using same function as SSVI for alignment)
     if config.enable_missing_data:
-        print(f"\n=== Missing Data Preprocessing (Original Approach) ===")
+        print(f"\n=== Missing Data Preprocessing (Aligned with SSVI) ===")
         
         # Store original data for evaluation
         Y_train_original = Y_train.clone()
         Y_test_original = Y_test.clone()
         
-        # Create missing data pattern exactly like original code
-        torch.manual_seed(config.random_seed)
-        np.random.seed(config.random_seed)
+        # Use the same preprocessing function as SSVI to ensure identical NaN patterns
+        Y_train_missing, train_missing_mask, missing_info = preprocess_data_for_missing_training(Y_train, config)
+        Y_test_missing, test_missing_mask, _ = preprocess_data_for_missing_training(Y_test, config)
         
-        # Randomly set some values to NaN (like MovieLens data naturally has)
-        missing_ratio = config.missing_data_ratio
-        N_train, D_train = Y_train.shape
-        N_test, D_test = Y_test.shape
+        # Update the data to use missing versions
+        Y_train = Y_train_missing
+        Y_test = Y_test_missing
         
-        # Training data - randomly mask dimensions
-        for i in range(N_train):
-            n_missing = int(missing_ratio * D_train)
-            missing_dims = torch.randperm(D_train)[:n_missing]
-            Y_train[i, missing_dims] = float('nan')
-        
-        # Test data - randomly mask dimensions  
-        for i in range(N_test):
-            n_missing = int(missing_ratio * D_test)
-            missing_dims = torch.randperm(D_test)[:n_missing]
-            Y_test[i, missing_dims] = float('nan')
-        
-        print(f"  Missing ratio: {missing_ratio}")
-        print(f"  Data now contains NaN values (like MovieLens)")
         print(f"Missing data preprocessing completed.")
         print("=" * 50)
     else:
