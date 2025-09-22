@@ -322,7 +322,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 if config.enable_missing_data:
                     # Replace NaN values with zeros for encoder input (encoder can't handle NaN)
                     Y_train_for_encoder = Y_train.clone()
-                    Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = 0.0
+                    Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
                     sample = model.sample_latent_variable(Y_train_for_encoder)
                 else:
                     sample = model.sample_latent_variable(Y_train)
@@ -344,7 +344,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         if config.enable_missing_data and model_name == 'nn_gauss':
                             # For nn_gauss with missing data, use cleaned input for encoder
                             Y_train_for_encoder = Y_train.clone()
-                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = 0.0
+                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
                             X_train_mean = model.get_X_mean(Y_train_for_encoder)
                         else:
                             X_train_mean = model.get_X_mean(Y_train)
@@ -352,7 +352,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         if config.enable_missing_data and model_name == 'nn_gauss':
                             # For nn_gauss with missing data, use cleaned input for reconstruction too
                             Y_train_for_recon = Y_train.clone()
-                            Y_train_for_recon[torch.isnan(Y_train_for_recon)] = 0.0
+                            Y_train_for_recon[torch.isnan(Y_train_for_recon)] = -999.0
                             Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train_for_recon, ae=ae, model_name=model_name)
                         else:
                             Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
@@ -412,7 +412,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if config.enable_missing_data and model_name == 'nn_gauss':
             # For nn_gauss with missing data, use cleaned input for encoder
             Y_train_for_encoder = Y_train.clone()
-            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = 0.0
+            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
             X_train_mean = model.get_X_mean(Y_train_for_encoder)
         else:
             X_train_mean = model.get_X_mean(Y_train)
@@ -466,7 +466,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         # Call encoder directly (handle missing data)
                         if config.enable_missing_data:
                             Y_test_for_encoder = Y_test.clone()
-                            Y_test_for_encoder[torch.isnan(Y_test_for_encoder)] = 0.0
+                            Y_test_for_encoder[torch.isnan(Y_test_for_encoder)] = -999.0
                             X_test_mean = model.X.mu(Y_test_for_encoder).detach()
                             X_test_covar = model.X.sigma(Y_test_for_encoder).detach()
                         else:
@@ -479,7 +479,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         # For nn_gauss with missing data, use cleaned input for predict_latent
                         if config.enable_missing_data:
                             Y_train_for_encoder = Y_train.clone()
-                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = 0.0
+                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
                             X_test_mean, X_test_covar = model.predict_latent(Y_train_for_encoder, 
                                                                               Y_test, 
                                                                               optimizer.defaults['lr'], 
@@ -533,9 +533,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             if config.enable_missing_data and model_name == 'nn_gauss':
                 # For nn_gauss with missing data, use cleaned input for reconstruction
                 Y_test_for_recon = Y_test.clone()
-                Y_test_for_recon[torch.isnan(Y_test_for_recon)] = 0.0
+                Y_test_for_recon[torch.isnan(Y_test_for_recon)] = -999.0
                 Y_train_for_recon = Y_train.clone()
-                Y_train_for_recon[torch.isnan(Y_train_for_recon)] = 0.0
+                Y_train_for_recon[torch.isnan(Y_train_for_recon)] = -999.0
                 
                 Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test_for_recon, ae=ae, model_name=model_name)
                 Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train_for_recon, ae=ae, model_name=model_name)
