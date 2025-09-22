@@ -97,7 +97,7 @@ def reconstruct_missing_dimensions(model,
         
         # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(missing_mask, 
-                                     torch.zeros_like(y_observed), 
+                                     torch.full_like(y_observed, -9.0), 
                                      y_observed)
         
         # Get latent distribution parameters
