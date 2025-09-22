@@ -137,26 +137,6 @@ def print_missing_data_experiment_footer(model_type):
     print("=" * 50)
 
 
-def save_missing_data_visualizations(model_type, config, y_reconstructed, test_reconstructed=None, split_data=None, logger=None):
-    """Save missing data reconstruction visualizations"""
-    from src.missing_data_utils import visualize_reconstruction_results
-    
-    if logger:
-        print("\nSaving reconstruction visualizations...")
-        # Training data visualization
-        visualize_reconstruction_results(
-            config.y_original, config.y_original, y_reconstructed, config.missing_mask,
-            save_path=os.path.join(logger.results_dir, "missing_data_reconstruction_train.png")
-        )
-        
-        if test_reconstructed is not None and split_data is not None:
-            # Test data visualization
-            visualize_reconstruction_results(
-                split_data['y_test_original'], split_data['y_test'], test_reconstructed, split_data['test_missing_mask'],
-                save_path=os.path.join(logger.results_dir, "missing_data_reconstruction_test.png")
-            )
-
-
 def _save_missing_data_reconstruction_json(model_type, model_description, config, y, split_data, recon_metrics, test_recon_metrics, quality_assessment, logger):
     """Helper function to save missing data reconstruction results to JSON"""
     json_results = {

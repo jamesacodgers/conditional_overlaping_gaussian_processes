@@ -10,7 +10,6 @@ from src.save_utils import (
     print_missing_data_experiment_header, 
     print_missing_data_results, 
     print_missing_data_experiment_footer,
-    save_missing_data_visualizations,
     _save_missing_data_reconstruction_json
 )
 
@@ -45,7 +44,7 @@ def run_missing_data_reconstruction_experiment(model, config, y, split_data, log
     
     # Evaluate training reconstruction quality
     recon_metrics = evaluate_reconstruction_quality(
-        config.y_original, y_reconstructed, config.missing_mask, recon_std
+        config.y_original_train, y_reconstructed, config.missing_mask, recon_std
     )
     
     # Perform test data reconstruction if available
@@ -73,11 +72,6 @@ def run_missing_data_reconstruction_experiment(model, config, y, split_data, log
             model_type, model_description, config, y, split_data, 
             recon_metrics, test_recon_metrics, quality_assessment, logger
         )
-    
-    # Save visualizations
-    save_missing_data_visualizations(
-        model_type, config, y_reconstructed, y_test_reconstructed, split_data, logger
-    )
     
     # Print experiment footer
     print_missing_data_experiment_footer(model_type)

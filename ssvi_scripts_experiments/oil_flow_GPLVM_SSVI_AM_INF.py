@@ -189,7 +189,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
         print(f"\n=== Missing Data Preprocessing ===")
         
         # Store original training data before preprocessing
-        y_original = y.clone()
+        y_original_train = y.clone()
         
         y_train_missing, train_missing_mask, train_missing_info = preprocess_data_for_missing_training(split_data['y_train'], config)
         y_test_missing, test_missing_mask, test_missing_info = preprocess_data_for_missing_training(split_data['y_test'], config)
@@ -210,7 +210,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
         
         # Store missing data info for later use
         config.missing_info = missing_info
-        config.y_original = y_original  # Original training data before missing data preprocessing
+        config.y_original_train = y_original_train  # Original training data before missing data preprocessing
         config.missing_mask = missing_mask
         
         print(f"Missing data preprocessing completed.")
