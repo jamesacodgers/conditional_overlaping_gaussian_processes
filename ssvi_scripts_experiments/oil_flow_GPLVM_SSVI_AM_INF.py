@@ -260,11 +260,10 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
 
         # Handle missing data preprocessing for encoder input
         if self.enable_missing_data:
-            # Replace NaN values with 0.0 for encoder input (more reasonable than -999.0)
-            Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.zeros_like(Y_batch), Y_batch)
-            missing_mask = torch.isnan(Y_batch)
+            # Replace NaN values with -999.0 for encoder input (encoder expects clean data)
+            Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -999.0), Y_batch)
             # Get local parameters via amortized inference (gradients only to encoder)
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples, missing_mask)
+            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples)
         else:
             # Standard case: no missing data preprocessing needed
             mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
