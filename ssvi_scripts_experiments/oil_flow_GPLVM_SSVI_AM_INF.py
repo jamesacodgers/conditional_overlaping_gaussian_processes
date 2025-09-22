@@ -448,9 +448,9 @@ def get_fast_config():
         init_lengthscales=1.0,          # Initial lengthscales value (1/beta) - default matches current standard
         init_output_noise_scale=1.0,    # Initial output noise scale (sigma2) - default matches current standard
         # === Missing Data Configuration ===
-        enable_missing_data=True,       # Enable missing data reconstruction capability
-        missing_data_ratio=0.3,         # Fraction of dimensions to artificially mask (for testing)
-        reconstruction_samples=50,      # Number of samples for missing data reconstruction
+        enable_missing_data=False,      # Enable missing data reconstruction capability
+        missing_data_ratio=0,        # Fraction of dimensions to artificially mask (for testing)
+        reconstruction_samples=50,     # Number of samples for missing data reconstruction
         # === Random Seed Configuration ===
         random_seed=7,                 # Random seed for reproducibility (matches SSVI base config)
         # === Test Size Configuration ===
