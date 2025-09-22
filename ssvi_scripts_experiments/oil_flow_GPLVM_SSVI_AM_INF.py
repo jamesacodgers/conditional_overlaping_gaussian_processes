@@ -187,29 +187,30 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     # Apply missing data preprocessing if enabled
     if config.enable_missing_data:
         print(f"\n=== Missing Data Preprocessing ===")
-        y_missing, missing_mask, missing_info = preprocess_data_for_missing_training(y, config)
         
-        # Store original data for evaluation
+        # Store original training data before preprocessing
         y_original = y.clone()
-        y = y_missing  # Use missing data for training
         
-        # Update split data if it exists
-        if split_data is not None:
-            y_train_missing, train_missing_mask, _ = preprocess_data_for_missing_training(split_data['y_train'], config)
-            y_test_missing, test_missing_mask, _ = preprocess_data_for_missing_training(split_data['y_test'], config)
-            
-            split_data.update({
-                'y_train_original': split_data['y_train'].clone(),
-                'y_test_original': split_data['y_test'].clone(),
-                'y_train': y_train_missing,
-                'y_test': y_test_missing,
-                'train_missing_mask': train_missing_mask,
-                'test_missing_mask': test_missing_mask
-            })
+        y_train_missing, train_missing_mask, train_missing_info = preprocess_data_for_missing_training(split_data['y_train'], config)
+        y_test_missing, test_missing_mask, test_missing_info = preprocess_data_for_missing_training(split_data['y_test'], config)
+        
+        split_data.update({
+            'y_train_original': split_data['y_train'].clone(),
+            'y_test_original': split_data['y_test'].clone(),
+            'y_train': y_train_missing,
+            'y_test': y_test_missing,
+            'train_missing_mask': train_missing_mask,
+            'test_missing_mask': test_missing_mask
+        })
+        
+        # Use training data with missing values for model training
+        y = y_train_missing
+        missing_mask = train_missing_mask
+        missing_info = train_missing_info
         
         # Store missing data info for later use
         config.missing_info = missing_info
-        config.y_original = y_original
+        config.y_original = y_original  # Original training data before missing data preprocessing
         config.missing_mask = missing_mask
         
         print(f"Missing data preprocessing completed.")
