@@ -236,8 +236,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                # Preprocess encoder input to handle missing data (replace NaN with zeros)
-                y_encoder_input = torch.where(torch.isnan(y_train), torch.zeros_like(y_train), y_train)
+                # Preprocess encoder input to handle missing data (replace NaN with -999.0)
+                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -999.0), y_train)
                 mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
             else:
                 mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]

@@ -98,7 +98,7 @@ class SSVIMetricsComputer:
             U_samples = model.get_u_samples()
             
             # Preprocess encoder input to handle missing data (consistent with training)
-            y_encoder_input = torch.where(torch.isnan(y_true), torch.zeros_like(y_true), y_true)
+            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -999.0), y_true)
             
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
@@ -172,7 +172,7 @@ class SSVIMetricsComputer:
             U_samples = model.get_u_samples()
             
             # Preprocess encoder input to handle missing data (consistent with training)
-            y_encoder_input = torch.where(torch.isnan(y_true), torch.zeros_like(y_true), y_true)
+            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -999.0), y_true)
             
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)

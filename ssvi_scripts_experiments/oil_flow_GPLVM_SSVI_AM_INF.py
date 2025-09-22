@@ -260,10 +260,11 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
 
         # Handle missing data preprocessing for encoder input
         if self.enable_missing_data:
-            # Replace NaN values with zeros for encoder input (encoder expects clean data)
+            # Replace NaN values with 0.0 for encoder input (more reasonable than -999.0)
             Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.zeros_like(Y_batch), Y_batch)
+            missing_mask = torch.isnan(Y_batch)
             # Get local parameters via amortized inference (gradients only to encoder)
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples)
+            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples, missing_mask)
         else:
             # Standard case: no missing data preprocessing needed
             mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
@@ -448,9 +449,9 @@ def get_fast_config():
         init_lengthscales=1.0,          # Initial lengthscales value (1/beta) - default matches current standard
         init_output_noise_scale=1.0,    # Initial output noise scale (sigma2) - default matches current standard
         # === Missing Data Configuration ===
-        enable_missing_data=False,      # Enable missing data reconstruction capability
-        missing_data_ratio=0,        # Fraction of dimensions to artificially mask (for testing)
-        reconstruction_samples=50,     # Number of samples for missing data reconstruction
+        enable_missing_data=True,       # Enable missing data reconstruction capability
+        missing_data_ratio=0.3,         # Fraction of dimensions to artificially mask (for testing)
+        reconstruction_samples=50,      # Number of samples for missing data reconstruction
         # === Random Seed Configuration ===
         random_seed=7,                 # Random seed for reproducibility (matches SSVI base config)
         # === Test Size Configuration ===
