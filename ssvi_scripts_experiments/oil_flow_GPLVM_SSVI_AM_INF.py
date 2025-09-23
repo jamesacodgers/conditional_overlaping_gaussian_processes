@@ -351,8 +351,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                     y_train=split_data['y_train'],
                     y_test=split_data['y_test'],
                     iteration=i,
-                    elbo_loss=loss,
-                    n_samples=16  # Fixed number of samples for metrics computation
+                    elbo_loss=loss
                 )
                 
                 print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
@@ -525,8 +524,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             y_train=split_data['y_train'],
             y_test=split_data['y_test'],
             iteration=config.training_iterations,
-            elbo_loss=losses[-1] if losses else 0.0,
-            n_samples=32  # Fixed number of samples for final metrics computation
+            elbo_loss=losses[-1] if losses else 0.0
         )
         
         # Print final metrics summary using the computed final_metrics

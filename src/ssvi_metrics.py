@@ -59,35 +59,16 @@ class SSVIMetricsComputer:
         self.device = device
         self.metrics_history: List[SSVIMetrics] = []
     
-    def _sample_latent_variables(self, mu_avg: torch.Tensor, sigma_avg: torch.Tensor) -> torch.Tensor:
-        """
-        Sample latent variables from the posterior distribution q(x) = N(mu_avg, sigma_avg^2)
-        
-        Args:
-            mu_avg: Averaged latent means [batch_size, latent_dim]
-            sigma_avg: Averaged latent standard deviations [batch_size, latent_dim]
-            
-        Returns:
-            x_sample: Sampled latent variables [batch_size, latent_dim]
-        """
-        # Sample from the averaged latent variable distribution q(x) = N(mu_avg, sigma_avg^2)
-        epsilon = torch.randn_like(sigma_avg)
-        x_sample = mu_avg + sigma_avg * epsilon
-        
-        return x_sample
-    
     
     def compute_rmse(self, 
                      model, 
-                     y_true: torch.Tensor, 
-                     n_samples: int = 10) -> float:
+                     y_true: torch.Tensor) -> float:
         """
         Compute Root Mean Square Error for reconstruction
         
         Args:
             model: SSVI GP-LVM model
             y_true: True observations [N, D]
-            n_samples: Number of samples for Monte Carlo estimation
             
         Returns:
             RMSE value
@@ -103,15 +84,14 @@ class SSVIMetricsComputer:
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
             
-            # Compute averaged latent variables once before the loop (optimization)
-            mu_avg = mu_x.mean(dim=0)  # [batch_size, latent_dim]
-            sigma_avg = sigma_x.mean(dim=0)  # [batch_size, latent_dim]
+            # Use P samples directly for reconstruction (no additional Monte Carlo sampling needed)
+            # Each P sample represents a different sample from the variational posterior
+            all_reconstructions = []
             
-            # Sample from latent distribution for reconstruction
-            reconstructions = []
-            for i in range(n_samples):
-                # Sample latent variables using pre-computed averages
-                x_sample = self._sample_latent_variables(mu_avg, sigma_avg)
+            for p in range(model.P):
+                # Sample once from this P sample's distribution
+                normal_dist = torch.distributions.Normal(mu_x[p, :, :], sigma_x[p, :, :])
+                x_sample = normal_dist.sample()
                 
                 # Reconstruct through GP mean prediction using proper GP method
                 y_recon = model.gp.get_gp_expectation(x_sample)  # [batch_size, M, C]
@@ -119,10 +99,10 @@ class SSVIMetricsComputer:
                 if y_recon.shape[-1] == 1:
                     y_recon = y_recon[..., 0]  # [batch_size, M] for C=1 case
                 
-                reconstructions.append(y_recon)
+                all_reconstructions.append(y_recon)
             
-            # Average reconstructions
-            y_pred = torch.stack(reconstructions).mean(dim=0)  # [batch_size, D]
+            # Final prediction: average across all P samples
+            y_pred = torch.stack(all_reconstructions).mean(dim=0)  # [batch_size, D]
             
             # Compute RMSE - handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
@@ -153,15 +133,13 @@ class SSVIMetricsComputer:
     
     def compute_nlpd(self, 
                      model, 
-                     y_true: torch.Tensor, 
-                     n_samples: int = 50) -> float:
+                     y_true: torch.Tensor) -> float:
         """
         Compute Negative Log Predictive Density for uncertainty quantification
         
         Args:
             model: SSVI GP-LVM model
             y_true: True observations [N, D]
-            n_samples: Number of samples for Monte Carlo estimation
             
         Returns:
             NLPD value (lower is better)
@@ -177,15 +155,14 @@ class SSVIMetricsComputer:
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
             
-            # Compute averaged latent variables once before the loop (optimization)
-            mu_avg = mu_x.mean(dim=0)  # [batch_size, latent_dim]
-            sigma_avg = sigma_x.mean(dim=0)  # [batch_size, latent_dim]
+            # Use P samples directly for NLPD computation (no additional Monte Carlo sampling needed)
+            # Each P sample represents a different sample from the variational posterior
+            all_log_probs = []
             
-            log_probs = []
-            
-            for _ in range(n_samples):
-                # Sample latent variables using pre-computed averages
-                x_sample = self._sample_latent_variables(mu_avg, sigma_avg)
+            for p in range(model.P):
+                # Sample once from this P sample's distribution
+                normal_dist = torch.distributions.Normal(mu_x[p, :, :], sigma_x[p, :, :])
+                x_sample = normal_dist.sample()
                 
                 # Compute predictive distribution through GP using proper GP methods
                 
@@ -202,7 +179,7 @@ class SSVIMetricsComputer:
                 else:
                     # For multi-output case, use diagonal elements + observation noise
                     f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [batch_size, M, C]
-                
+            
                 # Handle missing data if enabled
                 if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                     # Mask out missing values in log probability computation
@@ -222,20 +199,20 @@ class SSVIMetricsComputer:
                     log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true_clean - f_mean)**2 / f_var
                     
                     log_prob_masked = log_prob * observed_mask.float()
-                    log_probs.append(log_prob_masked.sum(dim=-1))  # Sum over observed dimensions only
+                    log_pred_density_p = log_prob_masked.sum(dim=-1)  # Sum over observed dimensions only
                 else:
                     # Standard computation for complete data
                     log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true - f_mean)**2 / f_var
-                    log_probs.append(log_prob.sum(dim=-1))  # Sum over dimensions
-                    
+                    log_pred_density_p = log_prob.sum(dim=-1)  # Sum over dimensions
+                
+                all_log_probs.append(log_pred_density_p)
             
-            # Average log probabilities (log of mixture)
-            log_probs = torch.stack(log_probs)  # [n_samples, batch_size]
-            # Use logsumexp for numerical stability
-            log_pred_density = torch.logsumexp(log_probs, dim=0) - np.log(n_samples)
+            # Final NLPD: average across all P samples
+            all_log_probs = torch.stack(all_log_probs)  # [P, batch_size]
+            final_log_pred_density = all_log_probs.mean(dim=0)  # [batch_size]
             
             # Negative log predictive density (average over batch)
-            nlpd = -log_pred_density.mean().item()
+            nlpd = -final_log_pred_density.mean().item()
             
         model.train()
         return nlpd
@@ -274,8 +251,7 @@ class SSVIMetricsComputer:
                            y_train: torch.Tensor, 
                            y_test: torch.Tensor,
                            iteration: int = 0,
-                           elbo_loss: float = 0.0,
-                           n_samples: int = 20) -> SSVIMetrics:
+                           elbo_loss: float = 0.0) -> SSVIMetrics:
         """
         Compute all metrics for current model state
         
@@ -285,7 +261,6 @@ class SSVIMetricsComputer:
             y_test: Test data  
             iteration: Current training iteration
             elbo_loss: Current ELBO loss
-            n_samples: Number of samples for Monte Carlo
             
         Returns:
             SSVIMetrics object with all computed metrics
@@ -296,12 +271,12 @@ class SSVIMetricsComputer:
         
         try:
             # Reconstruction metrics using SSVI encoder
-            metrics.train_rmse = self.compute_rmse(model, y_train, n_samples)
-            metrics.test_rmse = self.compute_rmse(model, y_test, n_samples)
+            metrics.train_rmse = self.compute_rmse(model, y_train)
+            metrics.test_rmse = self.compute_rmse(model, y_test)
             
-            # Uncertainty metrics (computationally expensive, use fewer samples)
-            metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
-            metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
+            # Uncertainty metrics
+            metrics.train_nlpd = self.compute_nlpd(model, y_train)
+            metrics.test_nlpd = self.compute_nlpd(model, y_test)
             
             # Model complexity
             effective_dims, total_dims = self.compute_effective_latent_dims(model)
