@@ -77,7 +77,7 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             if torch.isnan(Y_train_device).any():
                 # Replace NaN values with zeros for encoder input (consistent with training)
                 Y_train_for_plotting = Y_train_device.clone()
-                Y_train_for_plotting[torch.isnan(Y_train_for_plotting)] = 0.0
+                Y_train_for_plotting[torch.isnan(Y_train_for_plotting)] = -999.0
             else:
                 Y_train_for_plotting = Y_train_device
             
