@@ -18,6 +18,25 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 
 
+def rmse_missing_improved(Y_test, Y_recon):
+    """
+    Improved RMSE computation for missing data that handles NaN values properly.
+    
+    Args:
+        Y_test: Original data [N, D] (numpy array)
+        Y_recon: Reconstructed data [N, D] (numpy array)
+        
+    Returns:
+        RMSE value as torch tensor
+    """
+    mse_per_sample = np.nanmean(np.square(Y_test - Y_recon), axis=1)
+    # Handle case where all values might be NaN
+    valid_mse = mse_per_sample[~np.isnan(mse_per_sample)]
+    if len(valid_mse) == 0:
+        return torch.tensor(float('inf'))
+    return torch.sqrt(torch.mean(torch.Tensor(valid_mse)))
+
+
 def create_missing_data_pattern(data: torch.Tensor, 
                                missing_ratio: float = 0.3,
                                pattern_type: str = "random",
