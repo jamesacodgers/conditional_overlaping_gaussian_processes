@@ -35,14 +35,13 @@ def download_oilflow_data_if_needed():
     shutil.copy2('DataTrnLbls.txt', 'data/oil_labels.txt')
     shutil.copy2('DataTrnFrctns.txt', 'data/oil_fractions.txt')
     
-    # Clean up temporary files
+    # Clean up temporary files (keep DataTrnFrctns.txt for plotting functions)
     if os.path.exists('3PhData.tar.gz'):
         os.remove('3PhData.tar.gz')
     if os.path.exists('DataTrn.txt'):
         os.remove('DataTrn.txt')
     if os.path.exists('DataTrnLbls.txt'):
         os.remove('DataTrnLbls.txt')
-    if os.path.exists('DataTrnFrctns.txt'):
-        os.remove('DataTrnFrctns.txt')
+    # Note: Keep DataTrnFrctns.txt in current directory for plotting functions
     
     print("Oilflow data downloaded and set up successfully!")
