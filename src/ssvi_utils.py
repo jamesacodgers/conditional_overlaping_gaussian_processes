@@ -242,13 +242,17 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             else:
                 mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
             
-            mu_x = mu_x.cpu().numpy()  # Move to CPU for plotting
+            # Keep as torch tensors for sampling, convert to numpy after sampling
+            mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
+            sigma_x_cpu = sigma_x.cpu()  # Move to CPU but keep as tensor
             
             # Plot samples from all P samples with transparency
             for p in range(model.P):
                 # Use top 2 most informative latent dimensions
-                plt.scatter(mu_x[p, :, dim1], mu_x[p, :, dim2], 
-                           c=colors, alpha=0.6, s=20)
+                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+                plt.scatter(sample_1.detach().cpu().numpy(),
+                            sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
             
             plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
             plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})') 
@@ -283,7 +287,12 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             # Use the same top 2 dimensions that were calculated above
             # Plot samples from all P samples with transparency (consistent with latent dims plot)
             for p in range(model.P):
-                scatter = ax_frac.scatter(mu_x[p, :, dim1], mu_x[p, :, dim2], c=fractions, s=20, alpha=0.6)
+                # Sample from the latent distributions (consistent with main latent space plot)
+                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+                scatter = ax_frac.scatter(sample_1.detach().cpu().numpy(),
+                                        sample_2.detach().cpu().numpy(), 
+                                        c=fractions, s=20, alpha=0.6)
             ax_frac.set_title("Latent Space Colored by Fractions")
             ax_frac.set_xlabel(f'mu_{dim1}')
             ax_frac.set_ylabel(f'mu_{dim2}')
@@ -297,7 +306,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             fig_frac.tight_layout()
             
             # Save fractions plot
-            logger.save_plots(fig_frac, "latent_space_by_fractions.png", is_checkpoint=is_checkpoint)
+            fractions_filename = save_filename.replace('training_results', 'latent_space_by_fractions')
+            logger.save_plots(fig_frac, fractions_filename, is_checkpoint=is_checkpoint)
             plt.close(fig_frac)
             
         except FileNotFoundError as e:

@@ -37,7 +37,6 @@ from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metri
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
-from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
@@ -558,13 +557,6 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             logger.save_training_losses(losses, "oilflow_ssvi", config.random_seed)
 
     
-    # Comprehensive missing data reconstruction experiment if enabled
-    if config.enable_missing_data:
-        run_missing_data_reconstruction_experiment(
-            model, config, y_train, split_data, logger,
-            model_type="GP LVM SSVI",
-            model_description="GP-LVM with Stochastic Structured Variational Inference"
-        )
     
     # Print final model parameters
     print_final_model_parameters(model, "GP LVM SSVI")
