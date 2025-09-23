@@ -306,7 +306,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             fig_frac.tight_layout()
             
             # Save fractions plot
-            logger.save_plots(fig_frac, "latent_space_by_fractions.png", is_checkpoint=is_checkpoint)
+            fractions_filename = save_filename.replace('training_results', 'latent_space_by_fractions')
+            logger.save_plots(fig_frac, fractions_filename, is_checkpoint=is_checkpoint)
             plt.close(fig_frac)
             
         except FileNotFoundError as e:
