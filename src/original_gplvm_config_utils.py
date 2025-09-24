@@ -32,7 +32,7 @@ def create_argument_parser():
     
     parser.add_argument('--config', type=str, default=None,
                        help='Path to YAML configuration file')
-    parser.add_argument('--config-name', type=str, default='fast',
+    parser.add_argument('--config-name', type=str, default=None,
                        help='Name for this configuration (used for results folder)')
     
     # Data configuration
