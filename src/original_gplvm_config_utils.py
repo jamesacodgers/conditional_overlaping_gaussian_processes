@@ -7,8 +7,24 @@ Configuration utilities for Original GP LVM experiments
 import os
 import yaml
 import argparse
+from pathlib import Path
 from typing import Dict, Any, Tuple
 from .original_gplvm_config import OriginalGPLVMConfig, get_fast_config, get_base_config
+
+def get_config_name_from_path(config_path: str) -> str:
+    """Extract config name from file path for result naming."""
+    # Remove extension and directory path
+    config_name = Path(config_path).stem
+    
+    # Remove common prefixes/suffixes
+    if config_name.startswith('original_gplvm_'):
+        config_name = config_name[15:]
+    if config_name.startswith('orig_gplvm_'):
+        config_name = config_name[11:]
+    if config_name.endswith('_config'):
+        config_name = config_name[:-7]
+    
+    return config_name
 
 def create_argument_parser():
     """Create argument parser for command line configuration"""
@@ -16,7 +32,7 @@ def create_argument_parser():
     
     parser.add_argument('--config', type=str, default=None,
                        help='Path to YAML configuration file')
-    parser.add_argument('--config-name', type=str, default='fast',
+    parser.add_argument('--config-name', type=str, default=None,
                        help='Name for this configuration (used for results folder)')
     
     # Data configuration
@@ -85,10 +101,12 @@ def load_config_with_overrides(config_path: str = None,
     Returns:
         Tuple of (config_instance, config_name)
     """
+    # Default config name
+    config_name = "fast"
+    
     # Start with default config
     if config_path is None:
         config = get_fast_config()
-        config_name = "fast"
     else:
         # Load from YAML file
         with open(config_path, 'r') as f:
@@ -99,7 +117,7 @@ def load_config_with_overrides(config_path: str = None,
             config_dict['nn_layers'] = tuple(config_dict['nn_layers'])
         
         config = config_class(**config_dict)
-        config_name = os.path.splitext(os.path.basename(config_path))[0]
+        config_name = get_config_name_from_path(config_path)
     
     # Apply command line overrides
     if args is not None:
@@ -121,7 +139,7 @@ def load_config_with_overrides(config_path: str = None,
             config.save_results = False
         
         # Use config_name from args if provided
-        if args.config_name:
+        if args.config_name is not None:
             config_name = args.config_name
     
     return config, config_name
