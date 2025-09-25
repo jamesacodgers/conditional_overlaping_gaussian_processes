@@ -1,0 +1,17 @@
+{
+  "device": "cuda",
+  "dataset": "oilflow",
+  "models": [
+    "gauss",
+    "nn_gauss"
+  ],
+  "latent_dim": 10,
+  "n_inducing": 32,
+  "training_steps": {
+    "gauss": 60000,
+    "nn_gauss": 60000
+  },
+  "batch_size": 128,
+  "learning_rate": 0.001,
+  "random_seed": 17
+}
