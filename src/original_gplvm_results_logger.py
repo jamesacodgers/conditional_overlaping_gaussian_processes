@@ -52,7 +52,26 @@ class OriginalGPLVMResultsLogger:
             'training_steps': self.config.training_steps,
             'batch_size': self.config.batch_size,
             'learning_rate': self.config.learning_rate,
-            'random_seed': self.config.random_seed
+            'random_seed': self.config.random_seed,
+            'init_lengthscales': self.config.init_lengthscales,
+            'init_output_noise_scale': self.config.init_output_noise_scale,
+            'pca_init': self.config.pca_init,
+            'test_size': self.config.test_size,
+            'checkpoint_frequency': self.config.checkpoint_frequency,
+            'metrics_frequency': self.config.metrics_frequency,
+            'enable_testing': self.config.enable_testing,
+            'test_iterations': self.config.test_iterations,
+            # Missing data parameters
+            'enable_missing_data': self.config.enable_missing_data,
+            'missing_data_ratio': self.config.missing_data_ratio,
+            'reconstruction_samples': self.config.reconstruction_samples,
+            # Additional config parameters
+            'prior_type': self.config.prior_type,
+            'kernel_type': self.config.kernel_type,
+            'use_ard': self.config.use_ard,
+            'mean_function': self.config.mean_function,
+            'variational_strategy': self.config.variational_strategy,
+            'learn_inducing_locations': self.config.learn_inducing_locations
         }
     
     def save_config(self):

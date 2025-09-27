@@ -82,12 +82,21 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
                 Y_train_for_plotting = Y_train_device
             
             mu_x_result = model.X.mu(Y_train_for_plotting)
-            sigma_x_result = model.X.sigma(Y_train_for_plotting)
+            sigma_covariances = model.X.sigma(Y_train_for_plotting)
             mu_x = mu_x_result.detach().cpu().numpy()
-        
+            # Apply sqrt to convert covariance matrices to standard deviations (matching original code)
+            sigma_x = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_covariances.detach()])
+
         # Plot mu_x directly (no sampling) - exactly like SSVI
-        plt.scatter(mu_x[:, dim1], mu_x[:, dim2], 
-                   c=colors, alpha=0.6, s=20)
+        mu_x_torch = torch.from_numpy(mu_x)
+        sigma_x_torch = torch.from_numpy(sigma_x)
+
+        # Sample P_samples times using torch.distributions.Normal (same as SSVI)
+        for p in range(64):
+            sample_1 = torch.distributions.Normal(mu_x_torch[:, dim1], sigma_x_torch[:, dim1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_torch[:, dim2], sigma_x_torch[:, dim2]).sample()
+            plt.scatter(sample_1.detach().cpu().numpy(),
+                        sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
         
         plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
         plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})') 
@@ -164,11 +173,17 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         fractions = fractions[train_indices_cpu]
         print(f"Debug - fractions shape after subsetting with train_indices: {fractions.shape}")
         
-        # Create fractions plot using the same mu_x and top dimensions from above
+        # Create fractions plot using sampling from the distribution (same as main plot)
         fig_frac, ax_frac = plt.subplots(1, 1, figsize=(7.5, 6))
         
-        # Use the same top 2 dimensions that were calculated above
-        scatter = ax_frac.scatter(mu_x[:, dim1], mu_x[:, dim2], c=fractions, s=20, alpha=0.6)
+        # Plot samples from all P samples with transparency (consistent with latent dims plot)
+        for p in range(64):
+            # Sample from the latent distributions (consistent with main latent space plot)
+            sample_1 = torch.distributions.Normal(mu_x_torch[:, dim1], sigma_x_torch[:, dim1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_torch[:, dim2], sigma_x_torch[:, dim2]).sample()
+            scatter = ax_frac.scatter(sample_1.detach().cpu().numpy(),
+                                    sample_2.detach().cpu().numpy(), 
+                                    c=fractions, s=20, alpha=0.6)
         ax_frac.set_title("Latent Space Colored by Fractions")
         ax_frac.set_xlabel(f'mu_{dim1}')
         ax_frac.set_ylabel(f'mu_{dim2}')

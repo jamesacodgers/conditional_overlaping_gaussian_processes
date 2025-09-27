@@ -1,0 +1,967 @@
+=== Oil Flow SSVI GP-LVM Training Session ===
+Model: 32 inducing points, latent_dim=10
+Training: 60000 iter, batch=128
+Learning rates: Local=0.001, Global=0.001
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': 0.7475377321243286, 'test_rmse': 0.7507758736610413, 'train_nlpd': 16.859853744506836, 'test_nlpd': 16.874855041503906, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 19006.240234375}
+Iteration 0/60000: Loss=19006.2402, Time=0.5s
+Metrics at iteration 100: {'iteration': 100, 'train_rmse': 0.5006023049354553, 'test_rmse': 0.4947390854358673, 'train_nlpd': 13.290668487548828, 'test_nlpd': 13.258039474487305, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 14495.2109375}
+Iteration 100/60000: Loss=14495.2109, Time=6.9s
+Metrics at iteration 200: {'iteration': 200, 'train_rmse': 0.47173312306404114, 'test_rmse': 0.45794013142585754, 'train_nlpd': 12.543917655944824, 'test_nlpd': 12.475446701049805, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 13308.8349609375}
+Iteration 200/60000: Loss=13308.8350, Time=13.3s
+Metrics at iteration 300: {'iteration': 300, 'train_rmse': 0.46728914976119995, 'test_rmse': 0.45905861258506775, 'train_nlpd': 11.99653148651123, 'test_nlpd': 11.894790649414062, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 12756.0419921875}
+Iteration 300/60000: Loss=12756.0420, Time=19.7s
+Metrics at iteration 400: {'iteration': 400, 'train_rmse': 0.46680331230163574, 'test_rmse': 0.4579027593135834, 'train_nlpd': 11.513165473937988, 'test_nlpd': 11.380192756652832, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 12166.7412109375}
+Iteration 400/60000: Loss=12166.7412, Time=26.1s
+Metrics at iteration 500: {'iteration': 500, 'train_rmse': 0.4635826647281647, 'test_rmse': 0.4551068842411041, 'train_nlpd': 11.064635276794434, 'test_nlpd': 10.944567680358887, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 11911.3720703125}
+Iteration 500/60000: Loss=11911.3721, Time=32.5s
+Metrics at iteration 600: {'iteration': 600, 'train_rmse': 0.46222418546676636, 'test_rmse': 0.4503929913043976, 'train_nlpd': 10.623817443847656, 'test_nlpd': 10.519819259643555, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 11362.3291015625}
+Iteration 600/60000: Loss=11362.3291, Time=38.9s
+Metrics at iteration 700: {'iteration': 700, 'train_rmse': 0.45966836810112, 'test_rmse': 0.45026054978370667, 'train_nlpd': 10.282522201538086, 'test_nlpd': 10.139309883117676, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 10944.90625}
+Iteration 700/60000: Loss=10944.9062, Time=45.4s
+Metrics at iteration 800: {'iteration': 800, 'train_rmse': 0.4605470299720764, 'test_rmse': 0.44698771834373474, 'train_nlpd': 9.95105266571045, 'test_nlpd': 9.807487487792969, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 10466.693359375}
+Iteration 800/60000: Loss=10466.6934, Time=51.8s
+Metrics at iteration 900: {'iteration': 900, 'train_rmse': 0.457600861787796, 'test_rmse': 0.4472205936908722, 'train_nlpd': 9.665995597839355, 'test_nlpd': 9.533495903015137, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 10284.11328125}
+Iteration 900/60000: Loss=10284.1133, Time=58.1s
+Metrics at iteration 1000: {'iteration': 1000, 'train_rmse': 0.4563428461551666, 'test_rmse': 0.44239887595176697, 'train_nlpd': 9.351461410522461, 'test_nlpd': 9.201922416687012, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 9798.78125}
+Iteration 1000/60000: Loss=9798.7812, Time=64.4s
+Metrics at iteration 1100: {'iteration': 1100, 'train_rmse': 0.4400646984577179, 'test_rmse': 0.431274950504303, 'train_nlpd': 8.89337158203125, 'test_nlpd': 8.746540069580078, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 9836.404296875}
+Iteration 1100/60000: Loss=9836.4043, Time=70.9s
+Metrics at iteration 1200: {'iteration': 1200, 'train_rmse': 0.40693116188049316, 'test_rmse': 0.40101489424705505, 'train_nlpd': 8.23220157623291, 'test_nlpd': 8.13409423828125, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 9489.0849609375}
+Iteration 1200/60000: Loss=9489.0850, Time=77.3s
+Metrics at iteration 1300: {'iteration': 1300, 'train_rmse': 0.3907206356525421, 'test_rmse': 0.38650745153427124, 'train_nlpd': 7.756684303283691, 'test_nlpd': 7.7122483253479, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 9004.1630859375}
+Iteration 1300/60000: Loss=9004.1631, Time=83.7s
+Metrics at iteration 1400: {'iteration': 1400, 'train_rmse': 0.3644801080226898, 'test_rmse': 0.351269006729126, 'train_nlpd': 7.057546138763428, 'test_nlpd': 6.966988563537598, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 8631.5078125}
+Iteration 1400/60000: Loss=8631.5078, Time=90.1s
+Metrics at iteration 1500: {'iteration': 1500, 'train_rmse': 0.3420390486717224, 'test_rmse': 0.32911595702171326, 'train_nlpd': 6.572757720947266, 'test_nlpd': 6.340556621551514, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 7932.6669921875}
+Iteration 1500/60000: Loss=7932.6670, Time=96.5s
+Metrics at iteration 1600: {'iteration': 1600, 'train_rmse': 0.3328094780445099, 'test_rmse': 0.31877660751342773, 'train_nlpd': 6.0864787101745605, 'test_nlpd': 5.917519569396973, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 8042.45947265625}
+Iteration 1600/60000: Loss=8042.4595, Time=102.9s
+Metrics at iteration 1700: {'iteration': 1700, 'train_rmse': 0.3202962577342987, 'test_rmse': 0.302898645401001, 'train_nlpd': 5.6179351806640625, 'test_nlpd': 5.436803340911865, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 7706.89599609375}
+Iteration 1700/60000: Loss=7706.8960, Time=109.3s
+Metrics at iteration 1800: {'iteration': 1800, 'train_rmse': 0.3164493441581726, 'test_rmse': 0.2972458302974701, 'train_nlpd': 5.212779998779297, 'test_nlpd': 5.0309858322143555, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 7086.62353515625}
+Iteration 1800/60000: Loss=7086.6235, Time=115.7s
+Metrics at iteration 1900: {'iteration': 1900, 'train_rmse': 0.30635690689086914, 'test_rmse': 0.2916700541973114, 'train_nlpd': 4.917654037475586, 'test_nlpd': 4.634465217590332, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 7525.423828125}
+Iteration 1900/60000: Loss=7525.4238, Time=122.1s
+Metrics at iteration 2000: {'iteration': 2000, 'train_rmse': 0.30082714557647705, 'test_rmse': 0.28561165928840637, 'train_nlpd': 4.521161079406738, 'test_nlpd': 4.255102634429932, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 7305.63525390625}
+Iteration 2000/60000: Loss=7305.6353, Time=128.4s
+Metrics at iteration 2100: {'iteration': 2100, 'train_rmse': 0.29408496618270874, 'test_rmse': 0.2771153151988983, 'train_nlpd': 4.207182884216309, 'test_nlpd': 3.9312260150909424, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 7247.1630859375}
+Iteration 2100/60000: Loss=7247.1631, Time=134.9s
+Metrics at iteration 2200: {'iteration': 2200, 'train_rmse': 0.2906533479690552, 'test_rmse': 0.2716417908668518, 'train_nlpd': 3.945577383041382, 'test_nlpd': 3.6532583236694336, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 6836.5625}
+Iteration 2200/60000: Loss=6836.5625, Time=141.3s
+Metrics at iteration 2300: {'iteration': 2300, 'train_rmse': 0.2816025912761688, 'test_rmse': 0.2659434974193573, 'train_nlpd': 3.5483558177948, 'test_nlpd': 3.2727391719818115, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 6998.61669921875}
+Iteration 2300/60000: Loss=6998.6167, Time=147.6s
+Metrics at iteration 2400: {'iteration': 2400, 'train_rmse': 0.2696824371814728, 'test_rmse': 0.25018277764320374, 'train_nlpd': 3.199712038040161, 'test_nlpd': 2.950204610824585, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 6503.8017578125}
+Iteration 2400/60000: Loss=6503.8018, Time=153.9s
+Metrics at iteration 2500: {'iteration': 2500, 'train_rmse': 0.25825193524360657, 'test_rmse': 0.2449762523174286, 'train_nlpd': 2.80092453956604, 'test_nlpd': 2.4995923042297363, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 6607.83642578125}
+Iteration 2500/60000: Loss=6607.8364, Time=160.3s
+Metrics at iteration 2600: {'iteration': 2600, 'train_rmse': 0.24963714182376862, 'test_rmse': 0.23322774469852448, 'train_nlpd': 2.379049301147461, 'test_nlpd': 2.1127843856811523, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 6618.8271484375}
+Iteration 2600/60000: Loss=6618.8271, Time=166.7s
+Metrics at iteration 2700: {'iteration': 2700, 'train_rmse': 0.24026164412498474, 'test_rmse': 0.2252313196659088, 'train_nlpd': 2.0628979206085205, 'test_nlpd': 1.792889952659607, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 6495.03515625}
+Iteration 2700/60000: Loss=6495.0352, Time=173.1s
+Metrics at iteration 2800: {'iteration': 2800, 'train_rmse': 0.23371629416942596, 'test_rmse': 0.21978053450584412, 'train_nlpd': 1.6200133562088013, 'test_nlpd': 1.3745806217193604, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 5852.67822265625}
+Iteration 2800/60000: Loss=5852.6782, Time=179.5s
+Metrics at iteration 2900: {'iteration': 2900, 'train_rmse': 0.22481942176818848, 'test_rmse': 0.2122580111026764, 'train_nlpd': 1.2782297134399414, 'test_nlpd': 1.0695011615753174, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 5737.94384765625}
+Iteration 2900/60000: Loss=5737.9438, Time=185.8s
+Metrics at iteration 3000: {'iteration': 3000, 'train_rmse': 0.21719862520694733, 'test_rmse': 0.20378224551677704, 'train_nlpd': 0.9335644841194153, 'test_nlpd': 0.6922686696052551, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 5563.9423828125}
+Iteration 3000/60000: Loss=5563.9424, Time=192.2s
+Metrics at iteration 3100: {'iteration': 3100, 'train_rmse': 0.2088775783777237, 'test_rmse': 0.196585014462471, 'train_nlpd': 0.5735631585121155, 'test_nlpd': 0.2815612256526947, 'effective_latent_dims': 9, 'total_latent_dims': 10, 'elbo_loss': 5602.6982421875}
+Iteration 3100/60000: Loss=5602.6982, Time=198.6s
+Metrics at iteration 3200: {'iteration': 3200, 'train_rmse': 0.1986621767282486, 'test_rmse': 0.1857384592294693, 'train_nlpd': 0.21112225949764252, 'test_nlpd': -0.025245407596230507, 'effective_latent_dims': 8, 'total_latent_dims': 10, 'elbo_loss': 5869.09912109375}
+Iteration 3200/60000: Loss=5869.0991, Time=204.9s
+Metrics at iteration 3300: {'iteration': 3300, 'train_rmse': 0.19633007049560547, 'test_rmse': 0.18462859094142914, 'train_nlpd': -0.02402884140610695, 'test_nlpd': -0.2450896054506302, 'effective_latent_dims': 8, 'total_latent_dims': 10, 'elbo_loss': 5479.13427734375}
+Iteration 3300/60000: Loss=5479.1343, Time=211.3s
+Metrics at iteration 3400: {'iteration': 3400, 'train_rmse': 0.19098028540611267, 'test_rmse': 0.18143923580646515, 'train_nlpd': -0.306736558675766, 'test_nlpd': -0.5051560997962952, 'effective_latent_dims': 8, 'total_latent_dims': 10, 'elbo_loss': 5048.74609375}
+Iteration 3400/60000: Loss=5048.7461, Time=217.7s
+Metrics at iteration 3500: {'iteration': 3500, 'train_rmse': 0.18541592359542847, 'test_rmse': 0.1747201830148697, 'train_nlpd': -0.6020805239677429, 'test_nlpd': -0.8374856114387512, 'effective_latent_dims': 8, 'total_latent_dims': 10, 'elbo_loss': 5507.876953125}
+Iteration 3500/60000: Loss=5507.8770, Time=224.1s
+Metrics at iteration 3600: {'iteration': 3600, 'train_rmse': 0.17979276180267334, 'test_rmse': 0.1694219410419464, 'train_nlpd': -0.9536321759223938, 'test_nlpd': -1.1280380487442017, 'effective_latent_dims': 7, 'total_latent_dims': 10, 'elbo_loss': 4968.037109375}
+Iteration 3600/60000: Loss=4968.0371, Time=230.5s
+Metrics at iteration 3700: {'iteration': 3700, 'train_rmse': 0.17703881859779358, 'test_rmse': 0.16844506561756134, 'train_nlpd': -1.1118919849395752, 'test_nlpd': -1.333027720451355, 'effective_latent_dims': 7, 'total_latent_dims': 10, 'elbo_loss': 5030.28515625}
+Iteration 3700/60000: Loss=5030.2852, Time=236.9s
+Metrics at iteration 3800: {'iteration': 3800, 'train_rmse': 0.17398279905319214, 'test_rmse': 0.16716156899929047, 'train_nlpd': -1.3733664751052856, 'test_nlpd': -1.5409218072891235, 'effective_latent_dims': 7, 'total_latent_dims': 10, 'elbo_loss': 5249.9453125}
+Iteration 3800/60000: Loss=5249.9453, Time=243.3s
+Metrics at iteration 3900: {'iteration': 3900, 'train_rmse': 0.16780565679073334, 'test_rmse': 0.1559073030948639, 'train_nlpd': -1.6906743049621582, 'test_nlpd': -1.9136443138122559, 'effective_latent_dims': 7, 'total_latent_dims': 10, 'elbo_loss': 5181.39501953125}
+Iteration 3900/60000: Loss=5181.3950, Time=249.7s
+Metrics at iteration 4000: {'iteration': 4000, 'train_rmse': 0.1640699803829193, 'test_rmse': 0.1554969996213913, 'train_nlpd': -1.9422012567520142, 'test_nlpd': -2.096909523010254, 'effective_latent_dims': 6, 'total_latent_dims': 10, 'elbo_loss': 4709.55859375}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4000.png
+Iteration 4000/60000: Loss=4709.5586, Time=259.2s
+Metrics at iteration 4100: {'iteration': 4100, 'train_rmse': 0.1609654724597931, 'test_rmse': 0.1510995328426361, 'train_nlpd': -2.199185371398926, 'test_nlpd': -2.4098613262176514, 'effective_latent_dims': 6, 'total_latent_dims': 10, 'elbo_loss': 4656.228515625}
+Iteration 4100/60000: Loss=4656.2285, Time=265.6s
+Metrics at iteration 4200: {'iteration': 4200, 'train_rmse': 0.1572561413049698, 'test_rmse': 0.14765137434005737, 'train_nlpd': -2.368115186691284, 'test_nlpd': -2.568974494934082, 'effective_latent_dims': 6, 'total_latent_dims': 10, 'elbo_loss': 4957.3330078125}
+Iteration 4200/60000: Loss=4957.3330, Time=272.0s
+Metrics at iteration 4300: {'iteration': 4300, 'train_rmse': 0.15231293439865112, 'test_rmse': 0.1419616937637329, 'train_nlpd': -2.713921070098877, 'test_nlpd': -2.9456236362457275, 'effective_latent_dims': 6, 'total_latent_dims': 10, 'elbo_loss': 4562.810546875}
+Iteration 4300/60000: Loss=4562.8105, Time=278.4s
+Metrics at iteration 4400: {'iteration': 4400, 'train_rmse': 0.14970438182353973, 'test_rmse': 0.14126314222812653, 'train_nlpd': -2.922715902328491, 'test_nlpd': -3.0813302993774414, 'effective_latent_dims': 6, 'total_latent_dims': 10, 'elbo_loss': 3838.80419921875}
+Iteration 4400/60000: Loss=3838.8042, Time=284.7s
+Metrics at iteration 4500: {'iteration': 4500, 'train_rmse': 0.14677684009075165, 'test_rmse': 0.13773088157176971, 'train_nlpd': -3.1427712440490723, 'test_nlpd': -3.396544933319092, 'effective_latent_dims': 6, 'total_latent_dims': 10, 'elbo_loss': 4534.72802734375}
+Iteration 4500/60000: Loss=4534.7280, Time=291.0s
+Metrics at iteration 4600: {'iteration': 4600, 'train_rmse': 0.14411355555057526, 'test_rmse': 0.13485607504844666, 'train_nlpd': -3.3657889366149902, 'test_nlpd': -3.5940661430358887, 'effective_latent_dims': 6, 'total_latent_dims': 10, 'elbo_loss': 4617.017578125}
+Iteration 4600/60000: Loss=4617.0176, Time=297.4s
+Metrics at iteration 4700: {'iteration': 4700, 'train_rmse': 0.14212948083877563, 'test_rmse': 0.1328955441713333, 'train_nlpd': -3.562905788421631, 'test_nlpd': -3.825549840927124, 'effective_latent_dims': 6, 'total_latent_dims': 10, 'elbo_loss': 4878.87109375}
+Iteration 4700/60000: Loss=4878.8711, Time=303.7s
+Metrics at iteration 4800: {'iteration': 4800, 'train_rmse': 0.13849014043807983, 'test_rmse': 0.12791015207767487, 'train_nlpd': -3.773300886154175, 'test_nlpd': -4.027444839477539, 'effective_latent_dims': 6, 'total_latent_dims': 10, 'elbo_loss': 4724.810546875}
+Iteration 4800/60000: Loss=4724.8105, Time=310.1s
+Metrics at iteration 4900: {'iteration': 4900, 'train_rmse': 0.13772393763065338, 'test_rmse': 0.12901397049427032, 'train_nlpd': -3.950202465057373, 'test_nlpd': -4.173231601715088, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4439.62109375}
+Iteration 4900/60000: Loss=4439.6211, Time=316.4s
+Metrics at iteration 5000: {'iteration': 5000, 'train_rmse': 0.13435474038124084, 'test_rmse': 0.12448779493570328, 'train_nlpd': -4.131526470184326, 'test_nlpd': -4.354346752166748, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4123.60546875}
+Iteration 5000/60000: Loss=4123.6055, Time=322.8s
+Metrics at iteration 5100: {'iteration': 5100, 'train_rmse': 0.1329605132341385, 'test_rmse': 0.12541209161281586, 'train_nlpd': -4.271403789520264, 'test_nlpd': -4.462925910949707, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4291.59765625}
+Iteration 5100/60000: Loss=4291.5977, Time=329.2s
+Metrics at iteration 5200: {'iteration': 5200, 'train_rmse': 0.13053037226200104, 'test_rmse': 0.1223936527967453, 'train_nlpd': -4.475208282470703, 'test_nlpd': -4.7162322998046875, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3951.62548828125}
+Iteration 5200/60000: Loss=3951.6255, Time=335.6s
+Metrics at iteration 5300: {'iteration': 5300, 'train_rmse': 0.1307661533355713, 'test_rmse': 0.1214754581451416, 'train_nlpd': -4.538178443908691, 'test_nlpd': -4.74120569229126, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4344.82470703125}
+Iteration 5300/60000: Loss=4344.8247, Time=342.0s
+Metrics at iteration 5400: {'iteration': 5400, 'train_rmse': 0.1286679059267044, 'test_rmse': 0.11958522349596024, 'train_nlpd': -4.707036972045898, 'test_nlpd': -4.9218268394470215, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4000.47900390625}
+Iteration 5400/60000: Loss=4000.4790, Time=348.5s
+Metrics at iteration 5500: {'iteration': 5500, 'train_rmse': 0.12630943953990936, 'test_rmse': 0.11874227970838547, 'train_nlpd': -4.833834648132324, 'test_nlpd': -5.032840251922607, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4256.404296875}
+Iteration 5500/60000: Loss=4256.4043, Time=354.9s
+Metrics at iteration 5600: {'iteration': 5600, 'train_rmse': 0.12549257278442383, 'test_rmse': 0.11849755793809891, 'train_nlpd': -4.951914310455322, 'test_nlpd': -5.1569976806640625, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3740.075439453125}
+Iteration 5600/60000: Loss=3740.0754, Time=361.3s
+Metrics at iteration 5700: {'iteration': 5700, 'train_rmse': 0.12377091497182846, 'test_rmse': 0.11521541327238083, 'train_nlpd': -5.086574554443359, 'test_nlpd': -5.288977146148682, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4240.82958984375}
+Iteration 5700/60000: Loss=4240.8296, Time=367.7s
+Metrics at iteration 5800: {'iteration': 5800, 'train_rmse': 0.12276183813810349, 'test_rmse': 0.11474238336086273, 'train_nlpd': -5.1631879806518555, 'test_nlpd': -5.354477882385254, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4349.02001953125}
+Iteration 5800/60000: Loss=4349.0200, Time=374.0s
+Metrics at iteration 5900: {'iteration': 5900, 'train_rmse': 0.12133534997701645, 'test_rmse': 0.11555538326501846, 'train_nlpd': -5.274961948394775, 'test_nlpd': -5.47623348236084, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4254.6962890625}
+Iteration 5900/60000: Loss=4254.6963, Time=380.5s
+Metrics at iteration 6000: {'iteration': 6000, 'train_rmse': 0.12046969681978226, 'test_rmse': 0.11292950809001923, 'train_nlpd': -5.3493194580078125, 'test_nlpd': -5.577048301696777, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3840.6611328125}
+Iteration 6000/60000: Loss=3840.6611, Time=386.9s
+Metrics at iteration 6100: {'iteration': 6100, 'train_rmse': 0.12111614644527435, 'test_rmse': 0.11393148452043533, 'train_nlpd': -5.420863628387451, 'test_nlpd': -5.601614952087402, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4684.59521484375}
+Iteration 6100/60000: Loss=4684.5952, Time=393.3s
+Metrics at iteration 6200: {'iteration': 6200, 'train_rmse': 0.11968810856342316, 'test_rmse': 0.11199140548706055, 'train_nlpd': -5.5539093017578125, 'test_nlpd': -5.77420711517334, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4035.976806640625}
+Iteration 6200/60000: Loss=4035.9768, Time=399.7s
+Metrics at iteration 6300: {'iteration': 6300, 'train_rmse': 0.11733435094356537, 'test_rmse': 0.10991089046001434, 'train_nlpd': -5.698878288269043, 'test_nlpd': -5.886771202087402, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3883.69970703125}
+Iteration 6300/60000: Loss=3883.6997, Time=406.1s
+Metrics at iteration 6400: {'iteration': 6400, 'train_rmse': 0.11713757365942001, 'test_rmse': 0.10884776711463928, 'train_nlpd': -5.756243705749512, 'test_nlpd': -5.938350677490234, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4096.203125}
+Iteration 6400/60000: Loss=4096.2031, Time=412.5s
+Metrics at iteration 6500: {'iteration': 6500, 'train_rmse': 0.11564131081104279, 'test_rmse': 0.10891932249069214, 'train_nlpd': -5.919075012207031, 'test_nlpd': -6.143133640289307, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3996.8876953125}
+Iteration 6500/60000: Loss=3996.8877, Time=419.0s
+Metrics at iteration 6600: {'iteration': 6600, 'train_rmse': 0.11672619730234146, 'test_rmse': 0.10979883372783661, 'train_nlpd': -5.942914009094238, 'test_nlpd': -6.135359764099121, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4082.04833984375}
+Iteration 6600/60000: Loss=4082.0483, Time=425.4s
+Metrics at iteration 6700: {'iteration': 6700, 'train_rmse': 0.11443112045526505, 'test_rmse': 0.10901408642530441, 'train_nlpd': -6.057086944580078, 'test_nlpd': -6.237168312072754, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3965.087890625}
+Iteration 6700/60000: Loss=3965.0879, Time=431.8s
+Metrics at iteration 6800: {'iteration': 6800, 'train_rmse': 0.11394072324037552, 'test_rmse': 0.10678897798061371, 'train_nlpd': -6.129049777984619, 'test_nlpd': -6.3192596435546875, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3924.01318359375}
+Iteration 6800/60000: Loss=3924.0132, Time=438.2s
+Metrics at iteration 6900: {'iteration': 6900, 'train_rmse': 0.11228104680776596, 'test_rmse': 0.10605764389038086, 'train_nlpd': -6.184820652008057, 'test_nlpd': -6.415375709533691, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3536.072265625}
+Iteration 6900/60000: Loss=3536.0723, Time=444.6s
+Metrics at iteration 7000: {'iteration': 7000, 'train_rmse': 0.11105822026729584, 'test_rmse': 0.104350745677948, 'train_nlpd': -6.241080284118652, 'test_nlpd': -6.491575241088867, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 4473.1435546875}
+Iteration 7000/60000: Loss=4473.1436, Time=451.0s
+Metrics at iteration 7100: {'iteration': 7100, 'train_rmse': 0.11024992913007736, 'test_rmse': 0.102903813123703, 'train_nlpd': -6.374434947967529, 'test_nlpd': -6.550487995147705, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3841.0859375}
+Iteration 7100/60000: Loss=3841.0859, Time=457.4s
+Metrics at iteration 7200: {'iteration': 7200, 'train_rmse': 0.10922541469335556, 'test_rmse': 0.10269800573587418, 'train_nlpd': -6.407551288604736, 'test_nlpd': -6.582829475402832, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3569.3828125}
+Iteration 7200/60000: Loss=3569.3828, Time=463.8s
+Metrics at iteration 7300: {'iteration': 7300, 'train_rmse': 0.10957545787096024, 'test_rmse': 0.10376693308353424, 'train_nlpd': -6.509753227233887, 'test_nlpd': -6.693098545074463, 'effective_latent_dims': 5, 'total_latent_dims': 10, 'elbo_loss': 3438.79248046875}
+Iteration 7300/60000: Loss=3438.7925, Time=470.2s
+Metrics at iteration 7400: {'iteration': 7400, 'train_rmse': 0.10746393352746964, 'test_rmse': 0.10172493010759354, 'train_nlpd': -6.583905220031738, 'test_nlpd': -6.78474235534668, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4120.5625}
+Iteration 7400/60000: Loss=4120.5625, Time=476.6s
+Metrics at iteration 7500: {'iteration': 7500, 'train_rmse': 0.1069265827536583, 'test_rmse': 0.10025090724229813, 'train_nlpd': -6.605985164642334, 'test_nlpd': -6.810046195983887, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3781.2705078125}
+Iteration 7500/60000: Loss=3781.2705, Time=483.0s
+Metrics at iteration 7600: {'iteration': 7600, 'train_rmse': 0.1063334122300148, 'test_rmse': 0.09951765835285187, 'train_nlpd': -6.688400745391846, 'test_nlpd': -6.907070159912109, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3722.632568359375}
+Iteration 7600/60000: Loss=3722.6326, Time=489.4s
+Metrics at iteration 7700: {'iteration': 7700, 'train_rmse': 0.10655160993337631, 'test_rmse': 0.09917651861906052, 'train_nlpd': -6.7223029136657715, 'test_nlpd': -6.93284273147583, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3731.94189453125}
+Iteration 7700/60000: Loss=3731.9419, Time=495.9s
+Metrics at iteration 7800: {'iteration': 7800, 'train_rmse': 0.10668084770441055, 'test_rmse': 0.09986627101898193, 'train_nlpd': -6.709315299987793, 'test_nlpd': -6.936875343322754, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4199.96142578125}
+Iteration 7800/60000: Loss=4199.9614, Time=502.2s
+Metrics at iteration 7900: {'iteration': 7900, 'train_rmse': 0.10536757856607437, 'test_rmse': 0.09910809993743896, 'train_nlpd': -6.7715582847595215, 'test_nlpd': -6.937183856964111, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4053.59814453125}
+Iteration 7900/60000: Loss=4053.5981, Time=508.6s
+Metrics at iteration 8000: {'iteration': 8000, 'train_rmse': 0.10456332564353943, 'test_rmse': 0.09828723967075348, 'train_nlpd': -6.835240840911865, 'test_nlpd': -7.048730850219727, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3478.5166015625}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_8000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_8000.png
+Iteration 8000/60000: Loss=3478.5166, Time=518.2s
+Metrics at iteration 8100: {'iteration': 8100, 'train_rmse': 0.10530810058116913, 'test_rmse': 0.09971980005502701, 'train_nlpd': -6.8068013191223145, 'test_nlpd': -7.0306010246276855, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3984.7138671875}
+Iteration 8100/60000: Loss=3984.7139, Time=524.5s
+Metrics at iteration 8200: {'iteration': 8200, 'train_rmse': 0.10549204051494598, 'test_rmse': 0.10003727674484253, 'train_nlpd': -6.844671249389648, 'test_nlpd': -7.073855876922607, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4302.2255859375}
+Iteration 8200/60000: Loss=4302.2256, Time=530.9s
+Metrics at iteration 8300: {'iteration': 8300, 'train_rmse': 0.10547403246164322, 'test_rmse': 0.09887368232011795, 'train_nlpd': -6.850510597229004, 'test_nlpd': -7.068461894989014, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3709.42822265625}
+Iteration 8300/60000: Loss=3709.4282, Time=537.3s
+Metrics at iteration 8400: {'iteration': 8400, 'train_rmse': 0.10428453236818314, 'test_rmse': 0.0984097421169281, 'train_nlpd': -6.932979106903076, 'test_nlpd': -7.121460914611816, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3977.8798828125}
+Iteration 8400/60000: Loss=3977.8799, Time=543.7s
+Metrics at iteration 8500: {'iteration': 8500, 'train_rmse': 0.10341202467679977, 'test_rmse': 0.09753043204545975, 'train_nlpd': -6.990812301635742, 'test_nlpd': -7.205552101135254, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4068.64892578125}
+Iteration 8500/60000: Loss=4068.6489, Time=550.1s
+Metrics at iteration 8600: {'iteration': 8600, 'train_rmse': 0.10398755967617035, 'test_rmse': 0.09678737074136734, 'train_nlpd': -7.005220413208008, 'test_nlpd': -7.181052207946777, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4062.820556640625}
+Iteration 8600/60000: Loss=4062.8206, Time=556.5s
+Metrics at iteration 8700: {'iteration': 8700, 'train_rmse': 0.1034940704703331, 'test_rmse': 0.09689553081989288, 'train_nlpd': -7.037125587463379, 'test_nlpd': -7.240592002868652, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3267.138916015625}
+Iteration 8700/60000: Loss=3267.1389, Time=562.9s
+Metrics at iteration 8800: {'iteration': 8800, 'train_rmse': 0.10347923636436462, 'test_rmse': 0.09717043489217758, 'train_nlpd': -7.0150017738342285, 'test_nlpd': -7.1978983879089355, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3897.77392578125}
+Iteration 8800/60000: Loss=3897.7739, Time=569.3s
+Metrics at iteration 8900: {'iteration': 8900, 'train_rmse': 0.10429321974515915, 'test_rmse': 0.09712426364421844, 'train_nlpd': -7.049159049987793, 'test_nlpd': -7.250909328460693, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3980.99658203125}
+Iteration 8900/60000: Loss=3980.9966, Time=575.7s
+Metrics at iteration 9000: {'iteration': 9000, 'train_rmse': 0.10166139900684357, 'test_rmse': 0.09509158134460449, 'train_nlpd': -7.139186382293701, 'test_nlpd': -7.339992046356201, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3890.90771484375}
+Iteration 9000/60000: Loss=3890.9077, Time=582.0s
+Metrics at iteration 9100: {'iteration': 9100, 'train_rmse': 0.1024632677435875, 'test_rmse': 0.09578783810138702, 'train_nlpd': -7.096775531768799, 'test_nlpd': -7.271679401397705, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4367.81396484375}
+Iteration 9100/60000: Loss=4367.8140, Time=588.4s
+Metrics at iteration 9200: {'iteration': 9200, 'train_rmse': 0.10232151299715042, 'test_rmse': 0.096608467400074, 'train_nlpd': -7.193232536315918, 'test_nlpd': -7.411357879638672, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3467.894287109375}
+Iteration 9200/60000: Loss=3467.8943, Time=594.8s
+Metrics at iteration 9300: {'iteration': 9300, 'train_rmse': 0.10194668918848038, 'test_rmse': 0.09508109092712402, 'train_nlpd': -7.191546440124512, 'test_nlpd': -7.396707534790039, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3699.73046875}
+Iteration 9300/60000: Loss=3699.7305, Time=601.2s
+Metrics at iteration 9400: {'iteration': 9400, 'train_rmse': 0.10173351317644119, 'test_rmse': 0.09489067643880844, 'train_nlpd': -7.201157569885254, 'test_nlpd': -7.405416011810303, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3388.745361328125}
+Iteration 9400/60000: Loss=3388.7454, Time=607.5s
+Metrics at iteration 9500: {'iteration': 9500, 'train_rmse': 0.10133176296949387, 'test_rmse': 0.09606410562992096, 'train_nlpd': -7.262513160705566, 'test_nlpd': -7.438943862915039, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 2646.5390625}
+Iteration 9500/60000: Loss=2646.5391, Time=613.9s
+Metrics at iteration 9600: {'iteration': 9600, 'train_rmse': 0.10016535967588425, 'test_rmse': 0.09468228369951248, 'train_nlpd': -7.325056552886963, 'test_nlpd': -7.550256729125977, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4398.28564453125}
+Iteration 9600/60000: Loss=4398.2856, Time=620.3s
+Metrics at iteration 9700: {'iteration': 9700, 'train_rmse': 0.10127740353345871, 'test_rmse': 0.09576241672039032, 'train_nlpd': -7.245871543884277, 'test_nlpd': -7.435067653656006, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3815.2197265625}
+Iteration 9700/60000: Loss=3815.2197, Time=626.7s
+Metrics at iteration 9800: {'iteration': 9800, 'train_rmse': 0.09955794364213943, 'test_rmse': 0.09208618104457855, 'train_nlpd': -7.373518943786621, 'test_nlpd': -7.5992045402526855, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4167.9482421875}
+Iteration 9800/60000: Loss=4167.9482, Time=633.1s
+Metrics at iteration 9900: {'iteration': 9900, 'train_rmse': 0.10095217078924179, 'test_rmse': 0.09490074962377548, 'train_nlpd': -7.293573379516602, 'test_nlpd': -7.48184061050415, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4250.16796875}
+Iteration 9900/60000: Loss=4250.1680, Time=639.6s
+Metrics at iteration 10000: {'iteration': 10000, 'train_rmse': 0.10084466636180878, 'test_rmse': 0.09489292651414871, 'train_nlpd': -7.320563316345215, 'test_nlpd': -7.512397289276123, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3675.09033203125}
+Iteration 10000/60000: Loss=3675.0903, Time=646.0s
+Metrics at iteration 10100: {'iteration': 10100, 'train_rmse': 0.09895005077123642, 'test_rmse': 0.09303484857082367, 'train_nlpd': -7.392872333526611, 'test_nlpd': -7.585020065307617, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3959.834228515625}
+Iteration 10100/60000: Loss=3959.8342, Time=652.4s
+Metrics at iteration 10200: {'iteration': 10200, 'train_rmse': 0.10027620941400528, 'test_rmse': 0.09438663721084595, 'train_nlpd': -7.342004299163818, 'test_nlpd': -7.530242919921875, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3360.54248046875}
+Iteration 10200/60000: Loss=3360.5425, Time=658.8s
+Metrics at iteration 10300: {'iteration': 10300, 'train_rmse': 0.10029846429824829, 'test_rmse': 0.09387862682342529, 'train_nlpd': -7.33189582824707, 'test_nlpd': -7.534799575805664, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3915.871826171875}
+Iteration 10300/60000: Loss=3915.8718, Time=665.2s
+Metrics at iteration 10400: {'iteration': 10400, 'train_rmse': 0.09920394420623779, 'test_rmse': 0.09321161359548569, 'train_nlpd': -7.42795991897583, 'test_nlpd': -7.636951923370361, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3886.32373046875}
+Iteration 10400/60000: Loss=3886.3237, Time=671.5s
+Metrics at iteration 10500: {'iteration': 10500, 'train_rmse': 0.09956327825784683, 'test_rmse': 0.09320736676454544, 'train_nlpd': -7.372738838195801, 'test_nlpd': -7.606817245483398, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3009.457763671875}
+Iteration 10500/60000: Loss=3009.4578, Time=677.9s
+Metrics at iteration 10600: {'iteration': 10600, 'train_rmse': 0.10093142837285995, 'test_rmse': 0.09529909491539001, 'train_nlpd': -7.392274379730225, 'test_nlpd': -7.567969799041748, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3845.03466796875}
+Iteration 10600/60000: Loss=3845.0347, Time=684.3s
+Metrics at iteration 10700: {'iteration': 10700, 'train_rmse': 0.10067127645015717, 'test_rmse': 0.09393876791000366, 'train_nlpd': -7.417135238647461, 'test_nlpd': -7.617768287658691, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3614.75244140625}
+Iteration 10700/60000: Loss=3614.7524, Time=690.7s
+Metrics at iteration 10800: {'iteration': 10800, 'train_rmse': 0.09997434914112091, 'test_rmse': 0.0940793827176094, 'train_nlpd': -7.460439205169678, 'test_nlpd': -7.673477649688721, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3594.396240234375}
+Iteration 10800/60000: Loss=3594.3962, Time=697.0s
+Metrics at iteration 10900: {'iteration': 10900, 'train_rmse': 0.0999942421913147, 'test_rmse': 0.0942177101969719, 'train_nlpd': -7.447512149810791, 'test_nlpd': -7.6546549797058105, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4174.34912109375}
+Iteration 10900/60000: Loss=4174.3491, Time=703.4s
+Metrics at iteration 11000: {'iteration': 11000, 'train_rmse': 0.09954746067523956, 'test_rmse': 0.09308823943138123, 'train_nlpd': -7.416830539703369, 'test_nlpd': -7.618682861328125, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3724.48681640625}
+Iteration 11000/60000: Loss=3724.4868, Time=709.8s
+Metrics at iteration 11100: {'iteration': 11100, 'train_rmse': 0.09933804720640182, 'test_rmse': 0.09221713244915009, 'train_nlpd': -7.425528526306152, 'test_nlpd': -7.621287822723389, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3346.8095703125}
+Iteration 11100/60000: Loss=3346.8096, Time=716.1s
+Metrics at iteration 11200: {'iteration': 11200, 'train_rmse': 0.09918063133955002, 'test_rmse': 0.09325110912322998, 'train_nlpd': -7.48043155670166, 'test_nlpd': -7.676514625549316, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3361.433837890625}
+Iteration 11200/60000: Loss=3361.4338, Time=722.4s
+Metrics at iteration 11300: {'iteration': 11300, 'train_rmse': 0.0992780327796936, 'test_rmse': 0.09423815459012985, 'train_nlpd': -7.530523300170898, 'test_nlpd': -7.702486991882324, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3566.90869140625}
+Iteration 11300/60000: Loss=3566.9087, Time=728.8s
+Metrics at iteration 11400: {'iteration': 11400, 'train_rmse': 0.09982878714799881, 'test_rmse': 0.09326813369989395, 'train_nlpd': -7.466842174530029, 'test_nlpd': -7.69119119644165, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3916.130859375}
+Iteration 11400/60000: Loss=3916.1309, Time=735.2s
+Metrics at iteration 11500: {'iteration': 11500, 'train_rmse': 0.0979432538151741, 'test_rmse': 0.09237919747829437, 'train_nlpd': -7.5520405769348145, 'test_nlpd': -7.770071983337402, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4013.49072265625}
+Iteration 11500/60000: Loss=4013.4907, Time=741.5s
+Metrics at iteration 11600: {'iteration': 11600, 'train_rmse': 0.09730701893568039, 'test_rmse': 0.09130048751831055, 'train_nlpd': -7.6091227531433105, 'test_nlpd': -7.762646198272705, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4044.67041015625}
+Iteration 11600/60000: Loss=4044.6704, Time=747.9s
+Metrics at iteration 11700: {'iteration': 11700, 'train_rmse': 0.0989382416009903, 'test_rmse': 0.0940142497420311, 'train_nlpd': -7.564011573791504, 'test_nlpd': -7.759909629821777, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3869.62255859375}
+Iteration 11700/60000: Loss=3869.6226, Time=754.4s
+Metrics at iteration 11800: {'iteration': 11800, 'train_rmse': 0.09846312552690506, 'test_rmse': 0.09331469982862473, 'train_nlpd': -7.6037516593933105, 'test_nlpd': -7.7993645668029785, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3575.8984375}
+Iteration 11800/60000: Loss=3575.8984, Time=760.8s
+Metrics at iteration 11900: {'iteration': 11900, 'train_rmse': 0.09679452329874039, 'test_rmse': 0.09103532135486603, 'train_nlpd': -7.605696678161621, 'test_nlpd': -7.76593542098999, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3936.31591796875}
+Iteration 11900/60000: Loss=3936.3159, Time=767.1s
+Metrics at iteration 12000: {'iteration': 12000, 'train_rmse': 0.09796316921710968, 'test_rmse': 0.09215059876441956, 'train_nlpd': -7.552244186401367, 'test_nlpd': -7.776858806610107, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3927.8994140625}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_12000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_12000.png
+Iteration 12000/60000: Loss=3927.8994, Time=776.6s
+Metrics at iteration 12100: {'iteration': 12100, 'train_rmse': 0.09936995059251785, 'test_rmse': 0.09360888600349426, 'train_nlpd': -7.532536029815674, 'test_nlpd': -7.707768440246582, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3379.701171875}
+Iteration 12100/60000: Loss=3379.7012, Time=783.0s
+Metrics at iteration 12200: {'iteration': 12200, 'train_rmse': 0.09846361726522446, 'test_rmse': 0.09270298480987549, 'train_nlpd': -7.599584579467773, 'test_nlpd': -7.782847881317139, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3892.005615234375}
+Iteration 12200/60000: Loss=3892.0056, Time=789.4s
+Metrics at iteration 12300: {'iteration': 12300, 'train_rmse': 0.09735827893018723, 'test_rmse': 0.09214814752340317, 'train_nlpd': -7.596103668212891, 'test_nlpd': -7.757627010345459, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3288.9404296875}
+Iteration 12300/60000: Loss=3288.9404, Time=795.7s
+Metrics at iteration 12400: {'iteration': 12400, 'train_rmse': 0.09837041795253754, 'test_rmse': 0.09341374039649963, 'train_nlpd': -7.60270357131958, 'test_nlpd': -7.784621238708496, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3718.14111328125}
+Iteration 12400/60000: Loss=3718.1411, Time=802.0s
+Metrics at iteration 12500: {'iteration': 12500, 'train_rmse': 0.09903345257043839, 'test_rmse': 0.09381823241710663, 'train_nlpd': -7.647355556488037, 'test_nlpd': -7.870791912078857, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3816.068603515625}
+Iteration 12500/60000: Loss=3816.0686, Time=808.4s
+Metrics at iteration 12600: {'iteration': 12600, 'train_rmse': 0.09642969071865082, 'test_rmse': 0.09176351130008698, 'train_nlpd': -7.696638107299805, 'test_nlpd': -7.897092342376709, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 4085.634521484375}
+Iteration 12600/60000: Loss=4085.6345, Time=814.7s
+Metrics at iteration 12700: {'iteration': 12700, 'train_rmse': 0.09751376509666443, 'test_rmse': 0.09240326285362244, 'train_nlpd': -7.630130290985107, 'test_nlpd': -7.81691312789917, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3396.178466796875}
+Iteration 12700/60000: Loss=3396.1785, Time=821.1s
+Metrics at iteration 12800: {'iteration': 12800, 'train_rmse': 0.09642662107944489, 'test_rmse': 0.0911564826965332, 'train_nlpd': -7.679738521575928, 'test_nlpd': -7.896573543548584, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3785.65673828125}
+Iteration 12800/60000: Loss=3785.6567, Time=827.4s
+Metrics at iteration 12900: {'iteration': 12900, 'train_rmse': 0.09685228765010834, 'test_rmse': 0.09040051698684692, 'train_nlpd': -7.705235481262207, 'test_nlpd': -7.910977840423584, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3907.240234375}
+Iteration 12900/60000: Loss=3907.2402, Time=833.8s
+Metrics at iteration 13000: {'iteration': 13000, 'train_rmse': 0.09674336761236191, 'test_rmse': 0.08960124850273132, 'train_nlpd': -7.731856822967529, 'test_nlpd': -7.924142360687256, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3402.705810546875}
+Iteration 13000/60000: Loss=3402.7058, Time=840.2s
+Metrics at iteration 13100: {'iteration': 13100, 'train_rmse': 0.09664960950613022, 'test_rmse': 0.09133903682231903, 'train_nlpd': -7.693874835968018, 'test_nlpd': -7.881435871124268, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3646.678466796875}
+Iteration 13100/60000: Loss=3646.6785, Time=846.5s
+Metrics at iteration 13200: {'iteration': 13200, 'train_rmse': 0.09584715962409973, 'test_rmse': 0.08946074545383453, 'train_nlpd': -7.790761947631836, 'test_nlpd': -7.994084358215332, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3563.1064453125}
+Iteration 13200/60000: Loss=3563.1064, Time=852.8s
+Metrics at iteration 13300: {'iteration': 13300, 'train_rmse': 0.0960598886013031, 'test_rmse': 0.09051232039928436, 'train_nlpd': -7.8310723304748535, 'test_nlpd': -8.02088737487793, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3856.849365234375}
+Iteration 13300/60000: Loss=3856.8494, Time=859.2s
+Metrics at iteration 13400: {'iteration': 13400, 'train_rmse': 0.09619490802288055, 'test_rmse': 0.09050532430410385, 'train_nlpd': -7.755944728851318, 'test_nlpd': -7.9310150146484375, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3891.83740234375}
+Iteration 13400/60000: Loss=3891.8374, Time=865.6s
+Metrics at iteration 13500: {'iteration': 13500, 'train_rmse': 0.09642494469881058, 'test_rmse': 0.09003262966871262, 'train_nlpd': -7.7802042961120605, 'test_nlpd': -7.969711780548096, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3569.361083984375}
+Iteration 13500/60000: Loss=3569.3611, Time=871.9s
+Metrics at iteration 13600: {'iteration': 13600, 'train_rmse': 0.09639935940504074, 'test_rmse': 0.09111662209033966, 'train_nlpd': -7.761429786682129, 'test_nlpd': -7.952345848083496, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3609.1279296875}
+Iteration 13600/60000: Loss=3609.1279, Time=878.3s
+Metrics at iteration 13700: {'iteration': 13700, 'train_rmse': 0.09556933492422104, 'test_rmse': 0.09096507728099823, 'train_nlpd': -7.865551948547363, 'test_nlpd': -8.063611030578613, 'effective_latent_dims': 4, 'total_latent_dims': 10, 'elbo_loss': 3750.25927734375}
+Iteration 13700/60000: Loss=3750.2593, Time=884.6s
+Metrics at iteration 13800: {'iteration': 13800, 'train_rmse': 0.09538490325212479, 'test_rmse': 0.08915087580680847, 'train_nlpd': -7.879748344421387, 'test_nlpd': -8.077651023864746, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3368.698974609375}
+Iteration 13800/60000: Loss=3368.6990, Time=891.0s
+Metrics at iteration 13900: {'iteration': 13900, 'train_rmse': 0.09486327320337296, 'test_rmse': 0.0899742990732193, 'train_nlpd': -7.898802757263184, 'test_nlpd': -8.106019020080566, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3755.5947265625}
+Iteration 13900/60000: Loss=3755.5947, Time=897.3s
+Metrics at iteration 14000: {'iteration': 14000, 'train_rmse': 0.09665341675281525, 'test_rmse': 0.09208718687295914, 'train_nlpd': -7.794595241546631, 'test_nlpd': -7.954030513763428, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3954.294677734375}
+Iteration 14000/60000: Loss=3954.2947, Time=903.8s
+Metrics at iteration 14100: {'iteration': 14100, 'train_rmse': 0.0970945805311203, 'test_rmse': 0.09183579683303833, 'train_nlpd': -7.826381683349609, 'test_nlpd': -8.00196361541748, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3123.366943359375}
+Iteration 14100/60000: Loss=3123.3669, Time=910.2s
+Metrics at iteration 14200: {'iteration': 14200, 'train_rmse': 0.09576015174388885, 'test_rmse': 0.0901058167219162, 'train_nlpd': -7.875145435333252, 'test_nlpd': -8.0477294921875, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3475.930419921875}
+Iteration 14200/60000: Loss=3475.9304, Time=916.5s
+Metrics at iteration 14300: {'iteration': 14300, 'train_rmse': 0.09523006528615952, 'test_rmse': 0.09020185470581055, 'train_nlpd': -7.98341703414917, 'test_nlpd': -8.198076248168945, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3279.10107421875}
+Iteration 14300/60000: Loss=3279.1011, Time=922.9s
+Metrics at iteration 14400: {'iteration': 14400, 'train_rmse': 0.09419426321983337, 'test_rmse': 0.08897064626216888, 'train_nlpd': -7.944093227386475, 'test_nlpd': -8.138496398925781, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3632.992431640625}
+Iteration 14400/60000: Loss=3632.9924, Time=929.3s
+Metrics at iteration 14500: {'iteration': 14500, 'train_rmse': 0.09487773478031158, 'test_rmse': 0.08952456712722778, 'train_nlpd': -7.9882707595825195, 'test_nlpd': -8.151894569396973, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3571.80859375}
+Iteration 14500/60000: Loss=3571.8086, Time=935.8s
+Metrics at iteration 14600: {'iteration': 14600, 'train_rmse': 0.09383989870548248, 'test_rmse': 0.08780322223901749, 'train_nlpd': -7.93527364730835, 'test_nlpd': -8.130276679992676, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3579.03125}
+Iteration 14600/60000: Loss=3579.0312, Time=942.2s
+Metrics at iteration 14700: {'iteration': 14700, 'train_rmse': 0.09385421872138977, 'test_rmse': 0.08885758370161057, 'train_nlpd': -7.976438522338867, 'test_nlpd': -8.181126594543457, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3603.959228515625}
+Iteration 14700/60000: Loss=3603.9592, Time=948.5s
+Metrics at iteration 14800: {'iteration': 14800, 'train_rmse': 0.0939626544713974, 'test_rmse': 0.08883681148290634, 'train_nlpd': -7.990272521972656, 'test_nlpd': -8.189702033996582, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3658.9873046875}
+Iteration 14800/60000: Loss=3658.9873, Time=954.9s
+Metrics at iteration 14900: {'iteration': 14900, 'train_rmse': 0.0928586944937706, 'test_rmse': 0.08848511427640915, 'train_nlpd': -8.059463500976562, 'test_nlpd': -8.253609657287598, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3930.514892578125}
+Iteration 14900/60000: Loss=3930.5149, Time=961.2s
+Metrics at iteration 15000: {'iteration': 15000, 'train_rmse': 0.09496009349822998, 'test_rmse': 0.09105381369590759, 'train_nlpd': -8.038496017456055, 'test_nlpd': -8.20731258392334, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3785.284912109375}
+Iteration 15000/60000: Loss=3785.2849, Time=967.6s
+Metrics at iteration 15100: {'iteration': 15100, 'train_rmse': 0.09345640242099762, 'test_rmse': 0.08812740445137024, 'train_nlpd': -8.068659782409668, 'test_nlpd': -8.262784004211426, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3581.6767578125}
+Iteration 15100/60000: Loss=3581.6768, Time=973.9s
+Metrics at iteration 15200: {'iteration': 15200, 'train_rmse': 0.09289155900478363, 'test_rmse': 0.0885174348950386, 'train_nlpd': -8.161748886108398, 'test_nlpd': -8.325963973999023, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 4185.14404296875}
+Iteration 15200/60000: Loss=4185.1440, Time=980.3s
+Metrics at iteration 15300: {'iteration': 15300, 'train_rmse': 0.09392347931861877, 'test_rmse': 0.08951310068368912, 'train_nlpd': -8.122715950012207, 'test_nlpd': -8.29635238647461, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3783.3837890625}
+Iteration 15300/60000: Loss=3783.3838, Time=986.7s
+Metrics at iteration 15400: {'iteration': 15400, 'train_rmse': 0.09251988679170609, 'test_rmse': 0.0875328853726387, 'train_nlpd': -8.138680458068848, 'test_nlpd': -8.340277671813965, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3989.208740234375}
+Iteration 15400/60000: Loss=3989.2087, Time=993.2s
+Metrics at iteration 15500: {'iteration': 15500, 'train_rmse': 0.0919894352555275, 'test_rmse': 0.08692959696054459, 'train_nlpd': -8.190311431884766, 'test_nlpd': -8.412609100341797, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3638.43505859375}
+Iteration 15500/60000: Loss=3638.4351, Time=999.6s
+Metrics at iteration 15600: {'iteration': 15600, 'train_rmse': 0.09065858274698257, 'test_rmse': 0.08554404228925705, 'train_nlpd': -8.306660652160645, 'test_nlpd': -8.494009971618652, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 4053.670166015625}
+Iteration 15600/60000: Loss=4053.6702, Time=1006.0s
+Metrics at iteration 15700: {'iteration': 15700, 'train_rmse': 0.09267862141132355, 'test_rmse': 0.08705925941467285, 'train_nlpd': -8.247115135192871, 'test_nlpd': -8.442973136901855, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3997.06591796875}
+Iteration 15700/60000: Loss=3997.0659, Time=1012.4s
+Metrics at iteration 15800: {'iteration': 15800, 'train_rmse': 0.09208811074495316, 'test_rmse': 0.08743824809789658, 'train_nlpd': -8.267923355102539, 'test_nlpd': -8.454813957214355, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3288.4912109375}
+Iteration 15800/60000: Loss=3288.4912, Time=1018.8s
+Metrics at iteration 15900: {'iteration': 15900, 'train_rmse': 0.09174539893865585, 'test_rmse': 0.08783741295337677, 'train_nlpd': -8.23740291595459, 'test_nlpd': -8.413078308105469, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3584.47265625}
+Iteration 15900/60000: Loss=3584.4727, Time=1025.3s
+Metrics at iteration 16000: {'iteration': 16000, 'train_rmse': 0.0923151969909668, 'test_rmse': 0.08719709515571594, 'train_nlpd': -8.22620677947998, 'test_nlpd': -8.407444953918457, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3313.94482421875}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_16000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_16000.png
+Iteration 16000/60000: Loss=3313.9448, Time=1034.9s
+Metrics at iteration 16100: {'iteration': 16100, 'train_rmse': 0.09207579493522644, 'test_rmse': 0.08768855780363083, 'train_nlpd': -8.287635803222656, 'test_nlpd': -8.469640731811523, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3857.95703125}
+Iteration 16100/60000: Loss=3857.9570, Time=1041.3s
+Metrics at iteration 16200: {'iteration': 16200, 'train_rmse': 0.09126195311546326, 'test_rmse': 0.08643268048763275, 'train_nlpd': -8.333650588989258, 'test_nlpd': -8.495637893676758, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3692.68408203125}
+Iteration 16200/60000: Loss=3692.6841, Time=1047.6s
+Metrics at iteration 16300: {'iteration': 16300, 'train_rmse': 0.09135167300701141, 'test_rmse': 0.08651759475469589, 'train_nlpd': -8.423738479614258, 'test_nlpd': -8.578858375549316, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3159.20458984375}
+Iteration 16300/60000: Loss=3159.2046, Time=1054.0s
+Metrics at iteration 16400: {'iteration': 16400, 'train_rmse': 0.0917990431189537, 'test_rmse': 0.08673509210348129, 'train_nlpd': -8.358894348144531, 'test_nlpd': -8.551697731018066, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3717.898193359375}
+Iteration 16400/60000: Loss=3717.8982, Time=1060.4s
+Metrics at iteration 16500: {'iteration': 16500, 'train_rmse': 0.09073124825954437, 'test_rmse': 0.08536145836114883, 'train_nlpd': -8.349689483642578, 'test_nlpd': -8.572893142700195, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3084.750244140625}
+Iteration 16500/60000: Loss=3084.7502, Time=1066.8s
+Metrics at iteration 16600: {'iteration': 16600, 'train_rmse': 0.09071792662143707, 'test_rmse': 0.08464765548706055, 'train_nlpd': -8.3804292678833, 'test_nlpd': -8.561784744262695, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3284.14794921875}
+Iteration 16600/60000: Loss=3284.1479, Time=1073.2s
+Metrics at iteration 16700: {'iteration': 16700, 'train_rmse': 0.09141244739294052, 'test_rmse': 0.08642001450061798, 'train_nlpd': -8.429839134216309, 'test_nlpd': -8.668535232543945, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3673.677734375}
+Iteration 16700/60000: Loss=3673.6777, Time=1079.6s
+Metrics at iteration 16800: {'iteration': 16800, 'train_rmse': 0.0902952253818512, 'test_rmse': 0.0858423188328743, 'train_nlpd': -8.497794151306152, 'test_nlpd': -8.68178653717041, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3748.046630859375}
+Iteration 16800/60000: Loss=3748.0466, Time=1086.0s
+Metrics at iteration 16900: {'iteration': 16900, 'train_rmse': 0.0904163345694542, 'test_rmse': 0.08531996607780457, 'train_nlpd': -8.436954498291016, 'test_nlpd': -8.591547012329102, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3375.5361328125}
+Iteration 16900/60000: Loss=3375.5361, Time=1092.3s
+Metrics at iteration 17000: {'iteration': 17000, 'train_rmse': 0.08997752517461777, 'test_rmse': 0.08407893031835556, 'train_nlpd': -8.511261940002441, 'test_nlpd': -8.706151962280273, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3431.362060546875}
+Iteration 17000/60000: Loss=3431.3621, Time=1098.7s
+Metrics at iteration 17100: {'iteration': 17100, 'train_rmse': 0.09019949287176132, 'test_rmse': 0.08379844576120377, 'train_nlpd': -8.496973037719727, 'test_nlpd': -8.702261924743652, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3337.445556640625}
+Iteration 17100/60000: Loss=3337.4456, Time=1105.1s
+Metrics at iteration 17200: {'iteration': 17200, 'train_rmse': 0.09062904119491577, 'test_rmse': 0.08599382638931274, 'train_nlpd': -8.446039199829102, 'test_nlpd': -8.671955108642578, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 4015.6484375}
+Iteration 17200/60000: Loss=4015.6484, Time=1111.5s
+Metrics at iteration 17300: {'iteration': 17300, 'train_rmse': 0.09042505919933319, 'test_rmse': 0.08591587096452713, 'train_nlpd': -8.531474113464355, 'test_nlpd': -8.72852897644043, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3657.078369140625}
+Iteration 17300/60000: Loss=3657.0784, Time=1117.9s
+Metrics at iteration 17400: {'iteration': 17400, 'train_rmse': 0.08953157067298889, 'test_rmse': 0.08474720269441605, 'train_nlpd': -8.545969009399414, 'test_nlpd': -8.709282875061035, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3581.349609375}
+Iteration 17400/60000: Loss=3581.3496, Time=1124.2s
+Metrics at iteration 17500: {'iteration': 17500, 'train_rmse': 0.08974586427211761, 'test_rmse': 0.08530915528535843, 'train_nlpd': -8.552983283996582, 'test_nlpd': -8.760066032409668, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3198.708251953125}
+Iteration 17500/60000: Loss=3198.7083, Time=1130.6s
+Metrics at iteration 17600: {'iteration': 17600, 'train_rmse': 0.09009138494729996, 'test_rmse': 0.08616829663515091, 'train_nlpd': -8.552651405334473, 'test_nlpd': -8.734636306762695, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3389.135986328125}
+Iteration 17600/60000: Loss=3389.1360, Time=1136.9s
+Metrics at iteration 17700: {'iteration': 17700, 'train_rmse': 0.08918257802724838, 'test_rmse': 0.08381688594818115, 'train_nlpd': -8.633238792419434, 'test_nlpd': -8.833885192871094, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3214.994140625}
+Iteration 17700/60000: Loss=3214.9941, Time=1143.3s
+Metrics at iteration 17800: {'iteration': 17800, 'train_rmse': 0.08854785561561584, 'test_rmse': 0.08347516506910324, 'train_nlpd': -8.681549072265625, 'test_nlpd': -8.881048202514648, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3428.492431640625}
+Iteration 17800/60000: Loss=3428.4924, Time=1149.7s
+Metrics at iteration 17900: {'iteration': 17900, 'train_rmse': 0.08801302313804626, 'test_rmse': 0.08259379863739014, 'train_nlpd': -8.73808479309082, 'test_nlpd': -8.899863243103027, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3303.220703125}
+Iteration 17900/60000: Loss=3303.2207, Time=1156.2s
+Metrics at iteration 18000: {'iteration': 18000, 'train_rmse': 0.08916284143924713, 'test_rmse': 0.08465146273374557, 'train_nlpd': -8.722630500793457, 'test_nlpd': -8.886592864990234, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3131.5400390625}
+Iteration 18000/60000: Loss=3131.5400, Time=1162.6s
+Metrics at iteration 18100: {'iteration': 18100, 'train_rmse': 0.08866249024868011, 'test_rmse': 0.08404126763343811, 'train_nlpd': -8.739692687988281, 'test_nlpd': -8.946432113647461, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3041.214111328125}
+Iteration 18100/60000: Loss=3041.2141, Time=1169.1s
+Metrics at iteration 18200: {'iteration': 18200, 'train_rmse': 0.08781355619430542, 'test_rmse': 0.08340846747159958, 'train_nlpd': -8.775699615478516, 'test_nlpd': -8.950568199157715, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3708.03271484375}
+Iteration 18200/60000: Loss=3708.0327, Time=1175.5s
+Metrics at iteration 18300: {'iteration': 18300, 'train_rmse': 0.08831337094306946, 'test_rmse': 0.08364126086235046, 'train_nlpd': -8.796072006225586, 'test_nlpd': -8.96096420288086, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3365.767578125}
+Iteration 18300/60000: Loss=3365.7676, Time=1181.9s
+Metrics at iteration 18400: {'iteration': 18400, 'train_rmse': 0.08786061406135559, 'test_rmse': 0.08343853801488876, 'train_nlpd': -8.791512489318848, 'test_nlpd': -8.98879337310791, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3196.6298828125}
+Iteration 18400/60000: Loss=3196.6299, Time=1188.4s
+Metrics at iteration 18500: {'iteration': 18500, 'train_rmse': 0.08757480978965759, 'test_rmse': 0.08342970162630081, 'train_nlpd': -8.836366653442383, 'test_nlpd': -9.017806053161621, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3233.1982421875}
+Iteration 18500/60000: Loss=3233.1982, Time=1194.8s
+Metrics at iteration 18600: {'iteration': 18600, 'train_rmse': 0.08820047229528427, 'test_rmse': 0.08375561237335205, 'train_nlpd': -8.786554336547852, 'test_nlpd': -8.976736068725586, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3223.52783203125}
+Iteration 18600/60000: Loss=3223.5278, Time=1201.2s
+Metrics at iteration 18700: {'iteration': 18700, 'train_rmse': 0.08747302740812302, 'test_rmse': 0.08262846618890762, 'train_nlpd': -8.859827995300293, 'test_nlpd': -9.029987335205078, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3251.267822265625}
+Iteration 18700/60000: Loss=3251.2678, Time=1207.6s
+Metrics at iteration 18800: {'iteration': 18800, 'train_rmse': 0.08705098181962967, 'test_rmse': 0.08251053839921951, 'train_nlpd': -8.827864646911621, 'test_nlpd': -9.01342487335205, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3366.935546875}
+Iteration 18800/60000: Loss=3366.9355, Time=1214.0s
+Metrics at iteration 18900: {'iteration': 18900, 'train_rmse': 0.08725770562887192, 'test_rmse': 0.08274999260902405, 'train_nlpd': -8.892420768737793, 'test_nlpd': -9.08546257019043, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2749.626953125}
+Iteration 18900/60000: Loss=2749.6270, Time=1220.4s
+Metrics at iteration 19000: {'iteration': 19000, 'train_rmse': 0.08716399222612381, 'test_rmse': 0.08287363499403, 'train_nlpd': -8.876557350158691, 'test_nlpd': -9.095451354980469, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3441.429931640625}
+Iteration 19000/60000: Loss=3441.4299, Time=1226.8s
+Metrics at iteration 19100: {'iteration': 19100, 'train_rmse': 0.08743304759263992, 'test_rmse': 0.08287032693624496, 'train_nlpd': -8.899029731750488, 'test_nlpd': -9.105371475219727, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3005.47021484375}
+Iteration 19100/60000: Loss=3005.4702, Time=1233.2s
+Metrics at iteration 19200: {'iteration': 19200, 'train_rmse': 0.08706238120794296, 'test_rmse': 0.08191102743148804, 'train_nlpd': -8.920096397399902, 'test_nlpd': -9.123954772949219, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3830.1875}
+Iteration 19200/60000: Loss=3830.1875, Time=1239.7s
+Metrics at iteration 19300: {'iteration': 19300, 'train_rmse': 0.0868397057056427, 'test_rmse': 0.08157418668270111, 'train_nlpd': -8.964312553405762, 'test_nlpd': -9.155182838439941, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3934.411865234375}
+Iteration 19300/60000: Loss=3934.4119, Time=1246.1s
+Metrics at iteration 19400: {'iteration': 19400, 'train_rmse': 0.08784288167953491, 'test_rmse': 0.08301418274641037, 'train_nlpd': -8.944048881530762, 'test_nlpd': -9.124893188476562, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3419.4072265625}
+Iteration 19400/60000: Loss=3419.4072, Time=1252.4s
+Metrics at iteration 19500: {'iteration': 19500, 'train_rmse': 0.08708319067955017, 'test_rmse': 0.08205921947956085, 'train_nlpd': -8.964118003845215, 'test_nlpd': -9.164731979370117, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3660.0341796875}
+Iteration 19500/60000: Loss=3660.0342, Time=1258.8s
+Metrics at iteration 19600: {'iteration': 19600, 'train_rmse': 0.08662685006856918, 'test_rmse': 0.08176892250776291, 'train_nlpd': -9.002339363098145, 'test_nlpd': -9.176583290100098, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3116.181396484375}
+Iteration 19600/60000: Loss=3116.1814, Time=1265.2s
+Metrics at iteration 19700: {'iteration': 19700, 'train_rmse': 0.08667775988578796, 'test_rmse': 0.08244786411523819, 'train_nlpd': -9.052063941955566, 'test_nlpd': -9.22353458404541, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2803.30078125}
+Iteration 19700/60000: Loss=2803.3008, Time=1271.6s
+Metrics at iteration 19800: {'iteration': 19800, 'train_rmse': 0.08659960329532623, 'test_rmse': 0.08091666549444199, 'train_nlpd': -9.082362174987793, 'test_nlpd': -9.296388626098633, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3639.271728515625}
+Iteration 19800/60000: Loss=3639.2717, Time=1278.0s
+Metrics at iteration 19900: {'iteration': 19900, 'train_rmse': 0.08632093667984009, 'test_rmse': 0.08152800053358078, 'train_nlpd': -9.135507583618164, 'test_nlpd': -9.344499588012695, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2998.5908203125}
+Iteration 19900/60000: Loss=2998.5908, Time=1284.3s
+Metrics at iteration 20000: {'iteration': 20000, 'train_rmse': 0.0857820212841034, 'test_rmse': 0.08283399045467377, 'train_nlpd': -9.159141540527344, 'test_nlpd': -9.337985038757324, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3708.967041015625}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_20000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_20000.png
+Iteration 20000/60000: Loss=3708.9670, Time=1293.8s
+Metrics at iteration 20100: {'iteration': 20100, 'train_rmse': 0.08571683615446091, 'test_rmse': 0.08167673647403717, 'train_nlpd': -9.19029426574707, 'test_nlpd': -9.380855560302734, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3093.7939453125}
+Iteration 20100/60000: Loss=3093.7939, Time=1300.1s
+Metrics at iteration 20200: {'iteration': 20200, 'train_rmse': 0.08555319905281067, 'test_rmse': 0.08061159402132034, 'train_nlpd': -9.285640716552734, 'test_nlpd': -9.45343017578125, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3012.762939453125}
+Iteration 20200/60000: Loss=3012.7629, Time=1306.4s
+Metrics at iteration 20300: {'iteration': 20300, 'train_rmse': 0.08629206568002701, 'test_rmse': 0.08113233745098114, 'train_nlpd': -9.211621284484863, 'test_nlpd': -9.417991638183594, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2980.3759765625}
+Iteration 20300/60000: Loss=2980.3760, Time=1312.8s
+Metrics at iteration 20400: {'iteration': 20400, 'train_rmse': 0.08478665351867676, 'test_rmse': 0.08083973824977875, 'train_nlpd': -9.280821800231934, 'test_nlpd': -9.472556114196777, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2940.2236328125}
+Iteration 20400/60000: Loss=2940.2236, Time=1319.1s
+Metrics at iteration 20500: {'iteration': 20500, 'train_rmse': 0.08458742499351501, 'test_rmse': 0.08112362772226334, 'train_nlpd': -9.347808837890625, 'test_nlpd': -9.52792739868164, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3071.72119140625}
+Iteration 20500/60000: Loss=3071.7212, Time=1325.5s
+Metrics at iteration 20600: {'iteration': 20600, 'train_rmse': 0.08433697372674942, 'test_rmse': 0.07906483113765717, 'train_nlpd': -9.35389518737793, 'test_nlpd': -9.555280685424805, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3308.84423828125}
+Iteration 20600/60000: Loss=3308.8442, Time=1331.9s
+Metrics at iteration 20700: {'iteration': 20700, 'train_rmse': 0.08505117148160934, 'test_rmse': 0.08018705993890762, 'train_nlpd': -9.368196487426758, 'test_nlpd': -9.541427612304688, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3758.84033203125}
+Iteration 20700/60000: Loss=3758.8403, Time=1338.3s
+Metrics at iteration 20800: {'iteration': 20800, 'train_rmse': 0.08440859615802765, 'test_rmse': 0.0808117538690567, 'train_nlpd': -9.385307312011719, 'test_nlpd': -9.570662498474121, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2819.50439453125}
+Iteration 20800/60000: Loss=2819.5044, Time=1344.7s
+Metrics at iteration 20900: {'iteration': 20900, 'train_rmse': 0.08324849605560303, 'test_rmse': 0.07962018996477127, 'train_nlpd': -9.43700122833252, 'test_nlpd': -9.617403984069824, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2467.14501953125}
+Iteration 20900/60000: Loss=2467.1450, Time=1351.0s
+Metrics at iteration 21000: {'iteration': 21000, 'train_rmse': 0.08346922695636749, 'test_rmse': 0.07986514270305634, 'train_nlpd': -9.409477233886719, 'test_nlpd': -9.550198554992676, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3376.650634765625}
+Iteration 21000/60000: Loss=3376.6506, Time=1357.4s
+Metrics at iteration 21100: {'iteration': 21100, 'train_rmse': 0.08306801319122314, 'test_rmse': 0.07881276309490204, 'train_nlpd': -9.482352256774902, 'test_nlpd': -9.652264595031738, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3024.25341796875}
+Iteration 21100/60000: Loss=3024.2534, Time=1363.9s
+Metrics at iteration 21200: {'iteration': 21200, 'train_rmse': 0.08315155655145645, 'test_rmse': 0.07883016765117645, 'train_nlpd': -9.460082054138184, 'test_nlpd': -9.67598819732666, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2861.158447265625}
+Iteration 21200/60000: Loss=2861.1584, Time=1370.3s
+Metrics at iteration 21300: {'iteration': 21300, 'train_rmse': 0.08241754025220871, 'test_rmse': 0.07884138077497482, 'train_nlpd': -9.586874961853027, 'test_nlpd': -9.755393981933594, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2854.17578125}
+Iteration 21300/60000: Loss=2854.1758, Time=1376.6s
+Metrics at iteration 21400: {'iteration': 21400, 'train_rmse': 0.08273214101791382, 'test_rmse': 0.07890336960554123, 'train_nlpd': -9.571128845214844, 'test_nlpd': -9.745682716369629, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3433.442626953125}
+Iteration 21400/60000: Loss=3433.4426, Time=1383.0s
+Metrics at iteration 21500: {'iteration': 21500, 'train_rmse': 0.0825270563364029, 'test_rmse': 0.0784498006105423, 'train_nlpd': -9.563358306884766, 'test_nlpd': -9.733748435974121, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3460.4794921875}
+Iteration 21500/60000: Loss=3460.4795, Time=1389.3s
+Metrics at iteration 21600: {'iteration': 21600, 'train_rmse': 0.08218519389629364, 'test_rmse': 0.07758387923240662, 'train_nlpd': -9.605822563171387, 'test_nlpd': -9.785794258117676, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2484.088134765625}
+Iteration 21600/60000: Loss=2484.0881, Time=1395.7s
+Metrics at iteration 21700: {'iteration': 21700, 'train_rmse': 0.08152802288532257, 'test_rmse': 0.07735440135002136, 'train_nlpd': -9.697940826416016, 'test_nlpd': -9.869477272033691, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2906.297119140625}
+Iteration 21700/60000: Loss=2906.2971, Time=1402.0s
+Metrics at iteration 21800: {'iteration': 21800, 'train_rmse': 0.08178108185529709, 'test_rmse': 0.07889826595783234, 'train_nlpd': -9.739676475524902, 'test_nlpd': -9.892251968383789, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3218.176513671875}
+Iteration 21800/60000: Loss=3218.1765, Time=1408.4s
+Metrics at iteration 21900: {'iteration': 21900, 'train_rmse': 0.08185304701328278, 'test_rmse': 0.07852842658758163, 'train_nlpd': -9.761820793151855, 'test_nlpd': -9.924042701721191, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3450.449951171875}
+Iteration 21900/60000: Loss=3450.4500, Time=1414.7s
+Metrics at iteration 22000: {'iteration': 22000, 'train_rmse': 0.0813082829117775, 'test_rmse': 0.07755901664495468, 'train_nlpd': -9.792886734008789, 'test_nlpd': -9.978495597839355, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3028.646728515625}
+Iteration 22000/60000: Loss=3028.6467, Time=1421.1s
+Metrics at iteration 22100: {'iteration': 22100, 'train_rmse': 0.08133529126644135, 'test_rmse': 0.07767988741397858, 'train_nlpd': -9.790365219116211, 'test_nlpd': -9.948543548583984, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3215.885009765625}
+Iteration 22100/60000: Loss=3215.8850, Time=1427.4s
+Metrics at iteration 22200: {'iteration': 22200, 'train_rmse': 0.08137726783752441, 'test_rmse': 0.07727758586406708, 'train_nlpd': -9.863242149353027, 'test_nlpd': -10.048858642578125, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2955.0869140625}
+Iteration 22200/60000: Loss=2955.0869, Time=1433.8s
+Metrics at iteration 22300: {'iteration': 22300, 'train_rmse': 0.08035551011562347, 'test_rmse': 0.07610803097486496, 'train_nlpd': -9.87779712677002, 'test_nlpd': -10.054856300354004, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2966.0029296875}
+Iteration 22300/60000: Loss=2966.0029, Time=1440.2s
+Metrics at iteration 22400: {'iteration': 22400, 'train_rmse': 0.08112876862287521, 'test_rmse': 0.07757563143968582, 'train_nlpd': -9.89169979095459, 'test_nlpd': -10.046381950378418, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 3119.861328125}
+Iteration 22400/60000: Loss=3119.8613, Time=1446.6s
+Metrics at iteration 22500: {'iteration': 22500, 'train_rmse': 0.08099551498889923, 'test_rmse': 0.07751530408859253, 'train_nlpd': -9.937695503234863, 'test_nlpd': -10.087834358215332, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2635.458251953125}
+Iteration 22500/60000: Loss=2635.4583, Time=1452.9s
+Metrics at iteration 22600: {'iteration': 22600, 'train_rmse': 0.08081936836242676, 'test_rmse': 0.0764414593577385, 'train_nlpd': -9.962543487548828, 'test_nlpd': -10.138032913208008, 'effective_latent_dims': 3, 'total_latent_dims': 10, 'elbo_loss': 2722.2685546875}
+Iteration 22600/60000: Loss=2722.2686, Time=1459.3s
+Metrics at iteration 22700: {'iteration': 22700, 'train_rmse': 0.07956312596797943, 'test_rmse': 0.07565100491046906, 'train_nlpd': -10.047198295593262, 'test_nlpd': -10.199551582336426, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2648.1728515625}
+Iteration 22700/60000: Loss=2648.1729, Time=1465.7s
+Metrics at iteration 22800: {'iteration': 22800, 'train_rmse': 0.08007285743951797, 'test_rmse': 0.07639625668525696, 'train_nlpd': -10.044297218322754, 'test_nlpd': -10.232172012329102, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2378.52978515625}
+Iteration 22800/60000: Loss=2378.5298, Time=1472.1s
+Metrics at iteration 22900: {'iteration': 22900, 'train_rmse': 0.07944242656230927, 'test_rmse': 0.07608157396316528, 'train_nlpd': -10.09947681427002, 'test_nlpd': -10.2416353225708, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2856.930908203125}
+Iteration 22900/60000: Loss=2856.9309, Time=1478.5s
+Metrics at iteration 23000: {'iteration': 23000, 'train_rmse': 0.07891073077917099, 'test_rmse': 0.07527180016040802, 'train_nlpd': -10.1647310256958, 'test_nlpd': -10.337991714477539, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 3016.10498046875}
+Iteration 23000/60000: Loss=3016.1050, Time=1484.9s
+Metrics at iteration 23100: {'iteration': 23100, 'train_rmse': 0.07819195091724396, 'test_rmse': 0.07371841371059418, 'train_nlpd': -10.19059944152832, 'test_nlpd': -10.34777545928955, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2856.701904296875}
+Iteration 23100/60000: Loss=2856.7019, Time=1491.4s
+Metrics at iteration 23200: {'iteration': 23200, 'train_rmse': 0.07850757986307144, 'test_rmse': 0.07573501020669937, 'train_nlpd': -10.232590675354004, 'test_nlpd': -10.409402847290039, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2297.276123046875}
+Iteration 23200/60000: Loss=2297.2761, Time=1497.8s
+Metrics at iteration 23300: {'iteration': 23300, 'train_rmse': 0.07896307110786438, 'test_rmse': 0.07523318380117416, 'train_nlpd': -10.261584281921387, 'test_nlpd': -10.426345825195312, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2859.5380859375}
+Iteration 23300/60000: Loss=2859.5381, Time=1504.2s
+Metrics at iteration 23400: {'iteration': 23400, 'train_rmse': 0.07835996896028519, 'test_rmse': 0.07448229938745499, 'train_nlpd': -10.278707504272461, 'test_nlpd': -10.441767692565918, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2745.347900390625}
+Iteration 23400/60000: Loss=2745.3479, Time=1510.5s
+Metrics at iteration 23500: {'iteration': 23500, 'train_rmse': 0.07849965989589691, 'test_rmse': 0.07496017217636108, 'train_nlpd': -10.341723442077637, 'test_nlpd': -10.52926254272461, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 3344.822265625}
+Iteration 23500/60000: Loss=3344.8223, Time=1516.8s
+Metrics at iteration 23600: {'iteration': 23600, 'train_rmse': 0.07790809124708176, 'test_rmse': 0.07467564195394516, 'train_nlpd': -10.359806060791016, 'test_nlpd': -10.556431770324707, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2464.14013671875}
+Iteration 23600/60000: Loss=2464.1401, Time=1523.2s
+Metrics at iteration 23700: {'iteration': 23700, 'train_rmse': 0.07860226929187775, 'test_rmse': 0.07517549395561218, 'train_nlpd': -10.337713241577148, 'test_nlpd': -10.52399730682373, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2730.258544921875}
+Iteration 23700/60000: Loss=2730.2585, Time=1529.7s
+Metrics at iteration 23800: {'iteration': 23800, 'train_rmse': 0.07721353322267532, 'test_rmse': 0.07519678771495819, 'train_nlpd': -10.461648941040039, 'test_nlpd': -10.58974552154541, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2572.576171875}
+Iteration 23800/60000: Loss=2572.5762, Time=1536.0s
+Metrics at iteration 23900: {'iteration': 23900, 'train_rmse': 0.07814863324165344, 'test_rmse': 0.07438576221466064, 'train_nlpd': -10.44296646118164, 'test_nlpd': -10.637307167053223, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 3058.3310546875}
+Iteration 23900/60000: Loss=3058.3311, Time=1542.4s
+Metrics at iteration 24000: {'iteration': 24000, 'train_rmse': 0.07694319635629654, 'test_rmse': 0.0736369714140892, 'train_nlpd': -10.5577392578125, 'test_nlpd': -10.726967811584473, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2622.15673828125}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_24000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_24000.png
+Iteration 24000/60000: Loss=2622.1567, Time=1552.0s
+Metrics at iteration 24100: {'iteration': 24100, 'train_rmse': 0.07709871232509613, 'test_rmse': 0.0737936943769455, 'train_nlpd': -10.586080551147461, 'test_nlpd': -10.76187515258789, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 3096.7666015625}
+Iteration 24100/60000: Loss=3096.7666, Time=1558.3s
+Metrics at iteration 24200: {'iteration': 24200, 'train_rmse': 0.07771395891904831, 'test_rmse': 0.07422153651714325, 'train_nlpd': -10.540326118469238, 'test_nlpd': -10.719780921936035, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 1981.9287109375}
+Iteration 24200/60000: Loss=1981.9287, Time=1564.7s
+Metrics at iteration 24300: {'iteration': 24300, 'train_rmse': 0.0762883871793747, 'test_rmse': 0.0727590024471283, 'train_nlpd': -10.577801704406738, 'test_nlpd': -10.737571716308594, 'effective_latent_dims': 2, 'total_latent_dims': 10, 'elbo_loss': 2792.488037109375}
+Iteration 24300/60000: Loss=2792.4880, Time=1571.0s
+Metrics at iteration 24400: {'iteration': 24400, 'train_rmse': 0.07636657357215881, 'test_rmse': 0.07324214279651642, 'train_nlpd': -10.566710472106934, 'test_nlpd': -10.718229293823242, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2640.8525390625}
+Iteration 24400/60000: Loss=2640.8525, Time=1577.3s
+Metrics at iteration 24500: {'iteration': 24500, 'train_rmse': 0.0764908567070961, 'test_rmse': 0.07297591120004654, 'train_nlpd': -10.611200332641602, 'test_nlpd': -10.8021240234375, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 3164.9443359375}
+Iteration 24500/60000: Loss=3164.9443, Time=1583.7s
+Metrics at iteration 24600: {'iteration': 24600, 'train_rmse': 0.07653128355741501, 'test_rmse': 0.07329138368368149, 'train_nlpd': -10.702302932739258, 'test_nlpd': -10.877687454223633, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 3212.830322265625}
+Iteration 24600/60000: Loss=3212.8303, Time=1590.1s
+Metrics at iteration 24700: {'iteration': 24700, 'train_rmse': 0.07555561512708664, 'test_rmse': 0.07322803884744644, 'train_nlpd': -10.750109672546387, 'test_nlpd': -10.867560386657715, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2700.153076171875}
+Iteration 24700/60000: Loss=2700.1531, Time=1596.5s
+Metrics at iteration 24800: {'iteration': 24800, 'train_rmse': 0.07697276771068573, 'test_rmse': 0.0740574449300766, 'train_nlpd': -10.696564674377441, 'test_nlpd': -10.878484725952148, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2886.224365234375}
+Iteration 24800/60000: Loss=2886.2244, Time=1602.8s
+Metrics at iteration 24900: {'iteration': 24900, 'train_rmse': 0.07598494738340378, 'test_rmse': 0.07285356521606445, 'train_nlpd': -10.784069061279297, 'test_nlpd': -10.951895713806152, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2900.9306640625}
+Iteration 24900/60000: Loss=2900.9307, Time=1609.2s
+Metrics at iteration 25000: {'iteration': 25000, 'train_rmse': 0.07589740306138992, 'test_rmse': 0.0727609172463417, 'train_nlpd': -10.803893089294434, 'test_nlpd': -10.958632469177246, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2305.58984375}
+Iteration 25000/60000: Loss=2305.5898, Time=1615.6s
+Metrics at iteration 25100: {'iteration': 25100, 'train_rmse': 0.07602936774492264, 'test_rmse': 0.0727098286151886, 'train_nlpd': -10.776869773864746, 'test_nlpd': -10.960145950317383, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 3016.97802734375}
+Iteration 25100/60000: Loss=3016.9780, Time=1622.1s
+Metrics at iteration 25200: {'iteration': 25200, 'train_rmse': 0.07624781876802444, 'test_rmse': 0.0723259374499321, 'train_nlpd': -10.796001434326172, 'test_nlpd': -10.980091094970703, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 3116.38525390625}
+Iteration 25200/60000: Loss=3116.3853, Time=1628.5s
+Metrics at iteration 25300: {'iteration': 25300, 'train_rmse': 0.07580199092626572, 'test_rmse': 0.07155368477106094, 'train_nlpd': -10.810481071472168, 'test_nlpd': -10.964384078979492, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2816.283935546875}
+Iteration 25300/60000: Loss=2816.2839, Time=1634.9s
+Metrics at iteration 25400: {'iteration': 25400, 'train_rmse': 0.0755060613155365, 'test_rmse': 0.07151997834444046, 'train_nlpd': -10.898953437805176, 'test_nlpd': -11.095429420471191, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2684.193603515625}
+Iteration 25400/60000: Loss=2684.1936, Time=1641.3s
+Metrics at iteration 25500: {'iteration': 25500, 'train_rmse': 0.07487073540687561, 'test_rmse': 0.07158000022172928, 'train_nlpd': -10.955406188964844, 'test_nlpd': -11.154522895812988, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2560.251220703125}
+Iteration 25500/60000: Loss=2560.2512, Time=1647.7s
+Metrics at iteration 25600: {'iteration': 25600, 'train_rmse': 0.07380393892526627, 'test_rmse': 0.06981205195188522, 'train_nlpd': -10.998845100402832, 'test_nlpd': -11.21019458770752, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2231.8173828125}
+Iteration 25600/60000: Loss=2231.8174, Time=1654.0s
+Metrics at iteration 25700: {'iteration': 25700, 'train_rmse': 0.07499043643474579, 'test_rmse': 0.07001837342977524, 'train_nlpd': -10.93911361694336, 'test_nlpd': -11.137858390808105, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2797.837890625}
+Iteration 25700/60000: Loss=2797.8379, Time=1660.4s
+Metrics at iteration 25800: {'iteration': 25800, 'train_rmse': 0.07452169060707092, 'test_rmse': 0.07157684117555618, 'train_nlpd': -11.028953552246094, 'test_nlpd': -11.216581344604492, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2667.0146484375}
+Iteration 25800/60000: Loss=2667.0146, Time=1666.7s
+Metrics at iteration 25900: {'iteration': 25900, 'train_rmse': 0.07428142428398132, 'test_rmse': 0.07073915004730225, 'train_nlpd': -11.067784309387207, 'test_nlpd': -11.27471923828125, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2494.076416015625}
+Iteration 25900/60000: Loss=2494.0764, Time=1673.1s
+Metrics at iteration 26000: {'iteration': 26000, 'train_rmse': 0.07447599619626999, 'test_rmse': 0.07117920368909836, 'train_nlpd': -11.034295082092285, 'test_nlpd': -11.20872974395752, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2505.8359375}
+Iteration 26000/60000: Loss=2505.8359, Time=1679.4s
+Metrics at iteration 26100: {'iteration': 26100, 'train_rmse': 0.0735061913728714, 'test_rmse': 0.07043763250112534, 'train_nlpd': -11.117405891418457, 'test_nlpd': -11.281084060668945, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2854.630615234375}
+Iteration 26100/60000: Loss=2854.6306, Time=1685.8s
+Metrics at iteration 26200: {'iteration': 26200, 'train_rmse': 0.07423639297485352, 'test_rmse': 0.07038740813732147, 'train_nlpd': -11.143340110778809, 'test_nlpd': -11.333456993103027, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 3213.70361328125}
+Iteration 26200/60000: Loss=3213.7036, Time=1692.1s
+Metrics at iteration 26300: {'iteration': 26300, 'train_rmse': 0.07426034659147263, 'test_rmse': 0.0706872045993805, 'train_nlpd': -11.17100715637207, 'test_nlpd': -11.34681510925293, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2663.31689453125}
+Iteration 26300/60000: Loss=2663.3169, Time=1698.5s
+Metrics at iteration 26400: {'iteration': 26400, 'train_rmse': 0.0728655755519867, 'test_rmse': 0.06955497711896896, 'train_nlpd': -11.257307052612305, 'test_nlpd': -11.460612297058105, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2430.785888671875}
+Iteration 26400/60000: Loss=2430.7859, Time=1704.8s
+Metrics at iteration 26500: {'iteration': 26500, 'train_rmse': 0.07367599755525589, 'test_rmse': 0.0691358745098114, 'train_nlpd': -11.25472640991211, 'test_nlpd': -11.481502532958984, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2304.67578125}
+Iteration 26500/60000: Loss=2304.6758, Time=1711.2s
+Metrics at iteration 26600: {'iteration': 26600, 'train_rmse': 0.0724671334028244, 'test_rmse': 0.06842900067567825, 'train_nlpd': -11.356135368347168, 'test_nlpd': -11.573121070861816, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2633.954345703125}
+Iteration 26600/60000: Loss=2633.9543, Time=1717.6s
+Metrics at iteration 26700: {'iteration': 26700, 'train_rmse': 0.07291287928819656, 'test_rmse': 0.06926131248474121, 'train_nlpd': -11.318073272705078, 'test_nlpd': -11.4949312210083, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2931.5224609375}
+Iteration 26700/60000: Loss=2931.5225, Time=1724.0s
+Metrics at iteration 26800: {'iteration': 26800, 'train_rmse': 0.07255148142576218, 'test_rmse': 0.06837672740221024, 'train_nlpd': -11.408526420593262, 'test_nlpd': -11.59292221069336, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2594.255859375}
+Iteration 26800/60000: Loss=2594.2559, Time=1730.4s
+Metrics at iteration 26900: {'iteration': 26900, 'train_rmse': 0.07201433926820755, 'test_rmse': 0.06802906095981598, 'train_nlpd': -11.413640975952148, 'test_nlpd': -11.645697593688965, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2501.33203125}
+Iteration 26900/60000: Loss=2501.3320, Time=1736.8s
+Metrics at iteration 27000: {'iteration': 27000, 'train_rmse': 0.07226237654685974, 'test_rmse': 0.06890051811933517, 'train_nlpd': -11.42261791229248, 'test_nlpd': -11.645875930786133, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2505.8994140625}
+Iteration 27000/60000: Loss=2505.8994, Time=1743.2s
+Metrics at iteration 27100: {'iteration': 27100, 'train_rmse': 0.07173256576061249, 'test_rmse': 0.06750587373971939, 'train_nlpd': -11.501534461975098, 'test_nlpd': -11.718649864196777, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2828.455322265625}
+Iteration 27100/60000: Loss=2828.4553, Time=1749.5s
+Metrics at iteration 27200: {'iteration': 27200, 'train_rmse': 0.07237240672111511, 'test_rmse': 0.0690784752368927, 'train_nlpd': -11.454373359680176, 'test_nlpd': -11.685612678527832, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2926.9716796875}
+Iteration 27200/60000: Loss=2926.9717, Time=1756.1s
+Metrics at iteration 27300: {'iteration': 27300, 'train_rmse': 0.07117003202438354, 'test_rmse': 0.06732019037008286, 'train_nlpd': -11.553433418273926, 'test_nlpd': -11.77794361114502, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2236.706787109375}
+Iteration 27300/60000: Loss=2236.7068, Time=1762.5s
+Metrics at iteration 27400: {'iteration': 27400, 'train_rmse': 0.07158131897449493, 'test_rmse': 0.06828583031892776, 'train_nlpd': -11.520779609680176, 'test_nlpd': -11.736247062683105, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2663.474365234375}
+Iteration 27400/60000: Loss=2663.4744, Time=1768.9s
+Metrics at iteration 27500: {'iteration': 27500, 'train_rmse': 0.07096586376428604, 'test_rmse': 0.06764296442270279, 'train_nlpd': -11.584117889404297, 'test_nlpd': -11.812118530273438, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2683.765380859375}
+Iteration 27500/60000: Loss=2683.7654, Time=1775.3s
+Metrics at iteration 27600: {'iteration': 27600, 'train_rmse': 0.0710676833987236, 'test_rmse': 0.06698174774646759, 'train_nlpd': -11.578293800354004, 'test_nlpd': -11.818826675415039, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2759.79150390625}
+Iteration 27600/60000: Loss=2759.7915, Time=1781.7s
+Metrics at iteration 27700: {'iteration': 27700, 'train_rmse': 0.07032710313796997, 'test_rmse': 0.06733835488557816, 'train_nlpd': -11.585637092590332, 'test_nlpd': -11.77080249786377, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2792.45068359375}
+Iteration 27700/60000: Loss=2792.4507, Time=1788.2s
+Metrics at iteration 27800: {'iteration': 27800, 'train_rmse': 0.07069480419158936, 'test_rmse': 0.0667075365781784, 'train_nlpd': -11.66938591003418, 'test_nlpd': -11.904523849487305, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1876.8192138671875}
+Iteration 27800/60000: Loss=1876.8192, Time=1794.6s
+Metrics at iteration 27900: {'iteration': 27900, 'train_rmse': 0.07143005728721619, 'test_rmse': 0.0677826777100563, 'train_nlpd': -11.680424690246582, 'test_nlpd': -11.871516227722168, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2528.296875}
+Iteration 27900/60000: Loss=2528.2969, Time=1801.0s
+Metrics at iteration 28000: {'iteration': 28000, 'train_rmse': 0.0709107294678688, 'test_rmse': 0.0674360916018486, 'train_nlpd': -11.70810317993164, 'test_nlpd': -11.895472526550293, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2791.6650390625}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_28000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_28000.png
+Iteration 28000/60000: Loss=2791.6650, Time=1810.5s
+Metrics at iteration 28100: {'iteration': 28100, 'train_rmse': 0.07014264166355133, 'test_rmse': 0.06581063568592072, 'train_nlpd': -11.726495742797852, 'test_nlpd': -11.9482421875, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2056.5703125}
+Iteration 28100/60000: Loss=2056.5703, Time=1816.9s
+Metrics at iteration 28200: {'iteration': 28200, 'train_rmse': 0.0700412392616272, 'test_rmse': 0.06565897166728973, 'train_nlpd': -11.723566055297852, 'test_nlpd': -11.946168899536133, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2271.09228515625}
+Iteration 28200/60000: Loss=2271.0923, Time=1823.3s
+Metrics at iteration 28300: {'iteration': 28300, 'train_rmse': 0.06973422318696976, 'test_rmse': 0.06591065227985382, 'train_nlpd': -11.784591674804688, 'test_nlpd': -12.017476081848145, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2536.090576171875}
+Iteration 28300/60000: Loss=2536.0906, Time=1829.6s
+Metrics at iteration 28400: {'iteration': 28400, 'train_rmse': 0.07010398060083389, 'test_rmse': 0.06666858494281769, 'train_nlpd': -11.775099754333496, 'test_nlpd': -11.9729585647583, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1874.6300048828125}
+Iteration 28400/60000: Loss=1874.6300, Time=1836.0s
+Metrics at iteration 28500: {'iteration': 28500, 'train_rmse': 0.06921448558568954, 'test_rmse': 0.06557869166135788, 'train_nlpd': -11.808425903320312, 'test_nlpd': -12.032089233398438, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2147.651611328125}
+Iteration 28500/60000: Loss=2147.6516, Time=1842.4s
+Metrics at iteration 28600: {'iteration': 28600, 'train_rmse': 0.06951935589313507, 'test_rmse': 0.06637890636920929, 'train_nlpd': -11.80370044708252, 'test_nlpd': -11.980636596679688, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2205.38818359375}
+Iteration 28600/60000: Loss=2205.3882, Time=1848.8s
+Metrics at iteration 28700: {'iteration': 28700, 'train_rmse': 0.06959299743175507, 'test_rmse': 0.06580831110477448, 'train_nlpd': -11.849568367004395, 'test_nlpd': -12.073165893554688, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2561.6630859375}
+Iteration 28700/60000: Loss=2561.6631, Time=1855.1s
+Metrics at iteration 28800: {'iteration': 28800, 'train_rmse': 0.07001878321170807, 'test_rmse': 0.06654965877532959, 'train_nlpd': -11.846866607666016, 'test_nlpd': -12.059748649597168, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2349.23486328125}
+Iteration 28800/60000: Loss=2349.2349, Time=1861.5s
+Metrics at iteration 28900: {'iteration': 28900, 'train_rmse': 0.06952567398548126, 'test_rmse': 0.06601092964410782, 'train_nlpd': -11.862563133239746, 'test_nlpd': -12.0750093460083, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2177.02587890625}
+Iteration 28900/60000: Loss=2177.0259, Time=1867.9s
+Metrics at iteration 29000: {'iteration': 29000, 'train_rmse': 0.07008840143680573, 'test_rmse': 0.06652042269706726, 'train_nlpd': -11.816129684448242, 'test_nlpd': -12.049574851989746, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2559.386962890625}
+Iteration 29000/60000: Loss=2559.3870, Time=1874.3s
+Metrics at iteration 29100: {'iteration': 29100, 'train_rmse': 0.06969801336526871, 'test_rmse': 0.06578336656093597, 'train_nlpd': -11.864729881286621, 'test_nlpd': -12.06955337524414, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2043.5616455078125}
+Iteration 29100/60000: Loss=2043.5616, Time=1880.7s
+Metrics at iteration 29200: {'iteration': 29200, 'train_rmse': 0.06871319562196732, 'test_rmse': 0.06456682085990906, 'train_nlpd': -11.914448738098145, 'test_nlpd': -12.12302017211914, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2292.1171875}
+Iteration 29200/60000: Loss=2292.1172, Time=1887.2s
+Metrics at iteration 29300: {'iteration': 29300, 'train_rmse': 0.06952174752950668, 'test_rmse': 0.06559739261865616, 'train_nlpd': -11.906050682067871, 'test_nlpd': -12.125889778137207, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2345.160400390625}
+Iteration 29300/60000: Loss=2345.1604, Time=1893.6s
+Metrics at iteration 29400: {'iteration': 29400, 'train_rmse': 0.06931593269109726, 'test_rmse': 0.06544232368469238, 'train_nlpd': -11.858057022094727, 'test_nlpd': -12.043270111083984, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2322.024658203125}
+Iteration 29400/60000: Loss=2322.0247, Time=1900.0s
+Metrics at iteration 29500: {'iteration': 29500, 'train_rmse': 0.06889159232378006, 'test_rmse': 0.06570933759212494, 'train_nlpd': -11.938448905944824, 'test_nlpd': -12.149041175842285, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2022.82421875}
+Iteration 29500/60000: Loss=2022.8242, Time=1906.4s
+Metrics at iteration 29600: {'iteration': 29600, 'train_rmse': 0.06971736252307892, 'test_rmse': 0.06652520596981049, 'train_nlpd': -11.940096855163574, 'test_nlpd': -12.118709564208984, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 3007.87744140625}
+Iteration 29600/60000: Loss=3007.8774, Time=1912.7s
+Metrics at iteration 29700: {'iteration': 29700, 'train_rmse': 0.06927523761987686, 'test_rmse': 0.06535518914461136, 'train_nlpd': -11.901935577392578, 'test_nlpd': -12.13097095489502, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2198.0029296875}
+Iteration 29700/60000: Loss=2198.0029, Time=1919.2s
+Metrics at iteration 29800: {'iteration': 29800, 'train_rmse': 0.06936721503734589, 'test_rmse': 0.06550022959709167, 'train_nlpd': -11.945883750915527, 'test_nlpd': -12.209550857543945, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2458.701171875}
+Iteration 29800/60000: Loss=2458.7012, Time=1925.5s
+Metrics at iteration 29900: {'iteration': 29900, 'train_rmse': 0.0682586207985878, 'test_rmse': 0.06543509662151337, 'train_nlpd': -11.96814250946045, 'test_nlpd': -12.19195556640625, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2709.875}
+Iteration 29900/60000: Loss=2709.8750, Time=1931.9s
+Metrics at iteration 30000: {'iteration': 30000, 'train_rmse': 0.06946742534637451, 'test_rmse': 0.06513244658708572, 'train_nlpd': -11.943727493286133, 'test_nlpd': -12.16128158569336, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1715.9765625}
+Iteration 30000/60000: Loss=1715.9766, Time=1938.3s
+Metrics at iteration 30100: {'iteration': 30100, 'train_rmse': 0.06866424530744553, 'test_rmse': 0.06515805423259735, 'train_nlpd': -11.999945640563965, 'test_nlpd': -12.220251083374023, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2843.7607421875}
+Iteration 30100/60000: Loss=2843.7607, Time=1944.7s
+Metrics at iteration 30200: {'iteration': 30200, 'train_rmse': 0.06929004937410355, 'test_rmse': 0.0660334900021553, 'train_nlpd': -12.016473770141602, 'test_nlpd': -12.231831550598145, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1766.006103515625}
+Iteration 30200/60000: Loss=1766.0061, Time=1951.0s
+Metrics at iteration 30300: {'iteration': 30300, 'train_rmse': 0.06785126775503159, 'test_rmse': 0.0646282359957695, 'train_nlpd': -12.06815242767334, 'test_nlpd': -12.283357620239258, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2790.140625}
+Iteration 30300/60000: Loss=2790.1406, Time=1957.4s
+Metrics at iteration 30400: {'iteration': 30400, 'train_rmse': 0.06849849969148636, 'test_rmse': 0.06506583094596863, 'train_nlpd': -12.078179359436035, 'test_nlpd': -12.302919387817383, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2214.426025390625}
+Iteration 30400/60000: Loss=2214.4260, Time=1963.7s
+Metrics at iteration 30500: {'iteration': 30500, 'train_rmse': 0.068525031208992, 'test_rmse': 0.06483028829097748, 'train_nlpd': -12.112665176391602, 'test_nlpd': -12.338565826416016, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2540.523193359375}
+Iteration 30500/60000: Loss=2540.5232, Time=1970.1s
+Metrics at iteration 30600: {'iteration': 30600, 'train_rmse': 0.06838040053844452, 'test_rmse': 0.06429805606603622, 'train_nlpd': -12.08154296875, 'test_nlpd': -12.29306411743164, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2243.759765625}
+Iteration 30600/60000: Loss=2243.7598, Time=1976.5s
+Metrics at iteration 30700: {'iteration': 30700, 'train_rmse': 0.06853782385587692, 'test_rmse': 0.06437412649393082, 'train_nlpd': -12.096941947937012, 'test_nlpd': -12.319669723510742, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2139.74755859375}
+Iteration 30700/60000: Loss=2139.7476, Time=1982.9s
+Metrics at iteration 30800: {'iteration': 30800, 'train_rmse': 0.06901081651449203, 'test_rmse': 0.06586995720863342, 'train_nlpd': -12.105895042419434, 'test_nlpd': -12.314655303955078, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2544.98779296875}
+Iteration 30800/60000: Loss=2544.9878, Time=1989.3s
+Metrics at iteration 30900: {'iteration': 30900, 'train_rmse': 0.0686403289437294, 'test_rmse': 0.06513460725545883, 'train_nlpd': -12.086519241333008, 'test_nlpd': -12.308730125427246, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2518.6533203125}
+Iteration 30900/60000: Loss=2518.6533, Time=1995.7s
+Metrics at iteration 31000: {'iteration': 31000, 'train_rmse': 0.0679711401462555, 'test_rmse': 0.06433802843093872, 'train_nlpd': -12.129217147827148, 'test_nlpd': -12.320382118225098, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1878.385986328125}
+Iteration 31000/60000: Loss=1878.3860, Time=2002.2s
+Metrics at iteration 31100: {'iteration': 31100, 'train_rmse': 0.06815709918737411, 'test_rmse': 0.06466470658779144, 'train_nlpd': -12.134115219116211, 'test_nlpd': -12.336811065673828, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2101.470703125}
+Iteration 31100/60000: Loss=2101.4707, Time=2008.6s
+Metrics at iteration 31200: {'iteration': 31200, 'train_rmse': 0.06895074248313904, 'test_rmse': 0.06517159938812256, 'train_nlpd': -12.101781845092773, 'test_nlpd': -12.32536506652832, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2060.720703125}
+Iteration 31200/60000: Loss=2060.7207, Time=2015.0s
+Metrics at iteration 31300: {'iteration': 31300, 'train_rmse': 0.06810048222541809, 'test_rmse': 0.0649646520614624, 'train_nlpd': -12.15461540222168, 'test_nlpd': -12.362126350402832, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2186.5498046875}
+Iteration 31300/60000: Loss=2186.5498, Time=2021.4s
+Metrics at iteration 31400: {'iteration': 31400, 'train_rmse': 0.0679621547460556, 'test_rmse': 0.06427139043807983, 'train_nlpd': -12.129046440124512, 'test_nlpd': -12.345809936523438, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1548.797607421875}
+Iteration 31400/60000: Loss=1548.7976, Time=2027.9s
+Metrics at iteration 31500: {'iteration': 31500, 'train_rmse': 0.06816044449806213, 'test_rmse': 0.064935602247715, 'train_nlpd': -12.108237266540527, 'test_nlpd': -12.30276107788086, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2509.756103515625}
+Iteration 31500/60000: Loss=2509.7561, Time=2034.3s
+Metrics at iteration 31600: {'iteration': 31600, 'train_rmse': 0.06845764815807343, 'test_rmse': 0.06585274636745453, 'train_nlpd': -12.150320053100586, 'test_nlpd': -12.35062313079834, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1789.989990234375}
+Iteration 31600/60000: Loss=1789.9900, Time=2040.7s
+Metrics at iteration 31700: {'iteration': 31700, 'train_rmse': 0.06868777424097061, 'test_rmse': 0.06533635407686234, 'train_nlpd': -12.120386123657227, 'test_nlpd': -12.304430961608887, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2534.441162109375}
+Iteration 31700/60000: Loss=2534.4412, Time=2047.1s
+Metrics at iteration 31800: {'iteration': 31800, 'train_rmse': 0.0675661712884903, 'test_rmse': 0.06434834748506546, 'train_nlpd': -12.220187187194824, 'test_nlpd': -12.404622077941895, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2224.0849609375}
+Iteration 31800/60000: Loss=2224.0850, Time=2053.5s
+Metrics at iteration 31900: {'iteration': 31900, 'train_rmse': 0.06798497587442398, 'test_rmse': 0.06467705219984055, 'train_nlpd': -12.199400901794434, 'test_nlpd': -12.386613845825195, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2307.170166015625}
+Iteration 31900/60000: Loss=2307.1702, Time=2059.8s
+Metrics at iteration 32000: {'iteration': 32000, 'train_rmse': 0.06882921606302261, 'test_rmse': 0.06547176837921143, 'train_nlpd': -12.120274543762207, 'test_nlpd': -12.30269718170166, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 3168.715576171875}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_32000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_32000.png
+Iteration 32000/60000: Loss=3168.7156, Time=2069.3s
+Metrics at iteration 32100: {'iteration': 32100, 'train_rmse': 0.06843119114637375, 'test_rmse': 0.06501758098602295, 'train_nlpd': -12.202127456665039, 'test_nlpd': -12.39766788482666, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2190.532958984375}
+Iteration 32100/60000: Loss=2190.5330, Time=2075.6s
+Metrics at iteration 32200: {'iteration': 32200, 'train_rmse': 0.06801038980484009, 'test_rmse': 0.065019890666008, 'train_nlpd': -12.21044921875, 'test_nlpd': -12.406267166137695, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2066.1669921875}
+Iteration 32200/60000: Loss=2066.1670, Time=2081.9s
+Metrics at iteration 32300: {'iteration': 32300, 'train_rmse': 0.06800848245620728, 'test_rmse': 0.06445299088954926, 'train_nlpd': -12.202061653137207, 'test_nlpd': -12.404719352722168, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1981.249755859375}
+Iteration 32300/60000: Loss=1981.2498, Time=2088.3s
+Metrics at iteration 32400: {'iteration': 32400, 'train_rmse': 0.06771015375852585, 'test_rmse': 0.06486941874027252, 'train_nlpd': -12.166790962219238, 'test_nlpd': -12.337067604064941, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2225.744140625}
+Iteration 32400/60000: Loss=2225.7441, Time=2094.6s
+Metrics at iteration 32500: {'iteration': 32500, 'train_rmse': 0.06766121834516525, 'test_rmse': 0.06436355412006378, 'train_nlpd': -12.200199127197266, 'test_nlpd': -12.388972282409668, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1993.9847412109375}
+Iteration 32500/60000: Loss=1993.9847, Time=2101.0s
+Metrics at iteration 32600: {'iteration': 32600, 'train_rmse': 0.06740948557853699, 'test_rmse': 0.06415558606386185, 'train_nlpd': -12.262231826782227, 'test_nlpd': -12.43251895904541, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2154.80517578125}
+Iteration 32600/60000: Loss=2154.8052, Time=2107.3s
+Metrics at iteration 32700: {'iteration': 32700, 'train_rmse': 0.06722265481948853, 'test_rmse': 0.06371723860502243, 'train_nlpd': -12.27279281616211, 'test_nlpd': -12.470664024353027, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2406.57373046875}
+Iteration 32700/60000: Loss=2406.5737, Time=2113.7s
+Metrics at iteration 32800: {'iteration': 32800, 'train_rmse': 0.06754433363676071, 'test_rmse': 0.06408706307411194, 'train_nlpd': -12.238592147827148, 'test_nlpd': -12.433305740356445, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2071.492431640625}
+Iteration 32800/60000: Loss=2071.4924, Time=2120.0s
+Metrics at iteration 32900: {'iteration': 32900, 'train_rmse': 0.0674828514456749, 'test_rmse': 0.06410640478134155, 'train_nlpd': -12.23953914642334, 'test_nlpd': -12.457747459411621, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1890.627685546875}
+Iteration 32900/60000: Loss=1890.6277, Time=2126.4s
+Metrics at iteration 33000: {'iteration': 33000, 'train_rmse': 0.06681812554597855, 'test_rmse': 0.06389191746711731, 'train_nlpd': -12.31053638458252, 'test_nlpd': -12.501117706298828, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1811.499755859375}
+Iteration 33000/60000: Loss=1811.4998, Time=2132.7s
+Metrics at iteration 33100: {'iteration': 33100, 'train_rmse': 0.06643488258123398, 'test_rmse': 0.062450312077999115, 'train_nlpd': -12.300262451171875, 'test_nlpd': -12.49007797241211, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2052.776123046875}
+Iteration 33100/60000: Loss=2052.7761, Time=2139.1s
+Metrics at iteration 33200: {'iteration': 33200, 'train_rmse': 0.06875232607126236, 'test_rmse': 0.06455663591623306, 'train_nlpd': -12.111067771911621, 'test_nlpd': -12.29979419708252, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2537.64892578125}
+Iteration 33200/60000: Loss=2537.6489, Time=2145.5s
+Metrics at iteration 33300: {'iteration': 33300, 'train_rmse': 0.06750308722257614, 'test_rmse': 0.06432689726352692, 'train_nlpd': -12.2613525390625, 'test_nlpd': -12.452011108398438, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2245.997802734375}
+Iteration 33300/60000: Loss=2245.9978, Time=2151.9s
+Metrics at iteration 33400: {'iteration': 33400, 'train_rmse': 0.06674332171678543, 'test_rmse': 0.06379590928554535, 'train_nlpd': -12.329303741455078, 'test_nlpd': -12.52041244506836, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2184.89697265625}
+Iteration 33400/60000: Loss=2184.8970, Time=2158.3s
+Metrics at iteration 33500: {'iteration': 33500, 'train_rmse': 0.06674433499574661, 'test_rmse': 0.06351643055677414, 'train_nlpd': -12.323790550231934, 'test_nlpd': -12.521550178527832, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1784.74951171875}
+Iteration 33500/60000: Loss=1784.7495, Time=2164.7s
+Metrics at iteration 33600: {'iteration': 33600, 'train_rmse': 0.0672241598367691, 'test_rmse': 0.06402484327554703, 'train_nlpd': -12.331419944763184, 'test_nlpd': -12.529894828796387, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2525.20458984375}
+Iteration 33600/60000: Loss=2525.2046, Time=2171.2s
+Metrics at iteration 33700: {'iteration': 33700, 'train_rmse': 0.06706532090902328, 'test_rmse': 0.06446785479784012, 'train_nlpd': -12.331912994384766, 'test_nlpd': -12.552420616149902, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2445.788330078125}
+Iteration 33700/60000: Loss=2445.7883, Time=2177.6s
+Metrics at iteration 33800: {'iteration': 33800, 'train_rmse': 0.06749123334884644, 'test_rmse': 0.06430419534444809, 'train_nlpd': -12.360241889953613, 'test_nlpd': -12.543079376220703, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2266.560546875}
+Iteration 33800/60000: Loss=2266.5605, Time=2183.9s
+Metrics at iteration 33900: {'iteration': 33900, 'train_rmse': 0.06670225411653519, 'test_rmse': 0.0635332241654396, 'train_nlpd': -12.355441093444824, 'test_nlpd': -12.563591957092285, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2701.91064453125}
+Iteration 33900/60000: Loss=2701.9106, Time=2190.3s
+Metrics at iteration 34000: {'iteration': 34000, 'train_rmse': 0.06648403406143188, 'test_rmse': 0.06366303563117981, 'train_nlpd': -12.315152168273926, 'test_nlpd': -12.522501945495605, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2769.62060546875}
+Iteration 34000/60000: Loss=2769.6206, Time=2196.6s
+Metrics at iteration 34100: {'iteration': 34100, 'train_rmse': 0.06675983220338821, 'test_rmse': 0.0642775297164917, 'train_nlpd': -12.3187894821167, 'test_nlpd': -12.52536678314209, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2268.607666015625}
+Iteration 34100/60000: Loss=2268.6077, Time=2203.0s
+Metrics at iteration 34200: {'iteration': 34200, 'train_rmse': 0.06602742522954941, 'test_rmse': 0.0628741979598999, 'train_nlpd': -12.465093612670898, 'test_nlpd': -12.641305923461914, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 3027.612548828125}
+Iteration 34200/60000: Loss=3027.6125, Time=2209.3s
+Metrics at iteration 34300: {'iteration': 34300, 'train_rmse': 0.06652601063251495, 'test_rmse': 0.06331360340118408, 'train_nlpd': -12.454151153564453, 'test_nlpd': -12.66640567779541, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2146.439697265625}
+Iteration 34300/60000: Loss=2146.4397, Time=2215.7s
+Metrics at iteration 34400: {'iteration': 34400, 'train_rmse': 0.06675922125577927, 'test_rmse': 0.06332843750715256, 'train_nlpd': -12.428277015686035, 'test_nlpd': -12.624983787536621, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2268.30712890625}
+Iteration 34400/60000: Loss=2268.3071, Time=2222.0s
+Metrics at iteration 34500: {'iteration': 34500, 'train_rmse': 0.0661744475364685, 'test_rmse': 0.06255953013896942, 'train_nlpd': -12.484915733337402, 'test_nlpd': -12.6825532913208, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2470.6123046875}
+Iteration 34500/60000: Loss=2470.6123, Time=2228.4s
+Metrics at iteration 34600: {'iteration': 34600, 'train_rmse': 0.06667501479387283, 'test_rmse': 0.0631575733423233, 'train_nlpd': -12.49267864227295, 'test_nlpd': -12.693516731262207, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2302.09765625}
+Iteration 34600/60000: Loss=2302.0977, Time=2234.7s
+Metrics at iteration 34700: {'iteration': 34700, 'train_rmse': 0.06598269939422607, 'test_rmse': 0.06251692026853561, 'train_nlpd': -12.508989334106445, 'test_nlpd': -12.691523551940918, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2438.205078125}
+Iteration 34700/60000: Loss=2438.2051, Time=2241.1s
+Metrics at iteration 34800: {'iteration': 34800, 'train_rmse': 0.06687895208597183, 'test_rmse': 0.06312289834022522, 'train_nlpd': -12.508033752441406, 'test_nlpd': -12.741521835327148, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 3209.4482421875}
+Iteration 34800/60000: Loss=3209.4482, Time=2247.5s
+Metrics at iteration 34900: {'iteration': 34900, 'train_rmse': 0.06654387712478638, 'test_rmse': 0.06335894763469696, 'train_nlpd': -12.531549453735352, 'test_nlpd': -12.740870475769043, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2268.95068359375}
+Iteration 34900/60000: Loss=2268.9507, Time=2253.8s
+Metrics at iteration 35000: {'iteration': 35000, 'train_rmse': 0.06683513522148132, 'test_rmse': 0.06422614306211472, 'train_nlpd': -12.501566886901855, 'test_nlpd': -12.706857681274414, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2418.274169921875}
+Iteration 35000/60000: Loss=2418.2742, Time=2260.2s
+Metrics at iteration 35100: {'iteration': 35100, 'train_rmse': 0.06558973342180252, 'test_rmse': 0.06228986382484436, 'train_nlpd': -12.599950790405273, 'test_nlpd': -12.81500244140625, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1983.3936767578125}
+Iteration 35100/60000: Loss=1983.3937, Time=2266.6s
+Metrics at iteration 35200: {'iteration': 35200, 'train_rmse': 0.06655148416757584, 'test_rmse': 0.06290892511606216, 'train_nlpd': -12.561528205871582, 'test_nlpd': -12.760093688964844, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1695.078857421875}
+Iteration 35200/60000: Loss=1695.0789, Time=2272.9s
+Metrics at iteration 35300: {'iteration': 35300, 'train_rmse': 0.06581871956586838, 'test_rmse': 0.0626198947429657, 'train_nlpd': -12.580419540405273, 'test_nlpd': -12.786230087280273, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1219.4490966796875}
+Iteration 35300/60000: Loss=1219.4491, Time=2279.3s
+Metrics at iteration 35400: {'iteration': 35400, 'train_rmse': 0.06641828268766403, 'test_rmse': 0.06298817694187164, 'train_nlpd': -12.568802833557129, 'test_nlpd': -12.771024703979492, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2090.6591796875}
+Iteration 35400/60000: Loss=2090.6592, Time=2285.8s
+Metrics at iteration 35500: {'iteration': 35500, 'train_rmse': 0.06569893658161163, 'test_rmse': 0.06255494803190231, 'train_nlpd': -12.598899841308594, 'test_nlpd': -12.805774688720703, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2097.4814453125}
+Iteration 35500/60000: Loss=2097.4814, Time=2292.2s
+Metrics at iteration 35600: {'iteration': 35600, 'train_rmse': 0.06545303016901016, 'test_rmse': 0.06201665848493576, 'train_nlpd': -12.65369701385498, 'test_nlpd': -12.868244171142578, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1674.240966796875}
+Iteration 35600/60000: Loss=1674.2410, Time=2298.5s
+Metrics at iteration 35700: {'iteration': 35700, 'train_rmse': 0.06594932079315186, 'test_rmse': 0.0625338926911354, 'train_nlpd': -12.637101173400879, 'test_nlpd': -12.874792098999023, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2000.997314453125}
+Iteration 35700/60000: Loss=2000.9973, Time=2305.0s
+Metrics at iteration 35800: {'iteration': 35800, 'train_rmse': 0.06527723371982574, 'test_rmse': 0.06166382133960724, 'train_nlpd': -12.63357925415039, 'test_nlpd': -12.825267791748047, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2104.9111328125}
+Iteration 35800/60000: Loss=2104.9111, Time=2311.4s
+Metrics at iteration 35900: {'iteration': 35900, 'train_rmse': 0.06610695272684097, 'test_rmse': 0.0629076212644577, 'train_nlpd': -12.615561485290527, 'test_nlpd': -12.804443359375, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2540.56787109375}
+Iteration 35900/60000: Loss=2540.5679, Time=2317.7s
+Metrics at iteration 36000: {'iteration': 36000, 'train_rmse': 0.0657353550195694, 'test_rmse': 0.06279532611370087, 'train_nlpd': -12.635541915893555, 'test_nlpd': -12.800285339355469, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1955.257568359375}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_36000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_36000.png
+Iteration 36000/60000: Loss=1955.2576, Time=2327.3s
+Metrics at iteration 36100: {'iteration': 36100, 'train_rmse': 0.06631901860237122, 'test_rmse': 0.0625612810254097, 'train_nlpd': -12.612135887145996, 'test_nlpd': -12.829845428466797, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2455.177734375}
+Iteration 36100/60000: Loss=2455.1777, Time=2333.7s
+Metrics at iteration 36200: {'iteration': 36200, 'train_rmse': 0.06593716144561768, 'test_rmse': 0.06263149529695511, 'train_nlpd': -12.562222480773926, 'test_nlpd': -12.790018081665039, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2397.385498046875}
+Iteration 36200/60000: Loss=2397.3855, Time=2340.1s
+Metrics at iteration 36300: {'iteration': 36300, 'train_rmse': 0.06609207391738892, 'test_rmse': 0.06279201060533524, 'train_nlpd': -12.593317985534668, 'test_nlpd': -12.808361053466797, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1274.9329833984375}
+Iteration 36300/60000: Loss=1274.9330, Time=2346.6s
+Metrics at iteration 36400: {'iteration': 36400, 'train_rmse': 0.06590495258569717, 'test_rmse': 0.062248408794403076, 'train_nlpd': -12.63585090637207, 'test_nlpd': -12.859830856323242, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2708.28076171875}
+Iteration 36400/60000: Loss=2708.2808, Time=2353.0s
+Metrics at iteration 36500: {'iteration': 36500, 'train_rmse': 0.06613785028457642, 'test_rmse': 0.06300584226846695, 'train_nlpd': -12.616741180419922, 'test_nlpd': -12.838982582092285, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1923.22998046875}
+Iteration 36500/60000: Loss=1923.2300, Time=2359.4s
+Metrics at iteration 36600: {'iteration': 36600, 'train_rmse': 0.06533940136432648, 'test_rmse': 0.06172161549329758, 'train_nlpd': -12.603422164916992, 'test_nlpd': -12.789677619934082, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2115.43115234375}
+Iteration 36600/60000: Loss=2115.4312, Time=2365.8s
+Metrics at iteration 36700: {'iteration': 36700, 'train_rmse': 0.06592193245887756, 'test_rmse': 0.06313052773475647, 'train_nlpd': -12.575395584106445, 'test_nlpd': -12.768092155456543, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2388.093505859375}
+Iteration 36700/60000: Loss=2388.0935, Time=2372.2s
+Metrics at iteration 36800: {'iteration': 36800, 'train_rmse': 0.0661853551864624, 'test_rmse': 0.06274785101413727, 'train_nlpd': -12.536605834960938, 'test_nlpd': -12.735566139221191, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2122.294921875}
+Iteration 36800/60000: Loss=2122.2949, Time=2378.6s
+Metrics at iteration 36900: {'iteration': 36900, 'train_rmse': 0.0656278058886528, 'test_rmse': 0.062193673104047775, 'train_nlpd': -12.587225914001465, 'test_nlpd': -12.796414375305176, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2098.9287109375}
+Iteration 36900/60000: Loss=2098.9287, Time=2385.0s
+Metrics at iteration 37000: {'iteration': 37000, 'train_rmse': 0.06711984425783157, 'test_rmse': 0.06376443058252335, 'train_nlpd': -12.558513641357422, 'test_nlpd': -12.771418571472168, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2711.6357421875}
+Iteration 37000/60000: Loss=2711.6357, Time=2391.3s
+Metrics at iteration 37100: {'iteration': 37100, 'train_rmse': 0.06632807105779648, 'test_rmse': 0.06328809261322021, 'train_nlpd': -12.548145294189453, 'test_nlpd': -12.753581047058105, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2420.703369140625}
+Iteration 37100/60000: Loss=2420.7034, Time=2397.7s
+Metrics at iteration 37200: {'iteration': 37200, 'train_rmse': 0.06669159978628159, 'test_rmse': 0.06349284946918488, 'train_nlpd': -12.580440521240234, 'test_nlpd': -12.756065368652344, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1843.821044921875}
+Iteration 37200/60000: Loss=1843.8210, Time=2404.1s
+Metrics at iteration 37300: {'iteration': 37300, 'train_rmse': 0.06632771342992783, 'test_rmse': 0.06395049393177032, 'train_nlpd': -12.586567878723145, 'test_nlpd': -12.770417213439941, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1737.0078125}
+Iteration 37300/60000: Loss=1737.0078, Time=2410.4s
+Metrics at iteration 37400: {'iteration': 37400, 'train_rmse': 0.0658382698893547, 'test_rmse': 0.06219184771180153, 'train_nlpd': -12.678014755249023, 'test_nlpd': -12.91494083404541, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1373.419189453125}
+Iteration 37400/60000: Loss=1373.4192, Time=2416.8s
+Metrics at iteration 37500: {'iteration': 37500, 'train_rmse': 0.06518440693616867, 'test_rmse': 0.06240004673600197, 'train_nlpd': -12.695341110229492, 'test_nlpd': -12.884626388549805, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2471.765869140625}
+Iteration 37500/60000: Loss=2471.7659, Time=2423.1s
+Metrics at iteration 37600: {'iteration': 37600, 'train_rmse': 0.06582122296094894, 'test_rmse': 0.062315721064805984, 'train_nlpd': -12.615662574768066, 'test_nlpd': -12.82908821105957, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1641.090576171875}
+Iteration 37600/60000: Loss=1641.0906, Time=2429.5s
+Metrics at iteration 37700: {'iteration': 37700, 'train_rmse': 0.06557265669107437, 'test_rmse': 0.06245686858892441, 'train_nlpd': -12.67099380493164, 'test_nlpd': -12.875236511230469, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1633.5909423828125}
+Iteration 37700/60000: Loss=1633.5909, Time=2435.8s
+Metrics at iteration 37800: {'iteration': 37800, 'train_rmse': 0.06617341190576553, 'test_rmse': 0.06252534687519073, 'train_nlpd': -12.616389274597168, 'test_nlpd': -12.823307991027832, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2389.406005859375}
+Iteration 37800/60000: Loss=2389.4060, Time=2442.2s
+Metrics at iteration 37900: {'iteration': 37900, 'train_rmse': 0.06551484018564224, 'test_rmse': 0.06314142048358917, 'train_nlpd': -12.698986053466797, 'test_nlpd': -12.903268814086914, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1629.301513671875}
+Iteration 37900/60000: Loss=1629.3015, Time=2448.6s
+Metrics at iteration 38000: {'iteration': 38000, 'train_rmse': 0.06932608783245087, 'test_rmse': 0.06534484028816223, 'train_nlpd': -12.011713981628418, 'test_nlpd': -12.221083641052246, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2380.2119140625}
+Iteration 38000/60000: Loss=2380.2119, Time=2455.0s
+Metrics at iteration 38100: {'iteration': 38100, 'train_rmse': 0.06681883335113525, 'test_rmse': 0.06357154250144958, 'train_nlpd': -12.344270706176758, 'test_nlpd': -12.574185371398926, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2669.43603515625}
+Iteration 38100/60000: Loss=2669.4360, Time=2461.4s
+Metrics at iteration 38200: {'iteration': 38200, 'train_rmse': 0.06631111353635788, 'test_rmse': 0.06305526196956635, 'train_nlpd': -12.544618606567383, 'test_nlpd': -12.73345947265625, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1672.7265625}
+Iteration 38200/60000: Loss=1672.7266, Time=2467.8s
+Metrics at iteration 38300: {'iteration': 38300, 'train_rmse': 0.06557807326316833, 'test_rmse': 0.0629439577460289, 'train_nlpd': -12.648409843444824, 'test_nlpd': -12.846833229064941, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1305.2078857421875}
+Iteration 38300/60000: Loss=1305.2079, Time=2474.2s
+Metrics at iteration 38400: {'iteration': 38400, 'train_rmse': 0.06620907038450241, 'test_rmse': 0.06191134825348854, 'train_nlpd': -12.661649703979492, 'test_nlpd': -12.902192115783691, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1996.7125244140625}
+Iteration 38400/60000: Loss=1996.7125, Time=2480.7s
+Metrics at iteration 38500: {'iteration': 38500, 'train_rmse': 0.06581220030784607, 'test_rmse': 0.06218518316745758, 'train_nlpd': -12.728229522705078, 'test_nlpd': -12.985688209533691, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1689.8389892578125}
+Iteration 38500/60000: Loss=1689.8390, Time=2487.1s
+Metrics at iteration 38600: {'iteration': 38600, 'train_rmse': 0.06457047909498215, 'test_rmse': 0.06106455624103546, 'train_nlpd': -12.836697578430176, 'test_nlpd': -13.036365509033203, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2056.683837890625}
+Iteration 38600/60000: Loss=2056.6838, Time=2493.5s
+Metrics at iteration 38700: {'iteration': 38700, 'train_rmse': 0.0651402696967125, 'test_rmse': 0.06204187497496605, 'train_nlpd': -12.808600425720215, 'test_nlpd': -13.028656005859375, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2636.923583984375}
+Iteration 38700/60000: Loss=2636.9236, Time=2500.0s
+Metrics at iteration 38800: {'iteration': 38800, 'train_rmse': 0.06518905609846115, 'test_rmse': 0.0616026297211647, 'train_nlpd': -12.746821403503418, 'test_nlpd': -12.943132400512695, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2627.38623046875}
+Iteration 38800/60000: Loss=2627.3862, Time=2506.3s
+Metrics at iteration 38900: {'iteration': 38900, 'train_rmse': 0.06587596237659454, 'test_rmse': 0.062437836080789566, 'train_nlpd': -12.72050666809082, 'test_nlpd': -12.948269844055176, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1186.555419921875}
+Iteration 38900/60000: Loss=1186.5554, Time=2512.7s
+Metrics at iteration 39000: {'iteration': 39000, 'train_rmse': 0.06583202630281448, 'test_rmse': 0.06199774891138077, 'train_nlpd': -12.741194725036621, 'test_nlpd': -12.972383499145508, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1798.891845703125}
+Iteration 39000/60000: Loss=1798.8918, Time=2519.1s
+Metrics at iteration 39100: {'iteration': 39100, 'train_rmse': 0.06641535460948944, 'test_rmse': 0.06293570250272751, 'train_nlpd': -12.715866088867188, 'test_nlpd': -12.937889099121094, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2566.37158203125}
+Iteration 39100/60000: Loss=2566.3716, Time=2525.4s
+Metrics at iteration 39200: {'iteration': 39200, 'train_rmse': 0.06610865890979767, 'test_rmse': 0.06285345554351807, 'train_nlpd': -12.715038299560547, 'test_nlpd': -12.896674156188965, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2106.492431640625}
+Iteration 39200/60000: Loss=2106.4924, Time=2531.8s
+Metrics at iteration 39300: {'iteration': 39300, 'train_rmse': 0.06547898799180984, 'test_rmse': 0.06220610812306404, 'train_nlpd': -12.734464645385742, 'test_nlpd': -12.931025505065918, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1429.6502685546875}
+Iteration 39300/60000: Loss=1429.6503, Time=2538.3s
+Metrics at iteration 39400: {'iteration': 39400, 'train_rmse': 0.0651668980717659, 'test_rmse': 0.061896320432424545, 'train_nlpd': -12.81821346282959, 'test_nlpd': -13.058897018432617, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1681.009765625}
+Iteration 39400/60000: Loss=1681.0098, Time=2544.7s
+Metrics at iteration 39500: {'iteration': 39500, 'train_rmse': 0.06593064218759537, 'test_rmse': 0.06233038008213043, 'train_nlpd': -12.770317077636719, 'test_nlpd': -12.997294425964355, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1552.084716796875}
+Iteration 39500/60000: Loss=1552.0847, Time=2551.1s
+Metrics at iteration 39600: {'iteration': 39600, 'train_rmse': 0.06532415002584457, 'test_rmse': 0.061957214027643204, 'train_nlpd': -12.80803394317627, 'test_nlpd': -13.0430269241333, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1849.017578125}
+Iteration 39600/60000: Loss=1849.0176, Time=2557.5s
+Metrics at iteration 39700: {'iteration': 39700, 'train_rmse': 0.06611848622560501, 'test_rmse': 0.06344234943389893, 'train_nlpd': -12.817391395568848, 'test_nlpd': -13.01198959350586, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1877.8935546875}
+Iteration 39700/60000: Loss=1877.8936, Time=2563.8s
+Metrics at iteration 39800: {'iteration': 39800, 'train_rmse': 0.06579738855361938, 'test_rmse': 0.06206012889742851, 'train_nlpd': -12.818316459655762, 'test_nlpd': -13.02698802947998, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2476.332275390625}
+Iteration 39800/60000: Loss=2476.3323, Time=2570.3s
+Metrics at iteration 39900: {'iteration': 39900, 'train_rmse': 0.06535772234201431, 'test_rmse': 0.06274720281362534, 'train_nlpd': -12.81952953338623, 'test_nlpd': -13.032572746276855, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2023.26611328125}
+Iteration 39900/60000: Loss=2023.2661, Time=2576.7s
+Metrics at iteration 40000: {'iteration': 40000, 'train_rmse': 0.06519286334514618, 'test_rmse': 0.06130925193428993, 'train_nlpd': -12.860300064086914, 'test_nlpd': -13.094513893127441, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2135.2998046875}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_40000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_40000.png
+Iteration 40000/60000: Loss=2135.2998, Time=2586.2s
+Metrics at iteration 40100: {'iteration': 40100, 'train_rmse': 0.06514745950698853, 'test_rmse': 0.06191525235772133, 'train_nlpd': -12.847189903259277, 'test_nlpd': -13.07811164855957, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1780.150634765625}
+Iteration 40100/60000: Loss=1780.1506, Time=2592.7s
+Metrics at iteration 40200: {'iteration': 40200, 'train_rmse': 0.06545297801494598, 'test_rmse': 0.06161366403102875, 'train_nlpd': -12.847209930419922, 'test_nlpd': -13.068573951721191, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1477.27587890625}
+Iteration 40200/60000: Loss=1477.2759, Time=2599.0s
+Metrics at iteration 40300: {'iteration': 40300, 'train_rmse': 0.06653818488121033, 'test_rmse': 0.0630737692117691, 'train_nlpd': -12.805265426635742, 'test_nlpd': -13.051950454711914, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1447.047607421875}
+Iteration 40300/60000: Loss=1447.0476, Time=2605.4s
+Metrics at iteration 40400: {'iteration': 40400, 'train_rmse': 0.06503947079181671, 'test_rmse': 0.061019983142614365, 'train_nlpd': -12.905548095703125, 'test_nlpd': -13.137657165527344, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2216.5986328125}
+Iteration 40400/60000: Loss=2216.5986, Time=2611.7s
+Metrics at iteration 40500: {'iteration': 40500, 'train_rmse': 0.06452067941427231, 'test_rmse': 0.06155052036046982, 'train_nlpd': -12.92796516418457, 'test_nlpd': -13.157194137573242, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1905.1842041015625}
+Iteration 40500/60000: Loss=1905.1842, Time=2618.1s
+Metrics at iteration 40600: {'iteration': 40600, 'train_rmse': 0.06530050188302994, 'test_rmse': 0.06190144643187523, 'train_nlpd': -12.909563064575195, 'test_nlpd': -13.134140014648438, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2062.755615234375}
+Iteration 40600/60000: Loss=2062.7556, Time=2624.4s
+Metrics at iteration 40700: {'iteration': 40700, 'train_rmse': 0.06421859562397003, 'test_rmse': 0.06098005920648575, 'train_nlpd': -12.95698356628418, 'test_nlpd': -13.1796875, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1994.8961181640625}
+Iteration 40700/60000: Loss=1994.8961, Time=2630.8s
+Metrics at iteration 40800: {'iteration': 40800, 'train_rmse': 0.06442546099424362, 'test_rmse': 0.06089656054973602, 'train_nlpd': -12.925232887268066, 'test_nlpd': -13.136236190795898, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2227.72998046875}
+Iteration 40800/60000: Loss=2227.7300, Time=2637.1s
+Metrics at iteration 40900: {'iteration': 40900, 'train_rmse': 0.0645536333322525, 'test_rmse': 0.060968440026044846, 'train_nlpd': -12.881501197814941, 'test_nlpd': -13.087953567504883, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2139.982666015625}
+Iteration 40900/60000: Loss=2139.9827, Time=2643.5s
+Metrics at iteration 41000: {'iteration': 41000, 'train_rmse': 0.06413766741752625, 'test_rmse': 0.06032291427254677, 'train_nlpd': -12.922873497009277, 'test_nlpd': -13.150275230407715, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1210.59033203125}
+Iteration 41000/60000: Loss=1210.5903, Time=2649.9s
+Metrics at iteration 41100: {'iteration': 41100, 'train_rmse': 0.06511304527521133, 'test_rmse': 0.061685554683208466, 'train_nlpd': -12.89047622680664, 'test_nlpd': -13.117197036743164, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2201.21826171875}
+Iteration 41100/60000: Loss=2201.2183, Time=2656.2s
+Metrics at iteration 41200: {'iteration': 41200, 'train_rmse': 0.06454755365848541, 'test_rmse': 0.06133674457669258, 'train_nlpd': -12.890679359436035, 'test_nlpd': -13.11461353302002, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1953.6787109375}
+Iteration 41200/60000: Loss=1953.6787, Time=2662.6s
+Metrics at iteration 41300: {'iteration': 41300, 'train_rmse': 0.06480948626995087, 'test_rmse': 0.06178555265069008, 'train_nlpd': -12.890633583068848, 'test_nlpd': -13.104520797729492, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1689.085693359375}
+Iteration 41300/60000: Loss=1689.0857, Time=2669.1s
+Metrics at iteration 41400: {'iteration': 41400, 'train_rmse': 0.06505279242992401, 'test_rmse': 0.061758026480674744, 'train_nlpd': -12.890576362609863, 'test_nlpd': -13.107470512390137, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1832.296142578125}
+Iteration 41400/60000: Loss=1832.2961, Time=2675.4s
+Metrics at iteration 41500: {'iteration': 41500, 'train_rmse': 0.06569032371044159, 'test_rmse': 0.06224914640188217, 'train_nlpd': -12.817214965820312, 'test_nlpd': -13.027202606201172, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2367.7998046875}
+Iteration 41500/60000: Loss=2367.7998, Time=2681.8s
+Metrics at iteration 41600: {'iteration': 41600, 'train_rmse': 0.06451353430747986, 'test_rmse': 0.0610671229660511, 'train_nlpd': -12.878464698791504, 'test_nlpd': -13.079456329345703, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2641.08740234375}
+Iteration 41600/60000: Loss=2641.0874, Time=2688.2s
+Metrics at iteration 41700: {'iteration': 41700, 'train_rmse': 0.06514990329742432, 'test_rmse': 0.061041492968797684, 'train_nlpd': -12.873932838439941, 'test_nlpd': -13.109965324401855, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1908.0224609375}
+Iteration 41700/60000: Loss=1908.0225, Time=2694.6s
+Metrics at iteration 41800: {'iteration': 41800, 'train_rmse': 0.06524106860160828, 'test_rmse': 0.062471840530633926, 'train_nlpd': -12.874698638916016, 'test_nlpd': -13.093589782714844, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2076.343017578125}
+Iteration 41800/60000: Loss=2076.3430, Time=2701.0s
+Metrics at iteration 41900: {'iteration': 41900, 'train_rmse': 0.0650719478726387, 'test_rmse': 0.06213878467679024, 'train_nlpd': -12.787689208984375, 'test_nlpd': -12.993975639343262, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2380.4453125}
+Iteration 41900/60000: Loss=2380.4453, Time=2707.4s
+Metrics at iteration 42000: {'iteration': 42000, 'train_rmse': 0.0653008446097374, 'test_rmse': 0.06163922697305679, 'train_nlpd': -12.830256462097168, 'test_nlpd': -13.038630485534668, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2294.19580078125}
+Iteration 42000/60000: Loss=2294.1958, Time=2713.8s
+Metrics at iteration 42100: {'iteration': 42100, 'train_rmse': 0.06436044722795486, 'test_rmse': 0.06068183854222298, 'train_nlpd': -12.872078895568848, 'test_nlpd': -13.08061695098877, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1782.522216796875}
+Iteration 42100/60000: Loss=1782.5222, Time=2720.2s
+Metrics at iteration 42200: {'iteration': 42200, 'train_rmse': 0.06462326645851135, 'test_rmse': 0.06067914143204689, 'train_nlpd': -12.946061134338379, 'test_nlpd': -13.198535919189453, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1937.766357421875}
+Iteration 42200/60000: Loss=1937.7664, Time=2726.6s
+Metrics at iteration 42300: {'iteration': 42300, 'train_rmse': 0.06450796127319336, 'test_rmse': 0.0611402802169323, 'train_nlpd': -12.910381317138672, 'test_nlpd': -13.12049674987793, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2334.260498046875}
+Iteration 42300/60000: Loss=2334.2605, Time=2732.9s
+Metrics at iteration 42400: {'iteration': 42400, 'train_rmse': 0.06462830305099487, 'test_rmse': 0.06154801324009895, 'train_nlpd': -12.936924934387207, 'test_nlpd': -13.181660652160645, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1874.0419921875}
+Iteration 42400/60000: Loss=1874.0420, Time=2739.3s
+Metrics at iteration 42500: {'iteration': 42500, 'train_rmse': 0.06450975686311722, 'test_rmse': 0.06087493151426315, 'train_nlpd': -12.962929725646973, 'test_nlpd': -13.183439254760742, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1296.513916015625}
+Iteration 42500/60000: Loss=1296.5139, Time=2745.6s
+Metrics at iteration 42600: {'iteration': 42600, 'train_rmse': 0.0641411542892456, 'test_rmse': 0.0602039098739624, 'train_nlpd': -13.011923789978027, 'test_nlpd': -13.218329429626465, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2081.63525390625}
+Iteration 42600/60000: Loss=2081.6353, Time=2752.0s
+Metrics at iteration 42700: {'iteration': 42700, 'train_rmse': 0.06472404301166534, 'test_rmse': 0.06158881261944771, 'train_nlpd': -12.984240531921387, 'test_nlpd': -13.195076942443848, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1955.788330078125}
+Iteration 42700/60000: Loss=1955.7883, Time=2758.5s
+Metrics at iteration 42800: {'iteration': 42800, 'train_rmse': 0.06388646364212036, 'test_rmse': 0.06092214956879616, 'train_nlpd': -13.029744148254395, 'test_nlpd': -13.233464241027832, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1345.4871826171875}
+Iteration 42800/60000: Loss=1345.4872, Time=2764.9s
+Metrics at iteration 42900: {'iteration': 42900, 'train_rmse': 0.0640922337770462, 'test_rmse': 0.06098509952425957, 'train_nlpd': -13.030766487121582, 'test_nlpd': -13.233692169189453, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2205.6484375}
+Iteration 42900/60000: Loss=2205.6484, Time=2771.3s
+Metrics at iteration 43000: {'iteration': 43000, 'train_rmse': 0.06396008282899857, 'test_rmse': 0.06062573567032814, 'train_nlpd': -13.070191383361816, 'test_nlpd': -13.250280380249023, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2061.268798828125}
+Iteration 43000/60000: Loss=2061.2688, Time=2777.7s
+Metrics at iteration 43100: {'iteration': 43100, 'train_rmse': 0.06427352875471115, 'test_rmse': 0.06120146065950394, 'train_nlpd': -13.095372200012207, 'test_nlpd': -13.30872917175293, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2223.88916015625}
+Iteration 43100/60000: Loss=2223.8892, Time=2784.1s
+Metrics at iteration 43200: {'iteration': 43200, 'train_rmse': 0.0644305944442749, 'test_rmse': 0.06108890846371651, 'train_nlpd': -13.068136215209961, 'test_nlpd': -13.269074440002441, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1494.2706298828125}
+Iteration 43200/60000: Loss=1494.2706, Time=2790.5s
+Metrics at iteration 43300: {'iteration': 43300, 'train_rmse': 0.06443917751312256, 'test_rmse': 0.06114213541150093, 'train_nlpd': -13.028197288513184, 'test_nlpd': -13.241246223449707, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1591.8157958984375}
+Iteration 43300/60000: Loss=1591.8158, Time=2796.9s
+Metrics at iteration 43400: {'iteration': 43400, 'train_rmse': 0.06353869289159775, 'test_rmse': 0.06030555069446564, 'train_nlpd': -13.040377616882324, 'test_nlpd': -13.227256774902344, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2030.560791015625}
+Iteration 43400/60000: Loss=2030.5608, Time=2803.3s
+Metrics at iteration 43500: {'iteration': 43500, 'train_rmse': 0.06444025784730911, 'test_rmse': 0.06086617335677147, 'train_nlpd': -13.010748863220215, 'test_nlpd': -13.230165481567383, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1918.892578125}
+Iteration 43500/60000: Loss=1918.8926, Time=2809.6s
+Metrics at iteration 43600: {'iteration': 43600, 'train_rmse': 0.06390008330345154, 'test_rmse': 0.061092082411050797, 'train_nlpd': -13.007973670959473, 'test_nlpd': -13.211308479309082, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2100.64697265625}
+Iteration 43600/60000: Loss=2100.6470, Time=2816.0s
+Metrics at iteration 43700: {'iteration': 43700, 'train_rmse': 0.06356289237737656, 'test_rmse': 0.0605049692094326, 'train_nlpd': -13.03703784942627, 'test_nlpd': -13.264613151550293, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1938.7437744140625}
+Iteration 43700/60000: Loss=1938.7438, Time=2822.4s
+Metrics at iteration 43800: {'iteration': 43800, 'train_rmse': 0.06424251943826675, 'test_rmse': 0.0605815090239048, 'train_nlpd': -12.980923652648926, 'test_nlpd': -13.218751907348633, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2025.086669921875}
+Iteration 43800/60000: Loss=2025.0867, Time=2828.7s
+Metrics at iteration 43900: {'iteration': 43900, 'train_rmse': 0.06428605318069458, 'test_rmse': 0.06141778081655502, 'train_nlpd': -12.993687629699707, 'test_nlpd': -13.228822708129883, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2253.048095703125}
+Iteration 43900/60000: Loss=2253.0481, Time=2835.1s
+Metrics at iteration 44000: {'iteration': 44000, 'train_rmse': 0.06402390450239182, 'test_rmse': 0.06042307987809181, 'train_nlpd': -13.026206970214844, 'test_nlpd': -13.252195358276367, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2358.25439453125}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_44000_seed_17.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_44000.png
+Iteration 44000/60000: Loss=2358.2544, Time=2844.8s
+Metrics at iteration 44100: {'iteration': 44100, 'train_rmse': 0.06424102932214737, 'test_rmse': 0.06163701042532921, 'train_nlpd': -12.986980438232422, 'test_nlpd': -13.189104080200195, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1669.70751953125}
+Iteration 44100/60000: Loss=1669.7075, Time=2851.1s
+Metrics at iteration 44200: {'iteration': 44200, 'train_rmse': 0.06445533037185669, 'test_rmse': 0.06102827563881874, 'train_nlpd': -12.981443405151367, 'test_nlpd': -13.176301002502441, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2258.521728515625}
+Iteration 44200/60000: Loss=2258.5217, Time=2857.5s
+Metrics at iteration 44300: {'iteration': 44300, 'train_rmse': 0.06622694432735443, 'test_rmse': 0.06255639344453812, 'train_nlpd': -12.491447448730469, 'test_nlpd': -12.698200225830078, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2234.490966796875}
+Iteration 44300/60000: Loss=2234.4910, Time=2863.9s
+Metrics at iteration 44400: {'iteration': 44400, 'train_rmse': 0.06560689955949783, 'test_rmse': 0.06227342411875725, 'train_nlpd': -12.73759937286377, 'test_nlpd': -12.939309120178223, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2555.95751953125}
+Iteration 44400/60000: Loss=2555.9575, Time=2870.2s
+Metrics at iteration 44500: {'iteration': 44500, 'train_rmse': 0.06483107805252075, 'test_rmse': 0.06118982285261154, 'train_nlpd': -12.831072807312012, 'test_nlpd': -13.034235954284668, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1732.238525390625}
+Iteration 44500/60000: Loss=1732.2385, Time=2876.5s
+Metrics at iteration 44600: {'iteration': 44600, 'train_rmse': 0.0648665726184845, 'test_rmse': 0.06184658408164978, 'train_nlpd': -12.965991973876953, 'test_nlpd': -13.160219192504883, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1732.486572265625}
+Iteration 44600/60000: Loss=1732.4866, Time=2882.9s
+Metrics at iteration 44700: {'iteration': 44700, 'train_rmse': 0.06427723169326782, 'test_rmse': 0.06001696363091469, 'train_nlpd': -12.959157943725586, 'test_nlpd': -13.17997932434082, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1843.435546875}
+Iteration 44700/60000: Loss=1843.4355, Time=2889.3s
+Metrics at iteration 44800: {'iteration': 44800, 'train_rmse': 0.06435221433639526, 'test_rmse': 0.06081788241863251, 'train_nlpd': -12.999456405639648, 'test_nlpd': -13.196866989135742, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1973.5751953125}
+Iteration 44800/60000: Loss=1973.5752, Time=2895.7s
+Metrics at iteration 44900: {'iteration': 44900, 'train_rmse': 0.06507125496864319, 'test_rmse': 0.062063682824373245, 'train_nlpd': -12.93030834197998, 'test_nlpd': -13.112753868103027, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2066.30419921875}
+Iteration 44900/60000: Loss=2066.3042, Time=2902.0s
+Metrics at iteration 45000: {'iteration': 45000, 'train_rmse': 0.06487882137298584, 'test_rmse': 0.06154242157936096, 'train_nlpd': -12.974061012268066, 'test_nlpd': -13.20907211303711, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2533.463623046875}
+Iteration 45000/60000: Loss=2533.4636, Time=2908.4s
+Metrics at iteration 45100: {'iteration': 45100, 'train_rmse': 0.06446926295757294, 'test_rmse': 0.061637748032808304, 'train_nlpd': -12.956527709960938, 'test_nlpd': -13.151007652282715, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1992.666748046875}
+Iteration 45100/60000: Loss=1992.6667, Time=2914.8s
+Metrics at iteration 45200: {'iteration': 45200, 'train_rmse': 0.06403626501560211, 'test_rmse': 0.060743238776922226, 'train_nlpd': -12.974119186401367, 'test_nlpd': -13.179465293884277, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1943.9007568359375}
+Iteration 45200/60000: Loss=1943.9008, Time=2921.2s
+Metrics at iteration 45300: {'iteration': 45300, 'train_rmse': 0.06412854045629501, 'test_rmse': 0.06055135279893875, 'train_nlpd': -13.04859733581543, 'test_nlpd': -13.261880874633789, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1696.893310546875}
+Iteration 45300/60000: Loss=1696.8933, Time=2927.6s
+Metrics at iteration 45400: {'iteration': 45400, 'train_rmse': 0.06452690064907074, 'test_rmse': 0.061247777193784714, 'train_nlpd': -13.006190299987793, 'test_nlpd': -13.242207527160645, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1319.408447265625}
+Iteration 45400/60000: Loss=1319.4084, Time=2934.0s
+Metrics at iteration 45500: {'iteration': 45500, 'train_rmse': 0.06532216817140579, 'test_rmse': 0.06142517179250717, 'train_nlpd': -12.951239585876465, 'test_nlpd': -13.171611785888672, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2198.36474609375}
+Iteration 45500/60000: Loss=2198.3647, Time=2940.5s
+Metrics at iteration 45600: {'iteration': 45600, 'train_rmse': 0.06538183987140656, 'test_rmse': 0.06162457540631294, 'train_nlpd': -12.896489143371582, 'test_nlpd': -13.112071990966797, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1454.5897216796875}
+Iteration 45600/60000: Loss=1454.5897, Time=2946.9s
+Metrics at iteration 45700: {'iteration': 45700, 'train_rmse': 0.06438298523426056, 'test_rmse': 0.06085216626524925, 'train_nlpd': -12.87651252746582, 'test_nlpd': -13.074176788330078, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1782.2376708984375}
+Iteration 45700/60000: Loss=1782.2377, Time=2953.3s
+Metrics at iteration 45800: {'iteration': 45800, 'train_rmse': 0.06450729072093964, 'test_rmse': 0.06153249368071556, 'train_nlpd': -12.946720123291016, 'test_nlpd': -13.143156051635742, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2521.78857421875}
+Iteration 45800/60000: Loss=2521.7886, Time=2959.7s
+Metrics at iteration 45900: {'iteration': 45900, 'train_rmse': 0.06485586613416672, 'test_rmse': 0.06131196394562721, 'train_nlpd': -12.93408489227295, 'test_nlpd': -13.156740188598633, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2247.86962890625}
+Iteration 45900/60000: Loss=2247.8696, Time=2966.1s
+Metrics at iteration 46000: {'iteration': 46000, 'train_rmse': 0.06516004353761673, 'test_rmse': 0.06157853454351425, 'train_nlpd': -12.955744743347168, 'test_nlpd': -13.174213409423828, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2180.178466796875}
+Iteration 46000/60000: Loss=2180.1785, Time=2972.4s
+Metrics at iteration 46100: {'iteration': 46100, 'train_rmse': 0.06487563997507095, 'test_rmse': 0.061341892927885056, 'train_nlpd': -12.96360969543457, 'test_nlpd': -13.193634986877441, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 2490.22998046875}
+Iteration 46100/60000: Loss=2490.2300, Time=2978.8s
+Metrics at iteration 46200: {'iteration': 46200, 'train_rmse': 0.06409868597984314, 'test_rmse': 0.0597861148416996, 'train_nlpd': -12.983878135681152, 'test_nlpd': -13.223974227905273, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1558.061767578125}
+Iteration 46200/60000: Loss=1558.0618, Time=2985.2s
+Metrics at iteration 46300: {'iteration': 46300, 'train_rmse': 0.06373213976621628, 'test_rmse': 0.0605468675494194, 'train_nlpd': -13.051979064941406, 'test_nlpd': -13.2764253616333, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 1601.537841796875}
+Iteration 46300/60000: Loss=1601.5378, Time=2991.7s
+Metrics at iteration 46400: {'iteration': 46400, 'train_rmse': 0.06887296587228775, 'test_rmse': 0.06524810940027237, 'train_nlpd': -12.866561889648438, 'test_nlpd': -13.12789249420166, 'effective_latent_dims': 1, 'total_latent_dims': 10, 'elbo_loss': 534.5570068359375}
+Iteration 46400/60000: Loss=534.5570, Time=2998.1s
