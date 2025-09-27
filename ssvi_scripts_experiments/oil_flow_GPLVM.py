@@ -346,8 +346,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                             Y_train_for_encoder = Y_train.clone()
                             Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
                             X_train_mean = model.get_X_mean(Y_train_for_encoder)
+                            if model_name == 'nn_gauss':
+                                X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
+                            else:
+                                X_train_covar = None
                         else:
                             X_train_mean = model.get_X_mean(Y_train)
+                            if model_name == 'nn_gauss':
+                                X_train_covar = model.X.sigma(Y_train).detach()
+                            else:
+                                X_train_covar = None
                         # Compute training reconstruction
                         if config.enable_missing_data and model_name == 'nn_gauss':
                             # For nn_gauss with missing data, use cleaned input for reconstruction too
@@ -362,7 +370,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         else:
                             train_rmse = rmse(Y_train, Y_train_recon.T)
                         # Compute training NLPD
-                        train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
+                        train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_covar=X_train_covar)
                         
                         # Compute effective dimensions
                         effective_dims, total_dims = compute_effective_latent_dims(model)
@@ -467,7 +475,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     if config.enable_missing_data:
                         Y_train_for_encoder = Y_train.clone()
                         Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
-                        X_test_mean, X_test_covar = model.predict_latent(Y_train_for_encoder, 
+                        X_test_mean, X_test_covar = model.predict_latent(Y_train_for_encoder,
                                                                           Y_test, 
                                                                           optimizer.defaults['lr'], 
                                                                           likelihood, 
@@ -477,7 +485,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                                                                           model_name='nn_gauss', 
                                                                           pca=pca)
                     else:
-                        X_test_mean, X_test_covar = model.predict_latent(Y_train, 
+                        X_test_mean, X_test_covar = model.predict_latent(Y_train,
                                                                           Y_test, 
                                                                           optimizer.defaults['lr'], 
                                                                           likelihood, 
@@ -508,9 +516,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
             # Compute training and test reconstructions
             if model_name in ('point', 'map'):
-                    X_test_mean = X_test.X
+                X_test_mean = X_test.X
+                X_test_covar = None
             elif model_name == 'gauss':
-                   X_test_mean = X_test.q_mu.detach()
+                X_test_mean = X_test.q_mu.detach()
+                X_test_covar = None
             # Note: For nn_gauss, X_test_mean is already computed above in the ae=True block
        
             # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
@@ -549,10 +559,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # 2) Negative Log Predictive Density (NLPD) - using NLL-based approach inspired by movie_lens_large_expt.py
 
             # Train NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
-            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
+            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_covar=X_train_covar)
             
             # Test NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
-            test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
+            test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_covar=X_test_covar)
 
             print(f'Train NLPD {model_name} = ' + str(train_nlpd))
             print(f'Test NLPD {model_name} = ' + str(test_nlpd))

@@ -33,48 +33,55 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
             # For point, map, and gauss models, use the loss from training/test prediction
             nlpd = loss_data[-1] / N
         elif model_name == 'nn_gauss':
-            # For nn_gauss, use sophisticated NLPD computation with Monte Carlo sampling if X_covar is provided
-            # Otherwise, fall back to simple computation during training iterations
+            # This aligns with the SSVI approach for proper uncertainty handling
             
-            if X_covar is not None:
-                # Sophisticated NLPD computation with Monte Carlo sampling
-                # This aligns with the SSVI approach for proper uncertainty handling
-                
-                n_samples = 50  # Number of Monte Carlo samples
-                
-            
+            n_samples = 64  # Number of Monte Carlo samples
             log_probs = []
             
+            # Check if we have missing data
+            missing_mask = torch.isnan(Y_true)
+            observed_mask = ~missing_mask
+            
+            # Check if we have any observed data
+            if observed_mask.sum() == 0:
+                # All data is missing - return NaN
+                model.train()
+                return float('nan')
+            
+            # Replace NaN values in Y_true with zeros for computation (they'll be masked out)
+            Y_true_clean = torch.where(observed_mask, Y_true, torch.zeros_like(Y_true))
+            
             for _ in range(n_samples):
-                # Sample from latent distribution: x ~ N(X_mean, X_covar)
-                x_sample = torch.distributions.MultivariateNormal(X_mean, X_covar).sample()
+                # Sample from latent distribution using univariate approach (like SSVI)
+                # Use same sqrt approach as get_X_scales: [torch.sqrt(x.diag()) for x in X_covar]
+                X_std = torch.stack([torch.sqrt(x.diag()) for x in X_covar])  # [N, latent_dim]
+                normal_dist = torch.distributions.Normal(X_mean, X_std)
+                x_sample = normal_dist.sample()
                 
                 # Get GP prediction: Y_star = GP(x_sample)
                 Y_star = model(x_sample)
                 
                 # Extract predictive mean and variance
-                f_mean = Y_star.loc  # [N, D]
-                f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [N, D]
+                f_mean = Y_star.loc  # [D, N] - GP output is transposed
+                f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, N]
                 
                 # Add observation noise to get full predictive variance
-                # f_var is [D, N] = [12, 800], noise is scalar
-                f_var_full = f_var + obs_noise  # [D, N]
+                if obs_noise is not None:
+                    f_var_full = f_var + obs_noise  # [D, N]
+                else:
+                    f_var_full = f_var
                 
-                # f_mean is [D, N] = [12, 800], f_var_full is [D, N] = [12, 800]
-                # Y_true is [N, D] = [800, 12], so we need to transpose it to [D, N] = [12, 800]
-                # Compute log probability
-                log_prob = -0.5 * torch.log(2 * torch.pi * f_var_full) - 0.5 * (Y_true.T - f_mean)**2 / f_var_full
+                # Compute log probability: log N(Y_true_clean | f_mean, f_var_full)
+                # Y_true_clean is [N, D], f_mean is [D, N], so transpose Y_true_clean to [D, N]
+                Y_true_clean_T = Y_true_clean.T  # [D, N]
+                log_prob = -0.5 * torch.log(2 * torch.pi * f_var_full) - 0.5 * (Y_true_clean_T - f_mean)**2 / f_var_full
                 
-                
-                # Handle missing data by masking out NaNs (like in SSVI)
-                # Y_true is [N, D] = [800, 12], observed_mask is [N, D] = [800, 12]
-                observed_mask = ~torch.isnan(Y_true)
-                # log_prob is [D, N] = [12, 800], so we need to transpose observed_mask to [D, N]
-                observed_mask_T = observed_mask.T  # [D, N] = [12, 800]
+                # Mask out missing values in log probability computation
+                observed_mask_T = observed_mask.T  # [D, N]
                 log_prob_masked = log_prob * observed_mask_T.float()
                 
-                # Sum over dimensions for each sample
-                log_prob_sum = log_prob_masked.sum(dim=-1)  # [N]
+                # Sum over observed dimensions for each sample
+                log_prob_sum = log_prob_masked.sum(dim=0)  # [N] - sum over D dimensions
                 log_probs.append(log_prob_sum)
             
             # Stack log probabilities for mixture computation
@@ -83,7 +90,7 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
             # Use logsumexp for numerically stable mixture computation
             log_pred_density = torch.logsumexp(log_probs, dim=0) - np.log(n_samples)  # [N]
             
-                # Compute NLPD as negative average log predictive density
+            # Compute NLPD as negative average log predictive density
             nlpd = -log_pred_density.mean().item()
         else:
             raise ValueError(f"Invalid model name: {model_name}")
