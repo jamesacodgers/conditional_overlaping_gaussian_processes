@@ -340,15 +340,21 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 try:
                     with torch.no_grad():
                         model.eval()
-                        # Get training latent variables and compute reconstruction
+                        # Get training latent variables
                         if config.enable_missing_data and model_name == 'nn_gauss':
-                            # For nn_gauss with missing data, use cleaned input for encoder and reconstruction
+                            # For nn_gauss with missing data, use cleaned input for encoder
                             Y_train_for_encoder = Y_train.clone()
                             Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
                             X_train_mean = model.get_X_mean(Y_train_for_encoder)
-                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train_for_encoder, ae=ae, model_name=model_name)
                         else:
                             X_train_mean = model.get_X_mean(Y_train)
+                        # Compute training reconstruction
+                        if config.enable_missing_data and model_name == 'nn_gauss':
+                            # For nn_gauss with missing data, use cleaned input for reconstruction too
+                            Y_train_for_recon = Y_train.clone()
+                            Y_train_for_recon[torch.isnan(Y_train_for_recon)] = -999.0
+                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train_for_recon, ae=ae, model_name=model_name)
+                        else:
                             Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
                         # Compute training RMSE (original approach)
                         if config.enable_missing_data:
@@ -356,20 +362,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         else:
                             train_rmse = rmse(Y_train, Y_train_recon.T)
                         # Compute training NLPD
-                        if model_name == 'nn_gauss':
-                            # For nn_gauss, compute X_train_covar and pass it to NLPD function
-                            if config.enable_missing_data:
-                                # Reuse the already computed Y_train_for_encoder from above
-                                X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
-                            else:
-                                X_train_covar = model.X.sigma(Y_train).detach()
-                            
-                            # Ensure covariance tensor is on correct device and dtype
-                            X_train_covar = X_train_covar.to(dtype=torch.float32, device=config.device)
-                            
-                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_covar=X_train_covar, obs_noise=likelihood.noise_covar.noise)
-                        else:
-                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, obs_noise=likelihood.noise_covar.noise)
+                        train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
                         
                         # Compute effective dimensions
                         effective_dims, total_dims = compute_effective_latent_dims(model)
@@ -469,43 +462,34 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         # Create jitter for test data size
                         test_jitter = torch.eye(latent_dim).unsqueeze(0) * 1e-5
                         model.X.jitter = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
-                        
-                        # Call encoder directly (handle missing data)
-                        if config.enable_missing_data:
-                            Y_test_for_encoder = Y_test.clone()
-                            Y_test_for_encoder[torch.isnan(Y_test_for_encoder)] = -999.0
-                            X_test_mean = model.X.mu(Y_test_for_encoder).detach()
-                            X_test_covar = model.X.sigma(Y_test_for_encoder).detach()
-                        else:
-                            X_test_mean = model.X.mu(Y_test).detach()
-                            X_test_covar = model.X.sigma(Y_test).detach()
-                        
-                        # Restore original jitter
-                        model.X.jitter = original_jitter
+                    
+                    # For nn_gauss with missing data, use cleaned input for predict_latent
+                    if config.enable_missing_data:
+                        Y_train_for_encoder = Y_train.clone()
+                        Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+                        X_test_mean, X_test_covar = model.predict_latent(Y_train_for_encoder, 
+                                                                          Y_test, 
+                                                                          optimizer.defaults['lr'], 
+                                                                          likelihood, 
+                                                                          config.random_seed,
+                                                                          prior_x=prior_x_test, 
+                                                                          ae=True, 
+                                                                          model_name='nn_gauss', 
+                                                                          pca=pca)
                     else:
-                        # For nn_gauss with missing data, use cleaned input for predict_latent
-                        if config.enable_missing_data:
-                            Y_train_for_encoder = Y_train.clone()
-                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
-                            X_test_mean, X_test_covar = model.predict_latent(Y_train_for_encoder, 
-                                                                              Y_test, 
-                                                                              optimizer.defaults['lr'], 
-                                                                              likelihood, 
-                                                                              config.random_seed,
-                                                                              prior_x=prior_x_test, 
-                                                                              ae=True, 
-                                                                              model_name='nn_gauss', 
-                                                                              pca=pca)
-                        else:
-                            X_test_mean, X_test_covar = model.predict_latent(Y_train, 
-                                                                              Y_test, 
-                                                                              optimizer.defaults['lr'], 
-                                                                              likelihood, 
-                                                                              config.random_seed,
-                                                                              prior_x=prior_x_test, 
-                                                                              ae=True, 
-                                                                              model_name='nn_gauss', 
-                                                                              pca=pca)
+                        X_test_mean, X_test_covar = model.predict_latent(Y_train, 
+                                                                          Y_test, 
+                                                                          optimizer.defaults['lr'], 
+                                                                          likelihood, 
+                                                                          config.random_seed,
+                                                                          prior_x=prior_x_test, 
+                                                                          ae=True, 
+                                                                          model_name='nn_gauss', 
+                                                                          pca=pca)
+                    
+                    # Restore original jitter for nn_gauss
+                    if model_name == 'nn_gauss':
+                        model.X.jitter = original_jitter
                 else:
                     X_test_mean, X_flow_samples = model.predict_latent(Y_train, 
                                                                         Y_test, 
@@ -527,10 +511,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     X_test_mean = X_test.X
             elif model_name == 'gauss':
                    X_test_mean = X_test.q_mu.detach()
-            elif model_name == 'nn_gauss':
-                    # For nn_gauss, X_test_mean and X_test_covar are already computed above
-                    # No need to recompute them
-                    X_test_mean = X_test.q_mu.detach()
+            # Note: For nn_gauss, X_test_mean is already computed above in the ae=True block
        
             # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
             X_test_mean_device = X_test_mean.to(dtype=torch.float32, device=config.device)
@@ -568,24 +549,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # 2) Negative Log Predictive Density (NLPD) - using NLL-based approach inspired by movie_lens_large_expt.py
 
             # Train NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
-            if model_name == 'nn_gauss':
-                # For nn_gauss, use sophisticated NLPD computation with Monte Carlo sampling
-                if config.enable_missing_data:
-                    Y_train_for_encoder = Y_train.clone()
-                    Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
-                    X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
-                else:
-                    X_train_covar = model.X.sigma(Y_train).detach()
-                
-                # Ensure covariance tensor is on correct device and dtype
-                X_train_covar = X_train_covar.to(dtype=torch.float32, device=config.device)
-                
-                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_covar=X_train_covar, obs_noise=likelihood.noise_covar.noise)
-                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_covar=X_test_covar, obs_noise=likelihood.noise_covar.noise)
-            else:
-                # For other models, use standard approach
-                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, obs_noise=likelihood.noise_covar.noise)
-                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, obs_noise=likelihood.noise_covar.noise)
+            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
+            
+            # Test NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
+            test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
 
             print(f'Train NLPD {model_name} = ' + str(train_nlpd))
             print(f'Test NLPD {model_name} = ' + str(test_nlpd))
