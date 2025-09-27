@@ -22,7 +22,7 @@ from sklearn.model_selection import train_test_split
 class SSVIMetrics:
     """Container for SSVI GP-LVM evaluation metrics"""
     
-    # Reconstruction metrics
+    # Reconstruction metrics (simplified approach matching oil_flow_GPLVM)
     train_rmse: float = 0.0
     test_rmse: float = 0.0
     
@@ -125,6 +125,68 @@ class SSVIMetricsComputer:
             else:
                 # Standard RMSE computation for complete data
                 mse = torch.mean((y_true - y_pred) ** 2)
+            
+            rmse = torch.sqrt(mse).item()
+            
+        model.train()
+        return rmse
+    
+    def compute_rmse_simplified(self, 
+                               model, 
+                               y_true: torch.Tensor) -> float:
+        """
+        Compute simplified RMSE that matches oil_flow_GPLVM approach.
+        Uses only mu_x (no sampling from sigma_x) and averages over U samples.
+        
+        Args:
+            model: SSVI GP-LVM model
+            y_true: True observations [N, D]
+            
+        Returns:
+            Simplified RMSE value matching oil_flow_GPLVM
+        """
+        model.eval()
+        with torch.no_grad():
+            # Sample U for both model types
+            U_samples = model.get_u_samples()
+            
+            # Preprocess encoder input to handle missing data (consistent with training)
+            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -9.0), y_true)
+            
+            # Get latent representations for this batch using SSVI encoder
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            
+            # Simplified approach: use only mu_x (no sampling from sigma_x)
+            # Average mu_x over U samples to get mu_avg
+            mu_avg = mu_x.mean(dim=0)  # [batch_size, latent_dim]
+            
+            # Reconstruct through GP mean prediction using mu_avg only
+            y_recon = model.gp.get_gp_expectation(mu_avg)  # [batch_size, M, C]
+            
+            if y_recon.shape[-1] == 1:
+                y_recon = y_recon[..., 0]  # [batch_size, M] for C=1 case
+            
+            # Compute RMSE - handle missing data if enabled
+            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                # Handle missing data: create mask for observed values
+                missing_mask = torch.isnan(y_true)
+                observed_mask = ~missing_mask
+                
+                # Check if we have any observed data
+                if observed_mask.sum() == 0:
+                    # All data is missing - return NaN
+                    model.train()
+                    return float('nan')
+                
+                # Compute RMSE only on observed values
+                # Replace NaN values in y_batch with zeros for computation (they'll be masked out)
+                y_true_clean = torch.where(observed_mask, y_true, torch.zeros_like(y_true))
+                squared_errors = (y_true_clean - y_recon) ** 2
+                observed_squared_errors = squared_errors * observed_mask.float()
+                mse = observed_squared_errors.sum() / observed_mask.sum()
+            else:
+                # Standard RMSE computation for complete data
+                mse = torch.mean((y_true - y_recon) ** 2)
             
             rmse = torch.sqrt(mse).item()
             
@@ -270,9 +332,9 @@ class SSVIMetricsComputer:
         metrics.elbo_loss = elbo_loss
         
         try:
-            # Reconstruction metrics using SSVI encoder
-            metrics.train_rmse = self.compute_rmse(model, y_train)
-            metrics.test_rmse = self.compute_rmse(model, y_test)
+            # Reconstruction metrics using simplified approach (matching oil_flow_GPLVM)
+            metrics.train_rmse = self.compute_rmse_simplified(model, y_train)
+            metrics.test_rmse = self.compute_rmse_simplified(model, y_test)
             
             # Uncertainty metrics
             metrics.train_nlpd = self.compute_nlpd(model, y_train)
