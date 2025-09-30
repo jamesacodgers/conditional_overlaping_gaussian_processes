@@ -219,11 +219,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         X_prior_mean = torch.zeros(N, latent_dim, device=config.device)  # shape: N x Q
         X_prior_mean_test = X_prior_mean[0:len(Y_test),:]
     
-        # Initialise X with PCA or 0s.
-        if pca == True:
-              X_init = _init_pca(Y_train, latent_dim) # Initialise X to PCA 
-        else:
-              X_init = torch.nn.Parameter(torch.zeros(N, latent_dim, device=config.device))
+        # Always apply PCA initialization (matching SSVI approach)
+        mu_x_pca, _, _ = torch.pca_lowrank(Y_train, latent_dim)
+        X_init = torch.nn.Parameter(mu_x_pca)
         
         # Each inference model differs in its latent variable configuration / 
         # LatentVariable (X)
