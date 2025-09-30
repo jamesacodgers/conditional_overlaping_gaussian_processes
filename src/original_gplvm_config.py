@@ -162,3 +162,26 @@ def get_base_config():
         init_lengthscales=2.0,  # Initial lengthscales value (default matches GPyTorch RBFKernel)
         init_output_noise_scale=2.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
     )
+
+def get_qpcr_fast_config():
+    """Fast configuration for qPCR experiments"""
+    return OriginalGPLVMConfig(
+        device="cuda",  # Use CUDA device
+        dataset="gene",  # qPCR uses 'gene' dataset
+        latent_dim=11,   # qPCR uses 11 latent dimensions
+        n_inducing=40,   # qPCR uses 40 inducing points
+        training_steps={'gauss': 200, 'nn_gauss': 200},  # Fast config
+        batch_size=50,
+        learning_rate=0.001,
+        random_seed=7,  # Match original qPCR seed
+        test_iterations=200,
+        test_size=50,   # qPCR uses fixed 50 test samples
+        nn_layers=(48,10,5),  # qPCR specific NN layers
+        checkpoint_frequency=50,
+        metrics_frequency=50,
+        init_lengthscales=2.0,
+        init_output_noise_scale=2.0,
+        enable_missing_data=False,
+        missing_data_ratio=0.3,
+        results_dir="qpcr_results/original_gplvm_results",  # qPCR-specific results directory
+    )
