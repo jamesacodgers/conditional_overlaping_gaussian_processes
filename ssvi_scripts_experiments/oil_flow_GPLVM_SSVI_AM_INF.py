@@ -92,7 +92,6 @@ class OilFlowSSVIConfig:
     enable_metrics: bool = True            # Compute evaluation metrics
     metrics_frequency: int = 100           # Compute metrics every N iterations
     test_size: float = 0.1                 # Fraction of data for testing
-    split_random_seed: int = 42            # Seed for train/test split (separate from training seed)
     
     # === Visualization Configuration ===
     save_training_plots: bool = True       # Save training result plots during training (saved with checkpoints)
@@ -157,7 +156,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     y_train, y_test, labels_train, labels_test, train_indices, test_indices = create_train_test_split(
         y_full, labels_full,
         test_size=config.test_size,
-        random_seed=config.split_random_seed
+        random_seed=config.random_seed
     )
     print(f"Data split shapes - Train: {y_train.shape}, Test: {y_test.shape}")
     print(f"Labels split shapes - Train: {labels_train.shape}, Test: {labels_test.shape}")

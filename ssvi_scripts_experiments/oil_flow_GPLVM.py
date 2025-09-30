@@ -187,7 +187,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Update the data to use missing versions
         Y_train = Y_train_missing
         Y_test = Y_test_missing
-        
+
         print(f"Missing data preprocessing completed.")
         print("=" * 50)
     else:
@@ -215,13 +215,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         print(f"\n=== Training {model_name} model ===")
         logger.log_training(f"Starting training for model: {model_name}")
         
-        # Define prior for X
-        X_prior_mean = torch.zeros(N, latent_dim, device=config.device)  # shape: N x Q
-        X_prior_mean_test = X_prior_mean[0:len(Y_test),:]
-    
         # Always apply PCA initialization (matching SSVI approach)
         mu_x_pca, _, _ = torch.pca_lowrank(Y_train, latent_dim)
         X_init = torch.nn.Parameter(mu_x_pca)
+        
+        # Define prior for X using PCA-derived means (matching SSVI approach)
+        X_prior_mean = mu_x_pca  # Use PCA-derived means instead of zeros
+        X_prior_mean_test = X_prior_mean[0:len(Y_test),:]
         
         # Each inference model differs in its latent variable configuration / 
         # LatentVariable (X)
