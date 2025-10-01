@@ -30,7 +30,11 @@ import json
 from datetime import datetime
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Get the project root directory (parent of ssvi_scripts_experiments)
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Add both project root and generalised_gplvm_code to path
+sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary
@@ -54,7 +58,7 @@ class OilFlowSSVIConfig:
     device: str = "auto"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
     
     # === Data Configuration ===
-    data_url: str = "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"
+    # data_url: str = "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"  # Now using data folder approach
     latent_dim: int = 6  # A = 6 from original
     test_size_int: int = 50  # Number of test samples (like original GP LVM)
     random_seed: int = 7  # Random seed for reproducibility
@@ -137,19 +141,21 @@ class OilFlowSSVIConfig:
 
 def load_oil_flow_data(config: OilFlowSSVIConfig):
     """Load and preprocess oil flow data with optional train/test split"""
-    print("Downloading and loading oil flow data...")
+    print("Loading oil flow data from data folder...")
     
-    # Download data
-    urllib.request.urlretrieve(config.data_url, '3PhData.tar.gz')
-    with tarfile.open('3PhData.tar.gz', 'r') as f:
-        f.extract('DataTrn.txt')
-        f.extract('DataTrnLbls.txt')
-        f.extract('DataTrnFrctns.txt')
+    # Use the same data loading approach as Original GP-LVM
+    from src.data_utils import download_oilflow_data_if_needed
+    from utils.data import load_real_data
     
-    # Load data and move to device
-    y_full = torch.Tensor(np.loadtxt(fname='DataTrn.txt')).to(config.device)
-    labels_full = torch.Tensor(np.loadtxt(fname='DataTrnLbls.txt')).to(config.device)
-    labels_full = (labels_full @ torch.diag(torch.tensor([1, 2, 3], device=config.device, dtype=labels_full.dtype))).sum(axis=1)
+    # Download data if needed (same as Original GP-LVM)
+    download_oilflow_data_if_needed()
+    
+    # Load data using the same function as Original GP-LVM
+    N, d, q, X, Y, labels = load_real_data('oilflow')
+    
+    # Convert to tensors and move to device (matching Original GP-LVM approach)
+    y_full = Y.to(config.device)
+    labels_full = torch.tensor(labels, dtype=torch.float32, device=config.device)
     
     # Create train/test split if metrics enabled
     print(f"Creating train/test split (test_size={config.test_size})...")

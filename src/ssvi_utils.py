@@ -261,11 +261,15 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         
         # Generate fractions plot using the same mu_x and top dimensions
         try:
-            # Load fractions data (assume it was extracted during data loading)
-            frctn_path = Path(".") / "DataTrnFrctns.txt"
+            # Load fractions data - check data directory first, then current directory
+            frctn_path = Path("data") / "oil_fractions.txt"
+            
+            if not frctn_path.exists():
+                # Fallback to current directory (SSVI approach)
+                frctn_path = Path(".") / "DataTrnFrctns.txt"
 
             if not frctn_path.exists():
-                raise FileNotFoundError(f"DataTrnFrctns.txt not found. Make sure it was extracted during data loading.")
+                raise FileNotFoundError(f"Fractions file not found. Checked: data/oil_fractions.txt and DataTrnFrctns.txt")
 
             w = np.loadtxt(frctn_path)  # (N, 2)
             w3 = 1.0 - w.sum(axis=1, keepdims=True)  # (N, 1)
