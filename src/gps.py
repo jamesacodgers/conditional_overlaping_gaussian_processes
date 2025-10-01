@@ -127,9 +127,9 @@ class WLIndependentGPs(AbstractGP):
         Returns shape N x CL 
         """
         K_obsV = self.get_K_xVx(inputs)
-        K_obsV_matrix = torch.zeros(inputs.shape[0],self.C, self.C, self.Lx)
-        K_obsV_matrix[:, range(self.C), range(self.C), :] = K_obsV[:, range(self.C),:]
-        return K_obsV_matrix.reshape(inputs.shape[0], self.C, self.Lx*self.C)
+        K_obsV_matrix = torch.zeros(*inputs.shape[:-1],self.C, self.C, self.Lx)
+        K_obsV_matrix[..., range(self.C), range(self.C), :] = K_obsV[..., range(self.C),:]
+        return K_obsV_matrix.reshape(*inputs.shape[:-1], self.C, self.Lx*self.C)
     
 
     def get_mu_u(self):
@@ -191,6 +191,17 @@ class WLIndependentGPs(AbstractGP):
         K_obsV = self.get_K_xVx(inputs) # N x C x L 
         mu_u = self.get_mu_u() # M x C x L 
         return (K_obsV[:, None, :, None, :]@K_VV_inv[None, None, :, :, :]@mu_u[None, :, :, :, None])[...,0,0]
+    
+    def get_gp_expectation_given_U(self, inputs, U_samples):
+        """
+        Returns N x M x C 
+        
+        """
+        K_VV_inv = self.get_K_VV_x_inv() # C x L x L 
+        K_obsV = self.get_K_xVx(inputs) # N x C x L 
+        KK = (K_obsV@K_VV_inv) # input_samples
+        expectation = KK[:,:,None,:,:]@U_samples.transpose(-2,-1)[:,None,:,:,:]
+        return expectation.squeeze(-1)
 
     def get_gp_covariance(self, inputs):
         # want to get to shape NxMxCxC
@@ -201,6 +212,14 @@ class WLIndependentGPs(AbstractGP):
         A = self._get_conditional_cov_correction() # M x CL x CL
 
         Sigma_s = K_obsobs_diag_elements - (K_obsV[:,None,:,:] @ A[None,:,:,:]@ K_obsV.transpose(-2,-1)[:, None,:,:])
+        return Sigma_s + 1e-5*torch.eye(self.C)
+
+    def get_gp_covariance_given_U(self, inputs, U_samples):
+        # want to get to shape NxMxCxC
+        K_obsobs_diag_elements = torch.diag_embed(torch.ones(*inputs.shape[:-1], self.M, self.C)*self.sigma2_s[None, None, :]) # N x M x C x C 
+        K_obsV = self.get_K_obsV_matrix(inputs) # N x CL x CL - yes this is messy but I think it works 
+        K_VV_inv = self.get_K_VV_inv_matrix() # CL x CL
+        Sigma_s = K_obsobs_diag_elements - (K_obsV[...,None,:,:] @ K_VV_inv[...,:,:]@ K_obsV.transpose(-2,-1)[..., None,:,:])
         return Sigma_s + 1e-5*torch.eye(self.C)
     
 

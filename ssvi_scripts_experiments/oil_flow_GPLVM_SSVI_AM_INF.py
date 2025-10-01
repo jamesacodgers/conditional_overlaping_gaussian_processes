@@ -347,29 +347,26 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
             i % config.metrics_frequency == 0):
             
             print(f"  Computing metrics at iteration {i}...")
-            try:
+
                 # Use full datasets for proper evaluation
-                metrics = metrics_computer.compute_full_metrics(
-                    model=model,
-                    y_train=split_data['y_train'],
-                    y_test=split_data['y_test'],
-                    iteration=i,
-                    elbo_loss=loss,
-                    n_samples=16  # Fixed number of samples for metrics computation
-                )
-                
-                print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
-                print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
-                print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
-                print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
+            metrics = metrics_computer.compute_full_metrics(
+                model=model,
+                y_train=split_data['y_train'],
+                y_test=split_data['y_test'],
+                iteration=i,
+                elbo_loss=loss,
+                n_samples=32  # Fixed number of samples for metrics computation
+            )
+            
+            print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
+            print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
+            print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
+            print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
                 
                 # Log metrics
-                if logger:
-                    logger.log_training(f"Metrics at iteration {i}: {metrics.to_dict()}")
-                    
-            except Exception as e:
-                print(f"    Warning: Error computing metrics at iteration {i}: {e}")
-        
+            if logger:
+                logger.log_training(f"Metrics at iteration {i}: {metrics.to_dict()}")
+                            
         # Checkpoint saving (models and plots together)
         if (logger and i > 0 and i % config.checkpoint_frequency == 0):
             print(f"  Saving checkpoint at iteration {i}...")
@@ -452,8 +449,8 @@ def get_fast_config():
         init_lengthscales=1.0,          # Initial lengthscales value (1/beta) - default matches current standard
         init_output_noise_scale=1.0,    # Initial output noise scale (sigma2) - default matches current standard
         # === Missing Data Configuration ===
-        enable_missing_data=False,      # Enable missing data reconstruction capability
-        missing_data_ratio=0,        # Fraction of dimensions to artificially mask (for testing)
+        enable_missing_data=True,      # Enable missing data reconstruction capability
+        missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
         # === Random Seed Configuration ===
         random_seed=7,                 # Random seed for reproducibility (matches SSVI base config)
@@ -618,22 +615,17 @@ if __name__ == "__main__":
         print("\nUsing default fast_config...\n")
     
     # Load configuration with overrides
-    try:
-        config, config_name = load_config_with_overrides(
-            config_path=args.config,
-            config_class=OilFlowSSVIConfig,
-            args=args
-        )
-        
-        print(f"Using configuration: {config_name}")
-        if args.config:
-            print(f"Config file: {args.config}")
-        
-        # Run main function with loaded config
-        main(config, config_name)
-        
-    except Exception as e:
-        print(f"Error: {e}")
-        print("\nAvailable configurations:")
-        print_available_configs()
-        sys.exit(1)
+
+    config, config_name = load_config_with_overrides(
+        config_path=args.config,
+        config_class=OilFlowSSVIConfig,
+        args=args
+    )
+    
+    print(f"Using configuration: {config_name}")
+    if args.config:
+        print(f"Config file: {args.config}")
+    
+    # Run main function with loaded config
+    main(config, config_name)
+    
