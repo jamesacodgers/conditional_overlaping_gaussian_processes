@@ -350,8 +350,8 @@ class SSVIMetricsComputer:
         
         try:
             # Reconstruction metrics using SSVI encoder
-            metrics.train_rmse = self.compute_rmse_simplified(model, y_train)
-            metrics.test_rmse = self.compute_rmse_simplified(model, y_test)
+            metrics.train_rmse = self.compute_rmse(model, y_train, n_samples)
+            metrics.test_rmse = self.compute_rmse(model, y_test, n_samples)
             
             # Uncertainty metrics (computationally expensive, use fewer samples)
             metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
