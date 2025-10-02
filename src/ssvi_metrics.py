@@ -366,20 +366,20 @@ class SSVIMetricsComputer:
             metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
             
             # Missing data NLPD metrics (if missing data info is provided)
-            # Your clever approach: create masked original data and use existing compute_nlpd
+            # Create missing data for reconstruction, but mask observed values in log prob computation
             if (hasattr(model, 'enable_missing_data') and model.enable_missing_data and
                 y_train_original is not None and y_test_original is not None and
                 train_missing_mask is not None and test_missing_mask is not None):
                 
-                # Create y_true_missing: original data with observed values set to NaN
-                # This way, only the originally missing dimensions will have non-NaN values
+                # Create y_missing: original data with originally missing values as NaN (for reconstruction)
                 y_train_missing = y_train_original.clone()
-                y_train_missing[~train_missing_mask] = float('nan')  # Set observed values to NaN
+                y_train_missing[train_missing_mask] = float('nan')  # Set originally missing values to NaN
                 
                 y_test_missing = y_test_original.clone()
-                y_test_missing[~test_missing_mask] = float('nan')  # Set observed values to NaN
+                y_test_missing[test_missing_mask] = float('nan')  # Set originally missing values to NaN
                 
-                # Use existing compute_nlpd method with the masked original data
+                # Use existing compute_nlpd method with the missing data
+                # The compute_nlpd will handle masking for log prob computation
                 metrics.train_missing_data_nlpd = self.compute_nlpd(model, y_train_missing, n_samples)
                 metrics.test_missing_data_nlpd = self.compute_nlpd(model, y_test_missing, n_samples)
             

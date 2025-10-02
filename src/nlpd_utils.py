@@ -140,10 +140,9 @@ def compute_missing_data_nlpd_gauss(model, Y_original, missing_mask, X_mean, X_s
             model.train()
             return float('nan')
         
-        # Create Y_missing: original data with observed values set to NaN
-        # This way, only the originally missing dimensions will have non-NaN values
+        # Create Y_missing: original data with originally missing values as NaN (for reconstruction)
         Y_missing = Y_original.clone()
-        Y_missing[~missing_mask] = float('nan')  # Set observed values to NaN
+        Y_missing[missing_mask] = float('nan')  # Set originally missing values to NaN
         
         N, D = Y_missing.shape
         
@@ -155,12 +154,12 @@ def compute_missing_data_nlpd_gauss(model, Y_original, missing_mask, X_mean, X_s
             x_dist = torch.distributions.Normal(X_mean, X_std)
             x_sample = x_dist.rsample()  # [N, latent_dim]
             
-            # Get GP prediction: Y_star = GP(x_sample)
-            Y_star = model(x_sample)
+            # Use reconstruct_y for consistency with original code (handles all model-specific logic)
+            # Pass Y_missing (with originally missing values as NaN) for reconstruction
+            f_mean, f_var_matrix = model.reconstruct_y(x_sample, Y_missing, ae=False, model_name='gauss')
             
-            # Extract predictive mean and variance
-            f_mean = Y_star.loc  # [D, N] - GP output is transposed
-            f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, N]
+            # Extract diagonal variances from covariance matrix
+            f_var = torch.stack([torch.diag(x) for x in f_var_matrix])  # [D, N]
             
             # Add observation noise to get full predictive variance
             f_var_full = f_var + obs_noise  # [D, N]
@@ -169,6 +168,10 @@ def compute_missing_data_nlpd_gauss(model, Y_original, missing_mask, X_mean, X_s
             # Y_missing is [N, D], f_mean is [D, N], so transpose Y_missing to [D, N]
             Y_missing_T = Y_missing.T  # [D, N]
             
+            # For missing data NLPD: mask out originally observed values in log prob computation
+            # We want to evaluate only the originally missing dimensions
+            log_prob_mask = missing_mask.T  # [D, N] - True for originally missing dimensions
+            
             # Replace NaN values with zeros for computation (they'll be masked out)
             Y_missing_clean = torch.where(torch.isfinite(Y_missing_T), Y_missing_T, torch.zeros_like(Y_missing_T))
             
@@ -176,9 +179,8 @@ def compute_missing_data_nlpd_gauss(model, Y_original, missing_mask, X_mean, X_s
             log_prob = -0.5 * torch.log(2 * torch.pi * f_var_full) - 0.5 * (
                         Y_missing_clean - f_mean) ** 2 / f_var_full
             
-            # Apply missing data mask to only include missing dimensions
-            missing_mask_T = missing_mask.T  # [D, N]
-            log_prob_masked = log_prob * missing_mask_T.float()
+            # Apply missing data mask to only include originally missing dimensions in log prob computation
+            log_prob_masked = log_prob * log_prob_mask.float()
             
             # Sum over missing dimensions for each sample
             log_prob_sum = log_prob_masked.sum(dim=0)  # [N] - sum over D dimensions
