@@ -194,8 +194,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # No missing data - store None for consistency
         Y_train_original = None
         Y_test_original = None
-        train_missing_mask = None
-        test_missing_mask = None
     
     # Setting shapes
     N = len(Y_train)
@@ -528,8 +526,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     X_test_mean = X_test.X
             elif model_name == 'gauss':
                    X_test_mean = X_test.q_mu.detach()
-                   X_test_std = torch.nn.functional.softplus(X_test.q_log_sigma).detach()
-                   X_train_std = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
             # Note: For nn_gauss, X_test_mean is already computed above in the ae=True block
        
             # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
@@ -590,19 +586,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
 
             print(f'Train NLPD {model_name} = ' + str(train_nlpd))
             print(f'Test NLPD {model_name} = ' + str(test_nlpd))
-            
-            # Missing data NLPD computation (only for gauss model with missing data)
-            if config.enable_missing_data and model_name == 'gauss':
-                from src.nlpd_utils import compute_missing_data_nlpd_gauss
-                
-                # Compute missing data NLPD using proper sampling from latent distribution
-                train_missing_data_nlpd = compute_missing_data_nlpd_gauss(
-                    model, Y_train_original, train_missing_mask, X_train_mean_device, X_train_std, likelihood.noise)
-                test_missing_data_nlpd = compute_missing_data_nlpd_gauss(
-                    model, Y_test_original, test_missing_mask, X_test_mean_device, X_test_std, likelihood.noise)
-                
-                print(f'Train Missing Data NLPD {model_name} = ' + str(train_missing_data_nlpd))
-                print(f'Test Missing Data NLPD {model_name} = ' + str(test_missing_data_nlpd))
 
             # Save training results (convert tensors to floats for JSON serialization)
             # Ensure all values in loss_list and noise_trace are Python floats

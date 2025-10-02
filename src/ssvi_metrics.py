@@ -329,25 +329,17 @@ class SSVIMetricsComputer:
                            y_test: torch.Tensor,
                            iteration: int = 0,
                            elbo_loss: float = 0.0,
-                           n_samples: int = 20,
-                           y_train_original: torch.Tensor = None,
-                           y_test_original: torch.Tensor = None,
-                           train_missing_mask: torch.Tensor = None,
-                           test_missing_mask: torch.Tensor = None) -> SSVIMetrics:
+                           n_samples: int = 20) -> SSVIMetrics:
         """
         Compute all metrics for current model state
         
         Args:
             model: SSVI GP-LVM model
-            y_train: Training data (with missing values if enable_missing_data=True)
-            y_test: Test data (with missing values if enable_missing_data=True)
+            y_train: Training data
+            y_test: Test data  
             iteration: Current training iteration
             elbo_loss: Current ELBO loss
             n_samples: Number of samples for Monte Carlo
-            y_train_original: Original training data before missing data preprocessing (optional)
-            y_test_original: Original test data before missing data preprocessing (optional)
-            train_missing_mask: Boolean mask for training data missing dimensions (optional)
-            test_missing_mask: Boolean mask for test data missing dimensions (optional)
             
         Returns:
             SSVIMetrics object with all computed metrics
@@ -364,24 +356,6 @@ class SSVIMetricsComputer:
             # Uncertainty metrics (computationally expensive, use fewer samples)
             metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
             metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
-            
-            # Missing data NLPD metrics (if missing data info is provided)
-            # Your clever approach: create masked original data and use existing compute_nlpd
-            if (hasattr(model, 'enable_missing_data') and model.enable_missing_data and
-                y_train_original is not None and y_test_original is not None and
-                train_missing_mask is not None and test_missing_mask is not None):
-                
-                # Create y_true_missing: original data with observed values set to NaN
-                # This way, only the originally missing dimensions will have non-NaN values
-                y_train_missing = y_train_original.clone()
-                y_train_missing[~train_missing_mask] = float('nan')  # Set observed values to NaN
-                
-                y_test_missing = y_test_original.clone()
-                y_test_missing[~test_missing_mask] = float('nan')  # Set observed values to NaN
-                
-                # Use existing compute_nlpd method with the masked original data
-                metrics.train_missing_data_nlpd = self.compute_nlpd(model, y_train_missing, n_samples)
-                metrics.test_missing_data_nlpd = self.compute_nlpd(model, y_test_missing, n_samples)
             
             # Model complexity
             effective_dims, total_dims = self.compute_effective_latent_dims(model)
