@@ -228,10 +228,12 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         if plot_flags[1]:
             plt.subplot(1, n_plots, plot_idx)
             
-            # Find the two most informative dimensions (largest lengthscales = smallest beta)
+            # Find the most informative dimensions (largest lengthscales = smallest beta)
             lengthscales = 1 / model.gp.beta.flatten()
             top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
+            top_3_dims = torch.argsort(lengthscales, descending=True)[:3]  # Also compute top 3 for 3D plots
             dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
+            dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
             # Get latent variables using new explicit training method
             U = model.get_u_samples()  # [P, M, C, Lx]
@@ -316,6 +318,63 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             logger.save_plots(fig_frac, fractions_filename, is_checkpoint=is_checkpoint)
             plt.close(fig_frac)
             
+            # Create 3D fractions plot using the same fractions data
+            print("Creating 3D fractions plot...")
+            
+            # Create plotly 3D scatter plot colored by fractions
+            fig_3d_frac = go.Figure()
+            
+            # Plot samples from all P samples with fractions as colors (consistent with 2D fractions plot)
+            for p in range(model.P):
+                # Sample from the latent distributions (consistent with 2D fractions plot)
+                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+                sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_cpu[p, :, dim3]).sample()
+                
+                fig_3d_frac.add_trace(go.Scatter3d(
+                    x=sample_1.detach().cpu().numpy(),
+                    y=sample_2.detach().cpu().numpy(),
+                    z=sample_3.detach().cpu().numpy(),
+                    mode='markers',
+                    marker=dict(
+                        size=4,
+                        color=fractions[:, 0],  # Use first fraction component (consistent with 2D plot)
+                        colorscale='Viridis',
+                        opacity=0.6,
+                        colorbar=dict(title="Fraction 1")
+                    ),
+                    name='Latent Points',
+                    showlegend=False  # Hide individual P sample traces in legend
+                ))
+            
+            # Update layout
+            fig_3d_frac.update_layout(
+                title=f'3D Latent Space Colored by Fractions - Top 3 Dimensions<br>Dim {dim1}, {dim2}, {dim3}',
+                scene=dict(
+                    xaxis_title=f'Dimension {dim1} (lengthscale={lengthscales[dim1].item():.2f})',
+                    yaxis_title=f'Dimension {dim2} (lengthscale={lengthscales[dim2].item():.2f})',
+                    zaxis_title=f'Dimension {dim3} (lengthscale={lengthscales[dim3].item():.2f})'
+                ),
+                width=800,
+                height=600
+            )
+            
+            # Save 3D fractions plot as HTML
+            plot_3d_frac_filename = save_filename.replace('training_results', '3d_latent_space_by_fractions')
+            plot_3d_frac_filename = plot_3d_frac_filename.replace('.png', '.html')
+            
+            # Save to appropriate directory (checkpoints or main plots)
+            if is_checkpoint:
+                plot_3d_frac_path = os.path.join(logger.plots_checkpoints_dir, plot_3d_frac_filename)
+            else:
+                plot_3d_frac_path = os.path.join(logger.plots_dir, plot_3d_frac_filename)
+            
+            fig_3d_frac.write_html(plot_3d_frac_path)
+            print(f"3D fractions plot saved to: {plot_3d_frac_path}")
+            
+            if show_plot:
+                fig_3d_frac.show()
+            
         except FileNotFoundError as e:
             print(f"Warning: Could not create fractions plot: {e}")
         
@@ -370,9 +429,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             mu_x_cpu = mu_x.cpu()
             sigma_x_cpu = sigma_x.cpu()
         
-        # Compute dimensions for additional plots
-        top_3_dims = torch.argsort(lengthscales, descending=True)[:3]
-        most_important_dim = top_3_dims[0].item()
+        # Use dimensions already computed in latent space plot section
+        most_important_dim = dim1  # Use the first (most important) dimension for 1D histogram
         
         # 1. Create 1D histogram for the most important dimension
         fig_hist, ax_hist = plt.subplots(1, 1, figsize=(8, 6))
