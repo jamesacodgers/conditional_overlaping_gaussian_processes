@@ -375,9 +375,9 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
             
             print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
             print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
-            if config.enable_missing_data and metrics.train_missing_data_nlpd > 0:
-                print(f"    Train Missing Data NLPD: {metrics.train_missing_data_nlpd:.3f}")
-                print(f"    Test Missing Data NLPD: {metrics.test_missing_data_nlpd:.3f}")
+            if config.enable_missing_data and not np.isnan(metrics.train_missing_nlpd):
+                print(f"    Train Missing Data NLPD: {metrics.train_missing_nlpd:.3f}")
+                print(f"    Test Missing Data NLPD: {metrics.test_missing_nlpd:.3f}")
             print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
             print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
                 
@@ -575,9 +575,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         print(f"Final Test RMSE: {summary['final_test_rmse']:.4f}")
         print(f"Final Train NLPD: {summary['final_train_nlpd']:.3f}")
         print(f"Final Test NLPD: {summary['final_test_nlpd']:.3f}")
-        if config.enable_missing_data and summary.get('final_train_missing_data_nlpd', 0) > 0:
-            print(f"Final Train Missing Data NLPD: {summary['final_train_missing_data_nlpd']:.3f}")
-            print(f"Final Test Missing Data NLPD: {summary['final_test_missing_data_nlpd']:.3f}")
+        if config.enable_missing_data and not np.isnan(summary.get('final_train_missing_nlpd', float('nan'))):
+            print(f"Final Train Missing Data NLPD: {summary['final_train_missing_nlpd']:.3f}")
+            print(f"Final Test Missing Data NLPD: {summary['final_test_missing_nlpd']:.3f}")
         print(f"Overfitting Ratio (Test/Train RMSE): {summary['overfitting_ratio']:.3f}")
         print(f"Effective Latent Dimensions: {summary['final_effective_dims']}/{summary['total_latent_dims']}")
         print("=" * 35)

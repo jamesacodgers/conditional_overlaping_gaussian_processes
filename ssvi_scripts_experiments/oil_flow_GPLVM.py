@@ -592,6 +592,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             print(f'Test NLPD {model_name} = ' + str(test_nlpd))
             
             # Missing data NLPD computation (only for gauss model with missing data)
+            train_missing_data_nlpd = float('nan')
+            test_missing_data_nlpd = float('nan')
             if config.enable_missing_data and model_name == 'gauss':
                 from src.nlpd_utils import compute_missing_data_nlpd_gauss
                 
@@ -618,11 +620,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
                 'train_nlpd': float(train_nlpd),  # train_nlpd is already a float from compute_nlpd_nll_based
                 'test_nlpd': float(test_nlpd),    # test_nlpd is already a float from compute_nlpd_nll_based
+                'train_missing_data_nlpd': float(train_missing_data_nlpd),
+                'test_missing_data_nlpd': float(test_missing_data_nlpd),
                 'final_loss': float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
             
-            logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
+            if config.enable_missing_data and model_name == 'gauss' and not np.isnan(train_missing_data_nlpd):
+                logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}, Train Missing NLPD: {train_missing_data_nlpd:.4f}, Test Missing NLPD: {test_missing_data_nlpd:.4f}")
+            else:
+                logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)
