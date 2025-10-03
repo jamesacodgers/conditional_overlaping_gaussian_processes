@@ -216,7 +216,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         logger.log_training(f"Starting training for model: {model_name}")
         
         # Always apply PCA initialization (matching SSVI approach)
-        mu_x_pca, _, _ = torch.pca_lowrank(Y_train, latent_dim)
+        # Use original data for PCA to avoid NaN propagation from missing data preprocessing
+        if config.enable_missing_data and Y_train_original is not None:
+            # Use original complete data for PCA initialization
+            mu_x_pca, _, _ = torch.pca_lowrank(Y_train_original, latent_dim)
+        else:
+            # Use training data if no missing data or if Y_train_original is None
+            mu_x_pca, _, _ = torch.pca_lowrank(Y_train, latent_dim)
         X_init = torch.nn.Parameter(mu_x_pca)
         
         # Define prior for X using PCA-derived means (matching SSVI approach)
