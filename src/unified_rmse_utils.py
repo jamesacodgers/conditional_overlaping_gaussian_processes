@@ -18,8 +18,7 @@ def compute_rmse_with_sampling(model,
                                        X_covar: Union[torch.Tensor, List[torch.Tensor], None] = None,
                                        model_name: str = None,
                                        n_samples: int = 10,
-                                       enable_missing_data: bool = False,
-                                       Y_train: Optional[torch.Tensor] = None) -> float:
+                                       enable_missing_data: bool = False) -> float:
     """
     Args:
         model: Original GP-LVM model (gauss or nn_gauss)
@@ -29,7 +28,6 @@ def compute_rmse_with_sampling(model,
         model_name: Model type ('gauss' or 'nn_gauss') 
         n_samples: Number of samples for Monte Carlo estimation
         enable_missing_data: Whether missing data handling is enabled
-        Y_train: Training data (required for nn_gauss model)
         
     Returns:
         RMSE value
@@ -39,10 +37,16 @@ def compute_rmse_with_sampling(model,
         # Use pre-computed latent variables from main script (already computed in oil_flow_GPLVM.py)
         mu_x = X_mean.detach()
         
-        # X_covar comes from model.get_X_scales() - already processed correctly:
-        # For gauss: softplus(q_log_sigma) = actual sigma values
-        # For nn_gauss: [torch.sqrt(x.diag()) for x in sigma_matrices] = standard deviations
-        sigma_x = X_covar
+        # X_covar processing depends on model type:
+        # For gauss: softplus(q_log_sigma) = actual sigma values (standard deviations)
+        # For nn_gauss: model.X.sigma() returns a list of covariance matrices
+        if model_name == 'nn_gauss':
+            # For nn_gauss, X_covar is a list of covariance matrices
+            # Extract diagonal standard deviations for each matrix (same as NLPD and original code)
+            sigma_x = torch.stack([torch.sqrt(x.diag()) for x in X_covar])
+        else:
+            # For gauss, X_covar already contains standard deviations
+            sigma_x = X_covar
         
         # Sample from latent distribution (same as create_standardized_scattered_plot sampling approach)
         reconstructions = []
@@ -53,9 +57,15 @@ def compute_rmse_with_sampling(model,
             
             # Reconstruct through model.reconstruct_y for consistency with original approach
             if model_name == 'nn_gauss':
-                y_recon, _ = model.reconstruct_y(x_sample, Y_train, ae=True, model_name=model_name)
+                # For nn_gauss with missing data, use cleaned input for encoder (same as main script)
+                if enable_missing_data:
+                    y_for_recon = y_true.clone()
+                    y_for_recon[torch.isnan(y_for_recon)] = -999.0
+                    y_recon, _ = model.reconstruct_y(x_sample, y_for_recon, ae=True, model_name=model_name)
+                else:
+                    y_recon, _ = model.reconstruct_y(x_sample, y_true, ae=True, model_name=model_name)
             else:  # gauss model
-                y_recon, _ = model.reconstruct_y(x_sample, Y_train, ae=False, model_name=model_name)
+                y_recon, _ = model.reconstruct_y(x_sample, y_true, ae=False, model_name=model_name)
             
             reconstructions.append(y_recon)
         
@@ -63,15 +73,18 @@ def compute_rmse_with_sampling(model,
         y_pred = torch.stack(reconstructions).mean(dim=0)  # [batch_size, D]
         
         # Compute RMSE - handle missing data if needed
+        # Transpose y_pred to match y_true format (same as original code: Y_train_recon.T)
+        y_pred_T = y_pred.T
+        
         if enable_missing_data:
             # Import the improved missing data RMSE function
             from src.missing_data_utils import rmse_missing_improved
             y_true_np = y_true.cpu().numpy()
-            y_pred_np = y_pred.detach().cpu().numpy()
+            y_pred_np = y_pred_T.detach().cpu().numpy()
             rmse = rmse_missing_improved(y_true_np, y_pred_np)
         else:
             # Standard RMSE computation for complete data
-            mse = torch.mean((y_true - y_pred) ** 2)
+            mse = torch.mean((y_true - y_pred_T) ** 2)
             rmse = torch.sqrt(mse).item()
         
     model.train()
