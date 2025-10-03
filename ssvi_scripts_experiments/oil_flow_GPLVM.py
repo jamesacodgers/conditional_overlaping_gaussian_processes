@@ -523,6 +523,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     X_test_mean = X_test.X
             elif model_name == 'gauss':
                    X_test_mean = X_test.q_mu.detach()
+                   X_test_covar = torch.nn.functional.softplus(X_test.q_log_sigma).detach()
             # Note: For nn_gauss, X_test_mean is already computed above in the ae=True block
        
             # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
@@ -540,10 +541,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 
                 Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test_for_recon, ae=ae, model_name=model_name)
                 Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train_for_recon, ae=ae, model_name=model_name)
-                
-                # Get covariance matrices for NLPD computation
-                X_train_covar = model.X.sigma(Y_train_for_recon).detach()  # [N, latent_dim, latent_dim]
-                obs_noise = likelihood.noise
             else:
                 Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test, ae=ae, model_name=model_name)
                 Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train, ae=ae, model_name=model_name)
@@ -565,18 +562,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # 2) Negative Log Predictive Density (NLPD) - using NLL-based approach inspired by movie_lens_large_expt.py
 
             # Train NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
+            obs_noise = likelihood.noise
             if model_name == 'nn_gauss':
-                # For nn_gauss, we need X_covar and obs_noise
-                if config.enable_missing_data:
-                    # X_train_covar and obs_noise are already computed above
-                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise)
-                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_test_covar, obs_noise)
-                else:
-                    # Get training covariance for non-missing data case (same as training NLPD above)
-                    X_train_covar = model.X.sigma(Y_train).detach()  # [N, latent_dim, latent_dim]
-                    obs_noise = likelihood.noise
-                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise)
-                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_test_covar, obs_noise)
+                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list,
+                                                    X_train_covar, obs_noise)
+                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test,
+                                                   X_test_covar, obs_noise)
             else:
                 train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
                 test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
