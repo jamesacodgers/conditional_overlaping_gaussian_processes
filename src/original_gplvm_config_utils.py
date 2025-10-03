@@ -109,6 +109,7 @@ def load_config_with_overrides(config_path: str = None,
         config = get_fast_config()
     else:
         # Load from YAML file
+        print(f"Loading configuration from: {config_path}")
         with open(config_path, 'r') as f:
             config_dict = yaml.safe_load(f)
         
@@ -118,6 +119,13 @@ def load_config_with_overrides(config_path: str = None,
         
         config = config_class(**config_dict)
         config_name = get_config_name_from_path(config_path)
+        print(f"Using config name: {config_name}")
+        
+        # Automatically set results_dir to the same directory as the config file
+        # This ensures results are saved in the same folder as the config for easy tracking
+        config_dir = os.path.dirname(config_path)
+        config.results_dir = os.path.join(config_dir, "orig_gplvm_run_results")
+        print(f"Results will be saved to config directory: {config.results_dir}")
     
     # Apply command line overrides
     if args is not None:
@@ -125,9 +133,9 @@ def load_config_with_overrides(config_path: str = None,
         overrides = {k: v for k, v in vars(args).items() 
                     if v is not None and k not in ['config', 'config_name']}
         
-        # Apply overrides
+        # Apply overrides (except results_dir which should stay with config-based automatic setting)
         for key, value in overrides.items():
-            if hasattr(config, key):
+            if hasattr(config, key) and key != 'results_dir':
                 setattr(config, key, value)
         
         # Handle special cases

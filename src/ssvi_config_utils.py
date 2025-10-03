@@ -216,6 +216,12 @@ def load_config_with_overrides(config_path: Optional[str] = None,
         config = dict_to_dataclass(config_dict, config_class)
         config_name = get_config_name_from_path(config_path)
         print(f"Using config name: {config_name}")
+        
+        # Automatically set results_dir to the same directory as the config file
+        # This ensures results are saved in the same folder as the config for easy tracking
+        config_dir = os.path.dirname(config_path)
+        config.results_dir = os.path.join(config_dir, "ssvi_run_results")
+        print(f"Results will be saved to config directory: {config.results_dir}")
     else:
         # Use default fast config
         if config_path is not None:
