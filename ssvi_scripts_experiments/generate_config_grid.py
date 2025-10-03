@@ -47,7 +47,7 @@ def update_config_parameter(config_text, param_name, new_value):
     
     return '\n'.join(updated_lines)
 
-def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps):
+def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples):
     """Create a valid filename from parameter values"""
     # Replace dots with nothing for valid filenames
     len_str = str(init_lengthscales).replace('.', '')
@@ -55,26 +55,27 @@ def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, b
     lr_str = str(learning_rate).replace('.', '')
     n_steps_str = str(n_training_steps).replace('.', '')
 
-    return f"n_ind_{n_inducing}_len_{len_str}_sig_{sigm_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}.yaml"
+    return f"n_ind_{n_inducing}_len_{len_str}_sig_{sigm_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}_P_{num_inducing_samples}.yaml"
 
 def generate_config_grid():
     """Generate grid of configurations for both SSVI and Original GP-LVM"""
     
     # Parameter ranges
-    n_inducing_values = [32]
+    n_inducing_values = [16]
     init_lengthscales_values = [1.0]
     init_output_noise_scale_values = [1.0]
     batch_size_values = [32]
     random_seed_values = [7]
     learning_rate_values = [0.005]
-    n_training_steps = [40000]
+    n_training_steps = [5000]
+    num_inducing_samples_list = [1,2,4,8,16,32,64]  # For SSVI only
     
     # Base configuration paths
     ssvi_base_config = "ssvi_configs/base_lr_0001_s7.yaml"
     orig_base_config = "original_gp_lvm_configs/base_lr_0001_s7.yaml"
     
     # Output folder names
-    output_folder_name = "lr_sweep"
+    output_folder_name = "num_inducing_samples"
     ssvi_output_folder = f"{output_folder_name}_ssvi"
     orig_output_folder = f"{output_folder_name}_orig_gplvm"
     
@@ -91,14 +92,15 @@ def generate_config_grid():
         batch_size_values,
         random_seed_values,
         learning_rate_values,
-        n_training_steps
+        n_training_steps,
+        num_inducing_samples_list
     ))
     
     print(f"Generating {len(param_combinations)} configuration combinations...")
     
     # Generate SSVI configurations
     ssvi_count = 0
-    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps in param_combinations:
+    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples in param_combinations:
         # Create new config based on base text
         ssvi_config_text = ssvi_base_text
         
@@ -111,9 +113,10 @@ def generate_config_grid():
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'local_lr', learning_rate)
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'global_lr', learning_rate)
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'training_iterations', n_training_steps)
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'P', num_inducing_samples)
         
         # Create filename
-        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps)
+        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples)
         output_path = os.path.join(ssvi_output_folder, filename)
         
         # Save configuration
@@ -125,7 +128,7 @@ def generate_config_grid():
     
     # Generate Original GP-LVM configurations
     orig_count = 0
-    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps in param_combinations:
+    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples in param_combinations:
         # Create new config based on base text
         orig_config_text = orig_base_text
         
@@ -138,9 +141,10 @@ def generate_config_grid():
         orig_config_text = update_config_parameter(orig_config_text, 'local_lr', learning_rate)
         orig_config_text = update_config_parameter(orig_config_text, 'global_lr', learning_rate)
         orig_config_text = update_config_parameter(orig_config_text, 'training_iterations', n_training_steps)
+        orig_config_text = update_config_parameter(orig_config_text, 'P', num_inducing_samples)
         
         # Create filename
-        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps)
+        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples)
         output_path = os.path.join(orig_output_folder, filename)
         
         # Save configuration
@@ -162,6 +166,7 @@ def generate_config_grid():
     print(f"  random_seed: {random_seed_values}")
     print(f"  learning_rate: {learning_rate_values}")
     print(f"  n_training_steps: {n_training_steps}")
+    print(f"  num_inducing_samples: {num_inducing_samples_list}")
 
 if __name__ == "__main__":
     generate_config_grid()
