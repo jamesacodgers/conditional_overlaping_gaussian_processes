@@ -350,16 +350,18 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                             Y_train_for_encoder = Y_train.clone()
                             Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
                             X_train_mean = model.get_X_mean(Y_train_for_encoder)
+                            X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
+                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train_for_encoder, ae=ae,
+                                                                   model_name=model_name)
                         else:
                             X_train_mean = model.get_X_mean(Y_train)
-                        # Compute training reconstruction
-                        if config.enable_missing_data and model_name == 'nn_gauss':
-                            # For nn_gauss with missing data, use cleaned input for reconstruction too
-                            Y_train_for_recon = Y_train.clone()
-                            Y_train_for_recon[torch.isnan(Y_train_for_recon)] = -999.0
-                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train_for_recon, ae=ae, model_name=model_name)
-                        else:
                             Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
+
+                            if model_name == "nn_gauss":
+                                X_train_covar = model.X.sigma(Y_train).detach()
+                            else:
+                                X_train_covar = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
+
                         # Compute training RMSE (original approach)
                         if config.enable_missing_data:
                             train_rmse = rmse_missing_improved(Y_train_original.cpu().numpy(), Y_train_recon.T.detach().cpu().numpy())
@@ -369,14 +371,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         if model_name == 'nn_gauss':
                             # For nn_gauss, we need X_covar and obs_noise
                             try:
-                                # Handle missing data for covariance computation
-                                if config.enable_missing_data:
-                                    Y_train_for_covar = Y_train.clone()
-                                    Y_train_for_covar[torch.isnan(Y_train_for_covar)] = -999.0
-                                    X_train_covar = model.X.sigma(Y_train_for_covar).detach()  # [N, latent_dim, latent_dim]
-                                else:
-                                    X_train_covar = model.X.sigma(Y_train).detach()  # [N, latent_dim, latent_dim]
-                                
                                 obs_noise = likelihood.noise
                                 train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_train_covar, obs_noise)
                             except Exception as e:
@@ -435,18 +429,15 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             Y_train_for_encoder = Y_train.clone()
             Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
             X_train_mean = model.get_X_mean(Y_train_for_encoder)
+            X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
         else:
             X_train_mean = model.get_X_mean(Y_train)
-        try:
-            X_train_scales = model.get_X_scales(Y_train)
-        except (RuntimeError, TypeError) as e:
-            if "can't convert cuda" in str(e).lower():
-                # For nn_gauss model, get_X_scales returns CUDA tensors that need CPU conversion
-                if model_name == 'nn_gauss':
-                    sigma_tensors = model.X.sigma(Y_train).detach()
-                    X_train_scales = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_tensors])
-                else:
-                    raise e
+
+            if model_name == "nn_gauss":
+                X_train_covar = model.X.sigma(Y_train).detach()
+            else:
+                X_train_covar = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
+
         
         # Save plots to results directory
         if logger.get_results_dir():
