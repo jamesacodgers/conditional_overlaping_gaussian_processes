@@ -146,7 +146,7 @@ run_config() {
     local config_name=$(basename "$config_file" .yaml)
     
     # Build command (now running from ssvi_scripts_experiments directory)
-    local cmd="python oil_flow_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
+    local cmd=".venv/bin/python oil_flow_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
     
     # Only add device parameter if explicitly specified
     if [[ -n "$DEVICE" ]]; then
