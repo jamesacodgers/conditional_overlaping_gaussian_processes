@@ -629,8 +629,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 'test_rmse': summary.get('final_test_rmse', 0.0),
                 'train_nlpd': summary.get('final_train_nlpd', 0.0),
                 'test_nlpd': summary.get('final_test_nlpd', 0.0),
-                'train_missing_data_nlpd': summary.get('final_train_missing_data_nlpd', 0.0),
-                'test_missing_data_nlpd': summary.get('final_test_missing_data_nlpd', 0.0),
+                'train_missing_data_nlpd': summary.get('final_train_missing_nlpd', float('nan')),
+                'test_missing_data_nlpd': summary.get('final_test_missing_nlpd', float('nan')),
                 'final_loss': losses[-1] if losses else 0.0,
                 'final_noise': float(final_noise)  # Ensure it's a Python float
             }

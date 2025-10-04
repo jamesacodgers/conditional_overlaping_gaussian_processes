@@ -279,12 +279,14 @@ class SSVIMetricsComputer:
                 # For multi-output case, use diagonal elements + observation noise
                 f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [batch_size, M, C]
             
-            # Create y_for_nlpd: complete data with observed values set to zeros and masked out
+            # Create y_for_nlpd: complete data with observed values set to NaN and masked out
             y_for_nlpd = y_original.clone()
-            y_for_nlpd[~missing_mask] = 0.0  # Set observed values to zeros
+            y_for_nlpd[~missing_mask] = float('nan')  # Set observed values to NaN
             
             # Compute log probability under Gaussian
-            log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_for_nlpd - f_mean)**2 / f_var
+            # Replace NaN values with zeros for computation (they'll be masked out)
+            y_for_nlpd_clean = torch.where(torch.isfinite(y_for_nlpd), y_for_nlpd, torch.zeros_like(y_for_nlpd))
+            log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_for_nlpd_clean - f_mean)**2 / f_var
             
             # Apply missing data mask to only include missing dimensions
             log_prob_masked = log_prob * missing_mask.float()[None,:,:]

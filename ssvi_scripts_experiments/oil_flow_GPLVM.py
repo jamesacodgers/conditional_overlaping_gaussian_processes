@@ -695,6 +695,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
                 'train_nlpd': float(train_nlpd),  # train_nlpd is already a float from compute_nlpd_nll_based
                 'test_nlpd': float(test_nlpd),    # test_nlpd is already a float from compute_nlpd_nll_based
+                'train_missing_nlpd': float('nan'),  # Default to NaN, will be updated if missing data is enabled
+                'test_missing_nlpd': float('nan'),   # Default to NaN, will be updated if missing data is enabled
                 'final_loss': float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
