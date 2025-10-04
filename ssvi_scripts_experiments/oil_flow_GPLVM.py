@@ -65,6 +65,7 @@ from src.nlpd_utils import compute_nlpd_nll_based
 from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
+from src.unified_rmse_utils import compute_rmse_with_sampling
 
 plt.style.use('ggplot')
 
@@ -194,8 +195,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # No missing data - store None for consistency
         Y_train_original = None
         Y_test_original = None
-        train_missing_mask = None
-        test_missing_mask = None
     
     # Setting shapes
     N = len(Y_train)
@@ -218,7 +217,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         logger.log_training(f"Starting training for model: {model_name}")
         
         # Always apply PCA initialization (matching SSVI approach)
-        mu_x_pca, _, _ = torch.pca_lowrank(Y_train, latent_dim)
+        # Use original data for PCA to avoid NaN propagation from missing data preprocessing
+        if config.enable_missing_data and Y_train_original is not None:
+            # Use original complete data for PCA initialization
+            mu_x_pca, _, _ = torch.pca_lowrank(Y_train_original, latent_dim)
+        else:
+            # Use training data if no missing data or if Y_train_original is None
+            mu_x_pca, _, _ = torch.pca_lowrank(Y_train, latent_dim)
         X_init = torch.nn.Parameter(mu_x_pca)
         
         # Define prior for X using PCA-derived means (matching SSVI approach)
@@ -346,33 +351,32 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                             Y_train_for_encoder = Y_train.clone()
                             Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
                             X_train_mean = model.get_X_mean(Y_train_for_encoder)
+                            X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
+                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train_for_encoder, ae=ae,
+                                                                   model_name=model_name)
                         else:
                             X_train_mean = model.get_X_mean(Y_train)
-                        # Compute training reconstruction
-                        if config.enable_missing_data and model_name == 'nn_gauss':
-                            # For nn_gauss with missing data, use cleaned input for reconstruction too
-                            Y_train_for_recon = Y_train.clone()
-                            Y_train_for_recon[torch.isnan(Y_train_for_recon)] = -999.0
-                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train_for_recon, ae=ae, model_name=model_name)
-                        else:
                             Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
-                        # Compute training RMSE (original approach)
-                        if config.enable_missing_data:
-                            train_rmse = rmse_missing_improved(Y_train_original.cpu().numpy(), Y_train_recon.T.detach().cpu().numpy())
-                        else:
-                            train_rmse = rmse(Y_train, Y_train_recon.T)
+
+                            if model_name == "nn_gauss":
+                                X_train_covar = model.X.sigma(Y_train).detach()
+                            else:
+                                X_train_covar = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
+
+                        # Compute training RMSE using unified sampling approach
+                        train_rmse = compute_rmse_with_sampling(
+                            model=model,
+                            y_true=Y_train,
+                            X_mean=X_train_mean,
+                            X_covar=X_train_covar,
+                            model_name=model_name,
+                            n_samples=32,
+                            enable_missing_data=config.enable_missing_data
+                        )
                         # Compute training NLPD
                         if model_name == 'nn_gauss':
                             # For nn_gauss, we need X_covar and obs_noise
                             try:
-                                # Handle missing data for covariance computation
-                                if config.enable_missing_data:
-                                    Y_train_for_covar = Y_train.clone()
-                                    Y_train_for_covar[torch.isnan(Y_train_for_covar)] = -999.0
-                                    X_train_covar = model.X.sigma(Y_train_for_covar).detach()  # [N, latent_dim, latent_dim]
-                                else:
-                                    X_train_covar = model.X.sigma(Y_train).detach()  # [N, latent_dim, latent_dim]
-                                
                                 obs_noise = likelihood.noise
                                 train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_train_covar, obs_noise)
                             except Exception as e:
@@ -431,18 +435,15 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             Y_train_for_encoder = Y_train.clone()
             Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
             X_train_mean = model.get_X_mean(Y_train_for_encoder)
+            X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
         else:
             X_train_mean = model.get_X_mean(Y_train)
-        try:
-            X_train_scales = model.get_X_scales(Y_train)
-        except (RuntimeError, TypeError) as e:
-            if "can't convert cuda" in str(e).lower():
-                # For nn_gauss model, get_X_scales returns CUDA tensors that need CPU conversion
-                if model_name == 'nn_gauss':
-                    sigma_tensors = model.X.sigma(Y_train).detach()
-                    X_train_scales = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_tensors])
-                else:
-                    raise e
+
+            if model_name == "nn_gauss":
+                X_train_covar = model.X.sigma(Y_train).detach()
+            else:
+                X_train_covar = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
+
         
         # Save plots to results directory
         if logger.get_results_dir():
@@ -528,8 +529,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     X_test_mean = X_test.X
             elif model_name == 'gauss':
                    X_test_mean = X_test.q_mu.detach()
-                   X_test_std = torch.nn.functional.softplus(X_test.q_log_sigma).detach()
-                   X_train_std = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
+                   X_test_covar = torch.nn.functional.softplus(X_test.q_log_sigma).detach()
             # Note: For nn_gauss, X_test_mean is already computed above in the ae=True block
        
             # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
@@ -547,10 +547,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 
                 Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test_for_recon, ae=ae, model_name=model_name)
                 Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train_for_recon, ae=ae, model_name=model_name)
-                
-                # Get covariance matrices for NLPD computation
-                X_train_covar = model.X.sigma(Y_train_for_recon).detach()  # [N, latent_dim, latent_dim]
-                obs_noise = likelihood.noise
             else:
                 Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test, ae=ae, model_name=model_name)
                 Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train, ae=ae, model_name=model_name)
@@ -558,53 +554,61 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # ################################
             # Compute the metrics:
             
-            # 1) Reconstruction error - Train & Test (original approach)
-            if config.enable_missing_data:
-                mse_train = rmse_missing_improved(Y_train_original.cpu().numpy(), Y_train_recon.T.detach().cpu().numpy())
-                mse_test = rmse_missing_improved(Y_test_original.cpu().numpy(), Y_test_recon.T.detach().cpu().numpy())
-            else:
-                mse_train = rmse(Y_train, Y_train_recon.T)
-                mse_test = rmse(Y_test, Y_test_recon.T)
-            
-            print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
-            print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
+            # 1) Reconstruction error - Train & Test using unified sampling approach
+            try:
+                mse_train = compute_rmse_with_sampling(
+                    model=model,
+                    y_true=Y_train,
+                    X_mean=X_train_mean_device,
+                    X_covar=X_train_covar,
+                    model_name=model_name,
+                    n_samples=32,
+                    enable_missing_data=config.enable_missing_data
+                )
+                
+                mse_test = compute_rmse_with_sampling(
+                    model=model,
+                    y_true=Y_test,
+                    X_mean=X_test_mean_device,
+                    X_covar=X_test_covar,
+                    model_name=model_name,
+                    n_samples=32,
+                    enable_missing_data=config.enable_missing_data
+                )
+                
+                print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
+                print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
+            except Exception as e:
+                print(f"Warning: Failed to compute RMSE for {model_name} due to error: {e}")
+                print("This is likely due to NaN values in latent variables. Setting RMSE to NaN...")
+                mse_train = float('nan')
+                mse_test = float('nan')
+                print(f'Train Reconstruction error {model_name} = NaN (error)')
+                print(f'Test Reconstruction error {model_name} = NaN (error)')
             
             # 2) Negative Log Predictive Density (NLPD) - using NLL-based approach inspired by movie_lens_large_expt.py
 
             # Train NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
-            if model_name == 'nn_gauss':
-                # For nn_gauss, we need X_covar and obs_noise
-                if config.enable_missing_data:
-                    # X_train_covar and obs_noise are already computed above
-                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise)
-                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_test_covar, obs_noise)
+            obs_noise = likelihood.noise
+            try:
+                if model_name == 'nn_gauss':
+                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list,
+                                                        X_train_covar, obs_noise)
+                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test,
+                                                       X_test_covar, obs_noise)
                 else:
-                    # Get training covariance for non-missing data case (same as training NLPD above)
-                    X_train_covar = model.X.sigma(Y_train).detach()  # [N, latent_dim, latent_dim]
-                    obs_noise = likelihood.noise
-                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise)
-                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_test_covar, obs_noise)
-            else:
-                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
-                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
+                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
+                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
 
-            print(f'Train NLPD {model_name} = ' + str(train_nlpd))
-            print(f'Test NLPD {model_name} = ' + str(test_nlpd))
-            
-            # Missing data NLPD computation (only for gauss model with missing data)
-            train_missing_data_nlpd = float('nan')
-            test_missing_data_nlpd = float('nan')
-            if config.enable_missing_data and model_name == 'gauss':
-                from src.nlpd_utils import compute_missing_data_nlpd_gauss
-                
-                # Compute missing data NLPD using proper sampling from latent distribution
-                train_missing_data_nlpd = compute_missing_data_nlpd_gauss(
-                    model, Y_train_original, train_missing_mask, X_train_mean_device, X_train_std, likelihood.noise)
-                test_missing_data_nlpd = compute_missing_data_nlpd_gauss(
-                    model, Y_test_original, test_missing_mask, X_test_mean_device, X_test_std, likelihood.noise)
-                
-                print(f'Train Missing Data NLPD {model_name} = ' + str(train_missing_data_nlpd))
-                print(f'Test Missing Data NLPD {model_name} = ' + str(test_missing_data_nlpd))
+                print(f'Train NLPD {model_name} = ' + str(train_nlpd))
+                print(f'Test NLPD {model_name} = ' + str(test_nlpd))
+            except Exception as e:
+                print(f"Warning: Failed to compute NLPD for {model_name} due to error: {e}")
+                print("This is likely due to NaN values in latent variables. Setting NLPD to NaN...")
+                train_nlpd = float('nan')
+                test_nlpd = float('nan')
+                print(f'Train NLPD {model_name} = NaN (error)')
+                print(f'Test NLPD {model_name} = NaN (error)')
 
             # Save training results (convert tensors to floats for JSON serialization)
             # Ensure all values in loss_list and noise_trace are Python floats
@@ -620,16 +624,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
                 'train_nlpd': float(train_nlpd),  # train_nlpd is already a float from compute_nlpd_nll_based
                 'test_nlpd': float(test_nlpd),    # test_nlpd is already a float from compute_nlpd_nll_based
-                'train_missing_data_nlpd': float(train_missing_data_nlpd),
-                'test_missing_data_nlpd': float(test_missing_data_nlpd),
                 'final_loss': float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
             
-            if config.enable_missing_data and model_name == 'gauss' and not np.isnan(train_missing_data_nlpd):
-                logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}, Train Missing NLPD: {train_missing_data_nlpd:.4f}, Test Missing NLPD: {test_missing_data_nlpd:.4f}")
-            else:
-                logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
+            logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)
