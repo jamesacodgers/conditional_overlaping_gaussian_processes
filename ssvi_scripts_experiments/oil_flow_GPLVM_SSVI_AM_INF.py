@@ -349,17 +349,35 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
             print(f"  Computing metrics at iteration {i}...")
 
                 # Use full datasets for proper evaluation
-            metrics = metrics_computer.compute_full_metrics(
-                model=model,
-                y_train=split_data['y_train'],
-                y_test=split_data['y_test'],
-                iteration=i,
-                elbo_loss=loss,
-                n_samples=32  # Fixed number of samples for metrics computation
-            )
+            # Compute metrics with missing data info if enabled
+            if config.enable_missing_data:
+                metrics = metrics_computer.compute_full_metrics(
+                    model=model,
+                    y_train=split_data['y_train'],
+                    y_test=split_data['y_test'],
+                    iteration=i,
+                    elbo_loss=loss,
+                    n_samples=32,  # Fixed number of samples for metrics computation
+                    y_train_original=split_data['y_train_original'],
+                    y_test_original=split_data['y_test_original'],
+                    train_missing_mask=split_data['train_missing_mask'],
+                    test_missing_mask=split_data['test_missing_mask']
+                )
+            else:
+                metrics = metrics_computer.compute_full_metrics(
+                    model=model,
+                    y_train=split_data['y_train'],
+                    y_test=split_data['y_test'],
+                    iteration=i,
+                    elbo_loss=loss,
+                    n_samples=32  # Fixed number of samples for metrics computation
+                )
             
             print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
             print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
+            if config.enable_missing_data and not np.isnan(metrics.train_missing_nlpd):
+                print(f"    Train Missing Data NLPD: {metrics.train_missing_nlpd:.3f}")
+                print(f"    Test Missing Data NLPD: {metrics.test_missing_nlpd:.3f}")
             print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
             print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
                 
@@ -520,14 +538,30 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         
         # Compute final comprehensive metrics on full test set
         print("Computing final metrics on full datasets...")
-        final_metrics = metrics_computer.compute_full_metrics(
-            model=model,
-            y_train=split_data['y_train'],
-            y_test=split_data['y_test'],
-            iteration=config.training_iterations,
-            elbo_loss=losses[-1] if losses else 0.0,
-            n_samples=32  # Fixed number of samples for final metrics computation
-        )
+        
+        # Compute final metrics with missing data info if enabled
+        if config.enable_missing_data:
+            final_metrics = metrics_computer.compute_full_metrics(
+                model=model,
+                y_train=split_data['y_train'],
+                y_test=split_data['y_test'],
+                iteration=config.training_iterations,
+                elbo_loss=losses[-1] if losses else 0.0,
+                n_samples=32,  # Fixed number of samples for final metrics computation
+                y_train_original=split_data['y_train_original'],
+                y_test_original=split_data['y_test_original'],
+                train_missing_mask=split_data['train_missing_mask'],
+                test_missing_mask=split_data['test_missing_mask']
+            )
+        else:
+            final_metrics = metrics_computer.compute_full_metrics(
+                model=model,
+                y_train=split_data['y_train'],
+                y_test=split_data['y_test'],
+                iteration=config.training_iterations,
+                elbo_loss=losses[-1] if losses else 0.0,
+                n_samples=32  # Fixed number of samples for final metrics computation
+            )
         
         # Print final metrics summary using the computed final_metrics
         summary = metrics_computer.get_metrics_summary()
@@ -541,6 +575,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         print(f"Final Test RMSE: {summary['final_test_rmse']:.4f}")
         print(f"Final Train NLPD: {summary['final_train_nlpd']:.3f}")
         print(f"Final Test NLPD: {summary['final_test_nlpd']:.3f}")
+        if config.enable_missing_data and not np.isnan(summary.get('final_train_missing_nlpd', float('nan'))):
+            print(f"Final Train Missing Data NLPD: {summary['final_train_missing_nlpd']:.3f}")
+            print(f"Final Test Missing Data NLPD: {summary['final_test_missing_nlpd']:.3f}")
         print(f"Overfitting Ratio (Test/Train RMSE): {summary['overfitting_ratio']:.3f}")
         print(f"Effective Latent Dimensions: {summary['final_effective_dims']}/{summary['total_latent_dims']}")
         print("=" * 35)
@@ -592,6 +629,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 'test_rmse': summary.get('final_test_rmse', 0.0),
                 'train_nlpd': summary.get('final_train_nlpd', 0.0),
                 'test_nlpd': summary.get('final_test_nlpd', 0.0),
+                'train_missing_data_nlpd': summary.get('final_train_missing_nlpd', float('nan')),
+                'test_missing_data_nlpd': summary.get('final_test_missing_nlpd', float('nan')),
                 'final_loss': losses[-1] if losses else 0.0,
                 'final_noise': float(final_noise)  # Ensure it's a Python float
             }

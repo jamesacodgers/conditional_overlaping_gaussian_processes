@@ -145,6 +145,8 @@ class SSVIResultsLogger:
                     'test_rmse': float(metrics.test_rmse),
                     'train_nlpd': float(metrics.train_nlpd),
                     'test_nlpd': float(metrics.test_nlpd),
+                    'train_missing_nlpd': float(metrics.train_missing_nlpd),
+                    'test_missing_nlpd': float(metrics.test_missing_nlpd),
                     'elbo_loss': float(metrics.elbo_loss)
                 }
                 checkpoint_data['checkpoints'].append(checkpoint_entry)

@@ -30,6 +30,10 @@ class SSVIMetrics:
     train_nlpd: float = 0.0
     test_nlpd: float = 0.0
     
+    # Missing data uncertainty metrics
+    train_missing_nlpd: float = float('nan')
+    test_missing_nlpd: float = float('nan')
+    
     # Model complexity metrics
     effective_latent_dims: int = 0
     total_latent_dims: int = 0
@@ -46,6 +50,8 @@ class SSVIMetrics:
             'test_rmse': self.test_rmse,
             'train_nlpd': self.train_nlpd,
             'test_nlpd': self.test_nlpd,
+            'train_missing_nlpd': self.train_missing_nlpd,
+            'test_missing_nlpd': self.test_missing_nlpd,
             'effective_latent_dims': self.effective_latent_dims,
             'total_latent_dims': self.total_latent_dims,
             'elbo_loss': self.elbo_loss
@@ -209,6 +215,94 @@ class SSVIMetricsComputer:
         model.train()
         return nlpd
     
+    
+    def compute_missing_data_nlpd(self, 
+                     model, 
+                     y_original: torch.Tensor, 
+                     missing_mask: torch.Tensor,
+                     n_samples: int = 50) -> float:
+        """
+        Compute Negative Log Predictive Density specifically for missing data dimensions.
+        
+        This follows the same approach as nlpd_utils.compute_missing_data_nlpd_gauss:
+        1. Use y_original (complete data) as encoder input
+        2. Apply reverse mask: set observed values to NaN, leave missing values as they were
+        3. Compute probabilities only on the originally missing dimensions
+        
+        Args:
+            model: SSVI GP-LVM model
+            y_original: Original complete data before missing data preprocessing [N, D]
+            missing_mask: Boolean mask [N, D] where True=missing
+            n_samples: Number of samples for Monte Carlo estimation
+            
+        Returns:
+            NLPD value for missing data dimensions only (lower is better)
+        """
+        model.eval()
+        with torch.no_grad():
+            # Check if we have any missing dimensions to evaluate
+            if missing_mask.sum() == 0:
+                # No missing data - return NaN
+                model.train()
+                return float('nan')
+            
+            # Sample U for both model types
+            U_samples = model.get_u_samples()
+            
+            # Preprocess encoder input to handle missing data (consistent with training)
+            # Create masked data by setting missing dimensions to -9.0
+            y_encoder_input = y_original.clone()
+            y_encoder_input[missing_mask] = -9.0
+            
+            # Get latent representations for this batch using SSVI encoder
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            
+            # Compute averaged latent variables once before the loop (optimization)
+            x_dist = torch.distributions.Normal(mu_x, sigma_x)
+            x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]            
+            
+            # Sample latent variables using pre-computed averages
+
+            # Compute predictive distribution through GP using proper GP methods
+            
+            # Get GP predictive mean using GP method directly
+            f_mean = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [batch_size, M, C]
+            
+            # Get proper GP predictive variance: GP covariance + observation noise
+            gp_cov = model.gp.get_gp_covariance_given_U(x_samples, U_samples)  # [batch_size, M, C, C]
+
+            # For observed data (C=1 case), extract diagonal and add observation noise
+            if gp_cov.shape[-1] == 1:
+                f_var = gp_cov[..., 0, 0] + model.sigma2  # [batch_size, M]
+                f_mean = f_mean[..., 0]  # [batch_size, M] to match f_var
+            else:
+                # For multi-output case, use diagonal elements + observation noise
+                f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [batch_size, M, C]
+            
+            # Create y_for_nlpd: complete data with observed values set to NaN and masked out
+            y_for_nlpd = y_original.clone()
+            y_for_nlpd[~missing_mask] = float('nan')  # Set observed values to NaN
+            
+            # Compute log probability under Gaussian
+            # Replace NaN values with zeros for computation (they'll be masked out)
+            y_for_nlpd_clean = torch.where(torch.isfinite(y_for_nlpd), y_for_nlpd, torch.zeros_like(y_for_nlpd))
+            log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_for_nlpd_clean - f_mean)**2 / f_var
+            
+            # Apply missing data mask to only include missing dimensions
+            log_prob_masked = log_prob * missing_mask.float()[None,:,:]
+            
+            # Average log probabilities
+            log_prob = log_prob_masked.sum(dim=-1).mean()
+            
+            # Average log probabilities (log of mixture)
+            # Use logsumexp for numerical stability
+            
+            # Negative log predictive density (average over batch)
+            nlpd = -log_prob.mean().item()
+            
+        model.train()
+        return nlpd
+    
     def compute_effective_latent_dims(self, model, threshold: float = 0.1) -> Tuple[int, int]:
         """
         Compute number of effective latent dimensions based on lengthscales
@@ -244,17 +338,25 @@ class SSVIMetricsComputer:
                            y_test: torch.Tensor,
                            iteration: int = 0,
                            elbo_loss: float = 0.0,
-                           n_samples: int = 20) -> SSVIMetrics:
+                           n_samples: int = 20,
+                           y_train_original: torch.Tensor = None,
+                           y_test_original: torch.Tensor = None,
+                           train_missing_mask: torch.Tensor = None,
+                           test_missing_mask: torch.Tensor = None) -> SSVIMetrics:
         """
         Compute all metrics for current model state
         
         Args:
             model: SSVI GP-LVM model
-            y_train: Training data
-            y_test: Test data  
+            y_train: Training data (with missing values if enable_missing_data=True)
+            y_test: Test data (with missing values if enable_missing_data=True)
             iteration: Current training iteration
             elbo_loss: Current ELBO loss
             n_samples: Number of samples for Monte Carlo
+            y_train_original: Original training data before missing data preprocessing (optional)
+            y_test_original: Original test data before missing data preprocessing (optional)
+            train_missing_mask: Boolean mask for training data missing dimensions (optional)
+            test_missing_mask: Boolean mask for test data missing dimensions (optional)
             
         Returns:
             SSVIMetrics object with all computed metrics
@@ -272,6 +374,21 @@ class SSVIMetricsComputer:
             metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
             metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
             
+            # Missing data uncertainty metrics (only if missing data is enabled and original data/masks are provided)
+            if (hasattr(model, 'enable_missing_data') and model.enable_missing_data and
+                y_train_original is not None and y_test_original is not None and 
+                train_missing_mask is not None and test_missing_mask is not None):
+                try:
+                    metrics.train_missing_nlpd = self.compute_missing_data_nlpd(
+                        model, y_train_original, train_missing_mask, n_samples
+                    )
+                    metrics.test_missing_nlpd = self.compute_missing_data_nlpd(
+                        model, y_test_original, test_missing_mask, n_samples
+                    )
+                except Exception as e:
+                    print(f"Warning: Error computing missing data NLPD at iteration {iteration}: {e}")
+                    # Keep default values (0.0) for failed metrics
+
             # Model complexity
             effective_dims, total_dims = self.compute_effective_latent_dims(model)
             metrics.effective_latent_dims = effective_dims
@@ -298,6 +415,8 @@ class SSVIMetricsComputer:
             'final_test_rmse': final_metrics.test_rmse,
             'final_train_nlpd': final_metrics.train_nlpd,
             'final_test_nlpd': final_metrics.test_nlpd,
+            'final_train_missing_nlpd': final_metrics.train_missing_nlpd,
+            'final_test_missing_nlpd': final_metrics.test_missing_nlpd,
             'final_effective_dims': final_metrics.effective_latent_dims,
             'total_latent_dims': final_metrics.total_latent_dims,
             'overfitting_ratio': final_metrics.test_rmse / final_metrics.train_rmse if final_metrics.train_rmse > 0 else float('inf'),
