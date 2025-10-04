@@ -625,54 +625,6 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
 
                 print(f'Train NLPD {model_name} = ' + str(train_nlpd))
                 print(f'Test NLPD {model_name} = ' + str(test_nlpd))
-                
-                # 3) Missing Data NLPD for gauss model (similar to SSVI approach)
-                if config.enable_missing_data and model_name == 'gauss':
-                    try:
-                        # Use already computed X_covar for gauss model
-                        X_train_std = X_train_covar
-                        X_test_std = X_test_covar
-                        
-                        # Compute missing data NLPD for training data
-                        train_missing_nlpd = compute_missing_data_nlpd_gauss(
-                            model=model,
-                            Y_original=Y_train_original,
-                            missing_mask=train_missing_mask,
-                            X_mean=X_train_mean_device,
-                            X_std=X_train_std,
-                            obs_noise=obs_noise,
-                            n_samples=config.reconstruction_samples
-                        )
-                        
-                        # Compute missing data NLPD for test data
-                        test_missing_nlpd = compute_missing_data_nlpd_gauss(
-                            model=model,
-                            Y_original=Y_test_original,
-                            missing_mask=test_missing_mask,
-                            X_mean=X_test_mean_device,
-                            X_std=X_test_std,
-                            obs_noise=obs_noise,
-                            n_samples=config.reconstruction_samples
-                        )
-                        
-                        print(f'Train Missing Data NLPD {model_name} = ' + str(train_missing_nlpd))
-                        print(f'Test Missing Data NLPD {model_name} = ' + str(test_missing_nlpd))
-                        
-                        # Store missing data NLPD results for summary
-                        results_summary[model_name]['train_missing_nlpd'] = float(train_missing_nlpd)
-                        results_summary[model_name]['test_missing_nlpd'] = float(test_missing_nlpd)
-                        
-                    except Exception as e:
-                        print(f"Warning: Failed to compute missing data NLPD for {model_name} due to error: {e}")
-                        print("Setting missing data NLPD to NaN...")
-                        train_missing_nlpd = float('nan')
-                        test_missing_nlpd = float('nan')
-                        print(f'Train Missing Data NLPD {model_name} = NaN (error)')
-                        print(f'Test Missing Data NLPD {model_name} = NaN (error)')
-                        
-                        # Store NaN values for missing data NLPD results
-                        results_summary[model_name]['train_missing_nlpd'] = float(train_missing_nlpd)
-                        results_summary[model_name]['test_missing_nlpd'] = float(test_missing_nlpd)
             except Exception as e:
                 print(f"Warning: Failed to compute NLPD for {model_name} due to error: {e}")
                 print("This is likely due to NaN values in latent variables. Setting NLPD to NaN...")
@@ -680,6 +632,58 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 test_nlpd = float('nan')
                 print(f'Train NLPD {model_name} = NaN (error)')
                 print(f'Test NLPD {model_name} = NaN (error)')
+                
+            # Initialize results_summary[model_name] if it doesn't exist
+            if model_name not in results_summary:
+                results_summary[model_name] = {}
+
+            # 3) Missing Data NLPD for gauss model (similar to SSVI approach)
+            if config.enable_missing_data and model_name == 'gauss':
+                try:
+                    # Use already computed X_covar for gauss model
+                    X_train_std = X_train_covar
+                    X_test_std = X_test_covar
+
+                    # Compute missing data NLPD for training data
+                    train_missing_nlpd = compute_missing_data_nlpd_gauss(
+                        model=model,
+                        Y_original=Y_train_original,
+                        missing_mask=train_missing_mask,
+                        X_mean=X_train_mean_device,
+                        X_std=X_train_std,
+                        obs_noise=obs_noise,
+                        n_samples=config.reconstruction_samples
+                    )
+
+                    # Compute missing data NLPD for test data
+                    test_missing_nlpd = compute_missing_data_nlpd_gauss(
+                        model=model,
+                        Y_original=Y_test_original,
+                        missing_mask=test_missing_mask,
+                        X_mean=X_test_mean_device,
+                        X_std=X_test_std,
+                        obs_noise=obs_noise,
+                        n_samples=config.reconstruction_samples
+                    )
+
+                    print(f'Train Missing Data NLPD {model_name} = ' + str(train_missing_nlpd))
+                    print(f'Test Missing Data NLPD {model_name} = ' + str(test_missing_nlpd))
+
+                    # Store missing data NLPD results for summary
+                    results_summary[model_name]['train_missing_nlpd'] = float(train_missing_nlpd)
+                    results_summary[model_name]['test_missing_nlpd'] = float(test_missing_nlpd)
+
+                except Exception as e:
+                    print(f"Warning: Failed to compute missing data NLPD for {model_name} due to error: {e}")
+                    print("Setting missing data NLPD to NaN...")
+                    train_missing_nlpd = float('nan')
+                    test_missing_nlpd = float('nan')
+                    print(f'Train Missing Data NLPD {model_name} = NaN (error)')
+                    print(f'Test Missing Data NLPD {model_name} = NaN (error)')
+
+                    # Store NaN values for missing data NLPD results
+                    results_summary[model_name]['train_missing_nlpd'] = float(train_missing_nlpd)
+                    results_summary[model_name]['test_missing_nlpd'] = float(test_missing_nlpd)
 
             # Save training results (convert tensors to floats for JSON serialization)
             # Ensure all values in loss_list and noise_trace are Python floats
@@ -690,13 +694,17 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                                         float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test))
             
             # Store results for summary (convert tensors to floats for JSON serialization)
+            # Preserve existing missing data NLPD values if they were computed
+            train_missing_nlpd_value = results_summary[model_name].get('train_missing_nlpd', float('nan'))
+            test_missing_nlpd_value = results_summary[model_name].get('test_missing_nlpd', float('nan'))
+            
             results_summary[model_name] = {
                 'train_rmse': float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train),
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
                 'train_nlpd': float(train_nlpd),  # train_nlpd is already a float from compute_nlpd_nll_based
                 'test_nlpd': float(test_nlpd),    # test_nlpd is already a float from compute_nlpd_nll_based
-                'train_missing_nlpd': float('nan'),  # Default to NaN, will be updated if missing data is enabled
-                'test_missing_nlpd': float('nan'),   # Default to NaN, will be updated if missing data is enabled
+                'train_missing_nlpd': train_missing_nlpd_value,  # Preserve computed value or use NaN
+                'test_missing_nlpd': test_missing_nlpd_value,   # Preserve computed value or use NaN
                 'final_loss': float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
