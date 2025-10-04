@@ -65,6 +65,7 @@ from src.nlpd_utils import compute_nlpd_nll_based
 from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
+from src.unified_rmse_utils import compute_rmse_with_sampling
 
 plt.style.use('ggplot')
 
@@ -362,11 +363,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                             else:
                                 X_train_covar = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
 
-                        # Compute training RMSE (original approach)
-                        if config.enable_missing_data:
-                            train_rmse = rmse_missing_improved(Y_train_original.cpu().numpy(), Y_train_recon.T.detach().cpu().numpy())
-                        else:
-                            train_rmse = rmse(Y_train, Y_train_recon.T)
+                        # Compute training RMSE using unified sampling approach
+                        train_rmse = compute_rmse_with_sampling(
+                            model=model,
+                            y_true=Y_train,
+                            X_mean=X_train_mean,
+                            X_covar=X_train_covar,
+                            model_name=model_name,
+                            n_samples=32,
+                            enable_missing_data=config.enable_missing_data
+                        )
                         # Compute training NLPD
                         if model_name == 'nn_gauss':
                             # For nn_gauss, we need X_covar and obs_noise
@@ -548,13 +554,26 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # ################################
             # Compute the metrics:
             
-            # 1) Reconstruction error - Train & Test (original approach)
-            if config.enable_missing_data:
-                mse_train = rmse_missing_improved(Y_train_original.cpu().numpy(), Y_train_recon.T.detach().cpu().numpy())
-                mse_test = rmse_missing_improved(Y_test_original.cpu().numpy(), Y_test_recon.T.detach().cpu().numpy())
-            else:
-                mse_train = rmse(Y_train, Y_train_recon.T)
-                mse_test = rmse(Y_test, Y_test_recon.T)
+            # 1) Reconstruction error - Train & Test using unified sampling approach
+            mse_train = compute_rmse_with_sampling(
+                model=model,
+                y_true=Y_train,
+                X_mean=X_train_mean_device,
+                X_covar=X_train_covar,
+                model_name=model_name,
+                n_samples=32,
+                enable_missing_data=config.enable_missing_data
+            )
+            
+            mse_test = compute_rmse_with_sampling(
+                model=model,
+                y_true=Y_test,
+                X_mean=X_test_mean_device,
+                X_covar=X_test_covar,
+                model_name=model_name,
+                n_samples=32,
+                enable_missing_data=config.enable_missing_data
+            )
             
             print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
             print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
