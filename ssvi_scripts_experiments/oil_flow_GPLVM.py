@@ -555,44 +555,60 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # Compute the metrics:
             
             # 1) Reconstruction error - Train & Test using unified sampling approach
-            mse_train = compute_rmse_with_sampling(
-                model=model,
-                y_true=Y_train,
-                X_mean=X_train_mean_device,
-                X_covar=X_train_covar,
-                model_name=model_name,
-                n_samples=32,
-                enable_missing_data=config.enable_missing_data
-            )
-            
-            mse_test = compute_rmse_with_sampling(
-                model=model,
-                y_true=Y_test,
-                X_mean=X_test_mean_device,
-                X_covar=X_test_covar,
-                model_name=model_name,
-                n_samples=32,
-                enable_missing_data=config.enable_missing_data
-            )
-            
-            print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
-            print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
+            try:
+                mse_train = compute_rmse_with_sampling(
+                    model=model,
+                    y_true=Y_train,
+                    X_mean=X_train_mean_device,
+                    X_covar=X_train_covar,
+                    model_name=model_name,
+                    n_samples=32,
+                    enable_missing_data=config.enable_missing_data
+                )
+                
+                mse_test = compute_rmse_with_sampling(
+                    model=model,
+                    y_true=Y_test,
+                    X_mean=X_test_mean_device,
+                    X_covar=X_test_covar,
+                    model_name=model_name,
+                    n_samples=32,
+                    enable_missing_data=config.enable_missing_data
+                )
+                
+                print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
+                print(f'Test Reconstruction error {model_name} = ' + str(mse_test))
+            except Exception as e:
+                print(f"Warning: Failed to compute RMSE for {model_name} due to error: {e}")
+                print("This is likely due to NaN values in latent variables. Setting RMSE to NaN...")
+                mse_train = float('nan')
+                mse_test = float('nan')
+                print(f'Train Reconstruction error {model_name} = NaN (error)')
+                print(f'Test Reconstruction error {model_name} = NaN (error)')
             
             # 2) Negative Log Predictive Density (NLPD) - using NLL-based approach inspired by movie_lens_large_expt.py
 
             # Train NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
             obs_noise = likelihood.noise
-            if model_name == 'nn_gauss':
-                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list,
-                                                    X_train_covar, obs_noise)
-                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test,
-                                                   X_test_covar, obs_noise)
-            else:
-                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
-                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
+            try:
+                if model_name == 'nn_gauss':
+                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list,
+                                                        X_train_covar, obs_noise)
+                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test,
+                                                       X_test_covar, obs_noise)
+                else:
+                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
+                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
 
-            print(f'Train NLPD {model_name} = ' + str(train_nlpd))
-            print(f'Test NLPD {model_name} = ' + str(test_nlpd))
+                print(f'Train NLPD {model_name} = ' + str(train_nlpd))
+                print(f'Test NLPD {model_name} = ' + str(test_nlpd))
+            except Exception as e:
+                print(f"Warning: Failed to compute NLPD for {model_name} due to error: {e}")
+                print("This is likely due to NaN values in latent variables. Setting NLPD to NaN...")
+                train_nlpd = float('nan')
+                test_nlpd = float('nan')
+                print(f'Train NLPD {model_name} = NaN (error)')
+                print(f'Test NLPD {model_name} = NaN (error)')
 
             # Save training results (convert tensors to floats for JSON serialization)
             # Ensure all values in loss_list and noise_trace are Python floats
