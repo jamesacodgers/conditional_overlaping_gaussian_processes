@@ -24,6 +24,35 @@ sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 from src.ssvi_utils import SSVIResultsLogger
 
 
+def get_consistent_qpcr_colors(labels_train):
+    """
+    Get consistent color mapping for qPCR labels across SSVI and original GP LVM.
+    Ensures the same class always gets the same color regardless of which plotting function is used.
+    """
+    # Use tab10 colormap with reversed order (same as original qPCR_expt.py)
+    cmap_colors = plt.get_cmap("tab10").colors[::-1]
+    
+    # Create consistent color mapping based on unique labels
+    unique_labels = np.unique(labels_train)
+    color_map = {}
+    
+    # Assign colors in order of unique labels to ensure consistency
+    for i, label in enumerate(sorted(unique_labels)):
+        color_map[label] = cmap_colors[i % len(cmap_colors)]
+    
+    # Return colors in the same order as labels_train
+    colors = [color_map[label] for label in labels_train]
+    return colors, color_map
+
+
+def matplotlib_to_plotly_color(matplotlib_color):
+    """Convert matplotlib RGB tuple to Plotly format"""
+    if isinstance(matplotlib_color, tuple) and len(matplotlib_color) == 3:
+        r, g, b = matplotlib_color
+        return f'rgb({int(r*255)}, {int(g*255)}, {int(b*255)})'
+    return matplotlib_color
+
+
 def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed,
                                        Y_train, model_type="original", custom_filename=None, train_indices=None):
     """
@@ -32,10 +61,6 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     This function replicates the exact structure and styling of the SSVI visualization
     from src/ssvi_utils.py with the same subplot order and styling.
     """
-    import matplotlib.pyplot as plt
-    import torch
-    import numpy as np
-    import pathlib
 
     # Use default matplotlib style to match SSVI (override any global ggplot style)
     plt.style.use('default')
@@ -43,9 +68,8 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     with torch.no_grad():
         # Color mapping for qPCR labels (exactly like original qPCR_expt.py)
         # qPCR labels are integers 0, 1, 2, ... from load_real_data('gene')
-        # Use same approach as original: plt.get_cmap("tab10").colors[::-1]
-        cmap_colors = plt.get_cmap("tab10").colors[::-1]
-        colors = [cmap_colors[label % len(cmap_colors)] for label in labels_train]
+        # Use consistent color mapping across SSVI and original GP LVM
+        colors, color_map = get_consistent_qpcr_colors(labels_train)
 
         # Create figure with same layout as SSVI (3 subplots)
         n_plots = 3
@@ -187,18 +211,17 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     all_samples = np.concatenate(all_samples)
     all_labels = np.concatenate(all_labels)
 
-    # Create histogram with different colors for different classes
-    unique_labels = np.unique(labels_train_cpu)
-    n_classes = len(unique_labels)
-    colors = ['red', 'green', 'blue', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
+    # Create histogram with different colors for different classes (using consistent color mapping)
+    _, color_map = get_consistent_qpcr_colors(labels_train_cpu)
+    unique_labels = np.unique(all_labels)
     
-    for class_idx, label_val in enumerate(unique_labels):
+    for label_val in unique_labels:
         class_mask = all_labels == label_val
         if np.any(class_mask):
             class_samples = all_samples[class_mask]
             ax_hist.hist(class_samples, bins=30, alpha=0.7,
                          label=f'Class {label_val}',
-                         color=colors[class_idx % len(colors)])
+                         color=color_map[label_val])
 
     ax_hist.set_xlabel(f'Latent Dimension {dim1} (Most Important)')
     ax_hist.set_ylabel('Frequency')
@@ -238,12 +261,12 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     # Create plotly 3D scatter plot
     fig_3d = go.Figure()
 
-    # Color mapping for labels
-    colors = ['red', 'green', 'blue', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
-    color_names = [f'Class {label_val}' for label_val in unique_labels]
+    # Color mapping for labels (using consistent color mapping)
+    _, color_map = get_consistent_qpcr_colors(labels_train_cpu)
+    unique_labels = np.unique(labels_train_cpu)
 
     # Add traces for each class
-    for class_idx, label_val in enumerate(unique_labels):
+    for label_val in unique_labels:
         class_mask = labels_train_cpu == label_val
         if np.any(class_mask):
             # Combine samples from all P samples for this class
@@ -258,10 +281,10 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
                 mode='markers',
                 marker=dict(
                     size=4,
-                    color=colors[class_idx % len(colors)],
+                    color=matplotlib_to_plotly_color(color_map[label_val]),
                     opacity=0.6
                 ),
-                name=color_names[class_idx]
+                name=f'Class {label_val}'
             ))
 
     # Update layout
@@ -345,9 +368,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
     with torch.no_grad():
         # Color mapping for qPCR labels (exactly like original qPCR_expt.py)
         # qPCR labels are integers 0, 1, 2, ... from load_real_data('gene')
-        # Use same approach as original: plt.get_cmap("tab10").colors[::-1]
-        cmap_colors = plt.get_cmap("tab10").colors[::-1]
-        colors = [cmap_colors[label % len(cmap_colors)] for label in labels_train]
+        # Use consistent color mapping across SSVI and original GP LVM
+        colors, color_map = get_consistent_qpcr_colors(labels_train)
 
         plot_flags = [
             hasattr(config, 'plot_training') and config.plot_training,
@@ -480,16 +502,15 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         all_samples = np.concatenate(all_samples)
         all_labels = np.concatenate(all_labels)
 
-        # Create histogram with different colors for different classes (using same color mapping as main plot)
-        cmap_colors = plt.get_cmap("tab10").colors[::-1]
+        # Create histogram with different colors for different classes (using consistent color mapping)
         unique_labels = np.unique(all_labels)
-        for i, label in enumerate(unique_labels):
+        for label in unique_labels:
             class_mask = all_labels == label
             if np.any(class_mask):
                 class_samples = all_samples[class_mask]
                 ax_hist.hist(class_samples, bins=30, alpha=0.7,
                              label=f'Class {label}',
-                             color=cmap_colors[label % len(cmap_colors)])
+                             color=color_map[label])
 
         ax_hist.set_xlabel(f'Latent Dimension {most_important_dim} (Most Important)')
         ax_hist.set_ylabel('Frequency')
@@ -526,8 +547,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         # Create plotly 3D scatter plot
         fig_3d = go.Figure()
 
-        # Color mapping for labels (using same color mapping as main plot)
-        cmap_colors = plt.get_cmap("tab10").colors[::-1]
+        # Color mapping for labels (using consistent color mapping)
         unique_labels = np.unique(labels_train_cpu)
         
         # Add traces for each class
@@ -546,7 +566,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
                     mode='markers',
                     marker=dict(
                         size=4,
-                        color=cmap_colors[label % len(cmap_colors)],
+                        color=matplotlib_to_plotly_color(color_map[label]),
                         opacity=0.6
                     ),
                     name=f'Class {label}'
