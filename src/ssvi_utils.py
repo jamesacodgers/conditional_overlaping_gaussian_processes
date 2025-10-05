@@ -626,6 +626,70 @@ def plot_metrics_history(metrics_computer,
     return fig
 
 
+def plot_missing_nlpd_metrics_progression(metrics_computer,
+                                         logger: SSVIResultsLogger = None,
+                                         show_plot: bool = True) -> plt.Figure:
+    """
+    Plot missing NLPD metrics progression over training iterations
+    
+    Args:
+        metrics_computer: SSVIMetricsComputer with metrics history
+        logger: Optional logger for saving plots
+        show_plot: Whether to display the plot
+        
+    Returns:
+        matplotlib Figure object
+    """
+    if not hasattr(metrics_computer, 'metrics_history') or not metrics_computer.metrics_history:
+        print("No metrics history available for missing NLPD plotting")
+        return None
+    
+    # Extract missing NLPD data from metrics history
+    iterations = [m.iteration for m in metrics_computer.metrics_history]
+    train_missing_nlpd = [m.train_missing_nlpd for m in metrics_computer.metrics_history]
+    test_missing_nlpd = [m.test_missing_nlpd for m in metrics_computer.metrics_history]
+    
+    # Check if we have any valid missing NLPD data
+    valid_train = [not np.isnan(x) for x in train_missing_nlpd]
+    valid_test = [not np.isnan(x) for x in test_missing_nlpd]
+    
+    if not any(valid_train) and not any(valid_test):
+        print("No valid missing NLPD data available for plotting")
+        return None
+    
+    # Create figure
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    
+    # Plot train missing NLPD if available
+    if any(valid_train):
+        train_iterations = [iterations[i] for i in range(len(iterations)) if valid_train[i]]
+        train_values = [train_missing_nlpd[i] for i in range(len(train_missing_nlpd)) if valid_train[i]]
+        ax.plot(train_iterations, train_values, 'b-', label='Train Missing NLPD', linewidth=2, marker='o', markersize=4)
+    
+    # Plot test missing NLPD if available
+    if any(valid_test):
+        test_iterations = [iterations[i] for i in range(len(iterations)) if valid_test[i]]
+        test_values = [test_missing_nlpd[i] for i in range(len(test_missing_nlpd)) if valid_test[i]]
+        ax.plot(test_iterations, test_values, 'r-', label='Test Missing NLPD', linewidth=2, marker='s', markersize=4)
+    
+    ax.set_xlabel('Iteration')
+    ax.set_ylabel('Missing Data NLPD (lower is better)')
+    ax.set_title('Missing Data Predictive Density Progression')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save plot if logger provided
+    if logger:
+        logger.save_plots(fig, "missing_nlpd_metrics_progression.png")
+    
+    if show_plot:
+        plt.show()
+    
+    return fig
+
+
 def plot_final_metrics_summary(metrics_computer,
                               model,
                               logger: SSVIResultsLogger = None,
