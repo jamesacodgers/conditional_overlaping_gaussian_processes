@@ -1,23 +1,24 @@
 # %% 
 """
-Oil Flow SSVI GP-LVM with Amortized Inference
+qPCR SSVI GP-LVM with Amortized Inference
 
 Usage examples:
     # Run with default fast config
-    python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py
+    python ssvi_scripts_experiments/qPCR_GPLVM_SSVI_AM_INF.py
     
     # Run with base config
-    python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml
+    python ssvi_scripts_experiments/qPCR_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml
     
     # Run with base config and overrides
-    python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml --training-iterations 100 --device cuda
+    python ssvi_scripts_experiments/qPCR_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml --training-iterations 100 --device cuda
     
     # Run with custom config name for results
-    python ssvi_scripts_experiments/oil_flow_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml --config-name my_experiment
+    python ssvi_scripts_experiments/qPCR_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml --config-name my_experiment
 """
 
 import torch 
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from dataclasses import dataclass
 from typing import Any
@@ -45,127 +46,79 @@ from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
 )
+from sklearn.model_selection import train_test_split
+
+# Import OilFlowSSVIConfig from oil_flow_GPLVM_SSVI_AM_INF.py
+from ssvi_scripts_experiments.oil_flow_GPLVM_SSVI_AM_INF import OilFlowSSVIConfig
 
 # Device will be set in main() from config
 
-@dataclass
-class OilFlowSSVIConfig:
-    """Configuration for Oil Flow SSVI GP-LVM with Amortized Inference"""
+def get_pseudotime():
+    """Get pseudotime for qPCR data (same as original qPCR_expt.py)"""
+    # license: Copyright (c) 2014, the Open Data Science Initiative
+    # license: https://www.elsevier.com/legal/elsevier-website-terms-and-conditions
+    URL = "https://raw.githubusercontent.com/sods/ods/master/datasets/guo_qpcr.csv"
     
-    total_size = None  # To be set after data loading
-
-    # === Device Configuration ===
-    device: str = "auto"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
-    
-    # === Data Configuration ===
-    # data_url: str = "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"  # Now using data folder approach
-    latent_dim: int = 6  # A = 6 from original
-    test_size_int: int = 50  # Number of test samples (like original GP LVM)
-    random_seed: int = 7  # Random seed for reproducibility
-    
-    # === Model Architecture ===
-    n_inducing_points: int = 64
-    encoder_hidden_dims: list = None  # Will be set to [256, 128, 64] if None
-    
-    # === Training Configuration ===
-    training_iterations: int = 1000
-    batch_size: int = 100
-    
-    # === Learning Rates ===
-    local_lr: float = 1e-3   # Encoder parameters
-    global_lr: float = 1e-2  # GP hyperparameters (higher like in original)
-    
-    # === GP Hyperparameters ===
-    sigma2_s: Any = None     # Signal variances (None = auto)
-    init_lengthscales: float = 1.0  # Initial lengthscales value (1/beta) - default matches current standard
-    init_output_noise_scale: float = 1.0  # Initial output noise scale (sigma2) - default matches current standard
-    P: int = 8               # Number of samples for SSVI (like original)
-    trainable_V: bool = True
-    
-    # === Progress Reporting ===
-    log_frequency: int = 100  # Log every N iterations
-    checkpoint_frequency: int = 100  # Save checkpoint models every N iterations
-    
-    # === Advanced Logging ===
-    enable_gradient_logging: bool = False  # Log gradients and parameter changes
-    gradient_log_frequency: int = 50       # Log gradients every N iterations
-    save_results: bool = True              # Save results to folder
-    results_dir: str = "oil_flow_results/ssvi_results"  # Results directory (relative to current working directory)
-
-    # === Metrics Configuration ===
-    enable_metrics: bool = True            # Compute evaluation metrics
-    metrics_frequency: int = 100           # Compute metrics every N iterations
-    test_size: float = 0.1                 # Fraction of data for testing
-    
-    # === Visualization Configuration ===
-    save_training_plots: bool = True       # Save training result plots during training (saved with checkpoints)
-    plot_training: bool = True             # Plot training progress
-    plot_latent_space: bool = True         # Plot latent space visualization  
-    plot_hyperparams: bool = True          # Plot model hyperparameters
-    
-    # === Missing Data Configuration ===
-    enable_missing_data: bool = False      # Enable missing data reconstruction capability
-    missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
-    reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
-    
-    def __post_init__(self):
-        """Set default encoder architecture and resolve device if not specified"""
-        if self.encoder_hidden_dims is None:
-            self.encoder_hidden_dims = [256, 128, 64]
-        
-        # Resolve device configuration
-        if self.device == "auto":
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    def print_config(self):
-        """Print configuration summary"""
-        print("=== Oil Flow SSVI GP-LVM Configuration ===")
-        print(f"Device: {self.device}")
-        if torch.cuda.is_available():
-            print(f"CUDA available: {torch.cuda.get_device_name(0) if self.device.startswith('cuda') else 'Not using CUDA'}")
-        else:
-            print("CUDA available: No")
-        print(f"Model: {self.n_inducing_points} inducing points, latent_dim={self.latent_dim}")
-        print(f"Encoder: {self.encoder_hidden_dims} hidden dims")
-        print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")
-        print(f"Learning rates: Local={self.local_lr}, Global={self.global_lr}")
-        print(f"Random seed: {self.random_seed}")
-        print(f"Init lengthscales: {self.init_lengthscales}")
-        print(f"Init output noise scale: {self.init_output_noise_scale}")
-        print(f"SSVI: P={self.P} samples")
-        print(f"Logging: Save results={self.save_results}, Gradients={self.enable_gradient_logging}")
-        if self.enable_gradient_logging:
-            print(f"  Gradient log frequency: every {self.gradient_log_frequency} iterations")
-
-        print("=" * 50)
+    df = pd.read_csv(URL, index_col=0)
+    data = torch.tensor(df.values, dtype=torch.get_default_dtype())
+    # we need to transpose data to correct its shape
+    y = data.t()
+    capture_time = y.new_tensor([int(cell_name.split(" ")[0]) for cell_name in df.index.values])
+    # we scale the time into the interval [0, 1]
+    time = capture_time.log2() / 6
+    return time
 
 def load_oil_flow_data(config: OilFlowSSVIConfig):
-    """Load and preprocess oil flow data with optional train/test split"""
-    print("Loading oil flow data from data folder...")
-    
-    # Use the same data loading approach as Original GP-LVM
-    from src.data_utils import download_oilflow_data_if_needed
-    from utils.data import load_real_data
-    
-    # Download data if needed (same as Original GP-LVM)
-    download_oilflow_data_if_needed()
+    """Load and preprocess qPCR data with optional train/test split"""
+    print("Loading qPCR data...")
     
     # Load data using the same function as Original GP-LVM
-    N, d, q, X, Y, labels = load_real_data('oilflow')
+    from utils.data import load_real_data
     
-    # Convert to tensors and move to device (matching Original GP-LVM approach)
+    # Load data
+    N, d, q, X, Y, labels = load_real_data('gene')
+    
+    # Get pseudotime for qPCR data
+    pseudo_time = get_pseudotime()
+    
+    # Debug: print labels type and shape (same as qPCR_GPLVM.py)
+    print(f"Labels type: {type(labels)}, Labels shape/length: {getattr(labels, 'shape', len(labels) if hasattr(labels, '__len__') else 'no length')}")
+    
+    # Ensure data is on CPU before converting to numpy for sklearn (same as qPCR_GPLVM.py)
     y_full = Y.to(config.device)
-    labels_full = torch.tensor(labels, dtype=torch.float32, device=config.device)
+    y_cpu = y_full.cpu() if y_full.is_cuda else y_full
     
-    # Create train/test split if metrics enabled
+    # Handle labels - convert to numpy array if it's a tensor, otherwise keep as is (same as qPCR_GPLVM.py)
+    if hasattr(labels, 'cpu'):
+        labels_cpu = labels.cpu().numpy()
+    elif hasattr(labels, 'numpy'):
+        labels_cpu = labels.numpy()
+    else:
+        # If labels is already a list or numpy array, convert to numpy array
+        labels_cpu = np.array(labels)
+    
+    y_np = y_cpu.numpy()
+    pseudo_time_full = pseudo_time.to(config.device)
+    
+    # Create train/test split if metrics enabled (same as qPCR_GPLVM.py)
     print(f"Creating train/test split (test_size={config.test_size})...")
-    y_train, y_test, labels_train, labels_test, train_indices, test_indices = create_train_test_split(
-        y_full, labels_full,
+    train_indices, test_indices, y_train_np, y_test_np, labels_train_np, labels_test_np, pseudo_train_np, pseudo_test_np = train_test_split(
+        np.arange(len(y_full)), y_np, labels_cpu, pseudo_time_full.cpu().numpy(),
         test_size=config.test_size,
-        random_seed=config.random_seed
+        random_state=config.random_seed
     )
+    
+    # Convert back to tensors on original device
+    y_train = torch.tensor(y_train_np, dtype=torch.float32, device=config.device)
+    y_test = torch.tensor(y_test_np, dtype=torch.float32, device=config.device)
+    labels_train = labels_train_np  # Keep as numpy array for compatibility (same as qPCR_GPLVM.py)
+    labels_test = labels_test_np    # Keep as numpy array for compatibility (same as qPCR_GPLVM.py)
+    pseudo_train = torch.tensor(pseudo_train_np, dtype=torch.float32, device=config.device)
+    pseudo_test = torch.tensor(pseudo_test_np, dtype=torch.float32, device=config.device)
+    
     print(f"Data split shapes - Train: {y_train.shape}, Test: {y_test.shape}")
-    print(f"Labels split shapes - Train: {labels_train.shape}, Test: {labels_test.shape}")
+    print(f"Labels split info - Train: {type(labels_train)}, length: {len(labels_train) if hasattr(labels_train, '__len__') else 'no length'}")
+    print(f"Labels split info - Test: {type(labels_test)}, length: {len(labels_test) if hasattr(labels_test, '__len__') else 'no length'}")
 
     # Use training data for model initialization
     y = y_train
@@ -176,7 +129,9 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
         'labels_train': labels_train,
         'labels_test': labels_test,
         'train_indices': train_indices,
-        'test_indices': test_indices
+        'test_indices': test_indices,
+        'pseudo_train': pseudo_train,
+        'pseudo_test': pseudo_test
     }
     # Initialize inducing points and latent variables (following original)
     Vx = torch.randn(config.n_inducing_points, config.latent_dim, device=config.device)
@@ -397,19 +352,23 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                 # Save checkpoint plot (if enabled)
                 if config.save_training_plots:
                     plot_filename = f"training_results_iter_{i}.png"
-                    visualize_ssvi_results(
-                        model=model,
-                        y_train=y_train,
-                        labels_train=labels_train,
-                        losses=losses,
-                        config=config,
-                        logger=logger,
-                        save_filename=plot_filename,
-                        show_plot=False,
-                        is_checkpoint=True,
-                        train_indices=split_data['train_indices']
-                    )
-                    print(f"    Checkpoint plot saved: {plot_filename}")
+                    try:
+                        from src.qpcr_plot_helper import visualize_ssvi_results
+                        visualize_ssvi_results(
+                            model=model,
+                            y_train=y_train,
+                            labels_train=labels_train,
+                            losses=losses,
+                            config=config,
+                            logger=logger,
+                            save_filename=plot_filename,
+                            show_plot=False,
+                            is_checkpoint=True,
+                            train_indices=split_data['train_indices']
+                        )
+                        print(f"    Checkpoint plot saved: {plot_filename}")
+                    except Exception as e:
+                        print(f"    Warning: Could not create checkpoint visualization at iteration {i}: {e}")
                 
             except Exception as e:
                 print(f"    Warning: Error saving checkpoint at iteration {i}: {e}")
@@ -477,11 +436,14 @@ def get_fast_config():
     )
 
 def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
-    """Main function for Oil Flow SSVI GP-LVM example"""
+    """Main function for qPCR SSVI GP-LVM example"""
     
     # Use default config if none provided
     if config is None:
         config = get_fast_config()
+        # Override results directory for qPCR experiments when using fast config
+        if config_name == "fast":
+            config.results_dir = "qpcr_results/ssvi_results"
     
     # Set device from config
     torch.set_default_device(config.device)
@@ -496,11 +458,11 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     # Print configuration
     config.print_config()
     
-    # Load oil flow data
+    # Load qPCR data
     y_train, labels_train, Vx, mu_x, split_data = load_oil_flow_data(config)
     
     # Create model
-    print("\nInitializing Oil Flow SSVI GP-LVM...")
+    print("\nInitializing qPCR SSVI GP-LVM...")
     model = OilFlow_SSVI_GPLVM(
         config=config,
         Vx=Vx,
@@ -530,7 +492,11 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     
     # Visualize results
     print(f"\nVisualizing results...")
-    visualize_ssvi_results(model, y_train, labels_train, losses, config, logger, show_plot=False, train_indices=split_data['train_indices'])
+    try:
+        from src.qpcr_plot_helper import visualize_ssvi_results
+        visualize_ssvi_results(model, y_train, labels_train, losses, config, logger, show_plot=False, train_indices=split_data['train_indices'])
+    except Exception as e:
+        print(f"Warning: Could not create latent space visualization: {e}")
     
     # Generate final metrics and plots if metrics were computed
     if metrics_computer is not None and config.enable_metrics and split_data is not None:
@@ -609,7 +575,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     # Save final model (like original GP-LVM)
     if logger:
         print("Saving final model...")
-        logger.save_model(model, f"oilflow_ssvi_{config.random_seed}.pkl", is_checkpoint=False)
+        logger.save_model(model, f"qpcr_ssvi_{config.random_seed}.pkl", is_checkpoint=False)
     
     # Return final_metrics if computed, otherwise None
     final_metrics = None
@@ -629,7 +595,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             if hasattr(final_noise, 'item'):
                 final_noise = final_noise.item()
             
-            experiment_summary['oilflow_ssvi'] = {
+            experiment_summary['qpcr_ssvi'] = {
                 'train_rmse': summary.get('final_train_rmse', 0.0),
                 'test_rmse': summary.get('final_test_rmse', 0.0),
                 'train_nlpd': summary.get('final_train_nlpd', 0.0),
@@ -665,6 +631,10 @@ if __name__ == "__main__":
         config_class=OilFlowSSVIConfig,
         args=args
     )
+    
+    # Override results directory for qPCR experiments when using fast config
+    if config_name == "fast":
+        config.results_dir = "qpcr_results/ssvi_results"
     
     print(f"Using configuration: {config_name}")
     if args.config:

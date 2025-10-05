@@ -14,10 +14,14 @@ from datetime import datetime
 from sklearn.model_selection import train_test_split
 import plotly.graph_objects as go
 import plotly.express as px
+import matplotlib.pyplot as plt
 
 # Add generalised_gplvm_code to path for original utilities
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
+
+# Import SSVI utilities
+from src.ssvi_utils import SSVIResultsLogger
 
 
 def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed,
@@ -325,3 +329,255 @@ def create_iteration_plot(model, losses, labels_train, config, results_dir, mode
     )
 
     return plot_filename
+
+
+def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger: SSVIResultsLogger,
+                           save_filename: str = "training_results.png", show_plot: bool = True,
+                           n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False,
+                           train_indices: torch.Tensor = None):
+    """Visualize SSVI training results and latent space"""
+
+    if not (hasattr(config, 'plot_training') and config.plot_training or
+            hasattr(config, 'plot_latent_space') and config.plot_latent_space or
+            hasattr(config, 'plot_hyperparams') and config.plot_hyperparams):
+        return
+
+    with torch.no_grad():
+        # Color mapping for qPCR labels (exactly like original qPCR_expt.py)
+        # qPCR labels are integers 0, 1, 2, ... from load_real_data('gene')
+        # Use same approach as original: plt.get_cmap("tab10").colors[::-1]
+        cmap_colors = plt.get_cmap("tab10").colors[::-1]
+        colors = [cmap_colors[label % len(cmap_colors)] for label in labels_train]
+
+        plot_flags = [
+            hasattr(config, 'plot_training') and config.plot_training,
+            hasattr(config, 'plot_latent_space') and config.plot_latent_space,
+            hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
+        ]
+        n_plots = sum(plot_flags)
+        fig_width = 4 * n_plots
+        fig = plt.figure(figsize=(fig_width, 4))
+
+        plot_idx = 1
+
+        # Plot 1: Training curve
+        if plot_flags[0]:
+            plt.subplot(1, n_plots, plot_idx)
+            plt.plot(losses, 'b-', alpha=0.7)
+            plt.xlabel('Iteration')
+            plt.ylabel('Loss')
+            plt.title('SSVI Training Curve')
+            plt.grid(True, alpha=0.3)
+            plot_idx += 1
+
+        # Plot 2: Latent space visualization
+        if plot_flags[1]:
+            plt.subplot(1, n_plots, plot_idx)
+
+            # Find the most informative dimensions (largest lengthscales = smallest beta)
+            lengthscales = 1 / model.gp.beta.flatten()
+            top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
+            top_3_dims = torch.argsort(lengthscales, descending=True)[:3]  # Also compute top 3 for 3D plots
+            dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
+            dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
+            lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
+            # Get latent variables using new explicit training method
+            U = model.get_u_samples()  # [P, M, C, Lx]
+
+            # Handle missing data if enabled
+            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                # Preprocess encoder input to handle missing data (replace NaN with -9.0)
+                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+            else:
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+
+            # Keep as torch tensors for sampling, convert to numpy after sampling
+            mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
+            sigma_x_cpu = sigma_x.cpu()  # Move to CPU but keep as tensor
+
+            # Plot samples from all P samples with transparency
+            for p in range(model.P):
+                # Use top 2 most informative latent dimensions
+                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+                plt.scatter(sample_1.detach().cpu().numpy(),
+                            sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
+
+            plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
+            plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})')
+            plt.title(f'Latent Space - Top 2 Informative Dims (P={model.P} samples)')
+            plot_idx += 1
+
+        # Plot 3: Hyperparameters (lengthscales)
+        if plot_flags[2]:
+            plt.subplot(1, n_plots, plot_idx)
+            lengthscales = (1 / model.gp.beta.flatten()).cpu()
+            plt.bar(range(len(lengthscales)), lengthscales,
+                    color="blue", alpha=0.7)
+            plt.xlabel('Latent Dimension')
+            plt.ylabel('Lengthscale')
+            plt.title('GP Lengthscales')
+            plt.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+
+        # Save plot
+        logger.save_plots(fig, save_filename, is_checkpoint=is_checkpoint)
+        if show_plot:
+            plt.show()
+        else:
+            plt.close(fig)  # Close figure to free memory
+
+        # Additional plots: 1D histogram and 3D scatter plot
+        print("Creating additional plots: 1D histogram and 3D scatter plot...")
+
+        # Ensure labels_train is on CPU for numpy operations
+        labels_train_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
+
+        # Check if we can reuse existing computations from latent space plot
+        if plot_flags[1] and 'mu_x_cpu' in locals() and 'sigma_x_cpu' in locals():
+            # Reuse existing computations from latent space plot
+            # We already have mu_x_cpu, sigma_x_cpu, and lengthscales_cpu from the latent space plot
+            # Just need to compute top_3_dims for the 3D plot
+            lengthscales = lengthscales_cpu  # Use existing lengthscales
+        else:
+            # Need to compute the data (latent space plot wasn't computed)
+            # Find the most important dimensions (largest lengthscales = smallest beta)
+            lengthscales = (1 / model.gp.beta.flatten()).cpu()  # Move to CPU
+
+            # Get latent variables
+            U = model.get_u_samples()  # [P, M, C, Lx]
+
+            # Handle missing data if enabled
+            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+            else:
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+
+            # Move to CPU for plotting
+            mu_x_cpu = mu_x.cpu()
+            sigma_x_cpu = sigma_x.cpu()
+
+        # Use dimensions already computed in latent space plot section
+        most_important_dim = dim1  # Use the first (most important) dimension for 1D histogram
+
+        # 1. Create 1D histogram for the most important dimension
+        fig_hist, ax_hist = plt.subplots(1, 1, figsize=(8, 6))
+
+        # Collect samples from all P samples for the most important dimension
+        all_samples = []
+        all_labels = []
+        for p in range(model.P):
+            samples = torch.distributions.Normal(mu_x_cpu[p, :, most_important_dim],
+                                                 sigma_x_cpu[p, :, most_important_dim]).sample()
+            # Ensure samples are on CPU before converting to numpy
+            all_samples.append(samples.detach().cpu().numpy())
+            # Repeat labels for each P sample
+            all_labels.append(labels_train_cpu)
+
+        all_samples = np.concatenate(all_samples)
+        all_labels = np.concatenate(all_labels)
+
+        # Create histogram with different colors for different classes (using same color mapping as main plot)
+        cmap_colors = plt.get_cmap("tab10").colors[::-1]
+        unique_labels = np.unique(all_labels)
+        for i, label in enumerate(unique_labels):
+            class_mask = all_labels == label
+            if np.any(class_mask):
+                class_samples = all_samples[class_mask]
+                ax_hist.hist(class_samples, bins=30, alpha=0.7,
+                             label=f'Class {label}',
+                             color=cmap_colors[label % len(cmap_colors)])
+
+        ax_hist.set_xlabel(f'Latent Dimension {most_important_dim} (Most Important)')
+        ax_hist.set_ylabel('Frequency')
+        ax_hist.set_title(f'1D Histogram - Most Important Dimension {most_important_dim}')
+        ax_hist.legend()
+        ax_hist.grid(True, alpha=0.3)
+
+        # Save histogram plot
+        hist_filename = save_filename.replace('training_results', '1d_histogram_most_important_dim')
+        logger.save_plots(fig_hist, hist_filename, is_checkpoint=is_checkpoint)
+        if show_plot:
+            plt.show()
+        else:
+            plt.close(fig_hist)
+
+        # 2. Create 3D scatter plot for top 3 most important dimensions using plotly
+        dim1, dim2, dim3 = top_3_dims[0].item(), top_3_dims[1].item(), top_3_dims[2].item()
+
+        # Collect samples for all 3 dimensions
+        samples_3d = []
+        for p in range(model.P):
+            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+            sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_cpu[p, :, dim3]).sample()
+
+            # Ensure all samples are on CPU before converting to numpy
+            samples_3d.append({
+                'dim1': sample_1.detach().cpu().numpy(),
+                'dim2': sample_2.detach().cpu().numpy(),
+                'dim3': sample_3.detach().cpu().numpy(),
+                'labels': labels_train_cpu
+            })
+
+        # Create plotly 3D scatter plot
+        fig_3d = go.Figure()
+
+        # Color mapping for labels (using same color mapping as main plot)
+        cmap_colors = plt.get_cmap("tab10").colors[::-1]
+        unique_labels = np.unique(labels_train_cpu)
+        
+        # Add traces for each class
+        for label in unique_labels:
+            class_mask = labels_train_cpu == label
+            if np.any(class_mask):
+                # Combine samples from all P samples for this class
+                x_vals = np.concatenate([samples_3d[p]['dim1'][class_mask] for p in range(model.P)])
+                y_vals = np.concatenate([samples_3d[p]['dim2'][class_mask] for p in range(model.P)])
+                z_vals = np.concatenate([samples_3d[p]['dim3'][class_mask] for p in range(model.P)])
+                
+                fig_3d.add_trace(go.Scatter3d(
+                    x=x_vals,
+                    y=y_vals,
+                    z=z_vals,
+                    mode='markers',
+                    marker=dict(
+                        size=4,
+                        color=cmap_colors[label % len(cmap_colors)],
+                        opacity=0.6
+                    ),
+                    name=f'Class {label}'
+                ))
+
+        # Update layout
+        fig_3d.update_layout(
+            title=f'3D Scatter Plot - Top 3 Most Important Dimensions<br>Dim {dim1}, {dim2}, {dim3}',
+            scene=dict(
+                xaxis_title=f'Dimension {dim1} (lengthscale={lengthscales[dim1].item():.2f})',
+                yaxis_title=f'Dimension {dim2} (lengthscale={lengthscales[dim2].item():.2f})',
+                zaxis_title=f'Dimension {dim3} (lengthscale={lengthscales[dim3].item():.2f})'
+            ),
+            width=800,
+            height=600
+        )
+
+        # Save 3D plot as HTML
+        plot_3d_filename = save_filename.replace('training_results', '3d_scatter_top3_dims')
+        plot_3d_filename = plot_3d_filename.replace('.png', '.html')
+
+        # Save to appropriate directory (checkpoints or main plots)
+        if is_checkpoint:
+            plot_3d_path = os.path.join(logger.plots_checkpoints_dir, plot_3d_filename)
+        else:
+            plot_3d_path = os.path.join(logger.plots_dir, plot_3d_filename)
+
+        fig_3d.write_html(plot_3d_path)
+        print(f"3D scatter plot saved to: {plot_3d_path}")
+
+        if show_plot:
+            fig_3d.show()
+
+        print("Additional plots created successfully!")
