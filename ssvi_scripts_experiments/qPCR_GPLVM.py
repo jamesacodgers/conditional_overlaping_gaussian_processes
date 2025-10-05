@@ -142,6 +142,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     if config is None:
         config = get_fast_config()
     
+    # Override results directory for qPCR experiments when using fast config
+    if config_name == "fast":
+        config.results_dir = "qpcr_results/original_gplvm_results"
+
     # Set device from config
     torch.set_default_device(config.device)
     
@@ -163,9 +167,19 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     # Load data
     N, d, q, X, Y, labels = load_real_data('gene')
     
+    # Debug: print labels type and shape
+    print(f"Labels type: {type(labels)}, Labels shape/length: {getattr(labels, 'shape', len(labels) if hasattr(labels, '__len__') else 'no length')}")
+    
     # Ensure data is on CPU before converting to numpy for sklearn
     Y_cpu = Y.cpu() if Y.is_cuda else Y
-    labels_cpu = labels.cpu().numpy() if hasattr(labels, 'cpu') else labels
+    # Handle labels - convert to numpy array if it's a tensor, otherwise keep as is
+    if hasattr(labels, 'cpu'):
+        labels_cpu = labels.cpu().numpy()
+    elif hasattr(labels, 'numpy'):
+        labels_cpu = labels.numpy()
+    else:
+        # If labels is already a list or numpy array, convert to numpy array
+        labels_cpu = np.array(labels)
     Y_np = Y_cpu.numpy()
     indices = np.arange(len(Y))
     
@@ -174,7 +188,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     
     # Split data and labels together to maintain correspondence
     train_indices, test_indices, Y_train_np, Y_test_np, lb_train_np, lb_test_np, pseudo_train_np, pseudo_test_np = train_test_split(
-        indices, Y_np, labels_cpu, pseudo_time.numpy(),
+        indices, Y_np, labels_cpu, pseudo_time.cpu().numpy(),
         test_size=config.test_size,
         random_state=config.random_seed
     )
@@ -186,7 +200,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     lb_test = lb_test_np    # Keep as numpy array for compatibility
     
     print(f"Data split shapes - Train: {Y_train.shape}, Test: {Y_test.shape}")
-    print(f"Labels split shapes - Train: {lb_train.shape}, Test: {lb_test.shape}")
+    print(f"Labels split info - Train: {type(lb_train)}, length: {len(lb_train) if hasattr(lb_train, '__len__') else 'no length'}")
+    print(f"Labels split info - Test: {type(lb_test)}, length: {len(lb_test) if hasattr(lb_test, '__len__') else 'no length'}")
     
     # Apply missing data preprocessing if enabled (using same function as SSVI for alignment)
     if config.enable_missing_data:
@@ -449,7 +464,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 from src.ssvi_alignment_utils import save_iteration_model, create_iteration_plot
                 print(f"  Saving iteration {i} model and plot...")
                 save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
-                create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "qPCR", train_indices=torch.from_numpy(train_indices).to(Y_train.device))
+                try:
+                    create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "qPCR", train_indices=torch.from_numpy(train_indices).to(Y_train.device))
+                except Exception as e:
+                    print(f"  Warning: Could not create iteration plot at iteration {i}: {e}")
+                    print(f"  This is likely due to qPCR labels structure differences. Skipping plot creation.")
         model.store(loss_list, likelihood)
         
         logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
@@ -494,11 +513,15 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         
         # Save plots to results directory
         if logger.get_results_dir():
-            # Import function only when needed to avoid directory creation issues
-            from src.ssvi_alignment_utils import create_standardized_scattered_plot
-            # lb_train is already a numpy array from train_test_split, no need to convert
-            # Use Y_train on the same device as model to avoid device mismatch
-            create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="qPCR", train_indices=torch.from_numpy(train_indices).to(Y_train.device))
+            try:
+                # Import function only when needed to avoid directory creation issues
+                from src.ssvi_alignment_utils import create_standardized_scattered_plot
+                # lb_train is already a numpy array from train_test_split, no need to convert
+                # Use Y_train on the same device as model to avoid device mismatch
+                create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="qPCR", train_indices=torch.from_numpy(train_indices).to(Y_train.device))
+            except Exception as e:
+                print(f"Warning: Could not create standardized scattered plot: {e}")
+                print(f"This is likely due to qPCR labels structure differences. Skipping plot creation.")
         else:
             pass
         
