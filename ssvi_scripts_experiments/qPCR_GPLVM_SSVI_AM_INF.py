@@ -137,9 +137,13 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     Vx = torch.randn(config.n_inducing_points, config.latent_dim, device=config.device)
     mu_x, _, _ = torch.pca_lowrank(y, config.latent_dim)
     
+    # Assign pseudotime to first latent dimension for qPCR data (consistent with original qPCR_expt.py)
+    mu_x[:,0] = pseudo_train
+
     print(f"Data loaded: {y.shape[0]} samples, {y.shape[1]} dimensions")
     print(f"Latent initialization: {mu_x.shape}")
     print(f"Inducing points: {Vx.shape}")
+    print(f"Pseudotime assigned to first latent dimension: {mu_x[:,0].min():.3f} to {mu_x[:,0].max():.3f}")
     config.total_size = y.shape[0]
     
     # Apply missing data preprocessing if enabled
