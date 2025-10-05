@@ -48,6 +48,59 @@ def compute_effective_latent_dims(model, threshold: float = 0.1):
         
     return effective_dims, total_dims
 
+def plot_missing_nlpd_metrics_progression(train_missing_nlpd_list, metrics_iterations, 
+                                        results_dir, model_name, random_seed):
+    """
+    Plot missing NLPD metrics progression over training iterations (train only)
+    
+    Args:
+        train_missing_nlpd_list: List of training missing NLPD values
+        metrics_iterations: List of iteration numbers when metrics were computed
+        results_dir: Directory to save the plot
+        model_name: Name of the model
+        random_seed: Random seed for filename
+    """
+    if not train_missing_nlpd_list:
+        print("No missing NLPD data available for progression plot")
+        return
+    
+    # Check if we have any valid missing NLPD data (not NaN)
+    import numpy as np
+    valid_indices = [i for i, x in enumerate(train_missing_nlpd_list) if not np.isnan(x)]
+    
+    if not valid_indices:
+        print("No valid missing NLPD data available for plotting")
+        return
+    
+    # Filter data to only include valid values
+    valid_iterations = [metrics_iterations[i] for i in valid_indices]
+    valid_missing_nlpd = [train_missing_nlpd_list[i] for i in valid_indices]
+    
+    # Create figure
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    
+    # Plot train missing NLPD
+    ax.plot(valid_iterations, valid_missing_nlpd, 'b-', label='Train Missing NLPD', linewidth=2, marker='o', markersize=4)
+    
+    ax.set_xlabel('Iteration')
+    ax.set_ylabel('Missing Data NLPD (lower is better)')
+    ax.set_title('Missing Data Predictive Density Progression')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save plot to plots directory
+    plots_dir = os.path.join(results_dir, 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
+    plot_path = os.path.join(plots_dir, f'missing_nlpd_metrics_progression_{model_name}.png')
+    
+    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"Missing NLPD metrics progression plot saved to: {plot_path}")
+
+
 def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, metrics_losses, 
                            effective_dims_list, results_dir, model_name, random_seed):
     """

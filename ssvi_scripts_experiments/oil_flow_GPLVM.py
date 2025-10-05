@@ -62,7 +62,7 @@ from src.original_gplvm_config_utils import (
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.data_utils import download_oilflow_data_if_needed
 from src.nlpd_utils import compute_nlpd_nll_based, compute_missing_data_nlpd_gauss
-from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims
+from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling
@@ -443,6 +443,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # Save checkpoint metrics to JSON (train metrics only)
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
                                          metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list)
+            
+            # Generate missing NLPD metrics progression plot if missing data is enabled and we have missing NLPD data
+            if config.enable_missing_data and train_missing_nlpd_list:
+                plot_missing_nlpd_metrics_progression(train_missing_nlpd_list, metrics_iterations, 
+                                                    logger.get_results_dir(), model_name, config.random_seed)
             
         # Save models & training info
         
