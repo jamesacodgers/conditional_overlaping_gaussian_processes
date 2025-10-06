@@ -67,10 +67,6 @@ learn_inducing_locations: true    # learn_inducing_locations=True in oilflow_exp
 init_lengthscales: 1.0  # Initial lengthscales value (default matches GPyTorch RBFKernel)
 init_output_noise_scale: 1.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
 
-# === qPCR-specific Configuration ===
-# ELBO beta parameter for qPCR experiments
-elbo_beta: 0.55  # Matches qPCR_expt.py: beta=0.55
-
 # Missing Data Configuration
 enable_missing_data: true       # Enable missing data reconstruction capability
 missing_data_ratio: 0.3         # Fraction of dimensions to artificially mask (for testing)

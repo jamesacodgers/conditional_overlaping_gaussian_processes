@@ -66,7 +66,3 @@ learn_inducing_locations: true    # learn_inducing_locations=True in oilflow_exp
 # === GP Hyperparameters ===
 init_lengthscales: 1.0  # Initial lengthscales value (default matches GPyTorch RBFKernel)
 init_output_noise_scale: 1.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
-
-# === qPCR-specific Configuration ===
-# ELBO beta parameter for qPCR experiments
-elbo_beta: 0.55  # Matches qPCR_expt.py: beta=0.55
