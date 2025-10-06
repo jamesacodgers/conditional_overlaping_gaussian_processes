@@ -33,8 +33,8 @@ def rmse_missing_improved(Y_test, Y_recon):
     # Handle case where all values might be NaN
     valid_mse = mse_per_sample[~np.isnan(mse_per_sample)]
     if len(valid_mse) == 0:
-        return torch.tensor(float('inf'))
-    return torch.sqrt(torch.mean(torch.Tensor(valid_mse)))
+        return torch.tensor(float('inf'), dtype=torch.float64)
+    return torch.sqrt(torch.mean(torch.tensor(valid_mse, dtype=torch.float64)))
 
 
 def create_missing_data_pattern(data: torch.Tensor, 
@@ -116,7 +116,7 @@ def reconstruct_missing_dimensions(model,
         
         # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(missing_mask, 
-                                     torch.full_like(y_observed, -9.0), 
+                                     torch.full_like(y_observed, -9.0, dtype=torch.float64), 
                                      y_observed)
         
         # Get latent distribution parameters

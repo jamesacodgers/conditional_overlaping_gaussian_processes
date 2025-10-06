@@ -80,7 +80,7 @@ def get_pseudotime():
     URL = "https://raw.githubusercontent.com/sods/ods/master/datasets/guo_qpcr.csv"
     
     df = pd.read_csv(URL, index_col=0)
-    data = torch.tensor(df.values, dtype=torch.get_default_dtype())
+    data = torch.tensor(df.values, dtype=torch.float64)
     # we need to transpose data to correct its shape
     y = data.t()
     capture_time = y.new_tensor([int(cell_name.split(" ")[0]) for cell_name in df.index.values])
@@ -98,7 +98,7 @@ class qPCRModel(BayesianGPLVM):
         # regularly placed with shape (n_inducing x latent_dim).
         if device is None:
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.inducing_inputs = torch.randn(n_inducing, latent_dim, device=device)
+        self.inducing_inputs = torch.randn(n_inducing, latent_dim, dtype=torch.float64, device=device)
     
         # Sparse Variational Formulation
         q_u = CholeskyVariationalDistribution(n_inducing, batch_shape=self.batch_shape) 
@@ -117,7 +117,7 @@ class qPCRModel(BayesianGPLVM):
                 # SSVI: K = exp(-0.5 * d^2 / init_lengthscales)
                 # GP-LVM: K = exp(-0.5 * d^2 / lengthscale^2)
                 # For equivalence: lengthscale = sqrt(init_lengthscales)
-                lengthscale_device = torch.sqrt(torch.tensor(config.init_lengthscales, device=device))
+                lengthscale_device = torch.sqrt(torch.tensor(config.init_lengthscales, dtype=torch.float64, device=device))
                 print(f"  DEBUG GP-LVM: Setting lengthscale to sqrt({config.init_lengthscales}) = {lengthscale_device.item():.6f}")
                 self.covar_module.base_kernel.initialize(lengthscale=lengthscale_device)
                 print(f"  DEBUG GP-LVM: After setting, lengthscale = {self.covar_module.base_kernel.lengthscale.flatten()[0]}")
@@ -146,8 +146,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     if config_name == "fast":
         config.results_dir = "qpcr_results/original_gplvm_results"
 
-    # Set device from config
+    # Set device and dtype from config
     torch.set_default_device(config.device)
+    torch.set_default_dtype(torch.float64)
     
     # Print configuration
     config.print_config()
@@ -194,8 +195,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     )
     
     # Convert back to tensors on original device
-    Y_train = torch.tensor(Y_train_np, dtype=torch.float32, device=config.device)
-    Y_test = torch.tensor(Y_test_np, dtype=torch.float32, device=config.device)
+    Y_train = torch.tensor(Y_train_np, dtype=torch.float64, device=config.device)
+    Y_test = torch.tensor(Y_test_np, dtype=torch.float64, device=config.device)
     lb_train = lb_train_np  # Keep as numpy array for compatibility
     lb_test = lb_test_np    # Keep as numpy array for compatibility
     
@@ -263,8 +264,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         X_prior_mean_test = X_prior_mean[0:len(Y_test),:]
         
         # Assign pseudotime to priors for qPCR data
-        X_prior_mean[:,0] = torch.tensor(pseudo_train_np, device=config.device)
-        X_prior_mean_test[:,0] = torch.tensor(pseudo_test_np, device=config.device)
+        X_prior_mean[:,0] = torch.tensor(pseudo_train_np, dtype=torch.float64, device=config.device)
+        X_prior_mean_test[:,0] = torch.tensor(pseudo_test_np, dtype=torch.float64, device=config.device)
         
         # Each inference model differs in its latent variable configuration / 
         # LatentVariable (X)
@@ -278,16 +279,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if model_name == 'gauss':
             
             ae = False
-            prior_x = NormalPrior(X_prior_mean, torch.ones_like(X_prior_mean))
-            prior_x_test = NormalPrior(X_prior_mean_test, torch.ones_like(X_prior_mean_test))
+            prior_x = NormalPrior(X_prior_mean, torch.ones_like(X_prior_mean, dtype=torch.float64))
+            prior_x_test = NormalPrior(X_prior_mean_test, torch.ones_like(X_prior_mean_test, dtype=torch.float64))
             X = VariationalLatentVariable(X_init, prior_x, data_dim)  # CORRECT: constructor expects data_dim
         
         elif model_name == 'nn_gauss':
             
             ae = True
             nn_layers = config.nn_layers
-            prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1], device=config.device))
-            prior_x_test = MultivariateNormalPrior(X_prior_mean_test, torch.eye(X_prior_mean.shape[1], device=config.device))
+            prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1], dtype=torch.float64, device=config.device))
+            prior_x_test = MultivariateNormalPrior(X_prior_mean_test, torch.eye(X_prior_mean.shape[1], dtype=torch.float64, device=config.device))
             X = NNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
             
         # Initialise model, likelihood, elbo and optimizer
@@ -304,7 +305,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if config is not None:
             with torch.no_grad():
                 # Use initialize method for likelihood noise too
-                noise_scale = torch.tensor(config.init_output_noise_scale, device=config.device)
+                noise_scale = torch.tensor(config.init_output_noise_scale, dtype=torch.float64, device=config.device)
                 likelihood.initialize(noise=noise_scale)
         elbo = VariationalELBO(likelihood, model, num_data=len(Y_train), beta=0.55)
 
@@ -355,7 +356,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         for i in iterator: 
             batch_index = model._get_batch_idx(batch_size)
             # Convert batch_index to torch tensor on correct device for CUDA compatibility
-            batch_index_tensor = torch.tensor(batch_index, device=config.device)
+            batch_index_tensor = torch.tensor(batch_index, dtype=torch.int64, device=config.device)
             optimizer.zero_grad()
             if model_name in ['point','map', 'gauss']:
                 sample = model.sample_latent_variable()  # a full sample returns latent x across all N
@@ -466,7 +467,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
                 try:
                     from src.qpcr_plot_helper import create_iteration_plot
-                    create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "qPCR", train_indices=torch.from_numpy(train_indices).to(Y_train.device))
+                    create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "qPCR", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device))
                 except Exception as e:
                     print(f"  Warning: Could not create iteration plot at iteration {i}: {e}")
                     print(f"  This is likely due to qPCR labels structure differences. Skipping plot creation.")
@@ -519,7 +520,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 from src.qpcr_plot_helper import create_standardized_scattered_plot
                 # lb_train is already a numpy array from train_test_split, no need to convert
                 # Use Y_train on the same device as model to avoid device mismatch
-                create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="qPCR", train_indices=torch.from_numpy(train_indices).to(Y_train.device))
+                create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="qPCR", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device))
             except Exception as e:
                 print(f"Warning: Could not create standardized scattered plot: {e}")
                 print(f"This is likely due to qPCR labels structure differences. Skipping plot creation.")
@@ -549,7 +550,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         # Store original jitter
                         original_jitter = model.X.jitter
                         # Create jitter for test data size
-                        test_jitter = torch.eye(latent_dim).unsqueeze(0) * 1e-5
+                        test_jitter = torch.eye(latent_dim, dtype=torch.float64).unsqueeze(0) * 1e-5
                         model.X.jitter = torch.cat([test_jitter for i in range(len(Y_test))], axis=0)
                     
                     # For nn_gauss with missing data, use cleaned input for predict_latent
@@ -604,8 +605,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # Note: For nn_gauss, X_test_mean is already computed above in the ae=True block
        
             # Ensure tensors are on correct device and dtype (X_test_mean and X_train_mean are already tensors)
-            X_test_mean_device = X_test_mean.to(dtype=torch.float32, device=config.device)
-            X_train_mean_device = X_train_mean.to(dtype=torch.float32, device=config.device)
+            X_test_mean_device = X_test_mean.to(dtype=torch.float64, device=config.device)
+            X_train_mean_device = X_train_mean.to(dtype=torch.float64, device=config.device)
 
 
             # Compute reconstructions with proper missing data handling

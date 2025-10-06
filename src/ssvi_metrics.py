@@ -88,7 +88,7 @@ class SSVIMetricsComputer:
             U_samples = model.get_u_samples()
             
             # Preprocess encoder input to handle missing data (consistent with training)
-            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -9.0), y_true)
+            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -9.0, dtype=torch.float64), y_true)
             
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
@@ -155,7 +155,7 @@ class SSVIMetricsComputer:
             U_samples = model.get_u_samples()
             
             # Preprocess encoder input to handle missing data (consistent with training)
-            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -9.0), y_true)
+            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -9.0, dtype=torch.float64), y_true)
             
             # Get latent representations for this batch using SSVI encoder
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
@@ -456,11 +456,12 @@ def create_train_test_split(y: torch.Tensor,
     
     # Convert back to tensors on original device
     device = y.device
-    y_train = torch.from_numpy(y_train_np).to(device)
-    y_test = torch.from_numpy(y_test_np).to(device)
-    labels_train = torch.from_numpy(labels_train_np).to(device)
-    labels_test = torch.from_numpy(labels_test_np).to(device)
-    train_indices = torch.from_numpy(train_indices).to(device)
-    test_indices = torch.from_numpy(test_indices).to(device)
+    dtype = y.dtype  # Preserve original dtype for data tensors
+    y_train = torch.from_numpy(y_train_np).to(device=device, dtype=dtype)
+    y_test = torch.from_numpy(y_test_np).to(device=device, dtype=dtype)
+    labels_train = torch.from_numpy(labels_train_np).to(device=device, dtype=dtype)
+    labels_test = torch.from_numpy(labels_test_np).to(device=device, dtype=dtype)
+    train_indices = torch.from_numpy(train_indices).to(device=device, dtype=torch.int64)
+    test_indices = torch.from_numpy(test_indices).to(device=device, dtype=torch.int64)
     
     return y_train, y_test, labels_train, labels_test, train_indices, test_indices

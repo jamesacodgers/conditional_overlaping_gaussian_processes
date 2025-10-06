@@ -74,7 +74,7 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
                             return float('nan')
                         
                         # Replace NaN values in Y_true with zeros for computation (they'll be masked out)
-                        Y_true_clean = torch.where(observed_mask, Y_true, torch.zeros_like(Y_true))
+                        Y_true_clean = torch.where(observed_mask, Y_true, torch.zeros_like(Y_true, dtype=torch.float64))
                         
                         # Compute log probability: log N(Y_true_clean | f_mean, f_var_full)
                         # Y_true_clean is [N, D], f_mean is [D, N], so transpose Y_true_clean to [D, N]
@@ -182,7 +182,7 @@ def compute_missing_data_nlpd_gauss(model, Y_original, missing_mask, X_mean, X_s
             Y_missing_T = Y_missing.T  # [D, N]
             
             # Replace NaN values with zeros for computation (they'll be masked out)
-            Y_missing_clean = torch.where(torch.isfinite(Y_missing_T), Y_missing_T, torch.zeros_like(Y_missing_T))
+            Y_missing_clean = torch.where(torch.isfinite(Y_missing_T), Y_missing_T, torch.zeros_like(Y_missing_T, dtype=torch.float64))
             
             # Compute log probability under Gaussian
             log_prob = -0.5 * torch.log(2 * torch.pi * f_var_full) - 0.5 * (
