@@ -8,6 +8,9 @@ from src.inner_optimisers import MultivariateNormalSolver
 from src.utils import train_lbfgs, generate_regular_simplex
 import numpy as np
 
+# Set default dtype to float64 for all tensor operations
+torch.set_default_dtype(torch.float64)
+
 class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
     def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, 
                  encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001, device="auto", 
