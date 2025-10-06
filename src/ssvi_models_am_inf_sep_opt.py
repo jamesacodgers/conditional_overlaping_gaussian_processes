@@ -300,7 +300,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
 
 
-        return training_inner_elbo  - self.gp.get_kl_u()
+        return (training_inner_elbo  - self.gp.get_kl_u())/total_size
 
     def get_gradient_info(self):
         """
@@ -410,7 +410,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
 
 
-        return training_inner_elbo  - self.gp.get_kl_u()
+        return (training_inner_elbo  - self.gp.get_kl_u())/total_size
 
 
 class NormalCoordinatorCustom:
