@@ -387,7 +387,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                                 print(f"  Warning: Could not get covariance for nn_gauss NLPD: {e}")
                                 train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
                         else:
-                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
+                            # For gauss model, we also need X_covar and obs_noise for proper uncertainty handling
+                            try:
+                                obs_noise = likelihood.noise
+                                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_train_covar, obs_noise)
+                            except Exception as e:
+                                print(f"  Warning: Could not get covariance for gauss NLPD: {e}")
+                                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
                         
                         # Compute missing data NLPD for gauss model during training (for checkpoints)
                         train_missing_nlpd = None
@@ -626,8 +632,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test,
                                                        X_test_covar, obs_noise)
                 else:
-                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
-                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
+                    # For gauss model, we also need X_covar and obs_noise for proper uncertainty handling
+                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise)
+                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_test_covar, obs_noise)
 
                 print(f'Train NLPD {model_name} = ' + str(train_nlpd))
                 print(f'Test NLPD {model_name} = ' + str(test_nlpd))

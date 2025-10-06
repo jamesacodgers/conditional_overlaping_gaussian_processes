@@ -17,9 +17,10 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
         model: GP-LVM model
         Y_true: Observations [N, D]
         X_mean: Latent means [N, latent_dim]
-        model_name: Type of model ('point', 'map', 'gauss', or other)
-        loss_data: Loss list (for point/map/gauss models)
-        X_covar: Covariance matrices for nn_gauss models [N, latent_dim, latent_dim]
+        model_name: Type of model ('point', 'map', 'gauss', or 'nn_gauss')
+        loss_data: Loss list (for point/map models, fallback for gauss/nn_gauss)
+        X_covar: Latent uncertainties - standard deviations for gauss [N, latent_dim], 
+                covariance matrices for nn_gauss [N, latent_dim, latent_dim]
         obs_noise: Observation noise parameter (scalar tensor)
 
     Returns:
@@ -30,17 +31,20 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
     with torch.no_grad():
         N = len(Y_true)
 
-        if model_name in ('point', 'map', 'gauss'):
-            # For point, map, and gauss models, use the loss from training/test prediction
-            nlpd = loss_data[-1] / N
-        elif model_name == 'nn_gauss':
-            # Aligned with SSVI approach for proper uncertainty handling
+        if model_name in ('gauss', 'nn_gauss'):
+            # Aligned with SSVI approach for proper uncertainty handling for both models
             try:
                 n_samples = 64  # Match SSVI default number of samples
                 
                 # Sample from latent distribution using same approach as SSVI
-                # Use same sqrt approach as get_X_scales: [torch.sqrt(x.diag()) for x in X_covar]
-                X_std = torch.stack([torch.sqrt(x.diag()) for x in X_covar])  # [N, latent_dim]
+                # X_covar processing depends on model type:
+                # For gauss: X_covar already contains standard deviations
+                # For nn_gauss: X_covar is a list of covariance matrices, need sqrt(diag())
+                if model_name == 'nn_gauss':
+                    X_std = torch.stack([torch.sqrt(x.diag()) for x in X_covar])  # [N, latent_dim]
+                else:  # gauss model
+                    X_std = X_covar  # Already standard deviations
+                
                 x_dist = torch.distributions.Normal(X_mean, X_std)
                 
                 # Sample multiple times and average (match SSVI approach)
@@ -110,7 +114,7 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
                 nlpd = -log_pred_density.mean().item()
 
             except Exception as e:
-                print(f"WARNING: NLPD computation failed for nn_gauss model: {str(e)}")
+                print(f"WARNING: NLPD computation failed for {model_name} model: {str(e)}")
                 print("Falling back to simple loss-based NLPD computation")
                 nlpd = loss_data[-1] / N
         else:
