@@ -70,14 +70,14 @@ def generate_config_grid():
     n_training_steps = [5000]
     num_inducing_samples_list = [1,2,4,8,16,32,64]  # For SSVI only
     
-    # Base configuration paths
-    ssvi_base_config = "ssvi_configs/base_lr_0001_s7.yaml"
-    orig_base_config = "original_gp_lvm_configs/base_lr_0001_s7.yaml"
+    # Base configuration paths (now in oil_flow_related directory)
+    ssvi_base_config = "oil_flow_related/ssvi_configs/base_lr_0001_s7.yaml"
+    orig_base_config = "oil_flow_related/original_gp_lvm_configs/base_lr_0001_s7.yaml"
     
-    # Output folder names
+    # Output folder names (now in oil_flow_related directory)
     output_folder_name = "num_inducing_samples"
-    ssvi_output_folder = f"{output_folder_name}_ssvi"
-    orig_output_folder = f"{output_folder_name}_orig_gplvm"
+    ssvi_output_folder = f"oil_flow_related/{output_folder_name}_ssvi"
+    orig_output_folder = f"oil_flow_related/{output_folder_name}_orig_gplvm"
     
     # Load base configurations
     print("Loading base configurations...")
