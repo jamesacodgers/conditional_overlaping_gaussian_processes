@@ -64,8 +64,8 @@ variational_strategy: "cholesky"  # CholeskyVariationalDistribution in oilflow_e
 learn_inducing_locations: true    # learn_inducing_locations=True in oilflow_expt.py
 
 # === GP Hyperparameters ===
-init_lengthscales: 2.0  # Initial lengthscales value (default matches GPyTorch RBFKernel)
-init_output_noise_scale: 2.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
+init_lengthscales: 1.0  # Initial lengthscales value (default matches GPyTorch RBFKernel)
+init_output_noise_scale: 1.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
 
 # === qPCR-specific Configuration ===
 # ELBO beta parameter for qPCR experiments
