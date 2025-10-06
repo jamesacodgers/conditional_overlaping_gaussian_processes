@@ -90,8 +90,8 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             sigma_x = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_covariances.detach()])
 
         # Plot mu_x directly (no sampling) - exactly like SSVI
-        mu_x_torch = torch.from_numpy(mu_x)
-        sigma_x_torch = torch.from_numpy(sigma_x)
+        mu_x_torch = torch.from_numpy(mu_x).to(dtype=torch.float64)
+        sigma_x_torch = torch.from_numpy(sigma_x).to(dtype=torch.float64)
 
         # Sample P_samples times using torch.distributions.Normal (same as SSVI)
         for p in range(64):

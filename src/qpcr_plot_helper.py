@@ -123,8 +123,8 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             sigma_x = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_covariances.detach()])
 
         # Plot mu_x directly (no sampling) - exactly like SSVI
-        mu_x_torch = torch.from_numpy(mu_x)
-        sigma_x_torch = torch.from_numpy(sigma_x)
+        mu_x_torch = torch.from_numpy(mu_x).to(dtype=torch.float64)
+        sigma_x_torch = torch.from_numpy(sigma_x).to(dtype=torch.float64)
 
         # Sample P_samples times using torch.distributions.Normal (same as SSVI)
         for p in range(64):
@@ -409,7 +409,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 # Preprocess encoder input to handle missing data (replace NaN with -9.0)
-                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
+                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0, dtype=torch.float64), y_train)
                 mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
             else:
                 mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
@@ -473,7 +473,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
 
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
+                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0, dtype=torch.float64), y_train)
                 mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
             else:
                 mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]

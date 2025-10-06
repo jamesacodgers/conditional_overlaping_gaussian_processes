@@ -155,7 +155,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     
     # Convert to tensors and move to device (matching Original GP-LVM approach)
     y_full = Y.to(config.device)
-    labels_full = torch.tensor(labels, dtype=torch.float32, device=config.device)
+    labels_full = torch.tensor(labels, dtype=torch.float64, device=config.device)
     
     # Create train/test split if metrics enabled
     print(f"Creating train/test split (test_size={config.test_size})...")
@@ -179,7 +179,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
         'test_indices': test_indices
     }
     # Initialize inducing points and latent variables (following original)
-    Vx = torch.randn(config.n_inducing_points, config.latent_dim, device=config.device)
+    Vx = torch.randn(config.n_inducing_points, config.latent_dim, dtype=torch.float64, device=config.device)
     mu_x, _, _ = torch.pca_lowrank(y, config.latent_dim)
     
     print(f"Data loaded: {y.shape[0]} samples, {y.shape[1]} dimensions")
@@ -265,7 +265,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         # Handle missing data preprocessing for encoder input
         if self.enable_missing_data:
             # Replace NaN values with -9.0 for encoder input (encoder expects clean data)
-            Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0), Y_batch)
+            Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0, dtype=torch.float64), Y_batch)
             # Get local parameters via amortized inference (gradients only to encoder)
             mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples)
         else:
@@ -483,8 +483,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     if config is None:
         config = get_fast_config()
     
-    # Set device from config
+    # Set device and dtype from config
     torch.set_default_device(config.device)
+    torch.set_default_dtype(torch.float64)
     
     # Set random seed for reproducibility (same as original GPLVM code)
     torch.manual_seed(config.random_seed)

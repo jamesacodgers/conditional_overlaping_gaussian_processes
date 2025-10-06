@@ -60,7 +60,7 @@ def get_pseudotime():
     URL = "https://raw.githubusercontent.com/sods/ods/master/datasets/guo_qpcr.csv"
     
     df = pd.read_csv(URL, index_col=0)
-    data = torch.tensor(df.values, dtype=torch.get_default_dtype())
+    data = torch.tensor(df.values, dtype=torch.float64)
     # we need to transpose data to correct its shape
     y = data.t()
     capture_time = y.new_tensor([int(cell_name.split(" ")[0]) for cell_name in df.index.values])
@@ -109,12 +109,16 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     )
     
     # Convert back to tensors on original device
-    y_train = torch.tensor(y_train_np, dtype=torch.float32, device=config.device)
-    y_test = torch.tensor(y_test_np, dtype=torch.float32, device=config.device)
+    y_train = torch.tensor(y_train_np, dtype=torch.float64, device=config.device)
+    y_test = torch.tensor(y_test_np, dtype=torch.float64, device=config.device)
     labels_train = labels_train_np  # Keep as numpy array for compatibility (same as qPCR_GPLVM.py)
     labels_test = labels_test_np    # Keep as numpy array for compatibility (same as qPCR_GPLVM.py)
-    pseudo_train = torch.tensor(pseudo_train_np, dtype=torch.float32, device=config.device)
-    pseudo_test = torch.tensor(pseudo_test_np, dtype=torch.float32, device=config.device)
+    pseudo_train = torch.tensor(pseudo_train_np, dtype=torch.float64, device=config.device)
+    pseudo_test = torch.tensor(pseudo_test_np, dtype=torch.float64, device=config.device)
+    
+    # Convert indices to tensors for consistency with oil flow version
+    train_indices_tensor = torch.tensor(train_indices, dtype=torch.int64, device=config.device)
+    test_indices_tensor = torch.tensor(test_indices, dtype=torch.int64, device=config.device)
     
     print(f"Data split shapes - Train: {y_train.shape}, Test: {y_test.shape}")
     print(f"Labels split info - Train: {type(labels_train)}, length: {len(labels_train) if hasattr(labels_train, '__len__') else 'no length'}")
@@ -128,13 +132,13 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
         'y_test': y_test,
         'labels_train': labels_train,
         'labels_test': labels_test,
-        'train_indices': train_indices,
-        'test_indices': test_indices,
+        'train_indices': train_indices_tensor,
+        'test_indices': test_indices_tensor,
         'pseudo_train': pseudo_train,
         'pseudo_test': pseudo_test
     }
     # Initialize inducing points and latent variables (following original)
-    Vx = torch.randn(config.n_inducing_points, config.latent_dim, device=config.device)
+    Vx = torch.randn(config.n_inducing_points, config.latent_dim, dtype=torch.float64, device=config.device)
     mu_x, _, _ = torch.pca_lowrank(y, config.latent_dim)
     
     # Assign pseudotime to first latent dimension for qPCR data (consistent with original qPCR_expt.py)
@@ -224,7 +228,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         # Handle missing data preprocessing for encoder input
         if self.enable_missing_data:
             # Replace NaN values with -9.0 for encoder input (encoder expects clean data)
-            Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0), Y_batch)
+            Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0, dtype=torch.float64), Y_batch)
             # Get local parameters via amortized inference (gradients only to encoder)
             mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples)
         else:
@@ -449,8 +453,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         if config_name == "fast":
             config.results_dir = "qpcr_results/ssvi_results"
     
-    # Set device from config
+    # Set device and dtype from config
     torch.set_default_device(config.device)
+    torch.set_default_dtype(torch.float64)
     
     # Set random seed for reproducibility (same as original GPLVM code)
     torch.manual_seed(config.random_seed)
