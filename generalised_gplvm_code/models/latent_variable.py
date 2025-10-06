@@ -69,7 +69,7 @@ class NNEncoder(LatentVariable):
         self.latent_dim = latent_dim
 
         self._init_mu_nnet(layers)
-        self._init_sg_nnet(len(layers))
+        self._init_sg_nnet(layers)
         self.register_added_loss_term("x_kl")
 
         jitter = torch.eye(latent_dim).unsqueeze(0)*1e-5
@@ -136,6 +136,32 @@ class NNEncoder(LatentVariable):
         x_kl = kl_gaussian_loss_term(q_x, self.prior_x, len(batch_idx), self.data_dim)
         self.update_added_loss_term('x_kl', x_kl)
         return q_x.rsample()
+
+
+class DiagonalNNEncoder(NNEncoder):
+
+    def __init__(self, n, latent_dim, prior_x, data_dim, layers):
+        super().__init__(n, latent_dim, prior_x, data_dim, layers)
+
+    def _get_sg_layers(self, layers):
+        return (self.data_dim,) + layers + (self.latent_dim,)
+
+    def _init_sg_nnet(self, layers):
+        layers = self._get_sg_layers(layers)
+        n_layers = len(layers)
+
+        self.sg_layers = nn.ModuleList([ \
+            nn.Linear(layers[i], layers[i + 1]) \
+            for i in range(n_layers - 1)])
+
+    def sigma(self, Y):
+        sg = torch.tanh(self.sg_layers[0](Y))
+        for i in range(1, len(self.sg_layers)):
+            sg = torch.tanh(self.sg_layers[i](sg))
+            if i == (len(self.sg_layers) - 1): sg = sg * 5
+
+        sg = torch.diag_embed(sg**2)
+        return sg + self.jitter
 
 class IAFEncoder(NNEncoder):
     def __init__(self, n, latent_dim, context_size, prior_x, data_dim, layers, n_flows):

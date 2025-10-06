@@ -184,7 +184,7 @@ class BayesianGPLVM(ApproximateGP):
              
              return self.X.q_mu.detach()
          
-         elif self.X.__class__.__name__ == 'NNEncoder':
+         elif self.X.__class__.__name__ in ['NNEncoder', 'DiagonalNNEncoder']:
              
              return self.X.mu(Y).detach()
     
@@ -198,7 +198,7 @@ class BayesianGPLVM(ApproximateGP):
              
              return torch.nn.functional.softplus(self.X.q_log_sigma).detach()
          
-         elif self.X.__class__.__name__ == 'NNEncoder':
+         elif self.X.__class__.__name__ in ['NNEncoder', 'DiagonalNNEncoder']:
              
              return np.array([torch.sqrt(x.diag()) for x in self.X.sigma(Y).detach()])
          

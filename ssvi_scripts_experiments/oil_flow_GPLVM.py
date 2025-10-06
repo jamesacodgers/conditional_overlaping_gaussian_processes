@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 from utils.data import load_real_data 
 import pickle as pkl
 from models.bayesianGPLVM import BayesianGPLVM
-from models.latent_variable import PointLatentVariable, MAPLatentVariable, VariationalLatentVariable, NNEncoder
+from models.latent_variable import PointLatentVariable, MAPLatentVariable, VariationalLatentVariable, NNEncoder, DiagonalNNEncoder
 from matplotlib import pyplot as plt
 import torch
 import numpy as np
@@ -255,7 +255,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             nn_layers = config.nn_layers
             prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1], dtype=torch.float64, device=config.device))
             prior_x_test = MultivariateNormalPrior(X_prior_mean_test, torch.eye(X_prior_mean.shape[1], dtype=torch.float64, device=config.device))
-            X = NNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
+
+            diag_encoder = True
+            if diag_encoder:
+                X = DiagonalNNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
+            else:
+                X = NNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
             
         # Initialise model, likelihood, elbo and optimizer
         

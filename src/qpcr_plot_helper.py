@@ -104,7 +104,7 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             # Variational GP-LVM (gauss)
             mu_x = model.X.q_mu.detach().cpu().numpy()
             sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma).detach().cpu().numpy()
-        elif model_name_class == 'NNEncoder':  # 'nn_gauss' model
+        elif model_name_class in ['NNEncoder', 'DiagonalNNEncoder']:  # 'nn_gauss' model
             Y_train_device = Y_train.to(model.X.mu_layers[0].weight.device) if Y_train.device != model.X.mu_layers[
                 0].weight.device else Y_train
 
