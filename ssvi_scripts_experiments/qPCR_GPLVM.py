@@ -307,7 +307,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 # Use initialize method for likelihood noise too
                 noise_scale = torch.tensor(config.init_output_noise_scale, dtype=torch.float64, device=config.device)
                 likelihood.initialize(noise=noise_scale)
-        elbo = VariationalELBO(likelihood, model, num_data=len(Y_train), beta=0.55)
+        elbo = VariationalELBO(likelihood, model, num_data=len(Y_train))
 
         # Move model and likelihood to CUDA if available (like original experiments)
         if config.device == 'cuda' and torch.cuda.is_available():
