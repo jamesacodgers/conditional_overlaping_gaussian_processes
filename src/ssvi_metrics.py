@@ -142,86 +142,7 @@ class SSVIMetricsComputer:
         return rmse
 
     
-    def compute_nlpd(self, 
-                     model, 
-                     y_true: torch.Tensor, 
-                     n_samples: int = 50) -> float:
-        """
-        Compute Negative Log Predictive Density for uncertainty quantification
-        
-        Args:
-            model: SSVI GP-LVM model
-            y_true: True observations [N, D]
-            n_samples: Number of samples for Monte Carlo estimation
-            
-        Returns:
-            NLPD value (lower is better)
-        """
-        model.eval()
-        with torch.no_grad():
-            # Sample U for both model types
-            U_samples = model.get_u_samples()
-            
-            # Preprocess encoder input to handle missing data (consistent with training)
-            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -9.0, dtype=torch.float64), y_true)
-            
-            # Get latent representations for this batch using SSVI encoder
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
-            
-            # Compute averaged latent variables once before the loop (optimization)
-            x_dist = torch.distributions.Normal(mu_x, sigma_x)
-            x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]            
-            
-            # Sample latent variables using pre-computed averages
 
-            # Compute predictive distribution through GP using proper GP methods
-            
-            # Get GP predictive mean using GP method directly
-            f_mean = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [batch_size, M, C]
-            
-            # Get proper GP predictive variance: GP covariance + observation noise
-            gp_cov = model.gp.get_gp_covariance_given_U(x_samples, U_samples)  # [batch_size, M, C, C]
-
-            # For observed data (C=1 case), extract diagonal and add observation noise
-            if gp_cov.shape[-1] == 1:
-                f_var = gp_cov[..., 0, 0] + model.sigma2  # [batch_size, M]
-                f_mean = f_mean[..., 0]  # [batch_size, M] to match f_var
-            else:
-                # For multi-output case, use diagonal elements + observation noise
-                f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [batch_size, M, C]
-            
-            # Handle missing data if enabled
-            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                # Mask out missing values in log probability computation
-                missing_mask = torch.isnan(y_true)
-                observed_mask = ~missing_mask
-                
-                # Check if we have any observed data
-                if observed_mask.sum() == 0:
-                    # All data is missing - return NaN
-                    model.train()
-                    return float('nan')
-                
-                # Replace NaN values in y_true with zeros for computation (they'll be masked out)
-                y_true_clean = torch.where(observed_mask, y_true, torch.zeros_like(y_true))
-                
-                # Compute log probability under Gaussian
-                log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true_clean - f_mean)**2 / f_var
-                
-                log_prob =( log_prob*observed_mask.float()[None,:,:]).sum(dim=-1).mean()  
-            else:
-                # Standard computation for complete data
-                log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true - f_mean)**2 / f_var
-                log_prob = log_prob.sum(dim=-1).mean()
-            
-            # Average log probabilities (log of mixture)
-            # Use logsumexp for numerical stability
-            
-            # Negative log predictive density (average over batch)
-            nlpd = -log_prob.mean().item()
-            
-        model.train()
-        return nlpd
     
     
     def compute_missing_data_nlpd(self, 
@@ -385,8 +306,8 @@ class SSVIMetricsComputer:
             metrics.test_rmse = self.compute_rmse(model, y_test, n_samples)
             
             # Uncertainty metrics (computationally expensive, use fewer samples)
-            metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
-            metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
+            metrics.train_nlpd = compute_nlpd(model, y_train, n_samples)
+            metrics.test_nlpd = compute_nlpd(model, y_test, n_samples)
             
             # Missing data uncertainty metrics (only if missing data is enabled and original data/masks are provided)
             if (hasattr(model, 'enable_missing_data') and model.enable_missing_data and
@@ -416,7 +337,12 @@ class SSVIMetricsComputer:
         self.metrics_history.append(metrics)
         
         return metrics
-    
+
+    def compute_nlpd(self,  model,
+                 y_true: torch.Tensor,
+                 n_samples: int = 50):
+        compute_nlpd(model, y_true, n_samples)
+
     def get_metrics_summary(self) -> Dict:
         """Get summary of final metrics"""
         if not self.metrics_history:
@@ -479,3 +405,84 @@ def create_train_test_split(y: torch.Tensor,
     test_indices = torch.from_numpy(test_indices).to(device=device, dtype=torch.int64)
     
     return y_train, y_test, labels_train, labels_test, train_indices, test_indices
+
+def compute_nlpd(
+                 model,
+                 y_true: torch.Tensor,
+                 n_samples: int = 50) -> float:
+    """
+    Compute Negative Log Predictive Density for uncertainty quantification
+
+    Args:
+        model: SSVI GP-LVM model
+        y_true: True observations [N, D]
+        n_samples: Number of samples for Monte Carlo estimation
+
+    Returns:
+        NLPD value (lower is better)
+    """
+    # model.eval()
+    # with torch.no_grad():
+    # Sample U for both model types
+    U_samples = model.get_u_samples()
+
+    # Preprocess encoder input to handle missing data (consistent with training)
+    y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -9.0, dtype=torch.float64), y_true)
+
+    # Get latent representations for this batch using SSVI encoder
+    mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+
+    # Compute averaged latent variables once before the loop (optimization)
+    x_dist = torch.distributions.Normal(mu_x, sigma_x)
+    x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]
+
+    # Sample latent variables using pre-computed averages
+
+    # Compute predictive distribution through GP using proper GP methods
+
+    # Get GP predictive mean using GP method directly
+    f_mean = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [batch_size, M, C]
+
+    # Get proper GP predictive variance: GP covariance + observation noise
+    gp_cov = model.gp.get_gp_covariance_given_U(x_samples, U_samples)  # [batch_size, M, C, C]
+
+    # For observed data (C=1 case), extract diagonal and add observation noise
+    if gp_cov.shape[-1] == 1:
+        f_var = gp_cov[..., 0, 0] + model.sigma2  # [batch_size, M]
+        f_mean = f_mean[..., 0]  # [batch_size, M] to match f_var
+    else:
+        # For multi-output case, use diagonal elements + observation noise
+        f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [batch_size, M, C]
+
+    # Handle missing data if enabled
+    if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+        # Mask out missing values in log probability computation
+        missing_mask = torch.isnan(y_true)
+        observed_mask = ~missing_mask
+
+        # Check if we have any observed data
+        if observed_mask.sum() == 0:
+            # All data is missing - return NaN
+            model.train()
+            return float('nan')
+
+        # Replace NaN values in y_true with zeros for computation (they'll be masked out)
+        y_true_clean = torch.where(observed_mask, y_true, torch.zeros_like(y_true))
+
+        # Compute log probability under Gaussian
+        log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true_clean - f_mean) ** 2 / f_var
+
+        log_prob = (log_prob * observed_mask.float()[None, :, :]).sum(dim=-1).mean()
+    else:
+        # Standard computation for complete data
+        log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true - f_mean) ** 2 / f_var
+        log_prob = log_prob.sum(dim=-1).mean()
+
+    # Average log probabilities (log of mixture)
+    # Use logsumexp for numerical stability
+
+    # Negative log predictive density (average over batch)
+    nlpd = -log_prob.mean().item()
+
+    # model.train()
+    return nlpd

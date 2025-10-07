@@ -6,6 +6,7 @@ from src.struc_models import Struc_WS_GPLVM
 from src.mf_methods import MFModels
 from src.inner_optimisers import MultivariateNormalSolver
 from src.utils import train_lbfgs, generate_regular_simplex
+from src.ssvi_metrics import compute_nlpd
 import numpy as np
 
 # Set default dtype to float64 for all tensor operations
@@ -292,7 +293,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
 
         const_train = self.coordinator.get_const_train(y, R_train, s_train_expectation, s_train_outer_expectation)
 
-        training_inner_elbo =  const_train.mean() - self.get_kl_x_from(mu_x, Sigma_x)
+        training_inner_elbo =  compute_nlpd(self, y, 50) - self.get_kl_x_from(mu_x, Sigma_x)
         
         # Scale const_train for mini-batches to represent full dataset contribution
         if batch_size != total_size:
