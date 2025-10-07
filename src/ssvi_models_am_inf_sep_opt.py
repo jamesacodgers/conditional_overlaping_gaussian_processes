@@ -282,18 +282,19 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                         )
     
     def gplvm_elbo(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, return_components=False):
-        R_train = torch.ones((y.shape[0],1), device=y.device, dtype=y.dtype)
-        kernel_train_expectation = self._get_lv_kernel_expectation(mu_x, Sigma_x)
-        kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x,Sigma_x)
+        #R_train = torch.ones((y.shape[0],1), device=y.device, dtype=y.dtype)
+        #kernel_train_expectation = self._get_lv_kernel_expectation(mu_x, Sigma_x)
+        #kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x,Sigma_x)
 
-        s_train_expectation = self._s_expectation_given_U(kernel_expectation=kernel_train_expectation,
-                                                         U_samples=U_samples)
-        s_train_outer_expectation = self._s_outer_expectation_given_U(kernel_outer_expectation=kernel_train_outer_expectation,
-                                                                     U_samples=U_samples)
+        #s_train_expectation = self._s_expectation_given_U(kernel_expectation=kernel_train_expectation,
+        #                                                 U_samples=U_samples)
+        #s_train_outer_expectation = self._s_outer_expectation_given_U(kernel_outer_expectation=kernel_train_outer_expectation,
+        #                                                             U_samples=U_samples)
 
-        const_train = self.coordinator.get_const_train(y, R_train, s_train_expectation, s_train_outer_expectation)
+        #const_train = self.coordinator.get_const_train(y, R_train, s_train_expectation, s_train_outer_expectation)
 
-        training_inner_elbo =  compute_nlpd(self, y, 50) - self.get_kl_x_from(mu_x, Sigma_x)
+        # Use consistent U_samples and latent parameters for NLPD computation
+        training_inner_elbo = -self.compute_nlpd(y, U_samples, mu_x, Sigma_x) - self.get_kl_x_from(mu_x, Sigma_x)
         
         # Scale const_train for mini-batches to represent full dataset contribution
         if batch_size != total_size:
@@ -304,14 +305,71 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         if return_components:
             # Compute components for tracking (no gradients needed)
             with torch.no_grad():
-                likelihood = const_train.mean()
+                nlpd_value = self.compute_nlpd(y, U_samples, mu_x, Sigma_x)
+                likelihood = -nlpd_value  # Convert NLPD back to log-likelihood
                 if batch_size != total_size:
                     likelihood = likelihood * (total_size / batch_size)
                 kl_x = self.get_kl_x_from(mu_x, Sigma_x)
                 kl_u = self.gp.get_kl_u()
-                return elbo, likelihood / total_size, kl_x / batch_size, kl_u / total_size
+                return elbo, likelihood / total_size, kl_x / total_size, kl_u / total_size
 
         return elbo
+
+    def compute_nlpd(self,
+            y_true: torch.Tensor,
+            U_samples: torch.Tensor,
+            mu_x: torch.Tensor,
+            sigma_x: torch.Tensor) -> torch.Tensor:
+        """
+        Compute Negative Log Predictive Density for uncertainty quantification
+        
+        This version accepts precomputed U_samples and latent parameters to ensure
+        consistency in the ELBO computational graph and avoid recomputation.
+
+        Args:
+            y_true: True observations [N, D]
+            U_samples: Precomputed U samples [P, M, C, Lx]
+            mu_x: Precomputed latent means [P, N, latent_dim]
+            sigma_x: Precomputed latent std devs [P, N, latent_dim]
+
+        Returns:
+            NLPD value (differentiable tensor, lower is better)
+        """
+        # Use provided U_samples and latent parameters (no resampling/reencoding)
+
+        # Compute averaged latent variables once before the loop (optimization)
+        x_dist = torch.distributions.Normal(mu_x, sigma_x)
+        x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]
+
+        # Sample latent variables using pre-computed averages
+
+        # Compute predictive distribution through GP using proper GP methods
+
+        # Get GP predictive mean using GP method directly
+        f_mean = self.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [batch_size, M, C]
+
+        # Get proper GP predictive variance: GP covariance + observation noise
+        gp_cov = self.gp.get_gp_covariance_given_U(x_samples, U_samples)  # [batch_size, M, C, C]
+
+        # For observed data (C=1 case), extract diagonal and add observation noise
+        if gp_cov.shape[-1] == 1:
+            f_var = gp_cov[..., 0, 0] + self.sigma2  # [batch_size, M]
+            f_mean = f_mean[..., 0]  # [batch_size, M] to match f_var
+        else:
+            # For multi-output case, use diagonal elements + observation noise
+            f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + self.sigma2  # [batch_size, M, C]
+
+        log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true - f_mean) ** 2 / f_var
+        log_prob = log_prob.sum(dim=-1).mean()
+
+        # Average log probabilities (log of mixture)
+        # Use logsumexp for numerical stability
+
+        # Negative log predictive density (average over batch)
+        nlpd = -log_prob.mean()
+
+        # model.train()
+        return nlpd
 
     def get_gradient_info(self):
         """
