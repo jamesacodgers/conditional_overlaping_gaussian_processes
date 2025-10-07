@@ -280,7 +280,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                             D_test=D_test
                         )
     
-    def gplvm_elbo(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size):
+    def gplvm_elbo(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, return_components=False):
         R_train = torch.ones((y.shape[0],1), device=y.device, dtype=y.dtype)
         kernel_train_expectation = self._get_lv_kernel_expectation(mu_x, Sigma_x)
         kernel_train_outer_expectation = self._get_lv_kernel_outer_expectation(mu_x,Sigma_x)
@@ -298,9 +298,19 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         if batch_size != total_size:
             training_inner_elbo = training_inner_elbo * (total_size / batch_size)
         
+        elbo = (training_inner_elbo  - self.gp.get_kl_u())/total_size
+        
+        if return_components:
+            # Compute components for tracking (no gradients needed)
+            with torch.no_grad():
+                likelihood = const_train.mean()
+                if batch_size != total_size:
+                    likelihood = likelihood * (total_size / batch_size)
+                kl_x = self.get_kl_x_from(mu_x, Sigma_x)
+                kl_u = self.gp.get_kl_u()
+                return elbo, likelihood / total_size, kl_x / total_size, kl_u / total_size
 
-
-        return (training_inner_elbo  - self.gp.get_kl_u())/total_size
+        return elbo
 
     def get_gradient_info(self):
         """
@@ -362,7 +372,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         from src.missing_data_utils import reconstruct_missing_dimensions
         return reconstruct_missing_dimensions(self, y_observed, missing_mask, n_samples)
     
-    def gplvm_elbo_with_missing_data(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask):
+    def gplvm_elbo_with_missing_data(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask, return_components=False):
         """
         Extended gplvm_elbo that handles missing data by modifying the coordinator's likelihood computation.
         Uses the original ELBO structure but handles missing data in the coordinator.
@@ -408,9 +418,19 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         if batch_size != total_size:
             training_inner_elbo = training_inner_elbo * (total_size / batch_size)
         
+        elbo = (training_inner_elbo  - self.gp.get_kl_u())/total_size
+        
+        if return_components:
+            # Compute components for tracking (no gradients needed)
+            with torch.no_grad():
+                likelihood = normalising_const - 1/(2*self.sigma2)*(y_sqr_clean - 2* cross_clean + signal_sqr_clean)
+                if batch_size != total_size:
+                    likelihood = likelihood * (total_size / batch_size)
+                kl_x = self.get_kl_x_from(mu_x, Sigma_x)
+                kl_u = self.gp.get_kl_u()
+                return elbo, likelihood / total_size, kl_x / total_size, kl_u / total_size
 
-
-        return (training_inner_elbo  - self.gp.get_kl_u())/total_size
+        return elbo
 
 
 class NormalCoordinatorCustom:

@@ -37,7 +37,7 @@ sys.path.insert(0, project_root)
 sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, plot_missing_nlpd_metrics_progression
+from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, plot_missing_nlpd_metrics_progression, plot_elbo_components_progression
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
@@ -279,25 +279,30 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         self.optimizer_global.zero_grad()
         
         # Compute global ELBO loss (gradients flow to all parameters)
+        # Always return components for tracking
         if self.enable_missing_data:
             # Use missing data aware ELBO (coordinator handles the missing mask automatically)
             missing_mask = torch.isnan(Y_batch)
             # Use the same clean data for ELBO computation to maintain consistency with encoder
-            loss = -self.gplvm_elbo_with_missing_data(Y_batch_clean,
+            elbo, likelihood, kl_x, kl_u = self.gplvm_elbo_with_missing_data(Y_batch_clean,
                                                      mu_n_batch,
                                                      sigma_n_batch,
                                                      U_samples=U_samples,
                                                      batch_size=self.config.batch_size,
                                                      total_size=self.config.total_size,
-                                                     missing_mask=missing_mask)
+                                                     missing_mask=missing_mask,
+                                                     return_components=True)
+            loss = -elbo
         else:
             # Standard ELBO computation
-            loss = -self.gplvm_elbo(Y_batch,
+            elbo, likelihood, kl_x, kl_u = self.gplvm_elbo(Y_batch,
                                    mu_n_batch,
                                    sigma_n_batch,
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
-                                   total_size=self.config.total_size)
+                                   total_size=self.config.total_size,
+                                   return_components=True)
+            loss = -elbo
         
         # Backward pass (gradients computed for all parameters)
         loss.backward()
@@ -306,7 +311,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         self.optimizer_local.step()
         self.optimizer_global.step()
         
-        return loss.item()
+        return loss.item(), likelihood.item(), kl_x.item(), kl_u.item()
 
     @property 
     def mu_x(self): 
@@ -341,7 +346,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
         y_batch = y_train[batch_indices]
         
         # Training step - U sampling happens inside automatically each step
-        loss = model.train_step(y_batch, batch_indices)
+        # Always get ELBO components
+        loss, likelihood, kl_x, kl_u = model.train_step(y_batch, batch_indices)
         losses.append(loss)
         
         # Metrics computation (periodic)
@@ -360,6 +366,9 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                     y_test=split_data['y_test'],
                     iteration=i,
                     elbo_loss=loss,
+                    likelihood=likelihood,
+                    kl_x=kl_x,
+                    kl_u=kl_u,
                     n_samples=32,  # Fixed number of samples for metrics computation
                     y_train_original=split_data['y_train_original'],
                     y_test_original=split_data['y_test_original'],
@@ -373,11 +382,15 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                     y_test=split_data['y_test'],
                     iteration=i,
                     elbo_loss=loss,
+                    likelihood=likelihood,
+                    kl_x=kl_x,
+                    kl_u=kl_u,
                     n_samples=32  # Fixed number of samples for metrics computation
                 )
             
             print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
             print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
+            print(f"    ELBO components: Likelihood={metrics.likelihood:.3f}, KL_x={metrics.kl_x:.3f}, KL_u={metrics.kl_u:.3f}")
             if config.enable_missing_data and not np.isnan(metrics.train_missing_nlpd):
                 print(f"    Train Missing Data NLPD: {metrics.train_missing_nlpd:.3f}")
                 print(f"    Test Missing Data NLPD: {metrics.test_missing_nlpd:.3f}")
@@ -543,6 +556,12 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         # Compute final comprehensive metrics on full test set
         print("Computing final metrics on full datasets...")
         
+        # Get ELBO components from last computed metrics (or use NaN if none)
+        last_metrics = metrics_computer.metrics_history[-1] if metrics_computer.metrics_history else None
+        final_likelihood = last_metrics.likelihood if last_metrics else float('nan')
+        final_kl_x = last_metrics.kl_x if last_metrics else float('nan')
+        final_kl_u = last_metrics.kl_u if last_metrics else float('nan')
+        
         # Compute final metrics with missing data info if enabled
         if config.enable_missing_data:
             final_metrics = metrics_computer.compute_full_metrics(
@@ -551,6 +570,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 y_test=split_data['y_test'],
                 iteration=config.training_iterations,
                 elbo_loss=losses[-1] if losses else 0.0,
+                likelihood=final_likelihood,
+                kl_x=final_kl_x,
+                kl_u=final_kl_u,
                 n_samples=32,  # Fixed number of samples for final metrics computation
                 y_train_original=split_data['y_train_original'],
                 y_test_original=split_data['y_test_original'],
@@ -564,6 +586,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 y_test=split_data['y_test'],
                 iteration=config.training_iterations,
                 elbo_loss=losses[-1] if losses else 0.0,
+                likelihood=final_likelihood,
+                kl_x=final_kl_x,
+                kl_u=final_kl_u,
                 n_samples=32  # Fixed number of samples for final metrics computation
             )
         
@@ -592,6 +617,10 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         
         print("Generating final metrics summary plots...")
         plot_final_metrics_summary(metrics_computer, model, logger, show_plot=False)
+        
+        # Generate ELBO components progression plot
+        print("Generating ELBO components progression plot...")
+        plot_elbo_components_progression(metrics_computer, logger, show_plot=False)
         
         # Generate missing NLPD metrics progression plot if missing data is enabled
         if config.enable_missing_data:
@@ -633,6 +662,11 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             if hasattr(final_noise, 'item'):
                 final_noise = final_noise.item()
             
+            # Get final ELBO components from last metrics
+            final_likelihood = final_metrics.likelihood if final_metrics else float('nan')
+            final_kl_x = final_metrics.kl_x if final_metrics else float('nan')
+            final_kl_u = final_metrics.kl_u if final_metrics else float('nan')
+            
             experiment_summary['oilflow_ssvi'] = {
                 'train_rmse': summary.get('final_train_rmse', 0.0),
                 'test_rmse': summary.get('final_test_rmse', 0.0),
@@ -641,7 +675,10 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 'train_missing_data_nlpd': summary.get('final_train_missing_nlpd', float('nan')),
                 'test_missing_data_nlpd': summary.get('final_test_missing_nlpd', float('nan')),
                 'final_loss': losses[-1] if losses else 0.0,
-                'final_noise': float(final_noise)  # Ensure it's a Python float
+                'final_noise': float(final_noise),  # Ensure it's a Python float
+                'final_likelihood': float(final_likelihood),
+                'final_kl_x': float(final_kl_x),
+                'final_kl_u': float(final_kl_u)
             }
         
         logger.save_experiment_summary(experiment_summary)

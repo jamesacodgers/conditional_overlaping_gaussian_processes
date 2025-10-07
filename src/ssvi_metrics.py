@@ -42,6 +42,11 @@ class SSVIMetrics:
     iteration: int = 0
     elbo_loss: float = 0.0
     
+    # ELBO components
+    likelihood: float = float('nan')
+    kl_x: float = float('nan')
+    kl_u: float = float('nan')
+    
     def to_dict(self) -> Dict:
         """Convert metrics to dictionary for logging"""
         return {
@@ -54,7 +59,10 @@ class SSVIMetrics:
             'test_missing_nlpd': self.test_missing_nlpd,
             'effective_latent_dims': self.effective_latent_dims,
             'total_latent_dims': self.total_latent_dims,
-            'elbo_loss': self.elbo_loss
+            'elbo_loss': self.elbo_loss,
+            'likelihood': self.likelihood,
+            'kl_x': self.kl_x,
+            'kl_u': self.kl_u
         }
 
 
@@ -338,6 +346,9 @@ class SSVIMetricsComputer:
                            y_test: torch.Tensor,
                            iteration: int = 0,
                            elbo_loss: float = 0.0,
+                           likelihood: float = 0.0,
+                           kl_x: float = 0.0,
+                           kl_u: float = 0.0,
                            n_samples: int = 20,
                            y_train_original: torch.Tensor = None,
                            y_test_original: torch.Tensor = None,
@@ -364,6 +375,9 @@ class SSVIMetricsComputer:
         metrics = SSVIMetrics()
         metrics.iteration = iteration
         metrics.elbo_loss = elbo_loss
+        metrics.likelihood = likelihood
+        metrics.kl_x = kl_x
+        metrics.kl_u = kl_u
         
         try:
             # Reconstruction metrics using SSVI encoder

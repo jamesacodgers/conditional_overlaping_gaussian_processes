@@ -62,10 +62,11 @@ from src.original_gplvm_config_utils import (
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.data_utils import download_oilflow_data_if_needed
 from src.nlpd_utils import compute_nlpd_nll_based, compute_missing_data_nlpd_gauss
-from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression
+from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression, plot_elbo_components_progression
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling
+from src.original_gplvm_elbo_utils import extract_elbo_components
 
 plt.style.use('ggplot')
 
@@ -316,6 +317,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         effective_dims_list = []
         metrics_iterations = []
         metrics_losses = []
+        # ELBO components tracking (placeholders for GPyTorch framework)
+        likelihood_list = []
+        kl_x_list = []
+        kl_u_list = []
         
         iterator = trange(steps_per_model[model_name], leave=True)
         batch_size = config.batch_size
@@ -407,6 +412,15 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         # Compute effective dimensions
                         effective_dims, total_dims = compute_effective_latent_dims(model)
                         
+                        # Extract ELBO components (use output_batch from training step)
+                        try:
+                            likelihood_comp, kl_x_comp, kl_u_comp = extract_elbo_components(
+                                model, likelihood, output_batch, Y_train[batch_index_tensor].T, len(Y_train)
+                            )
+                        except Exception as e:
+                            print(f"  Warning: Could not extract ELBO components at iteration {i}: {e}")
+                            likelihood_comp, kl_x_comp, kl_u_comp = float('nan'), float('nan'), float('nan')
+                        
                         # Store metrics
                         train_rmse_list.append(float(train_rmse.item()) if hasattr(train_rmse, 'item') else float(train_rmse))
                         train_nlpd_list.append(float(train_nlpd))
@@ -414,6 +428,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         effective_dims_list.append(effective_dims)
                         metrics_iterations.append(i)
                         metrics_losses.append(float(loss.item()))
+                        # ELBO components extracted from GPyTorch framework
+                        likelihood_list.append(likelihood_comp)
+                        kl_x_list.append(kl_x_comp)
+                        kl_u_list.append(kl_u_comp)
+                        
+                        print(f"  ELBO components at iter {i}: Likelihood={likelihood_comp:.3f}, KL_x={kl_x_comp:.3f}, KL_u={kl_u_comp:.3f}")
                         
                         print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, Effective dims: {effective_dims}/{total_dims}")
                         
@@ -439,7 +459,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
             # Save checkpoint metrics to JSON (train metrics only)
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
-                                         metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list)
+                                         metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list,
+                                         likelihood_list, kl_x_list, kl_u_list)
+            
+            # Generate ELBO components progression plot
+            plot_elbo_components_progression(likelihood_list, kl_x_list, kl_u_list, metrics_iterations,
+                                           metrics_losses, logger.get_results_dir(), model_name, config.random_seed)
             
             # Generate missing NLPD metrics progression plot if missing data is enabled and we have missing NLPD data
             if config.enable_missing_data and train_missing_nlpd_list:
@@ -695,6 +720,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             train_missing_nlpd_value = results_summary[model_name].get('train_missing_nlpd', float('nan'))
             test_missing_nlpd_value = results_summary[model_name].get('test_missing_nlpd', float('nan'))
             
+            # Get final ELBO components from last computed metrics
+            final_likelihood = likelihood_list[-1] if likelihood_list else float('nan')
+            final_kl_x = kl_x_list[-1] if kl_x_list else float('nan')
+            final_kl_u = kl_u_list[-1] if kl_u_list else float('nan')
+            
             results_summary[model_name] = {
                 'train_rmse': float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train),
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
@@ -703,7 +733,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 'train_missing_nlpd': train_missing_nlpd_value,  # Preserve computed value or use NaN
                 'test_missing_nlpd': test_missing_nlpd_value,   # Preserve computed value or use NaN
                 'final_loss': float(loss_list[-1]),
-                'final_noise': float(noise_trace[-1])
+                'final_noise': float(noise_trace[-1]),
+                'final_likelihood': float(final_likelihood),
+                'final_kl_x': float(final_kl_x),
+                'final_kl_u': float(final_kl_u)
             }
             
             logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")

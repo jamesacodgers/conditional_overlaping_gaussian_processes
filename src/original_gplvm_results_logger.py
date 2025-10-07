@@ -149,7 +149,8 @@ class OriginalGPLVMResultsLogger:
             self.log_training(f"Experiment summary saved: {summary_file}")
     
     def save_checkpoint_metrics(self, train_rmse_list, train_nlpd_list, metrics_iterations, 
-                               metrics_losses, model_name: str, random_seed: int, effective_dims_list=None, train_missing_nlpd_list=None):
+                               metrics_losses, model_name: str, random_seed: int, effective_dims_list=None, train_missing_nlpd_list=None,
+                               likelihood_list=None, kl_x_list=None, kl_u_list=None):
         """Save checkpoint metrics to JSON file in training_results folder (train metrics only)"""
         if self.results_dir and train_rmse_list and train_nlpd_list:
             # Prepare checkpoint data (train metrics only)
@@ -175,6 +176,13 @@ class OriginalGPLVMResultsLogger:
                 # Add missing data NLPD if available
                 if train_missing_nlpd_list and i < len(train_missing_nlpd_list):
                     checkpoint_entry['train_missing_nlpd'] = float(train_missing_nlpd_list[i])
+                # Add ELBO components if available
+                if likelihood_list and i < len(likelihood_list):
+                    checkpoint_entry['likelihood'] = float(likelihood_list[i])
+                if kl_x_list and i < len(kl_x_list):
+                    checkpoint_entry['kl_x'] = float(kl_x_list[i])
+                if kl_u_list and i < len(kl_u_list):
+                    checkpoint_entry['kl_u'] = float(kl_u_list[i])
                 checkpoint_data['checkpoints'].append(checkpoint_entry)
             
             # Save to JSON file

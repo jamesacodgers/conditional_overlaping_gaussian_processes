@@ -147,7 +147,10 @@ class SSVIResultsLogger:
                     'test_nlpd': float(metrics.test_nlpd),
                     'train_missing_nlpd': float(metrics.train_missing_nlpd),
                     'test_missing_nlpd': float(metrics.test_missing_nlpd),
-                    'elbo_loss': float(metrics.elbo_loss)
+                    'elbo_loss': float(metrics.elbo_loss),
+                    'likelihood': float(metrics.likelihood),
+                    'kl_x': float(metrics.kl_x),
+                    'kl_u': float(metrics.kl_u)
                 }
                 checkpoint_data['checkpoints'].append(checkpoint_entry)
             
@@ -619,6 +622,64 @@ def plot_metrics_history(metrics_computer,
     # Save plot if logger provided
     if logger:
         logger.save_plots(fig, "metrics_progression.png")
+    
+    if show_plot:
+        plt.show()
+    
+    return fig
+
+
+def plot_elbo_components_progression(metrics_computer,
+                                    logger: SSVIResultsLogger = None,
+                                    show_plot: bool = True) -> plt.Figure:
+    """
+    Plot ELBO components (likelihood, kl_x, kl_u) progression over training iterations
+    
+    Args:
+        metrics_computer: SSVIMetricsComputer with metrics history
+        logger: Optional logger for saving plots
+        show_plot: Whether to display the plot
+        
+    Returns:
+        matplotlib Figure object
+    """
+    if not hasattr(metrics_computer, 'metrics_history') or not metrics_computer.metrics_history:
+        print("No metrics history available for ELBO components plotting")
+        return None
+    
+    # Extract ELBO components data from metrics history
+    iterations = [m.iteration for m in metrics_computer.metrics_history]
+    likelihood = [m.likelihood for m in metrics_computer.metrics_history]
+    kl_x = [m.kl_x for m in metrics_computer.metrics_history]
+    kl_u = [m.kl_u for m in metrics_computer.metrics_history]
+    elbo_loss = [m.elbo_loss for m in metrics_computer.metrics_history]
+    
+    # Create figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Plot 1: Likelihood and ELBO Loss
+    ax1.plot(iterations, likelihood, 'g-', label='Likelihood', linewidth=2, marker='o')
+    ax1.plot(iterations, elbo_loss, 'k--', label='ELBO Loss', linewidth=2, marker='d')
+    ax1.set_xlabel('Iteration', fontsize=12)
+    ax1.set_ylabel('Value', fontsize=12)
+    ax1.set_title('Likelihood and ELBO Loss', fontsize=14, fontweight='bold')
+    ax1.legend(fontsize=10, loc='best')
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot 2: KL Divergences
+    ax2.plot(iterations, kl_x, 'r-', label='KL(q(X)||p(X))', linewidth=2, marker='s')
+    ax2.plot(iterations, kl_u, 'b-', label='KL(q(U)||p(U))', linewidth=2, marker='^')
+    ax2.set_xlabel('Iteration', fontsize=12)
+    ax2.set_ylabel('KL Divergence', fontsize=12)
+    ax2.set_title('KL Divergence Terms', fontsize=14, fontweight='bold')
+    ax2.legend(fontsize=10, loc='best')
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save plot if logger provided
+    if logger:
+        logger.save_plots(fig, "elbo_components_progression.png")
     
     if show_plot:
         plt.show()

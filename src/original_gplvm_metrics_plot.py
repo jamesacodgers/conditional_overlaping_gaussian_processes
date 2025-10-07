@@ -171,3 +171,69 @@ def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iteration
     plt.close()
     
     print(f"Metrics progression plot saved to: {plot_path}")
+
+
+def plot_elbo_components_progression(likelihood_list, kl_x_list, kl_u_list, metrics_iterations, 
+                                    metrics_losses, results_dir, model_name, random_seed):
+    """
+    Plot ELBO components (likelihood, kl_x, kl_u) progression over training iterations
+    
+    Args:
+        likelihood_list: List of likelihood values
+        kl_x_list: List of KL(q(X)||p(X)) values
+        kl_u_list: List of KL(q(U)||p(U)) values
+        metrics_iterations: List of iteration numbers when metrics were computed
+        metrics_losses: List of ELBO losses at the same iterations
+        results_dir: Directory to save the plot
+        model_name: Name of the model
+        random_seed: Random seed for filename
+    """
+    if not likelihood_list or not kl_x_list or not kl_u_list:
+        print("No ELBO components data available for progression plot")
+        return
+    
+    # Check if we have any valid data (not all NaN)
+    import numpy as np
+    valid_likelihood = [i for i, x in enumerate(likelihood_list) if not np.isnan(x)]
+    valid_kl_x = [i for i, x in enumerate(kl_x_list) if not np.isnan(x)]
+    valid_kl_u = [i for i, x in enumerate(kl_u_list) if not np.isnan(x)]
+    
+    if not valid_likelihood and not valid_kl_x and not valid_kl_u:
+        print("No valid ELBO components data available for plotting (all NaN)")
+        return
+    
+    # Create figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Plot 1: Likelihood and ELBO Loss
+    if valid_likelihood:
+        ax1.plot(metrics_iterations, likelihood_list, 'g-', label='Likelihood', linewidth=2, marker='o')
+    ax1.plot(metrics_iterations, metrics_losses, 'k--', label='ELBO Loss', linewidth=2, marker='d')
+    ax1.set_xlabel('Iteration', fontsize=12)
+    ax1.set_ylabel('Value', fontsize=12)
+    ax1.set_title('Likelihood and ELBO Loss', fontsize=14, fontweight='bold')
+    ax1.legend(fontsize=10, loc='best')
+    ax1.grid(True, alpha=0.3)
+    
+    # Plot 2: KL Divergences
+    if valid_kl_x:
+        ax2.plot(metrics_iterations, kl_x_list, 'r-', label='KL(q(X)||p(X))', linewidth=2, marker='s')
+    if valid_kl_u:
+        ax2.plot(metrics_iterations, kl_u_list, 'b-', label='KL(q(U)||p(U))', linewidth=2, marker='^')
+    ax2.set_xlabel('Iteration', fontsize=12)
+    ax2.set_ylabel('KL Divergence', fontsize=12)
+    ax2.set_title('KL Divergence Terms', fontsize=14, fontweight='bold')
+    ax2.legend(fontsize=10, loc='best')
+    ax2.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save plot to plots directory
+    plots_dir = os.path.join(results_dir, 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
+    plot_path = os.path.join(plots_dir, f'elbo_components_progression_{model_name}.png')
+    
+    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"ELBO components progression plot saved to: {plot_path}")
