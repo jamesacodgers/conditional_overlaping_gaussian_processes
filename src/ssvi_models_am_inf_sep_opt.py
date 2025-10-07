@@ -308,7 +308,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                     likelihood = likelihood * (total_size / batch_size)
                 kl_x = self.get_kl_x_from(mu_x, Sigma_x)
                 kl_u = self.gp.get_kl_u()
-                return elbo, likelihood / total_size, kl_x / total_size, kl_u / total_size
+                return elbo, likelihood / total_size, kl_x / batch_size, kl_u / total_size
 
         return elbo
 
