@@ -1,0 +1,32 @@
+=== Oil Flow SSVI GP-LVM Training Session ===
+Model: 16 inducing points, latent_dim=6
+Training: 200 iter, batch=50
+Learning rates: Local=0.002, Global=0.01
+=== Oil Flow SSVI GP-LVM Training Session ===
+Model: 16 inducing points, latent_dim=6
+Training: 200 iter, batch=50
+Learning rates: Local=0.002, Global=0.01
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': 0.7569874164117142, 'test_rmse': 0.7377139413378101, 'train_nlpd': 17.03789082487359, 'test_nlpd': 17.03180639353688, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 279.4760615148032, 'likelihood': -0.3374327531513397, 'kl_x': 0.0007571231723711395, 'kl_u': 1.2832994812967958e-05}
+Iteration 0/200: Loss=279.4761, Time=0.1s
+Metrics at iteration 50: {'iteration': 50, 'train_rmse': 0.5381074761865262, 'test_rmse': 0.5217780148212593, 'train_nlpd': 13.45158587922661, 'test_nlpd': 13.375367373471995, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 219.63890770769117, 'likelihood': -0.2703469894218436, 'kl_x': 0.00022825200850516304, 'kl_u': 0.04074299227289014}
+Iteration 50/200: Loss=219.6389, Time=0.5s
+Metrics at iteration 100: {'iteration': 100, 'train_rmse': 0.46273183568852366, 'test_rmse': 0.44716167449812777, 'train_nlpd': 9.54684500631735, 'test_nlpd': 9.390821512199789, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 158.45476268409595, 'likelihood': -0.18922807560315605, 'kl_x': 0.00044736995354974245, 'kl_u': 0.34170238689884075}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_100_seed_7.pkl
+Checkpoint plot saved: plots/checkpoints/latent_space_by_fractions_iter_100.png
+Checkpoint plot saved: plots/checkpoints/training_results_iter_100.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_100.png
+Iteration 100/200: Loss=158.4548, Time=1.8s
+Metrics at iteration 150: {'iteration': 150, 'train_rmse': 0.4633333991935104, 'test_rmse': 0.44831345536844364, 'train_nlpd': 8.289862621926307, 'test_nlpd': 8.029222670474873, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 141.30174943533575, 'likelihood': -0.17613938512991356, 'kl_x': 0.00012795395294979824, 'kl_u': 0.4481841085833223}
+Iteration 150/200: Loss=141.3017, Time=2.2s
+Training completed! Final Loss: 121.9231, Total time: 2.5s (78.6 iter/s)
+Plot saved: plots/latent_space_by_fractions.png
+Plot saved: plots/training_results.png
+Plot saved: plots/1d_histogram_most_important_dim.png
+Final comprehensive metrics computed: {'iteration': 200, 'train_rmse': 0.42508583576796166, 'test_rmse': 0.41462312628046416, 'train_nlpd': 7.372765816091551, 'test_nlpd': 7.13300228707564, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': 121.92312324475068, 'likelihood': -0.17613938512991356, 'kl_x': 0.00012795395294979824, 'kl_u': 0.4481841085833223}
+Plot saved: plots/metrics_progression.png
+Plot saved: plots/final_metrics_summary.png
+Plot saved: plots/elbo_components_progression.png
+Checkpoint metrics saved: training_results/oilflow_ssvi_7_checkpoint_metrics.json
+Training losses saved: training_results/oilflow_ssvi_7_losses.json
+Model saved: pre_trained_models/oilflow_ssvi_7.pkl
+Experiment summary saved: experiment_summary.json

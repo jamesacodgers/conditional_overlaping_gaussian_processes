@@ -463,12 +463,12 @@ def get_fast_config():
     """Fast configuration for testing with missing data enabled"""
     return OilFlowSSVIConfig(
         training_iterations=200,
-        batch_size=50,
+        batch_size=32,
         n_inducing_points=16,
         encoder_hidden_dims=[128, 64],
         local_lr=2e-3,
         global_lr=1e-2,
-        P=16,
+        P=4,
         log_frequency=50,
         checkpoint_frequency=100,  # Save checkpoint models every 100 iterations
         enable_gradient_logging=True,

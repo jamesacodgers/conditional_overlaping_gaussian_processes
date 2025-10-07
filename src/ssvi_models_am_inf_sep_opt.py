@@ -146,13 +146,11 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
     def get_kl_x_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
         x_prior = torch.distributions.Normal(torch.zeros(self.A), torch.ones(self.A))
         x_train = torch.distributions.Normal(mu_x, Sigma_x)
-        kl_train = torch.distributions.kl_divergence(x_train, x_prior).mean(dim=0).sum()
+        kl_train = torch.distributions.kl_divergence(x_train, x_prior).mean(dim=[0,1]).sum()
         if self.mu_x_test is None:
             return kl_train
         else:
-            x_test = torch.distributions.Normal(self.mu_x_test, self.Sigma_x_test)
-            kl_test = torch.distributions.kl_divergence(x_test, x_prior).mean(dim=0).sum()
-            return kl_train + kl_test
+            assert False
     
     def get_ssvi_mean_prediction(self, inputs):
         """
@@ -296,22 +294,18 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         # Use consistent U_samples and latent parameters for NLPD computation
         training_inner_elbo = -self.compute_nlpd(y, U_samples, mu_x, Sigma_x) - self.get_kl_x_from(mu_x, Sigma_x)
         
-        # Scale const_train for mini-batches to represent full dataset contribution
-        if batch_size != total_size:
-            training_inner_elbo = training_inner_elbo * (total_size / batch_size)
+
         
-        elbo = (training_inner_elbo  - self.gp.get_kl_u())/total_size
+        elbo = training_inner_elbo  - self.gp.get_kl_u()/total_size
         
         if return_components:
             # Compute components for tracking (no gradients needed)
             with torch.no_grad():
                 nlpd_value = self.compute_nlpd(y, U_samples, mu_x, Sigma_x)
                 likelihood = -nlpd_value  # Convert NLPD back to log-likelihood
-                if batch_size != total_size:
-                    likelihood = likelihood * (total_size / batch_size)
                 kl_x = self.get_kl_x_from(mu_x, Sigma_x)
                 kl_u = self.gp.get_kl_u()
-                return elbo, likelihood / total_size, kl_x / total_size, kl_u / total_size
+                return elbo, likelihood , kl_x , kl_u / total_size
 
         return elbo
 
