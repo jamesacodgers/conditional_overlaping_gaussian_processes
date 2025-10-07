@@ -380,10 +380,10 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         # Compute training NLPD - both gauss and nn_gauss models now use the same sampling-based approach
                         try:
                             obs_noise = likelihood.noise
-                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_train_covar, obs_noise)
+                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_train_covar, obs_noise, enable_missing_data=config.enable_missing_data)
                         except Exception as e:
                             print(f"  Warning: Could not get covariance for NLPD: {e}")
-                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
+                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, enable_missing_data=config.enable_missing_data)
                         
                         # Compute missing data NLPD for gauss model during training (for checkpoints)
                         train_missing_nlpd = None
@@ -617,8 +617,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             obs_noise = likelihood.noise
             try:
                 # Both gauss and nn_gauss models now use the same sampling-based NLPD approach
-                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise)
-                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_test_covar, obs_noise)
+                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise, enable_missing_data=config.enable_missing_data)
+                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_test_covar, obs_noise, enable_missing_data=config.enable_missing_data)
 
                 print(f'Train NLPD {model_name} = ' + str(train_nlpd))
                 print(f'Test NLPD {model_name} = ' + str(test_nlpd))

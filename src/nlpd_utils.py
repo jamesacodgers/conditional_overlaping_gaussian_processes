@@ -9,7 +9,7 @@ import torch
 import numpy as np
 
 
-def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar=None, obs_noise=None):
+def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar=None, obs_noise=None, enable_missing_data=False):
     """
     Compute NLPD using NLL-based approach from movie_lens_large_expt.py
 
@@ -22,6 +22,7 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
         X_covar: Latent uncertainties - standard deviations for gauss [N, latent_dim], 
                 covariance matrices for nn_gauss [N, latent_dim, latent_dim]
         obs_noise: Observation noise parameter (scalar tensor)
+        enable_missing_data: Whether missing data handling is enabled
 
     Returns:
         NLPD value (lower is better)
@@ -66,7 +67,7 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
                         f_var_full = f_var
 
                     # Handle missing data if enabled (match SSVI approach)
-                    if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                    if enable_missing_data:
                         # Check if we have missing data
                         missing_mask = torch.isnan(Y_true)
                         observed_mask = ~missing_mask

@@ -411,17 +411,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                             n_samples=32,
                             enable_missing_data=config.enable_missing_data
                         )
-                        # Compute training NLPD
-                        if model_name == 'nn_gauss':
-                            # For nn_gauss, we need X_covar and obs_noise
-                            try:
-                                obs_noise = likelihood.noise
-                                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_train_covar, obs_noise)
-                            except Exception as e:
-                                print(f"  Warning: Could not get covariance for nn_gauss NLPD: {e}")
-                                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
-                        else:
-                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list)
+                        # Compute training NLPD - both gauss and nn_gauss models now use the same sampling-based approach
+                        try:
+                            obs_noise = likelihood.noise
+                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_train_covar, obs_noise, enable_missing_data=config.enable_missing_data)
+                        except Exception as e:
+                            print(f"  Warning: Could not get covariance for NLPD: {e}")
+                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, enable_missing_data=config.enable_missing_data)
                         
                         # Compute missing data NLPD for gauss model during training (for checkpoints)
                         train_missing_nlpd = None
@@ -663,14 +659,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # Train NLPD using NLL-based approach (inspired by movie_lens_large_expt.py)
             obs_noise = likelihood.noise
             try:
-                if model_name == 'nn_gauss':
-                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list,
-                                                        X_train_covar, obs_noise)
-                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test,
-                                                       X_test_covar, obs_noise)
-                else:
-                    train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list)
-                    test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test)
+                # Both gauss and nn_gauss models now use the same sampling-based NLPD approach
+                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise, enable_missing_data=config.enable_missing_data)
+                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test, X_test_covar, obs_noise, enable_missing_data=config.enable_missing_data)
 
                 print(f'Train NLPD {model_name} = ' + str(train_nlpd))
                 print(f'Test NLPD {model_name} = ' + str(test_nlpd))
