@@ -59,7 +59,7 @@ def update_config_parameter(config_text, param_name, new_value):
     return '\n'.join(updated_lines)
 
 
-def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate,
+def create_config_name(latent_dim, n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate,
                        n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio):
     """Create a valid filename from parameter values"""
     # Replace dots with nothing for valid filenames
@@ -75,13 +75,14 @@ def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, b
     # Missing data flag (t for True, f for False)
     missing_flag = 't' if enable_missing_data else 'f'
 
-    return f"n_ind_{n_inducing}_arch_{arch_sum}_len_{len_str}_sig_{sigm_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}_P_{num_inducing_samples}_miss_{missing_flag}_ratio_{missing_ratio_str}.yaml"
+    return f"latent_{latent_dim}_n_ind_{n_inducing}_arch_{arch_sum}_len_{len_str}_sig_{sigm_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}_P_{num_inducing_samples}_miss_{missing_flag}_ratio_{missing_ratio_str}.yaml"
 
 
 def generate_config_grid():
     """Generate grid of configurations for both SSVI and Original GP-LVM"""
 
     # Parameter ranges
+    latent_dim_values = [2, 3]
     n_inducing_values = [16]
     init_lengthscales_values = [1.0]
     init_output_noise_scale_values = [1.0]
@@ -101,11 +102,11 @@ def generate_config_grid():
     enable_missing_data_values = [True, False]
     missing_data_ratio_values = [0.3, 0.5]
 
-    # Base configuration paths (now in qpcr_related directory)
+    # Base configuration paths (now in swiss_roll_related directory)
     ssvi_base_config = "swiss_roll_related/swiss_roll_ssvi_configs/swiss_roll_base_lr_0001_s7_test_missing.yaml"
     orig_base_config = "swiss_roll_related/swiss_roll_original_gp_lvm_config/swiss_roll_base_lr_0001_s7_test_missing.yaml"
 
-    # Output folder names (now in qpcr_related directory)
+    # Output folder names (now in swiss_roll_related directory)
     output_folder_name = "num_inducing_samples"
     ssvi_output_folder = f"swiss_roll_related/{output_folder_name}_ssvi"
     orig_output_folder = f"swiss_roll_related/{output_folder_name}_orig_gplvm"
@@ -117,6 +118,7 @@ def generate_config_grid():
 
     # Generate all parameter combinations
     param_combinations = list(itertools.product(
+        latent_dim_values,
         n_inducing_values,
         init_lengthscales_values,
         init_output_noise_scale_values,
@@ -134,11 +136,12 @@ def generate_config_grid():
 
     # Generate SSVI configurations
     ssvi_count = 0
-    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio in param_combinations:
+    for latent_dim, n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio in param_combinations:
         # Create new config based on base text
         ssvi_config_text = ssvi_base_text
 
         # Update parameters
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'latent_dim', latent_dim)
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'n_inducing_points', n_inducing)
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'encoder_hidden_dims', architecture)
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'init_lengthscales', init_lengthscales)
@@ -154,7 +157,7 @@ def generate_config_grid():
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'missing_data_ratio', missing_data_ratio)
 
         # Create filename
-        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed,
+        filename = create_config_name(latent_dim, n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed,
                                       learning_rate, n_training_steps, num_inducing_samples, architecture,
                                       enable_missing_data, missing_data_ratio)
         output_path = os.path.join(ssvi_output_folder, filename)
@@ -168,11 +171,12 @@ def generate_config_grid():
 
     # Generate Original GP-LVM configurations
     orig_count = 0
-    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio in param_combinations:
+    for latent_dim, n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio in param_combinations:
         # Create new config based on base text
         orig_config_text = orig_base_text
 
         # Update parameters (note: Original GP-LVM uses 'n_inducing' not 'n_inducing_points' and 'nn_layers' not 'encoder_hidden_dims')
+        orig_config_text = update_config_parameter(orig_config_text, 'latent_dim', latent_dim)
         orig_config_text = update_config_parameter(orig_config_text, 'n_inducing', n_inducing)
         orig_config_text = update_config_parameter(orig_config_text, 'nn_layers', architecture)
         orig_config_text = update_config_parameter(orig_config_text, 'init_lengthscales', init_lengthscales)
@@ -188,7 +192,7 @@ def generate_config_grid():
         orig_config_text = update_config_parameter(orig_config_text, 'missing_data_ratio', missing_data_ratio)
 
         # Create filename
-        filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed,
+        filename = create_config_name(latent_dim, n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed,
                                       learning_rate, n_training_steps, num_inducing_samples, architecture,
                                       enable_missing_data, missing_data_ratio)
         output_path = os.path.join(orig_output_folder, filename)
@@ -205,6 +209,7 @@ def generate_config_grid():
     print(f"Generated {orig_count} Original GP-LVM configurations in '{orig_output_folder}'")
     print(f"\nTotal parameter combinations: {len(param_combinations)}")
     print(f"Parameter ranges:")
+    print(f"  latent_dim: {latent_dim_values}")
     print(f"  n_inducing: {n_inducing_values}")
     print(f"  architecture: {architecture_values}")
     print(f"  init_lengthscales: {init_lengthscales_values}")
