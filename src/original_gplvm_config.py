@@ -141,6 +141,30 @@ def get_fast_config():
         reconstruction_samples=50      # Number of samples for missing data reconstruction
     )
 
+def get_swiss_roll_fast_config():
+    """Fast configuration for Swiss roll experiments (2D manifold in 3D space)"""
+    return OriginalGPLVMConfig(
+        device="cuda",  # Use CUDA device
+        training_steps={'gauss': 200, 'nn_gauss': 200},
+        batch_size=50,
+        latent_dim=2,   # Swiss roll is a 2D manifold (key difference from qPCR)
+        n_inducing=10,  # Fewer inducing points for smaller dataset
+        learning_rate=0.002,
+        random_seed=42,
+        test_iterations=200,
+        test_size=0.2,  # 20% for testing
+        checkpoint_frequency=100,  # Save checkpoints every 100 iterations
+        metrics_frequency=50,      # Compute metrics every 50 iterations
+        nn_layers=(20, 20),        # Smaller network for 3D->2D mapping
+        # === GP Hyperparameters ===
+        init_lengthscales=2.0,
+        init_output_noise_scale=2.0,
+        # === Missing Data Configuration ===
+        enable_missing_data=False,
+        missing_data_ratio=0.3,
+        reconstruction_samples=100
+    )
+
 def get_base_config():
     """Base configuration matching oilflow_expt.py settings"""
     return OriginalGPLVMConfig(
