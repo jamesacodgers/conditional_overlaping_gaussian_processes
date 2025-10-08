@@ -11,6 +11,7 @@ import shutil
 import numpy as np
 import torch
 from sklearn.datasets import make_swiss_roll
+from torchvision import datasets
 
 def download_oilflow_data_if_needed():
     """Download oilflow data if not present"""
@@ -84,3 +85,55 @@ def generate_swiss_roll_data(n_samples=1000, noise=0.1, random_state=42):
     X_true = torch.tensor(np.column_stack([t, np.zeros_like(t)]), dtype=torch.float64)
     
     return Y, X_true, labels
+
+def load_mnist_data():
+    """
+    Load MNIST data using PyTorch's torchvision (no TensorFlow needed).
+    Returns data in the same format as load_real_data('mnist') from generalised_gplvm_code.
+    
+    Consistent with original load_real_data('mnist'):
+    - Y as torch.float64 tensor (instead of float32 for better precision)
+    - labels as numpy array (not tensor)
+    - q = None, X = None
+    
+    Returns
+    -------
+    n : int
+        Total number of samples (70000)
+    d : int
+        Data dimensionality (784 = 28*28)
+    q : None
+        Not used (for compatibility with load_real_data interface)
+    X : None
+        Not used (for compatibility with load_real_data interface)
+    Y : torch.Tensor
+        Image data flattened to vectors (70000 x 784), dtype=float64
+    labels : np.ndarray
+        Digit labels 0-9 (70000,), dtype=int64
+    """
+    # Download MNIST dataset using torchvision (will download on first run)
+    train_dataset = datasets.MNIST(root='./data/MNIST', train=True, download=True)
+    test_dataset = datasets.MNIST(root='./data/MNIST', train=False, download=True)
+    
+    # Extract data and labels
+    train_data = train_dataset.data.numpy()  # (60000, 28, 28)
+    train_labels = train_dataset.targets.numpy()  # (60000,)
+    test_data = test_dataset.data.numpy()  # (10000, 28, 28)
+    test_labels = test_dataset.targets.numpy()  # (10000,)
+    
+    # Combine train and test datasets
+    Y = np.vstack([train_data.reshape(len(train_data), -1), 
+                   test_data.reshape(len(test_data), -1)])  # (70000, 784)
+    labels = np.hstack([train_labels, test_labels])  # (70000,)
+    
+    # Convert Y to torch tensor (float64 for precision), keep labels as numpy
+    Y = torch.tensor(Y, dtype=torch.float64)
+    
+    # Match original load_real_data interface
+    n = len(Y)  # 70000
+    d = len(Y.T)  # 784 (28*28) - use len(Y.T) to match original
+    q = X = None  # Match original: q = X = None
+    
+    print(f"MNIST data loaded: {n} samples, {d} dimensions (28x28 images)")
+    
+    return n, d, q, X, Y, labels
