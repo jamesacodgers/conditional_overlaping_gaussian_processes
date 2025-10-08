@@ -8,6 +8,9 @@ import os
 import urllib.request
 import tarfile
 import shutil
+import numpy as np
+import torch
+from sklearn.datasets import make_swiss_roll
 
 def download_oilflow_data_if_needed():
     """Download oilflow data if not present"""
@@ -45,3 +48,39 @@ def download_oilflow_data_if_needed():
     # Note: Keep DataTrnFrctns.txt in current directory for plotting functions
     
     print("Oilflow data downloaded and set up successfully!")
+
+def generate_swiss_roll_data(n_samples=1000, noise=0.1, random_state=42):
+    """Generate Swiss roll dataset
+    
+    Parameters
+    ----------
+    n_samples : int
+        Number of samples to generate
+    noise : float
+        Standard deviation of Gaussian noise
+    random_state : int
+        Random seed for reproducibility
+        
+    Returns
+    -------
+    Y : torch.Tensor
+        High-dimensional observations (n_samples x 3)
+    X_true : torch.Tensor
+        True 2D latent coordinates
+    labels : np.array
+        Color labels based on position
+    """
+    # Generate swiss roll data
+    Y_np, t = make_swiss_roll(n_samples=n_samples, noise=noise, random_state=random_state)
+    
+    # Convert to torch tensors
+    Y = torch.tensor(Y_np, dtype=torch.float64)
+    
+    # Use the parameter t as labels (for visualization)
+    labels = t
+    
+    # Create a simple 2D latent representation from the roll parameter
+    # This is just for reference - the model will learn its own latent space
+    X_true = torch.tensor(np.column_stack([t, np.zeros_like(t)]), dtype=torch.float64)
+    
+    return Y, X_true, labels
