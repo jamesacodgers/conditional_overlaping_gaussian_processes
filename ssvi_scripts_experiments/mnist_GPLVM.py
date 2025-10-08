@@ -157,8 +157,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     # MNIST-specific preprocessing: normalize to [0, 1] and subsample (like original mnist_expt.py)
     Y = Y / 255.0
     # Use first 5000 samples for computational efficiency (matching original experiment)
-    Y = Y[:500]
-    labels = labels[:500]
+    Y = Y[:2500]
+    labels = labels[:2500]
     N = len(Y)
     
     print(f"Using {N} MNIST samples for training/testing")

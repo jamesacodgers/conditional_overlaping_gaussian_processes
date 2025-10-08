@@ -65,8 +65,8 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     # MNIST-specific preprocessing: normalize to [0, 1] and subsample (consistent with mnist_GPLVM.py)
     Y = Y / 255.0
     # Use first 5000 samples for computational efficiency (matching original experiment)
-    Y = Y[:500]
-    labels = labels[:500]
+    Y = Y[:2500]
+    labels = labels[:2500]
     N = len(Y)
     
     print(f"Using {N} MNIST samples for training/testing")
