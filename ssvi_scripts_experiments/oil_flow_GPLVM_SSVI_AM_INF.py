@@ -37,7 +37,7 @@ sys.path.insert(0, project_root)
 sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, plot_missing_nlpd_metrics_progression
+from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
@@ -381,6 +381,9 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
             if config.enable_missing_data and not np.isnan(metrics.train_missing_nlpd):
                 print(f"    Train Missing Data NLPD: {metrics.train_missing_nlpd:.3f}")
                 print(f"    Test Missing Data NLPD: {metrics.test_missing_nlpd:.3f}")
+            if config.enable_missing_data and not np.isnan(metrics.train_missing_rmse):
+                print(f"    Train Missing Data RMSE: {metrics.train_missing_rmse:.4f}")
+                print(f"    Test Missing Data RMSE: {metrics.test_missing_rmse:.4f}")
             print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
             print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
                 
@@ -582,6 +585,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         if config.enable_missing_data and not np.isnan(summary.get('final_train_missing_nlpd', float('nan'))):
             print(f"Final Train Missing Data NLPD: {summary['final_train_missing_nlpd']:.3f}")
             print(f"Final Test Missing Data NLPD: {summary['final_test_missing_nlpd']:.3f}")
+        if config.enable_missing_data and not np.isnan(summary.get('final_train_missing_rmse', float('nan'))):
+            print(f"Final Train Missing Data RMSE: {summary['final_train_missing_rmse']:.4f}")
+            print(f"Final Test Missing Data RMSE: {summary['final_test_missing_rmse']:.4f}")
         print(f"Overfitting Ratio (Test/Train RMSE): {summary['overfitting_ratio']:.3f}")
         print(f"Effective Latent Dimensions: {summary['final_effective_dims']}/{summary['total_latent_dims']}")
         print("=" * 35)
@@ -597,6 +603,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         if config.enable_missing_data:
             print("Generating missing NLPD metrics progression plot...")
             plot_missing_nlpd_metrics_progression(metrics_computer, logger, show_plot=False)
+            print("Generating missing RMSE metrics progression plot...")
+            plot_missing_rmse_metrics_progression(metrics_computer, logger, show_plot=False)
         
         # Save checkpoint metrics and training losses in structured format
         if logger:
@@ -640,6 +648,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 'test_nlpd': summary.get('final_test_nlpd', 0.0),
                 'train_missing_data_nlpd': summary.get('final_train_missing_nlpd', float('nan')),
                 'test_missing_data_nlpd': summary.get('final_test_missing_nlpd', float('nan')),
+                'train_missing_data_rmse': summary.get('final_train_missing_rmse', float('nan')),
+                'test_missing_data_rmse': summary.get('final_test_missing_rmse', float('nan')),
                 'final_loss': losses[-1] if losses else 0.0,
                 'final_noise': float(final_noise)  # Ensure it's a Python float
             }

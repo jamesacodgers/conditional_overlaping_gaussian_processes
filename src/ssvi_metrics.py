@@ -34,6 +34,10 @@ class SSVIMetrics:
     train_missing_nlpd: float = float('nan')
     test_missing_nlpd: float = float('nan')
     
+    # Missing data reconstruction metrics
+    train_missing_rmse: float = float('nan')
+    test_missing_rmse: float = float('nan')
+    
     # Model complexity metrics
     effective_latent_dims: int = 0
     total_latent_dims: int = 0
@@ -52,6 +56,8 @@ class SSVIMetrics:
             'test_nlpd': self.test_nlpd,
             'train_missing_nlpd': self.train_missing_nlpd,
             'test_missing_nlpd': self.test_missing_nlpd,
+            'train_missing_rmse': self.train_missing_rmse,
+            'test_missing_rmse': self.test_missing_rmse,
             'effective_latent_dims': self.effective_latent_dims,
             'total_latent_dims': self.total_latent_dims,
             'elbo_loss': self.elbo_loss
@@ -130,6 +136,70 @@ class SSVIMetricsComputer:
             
             rmse = torch.sqrt(mse).item()
             
+        model.train()
+        return rmse
+
+    def compute_missing_data_rmse(self,
+                     model,
+                     y_original: torch.Tensor,
+                     missing_mask: torch.Tensor,
+                     n_samples: int = 10) -> float:
+        """
+        Compute Root Mean Square Error specifically for missing data dimensions.
+        
+        This does everything exactly the same as compute_rmse,
+        but at the end computes RMSE only on missing values (reverse of observed mask).
+        
+        Args:
+            model: SSVI GP-LVM model
+            y_original: Original complete data before missing data preprocessing [N, D]
+            missing_mask: Boolean mask [N, D] where True=missing
+            n_samples: Number of samples for Monte Carlo estimation
+
+        Returns:
+            RMSE value for missing data dimensions only
+        """
+        model.eval()
+        with torch.no_grad():
+            # Check if we have any missing dimensions to evaluate
+            if missing_mask.sum() == 0:
+                # No missing data - return NaN
+                model.train()
+                return float('nan')
+            
+            # Sample U for both model types
+            U_samples = model.get_u_samples()
+
+            # Preprocess encoder input to handle missing data (consistent with training)
+            # Create masked data by setting missing dimensions to -9.0
+            y_encoder_input = y_original.clone()
+            y_encoder_input[missing_mask] = -9.0
+
+            # Get latent representations for this batch using SSVI encoder
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+
+            # Use proper probabilistic sampling like in compute_nlpd
+            x_dist = torch.distributions.Normal(mu_x, sigma_x)
+            x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]
+
+            # Reconstruct through GP mean prediction using proper GP method
+            y_recon = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [batch_size, M, C]
+
+            if y_recon.shape[-1] == 1:
+                y_recon = y_recon[..., 0]  # [batch_size, M] for C=1 case
+
+            # Average reconstructions over samples
+            y_pred = y_recon.mean(dim=0)  # [batch_size, D]
+
+            # ONLY DIFFERENCE: Compute RMSE only on MISSING values (reverse of observed mask)
+            # Get the true values and predictions only for missing positions
+            y_true_missing = y_original[missing_mask]
+            y_pred_missing = y_pred[missing_mask]
+            
+            # Compute MSE and then RMSE on missing values only
+            mse_missing = torch.mean((y_true_missing - y_pred_missing) ** 2)
+            rmse = torch.sqrt(mse_missing).item()
+
         model.train()
         return rmse
 
@@ -374,7 +444,7 @@ class SSVIMetricsComputer:
             metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
             metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
             
-            # Missing data uncertainty metrics (only if missing data is enabled and original data/masks are provided)
+            # Missing data metrics (only if missing data is enabled and original data/masks are provided)
             if (hasattr(model, 'enable_missing_data') and model.enable_missing_data and
                 y_train_original is not None and y_test_original is not None and 
                 train_missing_mask is not None and test_missing_mask is not None):
@@ -385,9 +455,15 @@ class SSVIMetricsComputer:
                     metrics.test_missing_nlpd = self.compute_missing_data_nlpd(
                         model, y_test_original, test_missing_mask, n_samples
                     )
+                    metrics.train_missing_rmse = self.compute_missing_data_rmse(
+                        model, y_train_original, train_missing_mask, n_samples
+                    )
+                    metrics.test_missing_rmse = self.compute_missing_data_rmse(
+                        model, y_test_original, test_missing_mask, n_samples
+                    )
                 except Exception as e:
-                    print(f"Warning: Error computing missing data NLPD at iteration {iteration}: {e}")
-                    # Keep default values (0.0) for failed metrics
+                    print(f"Warning: Error computing missing data metrics at iteration {iteration}: {e}")
+                    # Keep default values (nan) for failed metrics
 
             # Model complexity
             effective_dims, total_dims = self.compute_effective_latent_dims(model)
@@ -417,6 +493,8 @@ class SSVIMetricsComputer:
             'final_test_nlpd': final_metrics.test_nlpd,
             'final_train_missing_nlpd': final_metrics.train_missing_nlpd,
             'final_test_missing_nlpd': final_metrics.test_missing_nlpd,
+            'final_train_missing_rmse': final_metrics.train_missing_rmse,
+            'final_test_missing_rmse': final_metrics.test_missing_rmse,
             'final_effective_dims': final_metrics.effective_latent_dims,
             'total_latent_dims': final_metrics.total_latent_dims,
             'overfitting_ratio': final_metrics.test_rmse / final_metrics.train_rmse if final_metrics.train_rmse > 0 else float('inf'),

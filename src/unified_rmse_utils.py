@@ -89,3 +89,81 @@ def compute_rmse_with_sampling(model,
         
     model.train()
     return rmse
+
+
+def compute_missing_data_rmse_with_sampling(model,
+                               Y_original: torch.Tensor,
+                               missing_mask: torch.Tensor,
+                               X_mean: torch.Tensor,
+                               X_covar: Union[torch.Tensor, List[torch.Tensor], None] = None,
+                               model_name: str = None,
+                               n_samples: int = 10) -> float:
+    """
+    Compute RMSE specifically for missing data dimensions.
+    
+    Does everything exactly the same as compute_rmse_with_sampling,
+    but at the end computes RMSE only on missing values (reverse of observed mask).
+    
+    Args:
+        model: Original GP-LVM model (gauss or nn_gauss)
+        Y_original: Original complete data before missing data preprocessing [N, D]
+        missing_mask: Boolean mask [N, D] where True=missing
+        X_mean: Pre-computed latent means [N, latent_dim]
+        X_covar: Pre-computed latent covariances (variances for gauss, cov matrices for nn_gauss)
+        model_name: Model type ('gauss' or 'nn_gauss')
+        n_samples: Number of samples for Monte Carlo estimation
+
+    Returns:
+        RMSE value for missing data dimensions only
+    """
+    model.eval()
+    with torch.no_grad():
+        # Check if we have any missing dimensions to evaluate
+        if missing_mask.sum() == 0:
+            # No missing data - return NaN
+            model.train()
+            return float('nan')
+        
+        # Use pre-computed latent variables from main script (same as compute_rmse_with_sampling)
+        mu_x = X_mean.detach()
+
+        # X_covar processing depends on model type (same as compute_rmse_with_sampling)
+        if model_name == 'nn_gauss':
+            sigma_x = torch.stack([torch.sqrt(x.diag()) for x in X_covar])
+        else:
+            sigma_x = X_covar
+
+        # Create input data with missing values applied
+        # For gauss: set missing values to NaN
+        # For nn_gauss: set missing values to -999
+        y_with_missing = Y_original.clone()
+        y_with_missing[missing_mask] = float('nan')
+        
+        # Sample from latent distribution (same as compute_rmse_with_sampling)
+        reconstructions = []
+        for p in range(n_samples):
+            x_dist = torch.distributions.Normal(mu_x, sigma_x)
+            x_sample = x_dist.sample()  # [batch_size, latent_dim]
+
+            # Reconstruct through model.reconstruct_y (same as compute_rmse_with_sampling)
+            y_recon, _ = model.reconstruct_y(x_sample, y_with_missing, ae=False, model_name=model_name)
+
+            reconstructions.append(y_recon)
+
+        # Average reconstructions over samples (same as compute_rmse_with_sampling)
+        y_pred = torch.stack(reconstructions).mean(dim=0)  # [batch_size, D]
+
+        # Transpose y_pred to match Y_original format (same as compute_rmse_with_sampling)
+        y_pred_T = y_pred.T
+
+        # ONLY DIFFERENCE: Compute RMSE only on MISSING values (reverse of observed mask)
+        # Get the true values and predictions only for missing positions
+        y_true_missing = Y_original[missing_mask]
+        y_pred_missing = y_pred_T[missing_mask]
+        
+        # Compute MSE and then RMSE on missing values only
+        mse_missing = torch.mean((y_true_missing - y_pred_missing) ** 2)
+        rmse_missing = torch.sqrt(mse_missing).item()
+
+    model.train()
+    return rmse_missing

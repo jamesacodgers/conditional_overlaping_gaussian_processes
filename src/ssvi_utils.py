@@ -690,6 +690,70 @@ def plot_missing_nlpd_metrics_progression(metrics_computer,
     return fig
 
 
+def plot_missing_rmse_metrics_progression(metrics_computer,
+                                         logger: SSVIResultsLogger = None,
+                                         show_plot: bool = True) -> plt.Figure:
+    """
+    Plot missing RMSE metrics progression over training iterations
+    
+    Args:
+        metrics_computer: SSVIMetricsComputer with metrics history
+        logger: Optional logger for saving plots
+        show_plot: Whether to display the plot
+        
+    Returns:
+        matplotlib Figure object
+    """
+    if not hasattr(metrics_computer, 'metrics_history') or not metrics_computer.metrics_history:
+        print("No metrics history available for missing RMSE plotting")
+        return None
+    
+    # Extract missing RMSE data from metrics history
+    iterations = [m.iteration for m in metrics_computer.metrics_history]
+    train_missing_rmse = [m.train_missing_rmse for m in metrics_computer.metrics_history]
+    test_missing_rmse = [m.test_missing_rmse for m in metrics_computer.metrics_history]
+    
+    # Check if we have any valid missing RMSE data
+    valid_train = [not np.isnan(x) for x in train_missing_rmse]
+    valid_test = [not np.isnan(x) for x in test_missing_rmse]
+    
+    if not any(valid_train) and not any(valid_test):
+        print("No valid missing RMSE data available for plotting")
+        return None
+    
+    # Create figure
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    
+    # Plot train missing RMSE if available
+    if any(valid_train):
+        train_iterations = [iterations[i] for i in range(len(iterations)) if valid_train[i]]
+        train_values = [train_missing_rmse[i] for i in range(len(train_missing_rmse)) if valid_train[i]]
+        ax.plot(train_iterations, train_values, 'b-', label='Train Missing RMSE', linewidth=2, marker='o', markersize=4)
+    
+    # Plot test missing RMSE if available
+    if any(valid_test):
+        test_iterations = [iterations[i] for i in range(len(iterations)) if valid_test[i]]
+        test_values = [test_missing_rmse[i] for i in range(len(test_missing_rmse)) if valid_test[i]]
+        ax.plot(test_iterations, test_values, 'r-', label='Test Missing RMSE', linewidth=2, marker='s', markersize=4)
+    
+    ax.set_xlabel('Iteration')
+    ax.set_ylabel('Missing Data RMSE (lower is better)')
+    ax.set_title('Missing Data Reconstruction Error Progression')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save plot if logger provided
+    if logger:
+        logger.save_plots(fig, "missing_rmse_metrics_progression.png")
+    
+    if show_plot:
+        plt.show()
+    
+    return fig
+
+
 def plot_final_metrics_summary(metrics_computer,
                               model,
                               logger: SSVIResultsLogger = None,

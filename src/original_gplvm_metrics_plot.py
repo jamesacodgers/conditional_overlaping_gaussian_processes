@@ -101,6 +101,59 @@ def plot_missing_nlpd_metrics_progression(train_missing_nlpd_list, metrics_itera
     print(f"Missing NLPD metrics progression plot saved to: {plot_path}")
 
 
+def plot_missing_rmse_metrics_progression(train_missing_rmse_list, metrics_iterations, 
+                                        results_dir, model_name, random_seed):
+    """
+    Plot missing RMSE metrics progression over training iterations (train only)
+    
+    Args:
+        train_missing_rmse_list: List of training missing RMSE values
+        metrics_iterations: List of iteration numbers when metrics were computed
+        results_dir: Directory to save the plot
+        model_name: Name of the model
+        random_seed: Random seed for filename
+    """
+    if not train_missing_rmse_list:
+        print("No missing RMSE data available for progression plot")
+        return
+    
+    # Check if we have any valid missing RMSE data (not NaN)
+    import numpy as np
+    valid_indices = [i for i, x in enumerate(train_missing_rmse_list) if not np.isnan(x)]
+    
+    if not valid_indices:
+        print("No valid missing RMSE data available for plotting")
+        return
+    
+    # Filter data to only include valid values
+    valid_iterations = [metrics_iterations[i] for i in valid_indices]
+    valid_missing_rmse = [train_missing_rmse_list[i] for i in valid_indices]
+    
+    # Create figure
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    
+    # Plot train missing RMSE
+    ax.plot(valid_iterations, valid_missing_rmse, 'r-', label='Train Missing RMSE', linewidth=2, marker='o', markersize=4)
+    
+    ax.set_xlabel('Iteration')
+    ax.set_ylabel('Missing Data RMSE (lower is better)')
+    ax.set_title('Missing Data Reconstruction Error Progression')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save plot to plots directory
+    plots_dir = os.path.join(results_dir, 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
+    plot_path = os.path.join(plots_dir, f'missing_rmse_metrics_progression_{model_name}.png')
+    
+    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"Missing RMSE metrics progression plot saved to: {plot_path}")
+
+
 def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, metrics_losses, 
                            effective_dims_list, results_dir, model_name, random_seed):
     """

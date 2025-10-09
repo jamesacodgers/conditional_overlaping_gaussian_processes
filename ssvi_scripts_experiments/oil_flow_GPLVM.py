@@ -62,10 +62,10 @@ from src.original_gplvm_config_utils import (
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.data_utils import download_oilflow_data_if_needed
 from src.nlpd_utils import compute_nlpd_nll_based, compute_missing_data_nlpd_gauss
-from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression
+from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
-from src.unified_rmse_utils import compute_rmse_with_sampling
+from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
 
 plt.style.use('ggplot')
 
@@ -313,6 +313,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         train_rmse_list = []
         train_nlpd_list = []
         train_missing_nlpd_list = []  # For missing data NLPD tracking
+        train_missing_rmse_list = []  # For missing data RMSE tracking
         effective_dims_list = []
         metrics_iterations = []
         metrics_losses = []
@@ -385,8 +386,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                             print(f"  Warning: Could not get covariance for NLPD: {e}")
                             train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, enable_missing_data=config.enable_missing_data)
                         
-                        # Compute missing data NLPD for gauss model during training (for checkpoints)
+                        # Compute missing data NLPD and RMSE for gauss model during training (for checkpoints)
                         train_missing_nlpd = None
+                        train_missing_rmse = None
                         if config.enable_missing_data and model_name == 'gauss':
                             try:
                                 obs_noise = likelihood.noise
@@ -399,10 +401,21 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                                     obs_noise=obs_noise,
                                     n_samples=config.reconstruction_samples
                                 )
+                                train_missing_rmse = compute_missing_data_rmse_with_sampling(
+                                    model=model,
+                                    Y_original=Y_train_original,
+                                    missing_mask=train_missing_mask,
+                                    X_mean=X_train_mean,
+                                    X_covar=X_train_covar,
+                                    model_name=model_name,
+                                    n_samples=config.reconstruction_samples
+                                )
                                 print(f"  Train Missing Data NLPD at iter {i}: {train_missing_nlpd:.3f}")
+                                print(f"  Train Missing Data RMSE at iter {i}: {train_missing_rmse:.3f}")
                             except Exception as e:
-                                print(f"  Warning: Could not compute missing data NLPD at iteration {i}: {e}")
+                                print(f"  Warning: Could not compute missing data metrics at iteration {i}: {e}")
                                 train_missing_nlpd = float('nan')
+                                train_missing_rmse = float('nan')
                         
                         # Compute effective dimensions
                         effective_dims, total_dims = compute_effective_latent_dims(model)
@@ -411,6 +424,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         train_rmse_list.append(float(train_rmse.item()) if hasattr(train_rmse, 'item') else float(train_rmse))
                         train_nlpd_list.append(float(train_nlpd))
                         train_missing_nlpd_list.append(float(train_missing_nlpd) if train_missing_nlpd is not None else float('nan'))
+                        train_missing_rmse_list.append(float(train_missing_rmse) if train_missing_rmse is not None else float('nan'))
                         effective_dims_list.append(effective_dims)
                         metrics_iterations.append(i)
                         metrics_losses.append(float(loss.item()))
@@ -439,11 +453,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             
             # Save checkpoint metrics to JSON (train metrics only)
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
-                                         metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list)
+                                         metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list, train_missing_rmse_list)
             
             # Generate missing NLPD metrics progression plot if missing data is enabled and we have missing NLPD data
             if config.enable_missing_data and train_missing_nlpd_list:
                 plot_missing_nlpd_metrics_progression(train_missing_nlpd_list, metrics_iterations, 
+                                                    logger.get_results_dir(), model_name, config.random_seed)
+            
+            # Generate missing RMSE metrics progression plot if missing data is enabled and we have missing RMSE data
+            if config.enable_missing_data and train_missing_rmse_list:
+                plot_missing_rmse_metrics_progression(train_missing_rmse_list, metrics_iterations, 
                                                     logger.get_results_dir(), model_name, config.random_seed)
             
         # Save models & training info
@@ -670,17 +689,52 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     results_summary[model_name]['train_missing_nlpd'] = float(train_missing_nlpd)
                     results_summary[model_name]['test_missing_nlpd'] = float(test_missing_nlpd)
 
+                    # Compute missing data RMSE for training data
+                    train_missing_rmse = compute_missing_data_rmse_with_sampling(
+                        model=model,
+                        Y_original=Y_train_original,
+                        missing_mask=train_missing_mask,
+                        X_mean=X_train_mean_device,
+                        X_covar=X_train_covar,
+                        model_name=model_name,
+                        n_samples=config.reconstruction_samples
+                    )
+
+                    # Compute missing data RMSE for test data
+                    test_missing_rmse = compute_missing_data_rmse_with_sampling(
+                        model=model,
+                        Y_original=Y_test_original,
+                        missing_mask=test_missing_mask,
+                        X_mean=X_test_mean_device,
+                        X_covar=X_test_covar,
+                        model_name=model_name,
+                        n_samples=config.reconstruction_samples
+                    )
+
+                    print(f'Train Missing Data RMSE {model_name} = ' + str(train_missing_rmse))
+                    print(f'Test Missing Data RMSE {model_name} = ' + str(test_missing_rmse))
+
+                    # Store missing data RMSE results for summary
+                    results_summary[model_name]['train_missing_rmse'] = float(train_missing_rmse)
+                    results_summary[model_name]['test_missing_rmse'] = float(test_missing_rmse)
+
                 except Exception as e:
-                    print(f"Warning: Failed to compute missing data NLPD for {model_name} due to error: {e}")
-                    print("Setting missing data NLPD to NaN...")
+                    print(f"Warning: Failed to compute missing data metrics for {model_name} due to error: {e}")
+                    print("Setting missing data NLPD and RMSE to NaN...")
                     train_missing_nlpd = float('nan')
                     test_missing_nlpd = float('nan')
+                    train_missing_rmse = float('nan')
+                    test_missing_rmse = float('nan')
                     print(f'Train Missing Data NLPD {model_name} = NaN (error)')
                     print(f'Test Missing Data NLPD {model_name} = NaN (error)')
+                    print(f'Train Missing Data RMSE {model_name} = NaN (error)')
+                    print(f'Test Missing Data RMSE {model_name} = NaN (error)')
 
-                    # Store NaN values for missing data NLPD results
+                    # Store NaN values for missing data metrics results
                     results_summary[model_name]['train_missing_nlpd'] = float(train_missing_nlpd)
                     results_summary[model_name]['test_missing_nlpd'] = float(test_missing_nlpd)
+                    results_summary[model_name]['train_missing_rmse'] = float(train_missing_rmse)
+                    results_summary[model_name]['test_missing_rmse'] = float(test_missing_rmse)
 
             # Save training results (convert tensors to floats for JSON serialization)
             # Ensure all values in loss_list and noise_trace are Python floats
@@ -691,9 +745,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                                         float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test))
             
             # Store results for summary (convert tensors to floats for JSON serialization)
-            # Preserve existing missing data NLPD values if they were computed
+            # Preserve existing missing data NLPD and RMSE values if they were computed
             train_missing_nlpd_value = results_summary[model_name].get('train_missing_nlpd', float('nan'))
             test_missing_nlpd_value = results_summary[model_name].get('test_missing_nlpd', float('nan'))
+            train_missing_rmse_value = results_summary[model_name].get('train_missing_rmse', float('nan'))
+            test_missing_rmse_value = results_summary[model_name].get('test_missing_rmse', float('nan'))
             
             results_summary[model_name] = {
                 'train_rmse': float(mse_train.item()) if hasattr(mse_train, 'item') else float(mse_train),
@@ -702,6 +758,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_nlpd': float(test_nlpd),    # test_nlpd is already a float from compute_nlpd_nll_based
                 'train_missing_nlpd': train_missing_nlpd_value,  # Preserve computed value or use NaN
                 'test_missing_nlpd': test_missing_nlpd_value,   # Preserve computed value or use NaN
+                'train_missing_rmse': train_missing_rmse_value,  # Preserve computed value or use NaN
+                'test_missing_rmse': test_missing_rmse_value,   # Preserve computed value or use NaN
                 'final_loss': float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
