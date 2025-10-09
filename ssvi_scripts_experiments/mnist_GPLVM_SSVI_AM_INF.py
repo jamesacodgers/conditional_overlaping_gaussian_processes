@@ -41,6 +41,7 @@ from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metri
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction, visualize_mnist_missing_reconstruction_detailed
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
@@ -394,7 +395,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
 def get_fast_config():
     """Fast configuration for testing with missing data enabled"""
     return OilFlowSSVIConfig(
-        training_iterations=200,
+        training_iterations=100,
         batch_size=50,
         n_inducing_points=16,
         encoder_hidden_dims=[128, 64],
@@ -415,7 +416,7 @@ def get_fast_config():
         init_lengthscales=1.0,          # Initial lengthscales value (1/beta) - default matches current standard
         init_output_noise_scale=1.0,    # Initial output noise scale (sigma2) - default matches current standard
         # === Missing Data Configuration ===
-        enable_missing_data=False,     # Disable missing data for MNIST by default
+        enable_missing_data=True,      # Enable missing data for MNIST testing and visualization
         missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
         # === Random Seed Configuration ===
@@ -604,6 +605,46 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             }
         
         logger.save_experiment_summary(experiment_summary)
+    
+    # Visualize missing data reconstruction if enabled
+    if config.enable_missing_data and split_data is not None:
+        print("\n=== Missing Data Reconstruction Visualization ===")
+        
+        # Simple visualization (3 columns: original, masked, samples)
+        if logger:
+            simple_viz_path = os.path.join(logger.plots_dir, f"missing_data_reconstruction_{config.random_seed}.png")
+        else:
+            simple_viz_path = f"missing_data_reconstruction_{config.random_seed}.png"
+        
+        visualize_mnist_missing_reconstruction(
+            model=model,
+            y_train=split_data['y_train'],
+            missing_mask=split_data['train_missing_mask'],
+            y_original=split_data['y_train_original'],
+            n_images=10,
+            n_samples=5,
+            save_path=simple_viz_path,
+            show_plot=False
+        )
+        
+        # Detailed visualization (with mean and uncertainty)
+        if logger:
+            detailed_viz_path = os.path.join(logger.plots_dir, f"missing_data_reconstruction_detailed_{config.random_seed}.png")
+        else:
+            detailed_viz_path = f"missing_data_reconstruction_detailed_{config.random_seed}.png"
+        
+        visualize_mnist_missing_reconstruction_detailed(
+            model=model,
+            y_train=split_data['y_train'],
+            missing_mask=split_data['train_missing_mask'],
+            y_original=split_data['y_train_original'],
+            n_images=10,
+            n_samples=5,
+            save_path=detailed_viz_path,
+            show_plot=False
+        )
+        
+        print("=" * 50)
     
     return model, losses, config, metrics_computer, final_metrics
 
