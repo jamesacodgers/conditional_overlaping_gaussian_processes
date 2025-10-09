@@ -144,7 +144,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
     
     def get_kl_x_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
         x_prior = torch.distributions.Normal(torch.zeros(self.A), torch.ones(self.A))
-        x_train = torch.distributions.Normal(mu_x, Sigma_x)
+        x_train = torch.distributions.Normal(mu_x, torch.sqrt(Sigma_x))
         kl_train = torch.distributions.kl_divergence(x_train, x_prior).mean(dim=0).sum()
         if self.mu_x_test is None:
             return kl_train
