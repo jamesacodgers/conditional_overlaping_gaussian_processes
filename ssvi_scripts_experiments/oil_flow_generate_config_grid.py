@@ -55,6 +55,37 @@ def update_config_parameter(config_text, param_name, new_value):
     
     return '\n'.join(updated_lines)
 
+def update_nested_training_steps(config_text, new_value):
+    """Update nested training_steps values for both gauss and nn_gauss models"""
+    lines = config_text.split('\n')
+    updated_lines = []
+    in_training_steps = False
+    
+    for line in lines:
+        # Check if we're entering the training_steps section
+        if re.match(r'^training_steps:\s*', line):
+            in_training_steps = True
+            updated_lines.append(line)
+        # Update gauss and nn_gauss values within training_steps
+        elif in_training_steps and re.match(r'^\s+(gauss|nn_gauss):\s*', line):
+            # Extract the model name and any comment
+            match = re.match(r'^(\s+)(gauss|nn_gauss):\s*(.+?)(\s*#.*)?$', line)
+            if match:
+                indent = match.group(1)
+                model = match.group(2)
+                comment = match.group(4) if match.group(4) else ''
+                updated_lines.append(f"{indent}{model}: {new_value}{comment}")
+            else:
+                updated_lines.append(line)
+        # Exit training_steps section when we hit a non-indented line
+        elif in_training_steps and not line.startswith(' ') and line.strip():
+            in_training_steps = False
+            updated_lines.append(line)
+        else:
+            updated_lines.append(line)
+    
+    return '\n'.join(updated_lines)
+
 def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio):
     """Create a valid filename from parameter values"""
     # Replace dots with nothing for valid filenames
@@ -81,8 +112,8 @@ def generate_config_grid():
     init_output_noise_scale_values = [1.0]
     batch_size_values = [64]
     random_seed_values = [0,1,2,3,4]
-    learning_rate_values = [0.001]
-    n_training_steps = [100_000]
+    learning_rate_values = [0.001, 0.1]
+    n_training_steps = [100_000, 45_000]
     num_inducing_samples_list = [64]  # For SSVI only
     
     # Architecture parameters
@@ -96,7 +127,7 @@ def generate_config_grid():
     missing_data_ratio_values = [0.0]
 
     # Output folder names (now in oil_flow_related directory)
-    output_folder_name = "bad_init_lengthscale"
+    output_folder_name = "111bad_init_lengthscale"
     ssvi_output_folder = f"oil_flow_related/{output_folder_name}_ssvi"
     orig_output_folder = f"oil_flow_related/{output_folder_name}_orig_gplvm"
     
@@ -171,10 +202,8 @@ def generate_config_grid():
         orig_config_text = update_config_parameter(orig_config_text, 'init_output_noise_scale', init_output_noise_scale)
         orig_config_text = update_config_parameter(orig_config_text, 'batch_size', batch_size)
         orig_config_text = update_config_parameter(orig_config_text, 'random_seed', random_seed)
-        orig_config_text = update_config_parameter(orig_config_text, 'local_lr', learning_rate)
-        orig_config_text = update_config_parameter(orig_config_text, 'global_lr', learning_rate)
-        orig_config_text = update_config_parameter(orig_config_text, 'training_iterations', n_training_steps)
-        orig_config_text = update_config_parameter(orig_config_text, 'P', num_inducing_samples)
+        orig_config_text = update_config_parameter(orig_config_text, 'learning_rate', learning_rate)
+        orig_config_text = update_nested_training_steps(orig_config_text, n_training_steps)
         orig_config_text = update_config_parameter(orig_config_text, 'enable_missing_data', str(enable_missing_data).lower())
         orig_config_text = update_config_parameter(orig_config_text, 'missing_data_ratio', missing_data_ratio)
         
