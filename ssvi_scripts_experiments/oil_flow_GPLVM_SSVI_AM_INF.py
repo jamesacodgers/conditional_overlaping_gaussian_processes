@@ -287,21 +287,22 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
             # Use missing data aware ELBO (coordinator handles the missing mask automatically)
             missing_mask = torch.isnan(Y_batch)
             # Use the same clean data for ELBO computation to maintain consistency with encoder
-            loss = -self.gplvm_elbo_with_missing_data(Y_batch_clean,
-                                                     mu_n_batch,
-                                                     sigma_n_batch,
-                                                     U_samples=U_samples,
-                                                     batch_size=self.config.batch_size,
-                                                     total_size=self.config.total_size,
-                                                     missing_mask=missing_mask)
-        else:
-            # Standard ELBO computation
-            loss = -self.gplvm_elbo(Y_batch,
+            loss = -self.ssvi_elbo(Y_batch_clean,
                                    mu_n_batch,
                                    sigma_n_batch,
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
-                                   total_size=self.config.total_size)
+                                   total_size=self.config.total_size,
+                                   missing_mask=missing_mask)
+        else:
+            # Standard ELBO computation
+            loss = -self.ssvi_elbo(Y_batch,
+                                   mu_n_batch,
+                                   sigma_n_batch,
+                                   U_samples=U_samples,
+                                   batch_size=self.config.batch_size,
+                                   total_size=self.config.total_size,
+                                   missing_mask=None)
         
         # Backward pass (gradients computed for all parameters)
         loss.backward()
@@ -474,8 +475,8 @@ def get_fast_config():
         plot_latent_space=True,
         plot_hyperparams=True,
         # === GP Hyperparameters ===
-        init_lengthscales=1.0,          # Initial lengthscales value (1/beta) - default matches current standard
-        init_output_noise_scale=1.0,    # Initial output noise scale (sigma2) - default matches current standard
+        init_lengthscales=28.0,          # Initial lengthscales value (1/beta) - default matches current standard
+        init_output_noise_scale=28.0,    # Initial output noise scale (sigma2) - default matches current standard
         # === Missing Data Configuration ===
         enable_missing_data=False,      # Enable missing data reconstruction capability
         missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
