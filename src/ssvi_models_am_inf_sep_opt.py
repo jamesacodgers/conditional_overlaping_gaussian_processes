@@ -115,11 +115,11 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         # Split output into mu_n and log_sigma_n
         mu_n = encoder_output[:, :, :self.A]
-        log_sigma_n = encoder_output[:, :, self.A:]
+        log_Sigma_n = encoder_output[:, :, self.A:]
         
-        sigma_n = torch.nn.functional.softplus(log_sigma_n)
+        Sigma_n = torch.nn.functional.softplus(log_Sigma_n)
         
-        return mu_n, sigma_n
+        return mu_n, Sigma_n
 
     def get_mu_sigma_x_train_samples(self, Y_train_batch, U_samples=None):
         """
