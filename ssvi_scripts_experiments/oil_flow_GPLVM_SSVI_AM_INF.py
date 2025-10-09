@@ -475,8 +475,8 @@ def get_fast_config():
         plot_latent_space=True,
         plot_hyperparams=True,
         # === GP Hyperparameters ===
-        init_lengthscales=28.0,          # Initial lengthscales value (1/beta) - default matches current standard
-        init_output_noise_scale=28.0,    # Initial output noise scale (sigma2) - default matches current standard
+        init_lengthscales=1.0,          # Initial lengthscales value (1/beta) - default matches current standard
+        init_output_noise_scale=1.0,    # Initial output noise scale (sigma2) - default matches current standard
         # === Missing Data Configuration ===
         enable_missing_data=False,      # Enable missing data reconstruction capability
         missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
