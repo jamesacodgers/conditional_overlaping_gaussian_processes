@@ -52,7 +52,7 @@ from sklearn.model_selection import train_test_split
 from ssvi_scripts_experiments.oil_flow_GPLVM_SSVI_AM_INF import OilFlowSSVIConfig
 
 # Import MNIST data loader
-from src.data_utils import load_mnist_data
+from src.data_utils import load_mnist_data, filter_mnist_by_digits
 
 # Device will be set in main() from config
 
@@ -63,11 +63,16 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     # Load data using PyTorch torchvision (no TensorFlow needed)
     N, d, q, X, Y, labels = load_mnist_data()
     
-    # MNIST-specific preprocessing: normalize to [0, 1] and subsample (consistent with mnist_GPLVM.py)
+    # MNIST-specific preprocessing: normalize to [0, 1]
     Y = Y / 255.0
-    # Use first 5000 samples for computational efficiency (matching original experiment)
-    Y = Y[:2500]
-    labels = labels[:2500]
+    
+    # Apply digit filtering if configured
+    Y, labels = filter_mnist_by_digits(
+        Y, labels, 
+        selected_digits=config.mnist_digits,
+        samples_per_digit=config.samples_per_digit
+    )
+    
     N = len(Y)
     
     print(f"Using {N} MNIST samples for training/testing")
@@ -419,6 +424,9 @@ def get_fast_config():
         enable_missing_data=True,      # Enable missing data for MNIST testing and visualization
         missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
+        # === MNIST Data Filtering Configuration ===
+        mnist_digits=[1, 2],           # Use only digits 1, 2 for fast testing
+        samples_per_digit=100,         # 100 samples per digit = 200 total samples
         # === Random Seed Configuration ===
         random_seed=7,                 # Random seed for reproducibility (matches SSVI base config)
         # === Test Size Configuration ===

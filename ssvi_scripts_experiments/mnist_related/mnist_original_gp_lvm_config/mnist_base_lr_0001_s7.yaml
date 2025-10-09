@@ -66,3 +66,7 @@ learn_inducing_locations: true    # learn_inducing_locations=True in oilflow_exp
 # === GP Hyperparameters ===
 init_lengthscales: 1.0  # Initial lengthscales value (default matches GPyTorch RBFKernel)
 init_output_noise_scale: 1.0  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
+
+# MNIST Data Filtering Configuration
+mnist_digits: [1, 2]          # Use only digits 1, 2
+samples_per_digit: 100        # 100 samples per digit = 200 total samples

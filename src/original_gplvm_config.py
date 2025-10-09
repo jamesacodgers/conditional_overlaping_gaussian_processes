@@ -64,6 +64,10 @@ class OriginalGPLVMConfig:
     missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
     reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
     
+    # === MNIST Data Filtering Configuration ===
+    mnist_digits: List[int] = None         # List of digits to include (e.g., [0, 1, 2]). None = all digits (0-9)
+    samples_per_digit: int = None          # Number of samples per digit. None = use all available samples
+    
     # === Additional Configuration from oilflow_expt.py ===
     # Prior configuration for different models
     prior_type: dict = None  # Will be set to {'gauss': 'normal', 'nn_gauss': 'multivariate'} if None
@@ -136,9 +140,12 @@ def get_fast_config():
         init_lengthscales=2.0,  # Initial lengthscales value (default matches GPyTorch RBFKernel)
         init_output_noise_scale=2.0,  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
         # === Missing Data Configuration ===
-        enable_missing_data=False,     # Disable missing data for fast testing
+        enable_missing_data=True,      # Enable missing data for MNIST testing and visualization
         missing_data_ratio=0.3,        # 30% missing data for testing
-        reconstruction_samples=50      # Number of samples for missing data reconstruction
+        reconstruction_samples=50,     # Number of samples for missing data reconstruction
+        # === MNIST Data Filtering Configuration ===
+        mnist_digits=[1, 2],           # Use only digits 1, 2 for fast testing
+        samples_per_digit=100          # 100 samples per digit = 200 total samples
     )
 
 def get_swiss_roll_fast_config():

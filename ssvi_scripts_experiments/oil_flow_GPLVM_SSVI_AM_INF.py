@@ -108,6 +108,10 @@ class OilFlowSSVIConfig:
     missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
     reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
     
+    # === MNIST Data Filtering Configuration ===
+    mnist_digits: list = None           # List of digits to include (e.g., [0, 1, 2]). None = all digits (0-9)
+    samples_per_digit: int = None          # Number of samples per digit. None = use all available samples
+    
     def __post_init__(self):
         """Set default encoder architecture and resolve device if not specified"""
         if self.encoder_hidden_dims is None:

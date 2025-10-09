@@ -137,3 +137,64 @@ def load_mnist_data():
     print(f"MNIST data loaded: {n} samples, {d} dimensions (28x28 images)")
     
     return n, d, q, X, Y, labels
+
+
+def filter_mnist_by_digits(Y, labels, selected_digits=None, samples_per_digit=None):
+    """
+    Filter MNIST data by specific digits and optionally limit samples per digit.
+    
+    Parameters
+    ----------
+    Y : torch.Tensor
+        Image data (N x 784), dtype=float64
+    labels : np.ndarray
+        Digit labels 0-9 (N,), dtype=int64
+    selected_digits : list or None
+        List of digits to include (e.g., [0, 1, 2]). If None, includes all digits (0-9)
+    samples_per_digit : int or None
+        Number of samples to take per digit. If None, uses all available samples for each digit
+    
+    Returns
+    -------
+    Y_filtered : torch.Tensor
+        Filtered image data
+    labels_filtered : np.ndarray
+        Filtered labels
+    """
+    # If no filtering requested, return original data
+    if selected_digits is None and samples_per_digit is None:
+        return Y, labels
+    
+    # Set default to all digits if not specified
+    if selected_digits is None:
+        selected_digits = list(range(10))
+    
+    # Collect indices for selected digits
+    filtered_indices = []
+    
+    for digit in selected_digits:
+        # Find all indices for this digit
+        digit_indices = np.where(labels == digit)[0]
+        
+        # Limit samples per digit if specified
+        if samples_per_digit is not None and len(digit_indices) > samples_per_digit:
+            # Take first samples_per_digit samples for this digit
+            digit_indices = digit_indices[:samples_per_digit]
+        
+        filtered_indices.extend(digit_indices.tolist())
+    
+    # Convert to numpy array and sort to maintain order
+    filtered_indices = np.array(filtered_indices)
+    
+    # Filter data and labels
+    Y_filtered = Y[filtered_indices]
+    labels_filtered = labels[filtered_indices]
+    
+    # Print filtering info
+    print(f"MNIST filtering applied:")
+    print(f"  Selected digits: {selected_digits}")
+    if samples_per_digit is not None:
+        print(f"  Samples per digit: {samples_per_digit}")
+    print(f"  Original samples: {len(Y)} -> Filtered samples: {len(Y_filtered)}")
+    
+    return Y_filtered, labels_filtered

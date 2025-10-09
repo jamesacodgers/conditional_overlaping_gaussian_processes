@@ -66,7 +66,7 @@ from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_ef
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
-from src.data_utils import load_mnist_data
+from src.data_utils import load_mnist_data, filter_mnist_by_digits
 from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed
 
 plt.style.use('ggplot')
@@ -155,11 +155,16 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     # Load data using PyTorch's torchvision (no TensorFlow needed)
     N, d, q, X, Y, labels = load_mnist_data()
     
-    # MNIST-specific preprocessing: normalize to [0, 1] and subsample (like original mnist_expt.py)
+    # MNIST-specific preprocessing: normalize to [0, 1]
     Y = Y / 255.0
-    # Use first 5000 samples for computational efficiency (matching original experiment)
-    Y = Y[:2500]
-    labels = labels[:2500]
+    
+    # Apply digit filtering if configured
+    Y, labels = filter_mnist_by_digits(
+        Y, labels, 
+        selected_digits=config.mnist_digits,
+        samples_per_digit=config.samples_per_digit
+    )
+    
     N = len(Y)
     
     print(f"Using {N} MNIST samples for training/testing")
