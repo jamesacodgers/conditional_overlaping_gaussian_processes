@@ -67,6 +67,7 @@ from src.missing_data_utils import preprocess_data_for_missing_training, rmse_mi
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
 from src.data_utils import load_mnist_data
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed
 
 plt.style.use('ggplot')
 
@@ -792,6 +793,48 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             }
             
             logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
+            
+            # Visualize missing data reconstruction for gauss model if enabled (right after gauss model completes)
+            if config.enable_missing_data and model_name == 'gauss':
+                print("\n=== Missing Data Reconstruction Visualization (Gauss) ===")
+                
+                # Get pre-computed latent variables for gauss model
+                X_train_mean = model.X.q_mu.detach()
+                X_train_covar = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
+                
+                # Simple visualization (3 columns: original, masked, samples)
+                simple_viz_path = os.path.join(logger.get_results_dir(), f"missing_data_reconstruction_gauss_{config.random_seed}.png")
+                
+                visualize_mnist_missing_reconstruction_gauss(
+                    model=model,
+                    y_train=Y_train,
+                    missing_mask=train_missing_mask,
+                    y_original=Y_train_original,
+                    X_mean=X_train_mean,
+                    X_covar=X_train_covar,
+                    n_images=10,
+                    n_samples=5,
+                    save_path=simple_viz_path,
+                    show_plot=False
+                )
+                
+                # Detailed visualization (with mean and uncertainty)
+                detailed_viz_path = os.path.join(logger.get_results_dir(), f"missing_data_reconstruction_gauss_detailed_{config.random_seed}.png")
+                
+                visualize_mnist_missing_reconstruction_gauss_detailed(
+                    model=model,
+                    y_train=Y_train,
+                    missing_mask=train_missing_mask,
+                    y_original=Y_train_original,
+                    X_mean=X_train_mean,
+                    X_covar=X_train_covar,
+                    n_images=10,
+                    n_samples=5,
+                    save_path=detailed_viz_path,
+                    show_plot=False
+                )
+                
+                print("=" * 50)
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)
