@@ -108,9 +108,9 @@ def generate_config_grid():
     
     # Parameter ranges
     n_inducing_values = [32]
-    init_lengthscales_values = [0.01]
-    init_output_noise_scale_values = [1.0]
-    batch_size_values = [64]
+    init_lengthscales_values = [1]
+    init_output_noise_scale_values = [0.1]
+    batch_size_values = [128]
     random_seed_values = [0,1,2,3,4]
     learning_rate_values = [0.001, 0.1]
     n_training_steps = [100_000, 45_000]
@@ -123,11 +123,13 @@ def generate_config_grid():
     architecture_values = [[128, 64]]  # Can add more options like [[256, 128, 64], [64, 32]]
     
     # Missing data parameters
+    # enable_missing_data_values = [True]
+    # missing_data_ratio_values = [0.1, 0.3, 0.8,]
     enable_missing_data_values = [False]
     missing_data_ratio_values = [0.0]
 
     # Output folder names (now in oil_flow_related directory)
-    output_folder_name = "111bad_init_lengthscale"
+    output_folder_name = "bad_init_lengthscale_01"
     ssvi_output_folder = f"oil_flow_related/{output_folder_name}_ssvi"
     orig_output_folder = f"oil_flow_related/{output_folder_name}_orig_gplvm"
     

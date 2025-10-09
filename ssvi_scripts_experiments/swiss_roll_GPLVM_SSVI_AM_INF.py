@@ -112,7 +112,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     }
     # Initialize inducing points and latent variables (following original)
     Vx = torch.randn(config.n_inducing_points, config.latent_dim, dtype=torch.float64, device=config.device)
-    mu_x, _, _ = torch.pca_lowrank(y, config.latent_dim)
+    mu_x = torch.randn(y.shape[0], config.latent_dim)
     
     # No pseudotime for Swiss roll (unlike qPCR)
 

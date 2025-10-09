@@ -1,0 +1,55 @@
+# Base SSVI Configuration for qPCR GP-LVM
+# Based on second_best_config from original script
+
+# Device Configuration
+device: "cuda"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
+
+# Data Configuration
+data_url: "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"
+latent_dim: 3
+
+# Model Architecture
+n_inducing_points: 32
+encoder_hidden_dims: [128, 64]
+
+# Training Configuration
+training_iterations: 10000
+batch_size: 32
+
+# Learning Rates
+local_lr: 0.001   # Encoder parameters
+global_lr: 0.001  # GP hyperparameters
+
+# GP Hyperparameters
+sigma2_s: null  # Signal variances (null = auto)
+init_lengthscales: 0.01  # Initial lengthscales value (1/beta) - default matches current standard
+init_output_noise_scale: 0.1  # Initial output noise scale (sigma2) - default matches current standard
+P: 64  # Number of samples for SSVI
+trainable_V: true
+
+# Visualization
+plot_training: true
+plot_latent_space: true
+plot_hyperparams: true
+
+# Checkpoint Configuration
+checkpoint_frequency: 4000  # Save models, plots, metrics, and log progress every N iterations
+
+# Advanced Logging
+enable_gradient_logging: true
+gradient_log_frequency: 50  # Log gradients every N iterations
+save_results: true  # Save results to folder
+results_dir: "qpcr_results/ssvi_results"  # qPCR specific: changed from oil_flow_results
+
+# Metrics Configuration
+enable_metrics: true
+test_size: 0.1  # Fraction of data for testing
+random_seed: 0  # Random seed for reproducibility (matches original GP-LVM base config)
+
+# Visualization Configuration
+save_training_plots: true
+
+# Missing Data Configuration
+enable_missing_data: false       # Enable missing data reconstruction capability
+missing_data_ratio: 0.0         # Fraction of dimensions to artificially mask (for testing)
+reconstruction_samples: 50      # Number of samples for missing data reconstruction
