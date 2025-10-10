@@ -112,7 +112,7 @@ class GPLVM_SSVI_AM_INF(torch.nn.Module):
         batch_size = y_n.shape[0] 
         y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
 
-        u_samples = u_samples  # Remove C=1 dimension for GP-LVM: [P, M, Lx]
+        u_samples = u_samples.squeeze(-2)  # Remove C=1 dimension for GP-LVM: [P, M, Lx]
         u_samples = u_samples.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
         u_samples = u_samples.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
 
@@ -178,7 +178,6 @@ class GPLVM_SSVI_AM_INF(torch.nn.Module):
         U_samples: [P, M, C, L]
         Returns: [P, N, M, C]
         """
-        U_samples = U_samples.unsqueeze(-2)
         K_VV_inv = self.gp.get_K_VV_x_inv()  # C x L x L
         return (
             kernel_expectation[:, :, None, :, None, :] @
@@ -294,7 +293,7 @@ class GPLVM_SSVI_AM_INF(torch.nn.Module):
     
     def get_u_samples(self):
         dist = self.gp.get_q_u_dist()
-        return dist.rsample((self.P,))
+        return dist.rsample((self.P,)).unsqueeze(-2)
     
     def _get_lv_kernel_expectation(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor) -> torch.Tensor:
         """
