@@ -67,14 +67,14 @@ class AbstractGP(ABC, torch.nn.Module):
         K_VVx = self.get_K_VV_x()
         chol_K_VVx = torch.linalg.cholesky(K_VVx)
         return torch.cholesky_inverse(chol_K_VVx)
-    
-    @property 
-    def sigma2_s(self): 
-        return  torch.exp(self._log_sigma2_s)
-    
-    @property 
-    def beta(self): 
-        return  torch.exp(self._log_beta) + 1e-5
+
+    @property
+    def sigma2_s(self):
+        return torch.nn.functional.softplus(self._log_sigma2_s, beta=1.0, threshold=20.0)
+
+    @property
+    def beta(self):
+        return torch.nn.functional.softplus(self._log_beta, beta=1.0, threshold=20.0) + 1e-5
 
 class WLIndependentGPs(AbstractGP):
     """
