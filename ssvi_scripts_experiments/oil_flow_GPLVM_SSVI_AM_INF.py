@@ -240,7 +240,6 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         super().__init__(
             Vx=Vx,
             M=M,  # Observation dimension
-            mu_x=mu_x,
             sigma2=sigma2,
             beta=beta,
             sigma2_s=config.sigma2_s,
@@ -255,6 +254,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         
         # Store config
         self.config = config
+
+    
 
     def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor = None):
         """
@@ -523,7 +524,6 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     print(f"Model initialized:")
     print(f"  Encoder: {model.encoder}")
     print(f"  Inducing points: {model.gp.Vx.shape}")
-    print(f"  Latent variables: {model.mu_x.shape}")
     
     # Initialize logger with config-based naming
     experiment_name = f"ssvi_{config_name}"

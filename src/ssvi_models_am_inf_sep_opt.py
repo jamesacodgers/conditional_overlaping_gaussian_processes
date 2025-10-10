@@ -7,26 +7,32 @@ from src.mf_methods import MFModels
 from src.inner_optimisers import MultivariateNormalSolver
 from src.utils import train_lbfgs, generate_regular_simplex
 import numpy as np
-
+from src.gps import WLIndependentGPs
 # Set default dtype to float64 for all tensor operations
 torch.set_default_dtype(torch.float64)
 
-class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
-    def __init__(self, Vx, M, mu_x, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, 
+class GPLVM_SSVI_AM_INF(torch.nn.Module):
+    def __init__(self, Vx, M, sigma2=1, beta=None, sigma2_s=None, P=64, trainable_V=True, 
                  encoder_hidden_dims=[64, 32], local_lr=0.001, global_lr=0.001, device="auto", 
                  enable_missing_data=False):
+        super().__init__()
+
         # Resolve device if auto
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
+
+        self._log_sigma2 = torch.nn.Parameter(torch.log(torch.tensor(sigma2)))
+        self._positive_transform = torch.nn.Softplus()
         
         # Ensure input tensors are on the correct device
         Vx = Vx.to(device)
-        mu_x = mu_x.to(device)
+        self.M = M
+        self.A=Vx.shape[1]
+        self.Lx=Vx.shape[0]
+        self.P = P 
         
-        super().__init__(P=P, V=Vx, M=M, C_obs=1, mu_x_train=mu_x, mu_x_test=None, C_unobs=0, 
-                        sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s, 
-                        trainable_V=trainable_V)
+        self.gp = WLIndependentGPs(C=1, M=M, Vx=Vx, beta=beta, sigma2_s=sigma2_s, trainable_V=trainable_V)
         
 
         # Amortized inference encoder network
@@ -44,6 +50,10 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         # Separate optimizers for different learning rates
         self._setup_optimizers(local_lr, global_lr)
+
+    @property 
+    def sigma2(self): 
+        return self._positive_transform(self._log_sigma2)
 
     def _build_encoder(self, hidden_dims, output_dim):
         """Build amortized inference encoder network"""
@@ -102,7 +112,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         batch_size = y_n.shape[0] 
         y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
 
-        u_samples = u_samples.squeeze(2)  # Remove C=1 dimension for GP-LVM: [P, M, Lx]
+        u_samples = u_samples  # Remove C=1 dimension for GP-LVM: [P, M, Lx]
         u_samples = u_samples.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
         u_samples = u_samples.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
 
@@ -143,13 +153,9 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
     def get_kl_x_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
         x_prior = torch.distributions.Normal(torch.zeros(self.A), torch.ones(self.A))
         x_train = torch.distributions.Normal(mu_x, torch.sqrt(Sigma_x))
-        kl_train = torch.distributions.kl_divergence(x_train, x_prior).mean(dim=0).sum()
-        if self.mu_x_test is None:
-            return kl_train
-        else:
-            x_test = torch.distributions.Normal(self.mu_x_test, self.Sigma_x_test)
-            kl_test = torch.distributions.kl_divergence(x_test, x_prior).mean(dim=0).sum()
-            return kl_train + kl_test
+        kl = torch.distributions.kl_divergence(x_train, x_prior).mean(dim=0).sum()
+        return kl
+        
     
     def get_ssvi_mean_prediction(self, inputs):
         """
@@ -172,6 +178,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         U_samples: [P, M, C, L]
         Returns: [P, N, M, C]
         """
+        U_samples = U_samples.unsqueeze(-2)
         K_VV_inv = self.gp.get_K_VV_x_inv()  # C x L x L
         return (
             kernel_expectation[:, :, None, :, None, :] @
@@ -285,6 +292,60 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         from src.missing_data_utils import reconstruct_missing_dimensions
         return reconstruct_missing_dimensions(self, y_observed, missing_mask, n_samples)
     
+    def get_u_samples(self):
+        dist = self.gp.get_q_u_dist()
+        return dist.rsample((self.P,))
+    
+    def _get_lv_kernel_expectation(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor) -> torch.Tensor:
+        """
+        Returns object of shape P x N x C x L
+        """
+        d = (
+              Sigma_x[:,:,None,:] 
+            + self.gp.beta[None,None,:,:]
+        ) # P x N x C x A 
+        e = (
+              Sigma_x[:,:,None,None,:]*self.gp.Vx[None,None,None,:,:]
+            + self.gp.beta[None,None,:,None,:]*mu_x[:,:,None, None,:]
+        ) # P x N x C x L x A
+        f = (
+              Sigma_x[:,:,None,None,:]*(self.gp.Vx[None,None,None,:,:]**2)
+            + self.gp.beta[None,None,:,None,:]*(mu_x[:,:,None,None,:]**2)
+        ) # P x N x C x L x A
+        g_intermediate = 1/(self.gp.beta[None,None,:,None,:]*Sigma_x[:,:,None,None,:])*(-e**2/d[:,:,:,None,:] + f)
+        g = -1/2*g_intermediate.sum(dim=-1) # P x N x C x L 
+        Z = self.gp.sigma2_s[None, None,:,None]*torch.sqrt((self.gp.beta[None,None,:,None,:]/d[:,:,:,None,:]).prod(dim=-1))*torch.exp(g) 
+        return Z # P x N x C x L 
+    
+    def _get_lv_kernel_outer_expectation(self, mu_x, Sigma_x) -> torch.Tensor:
+        """
+        returns P x N x C x C x L x L
+        """
+        # samples = torch.distributions.Normal(mu_x,Sigma_x).rsample((16,))
+        # K = self.kernel(samples, self.V).transpose(1,2)
+        # K_outer = K[:,:,None,:,None,:]*K[:,:,:,None,:,None]
+        # return K_outer.mean(dim=0)
+
+        d = (
+              self.gp.beta[None,None,None,:,:]*Sigma_x[:, :,None,None,:] 
+            + self.gp.beta[None,None,:,None,:]*Sigma_x[:,:,None,None,:]
+            + self.gp.beta[None,None,:,None,:]*self.gp.beta[None,None,None,:,:]
+        ) # P x N x C x C x A 
+        e = (
+              self.gp.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*self.gp.Vx[None,None,None,None,:,None,:]
+            + self.gp.beta[None,None,:,None,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*self.gp.Vx[None,None,None,None,None,:,:]
+            + self.gp.beta[None,None,:,None,None,None,:]*self.gp.beta[None,None,None,:,None,None,:]*mu_x[:,:,None,None,None,None,:]
+        ) # P x N x C x C x L x L x A
+        f = (
+              self.gp.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.gp.Vx[None,None,None,None,:,None,:]**2)
+                + self.gp.beta[None,None,:,None,None,None,:]*Sigma_x[:,:,None,None,None,None,:]*(self.gp.Vx[None,None,None,None,None,:,:]**2)
+                + self.gp.beta[None,None,:,None,None,None,:]*self.gp.beta[None,None,None,:,None,None,:]*(mu_x[:,:,None,None,None,None,:]**2)
+        ) # P x N x C x C x L x L x A
+        g_intermediate = 1/(self.gp.beta[None,None,:,None,None,None,:]*self.gp.beta[None,None,None,:,None,None,:]*Sigma_x[:,:,None,None,None,None,:])*(-e**2/d[:,:,:,:,None,None,:] + f)
+        g = -1/2*g_intermediate.sum(dim=-1) # P x N x C x C x L x L
+        Z = self.gp.sigma2_s[None,None,:,None,None,None]*self.gp.sigma2_s[None,None,None,:,None,None]*torch.sqrt((self.gp.beta[None,None,:,None,None,None,:]*self.gp.beta[None,None,None,:,None,None,:]/d[:,:,:,:,None,None,:]).prod(dim=-1))*torch.exp(g) 
+        return Z # P x N x C x C x L x L 
+    
     def ssvi_elbo(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask = None):
         """
         Extended gplvm_elbo that handles missing data by modifying the coordinator's likelihood computation.
@@ -316,7 +377,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
 
         # Reshape U from [P, M, C, L] to [P, M, C*L]
         Pn = U_samples.shape[0]
-        u_vec = U_samples.reshape(Pn, self.M, self.C * self.Lx)
+        u_vec = U_samples.reshape(Pn, self.M, self.Lx)
 
         Ma = (u_vec[:, :, :, None] * u_vec[:, :, None, :] - K_VV[None, :, :]) # [P, M, L, L]
         Ma = (K_VV_inv_matrix @ Ma @ K_VV_inv_matrix.transpose(-2, -1))

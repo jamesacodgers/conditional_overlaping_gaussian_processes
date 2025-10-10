@@ -23,12 +23,12 @@ class SSVIMetrics:
     """Container for SSVI GP-LVM evaluation metrics"""
     
     # Reconstruction metrics
-    train_rmse: float = 0.0
-    test_rmse: float = 0.0
+    train_rmse: float = float('nan')
+    test_rmse: float = float('nan')
     
     # Uncertainty metrics
-    train_nlpd: float = 0.0
-    test_nlpd: float = 0.0
+    train_nlpd: float = float('nan')
+    test_nlpd: float = float('nan')
     
     # Missing data uncertainty metrics
     train_missing_nlpd: float = float('nan')
