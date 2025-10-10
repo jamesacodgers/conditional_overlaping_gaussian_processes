@@ -108,12 +108,13 @@ def generate_config_grid():
     
     # Parameter ranges
     n_inducing_values = [32]
+    # init_lengthscales_values = [0.001, 0.01, 0.1, 1, 10, 100]
     init_lengthscales_values = [1]
-    init_output_noise_scale_values = [0.1]
+    init_output_noise_scale_values = [1]
     batch_size_values = [128]
     random_seed_values = [0,1,2,3,4]
-    learning_rate_values = [0.001, 0.1]
-    n_training_steps = [100_000, 45_000]
+    learning_rate_values = [0.001]
+    n_training_steps = [60_000]
     num_inducing_samples_list = [64]  # For SSVI only
     
     # Architecture parameters
@@ -123,13 +124,14 @@ def generate_config_grid():
     architecture_values = [[128, 64]]  # Can add more options like [[256, 128, 64], [64, 32]]
     
     # Missing data parameters
-    # enable_missing_data_values = [True]
-    # missing_data_ratio_values = [0.1, 0.3, 0.8,]
-    enable_missing_data_values = [False]
-    missing_data_ratio_values = [0.0]
+    # enable_missing_data_values = [False]
+    # missing_data_ratio_values = [0.0]
+    enable_missing_data_values = [True]
+    missing_data_ratio_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
     # Output folder names (now in oil_flow_related directory)
-    output_folder_name = "bad_init_lengthscale_01"
+    # output_folder_name = "fixed_lenghscale_experiment_v1"
+    output_folder_name = "fixed_missing_data_experiment_v1"
     ssvi_output_folder = f"oil_flow_related/{output_folder_name}_ssvi"
     orig_output_folder = f"oil_flow_related/{output_folder_name}_orig_gplvm"
     

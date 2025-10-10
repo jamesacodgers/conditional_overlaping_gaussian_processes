@@ -1,0 +1,5416 @@
+{
+  "model_name": "nn_gauss",
+  "seed": 0,
+  "total_iterations": 60000,
+  "checkpoints": [
+    {
+      "iteration": 0,
+      "train_rmse": 1.0026744147717517,
+      "train_nlpd": 65.08210721543459,
+      "elbo_loss": 160.06153510567816,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 100,
+      "train_rmse": 1.0019321881729535,
+      "train_nlpd": 65.13582517650205,
+      "elbo_loss": 76.96283365306438,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 200,
+      "train_rmse": 0.9984851467936937,
+      "train_nlpd": 65.04877738882372,
+      "elbo_loss": 74.65275454166604,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 300,
+      "train_rmse": 0.9870439611749355,
+      "train_nlpd": 64.60920849107698,
+      "elbo_loss": 73.75069126765567,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 400,
+      "train_rmse": 0.9474793806527047,
+      "train_nlpd": 63.660105774660806,
+      "elbo_loss": 72.37411622773274,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 500,
+      "train_rmse": 0.8765299738944877,
+      "train_nlpd": 62.06168326575394,
+      "elbo_loss": 70.3887096974922,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 600,
+      "train_rmse": 0.8375243281933028,
+      "train_nlpd": 60.36930706322704,
+      "elbo_loss": 68.78317603836794,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 700,
+      "train_rmse": 0.8229636495453696,
+      "train_nlpd": 59.15531199659967,
+      "elbo_loss": 65.96974340439165,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 800,
+      "train_rmse": 0.8083629603484422,
+      "train_nlpd": 58.19038325742406,
+      "elbo_loss": 65.67779944739443,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 900,
+      "train_rmse": 0.7811891441841528,
+      "train_nlpd": 57.04464705498812,
+      "elbo_loss": 65.27380220019292,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1000,
+      "train_rmse": 0.7554018421879208,
+      "train_nlpd": 55.79916410337737,
+      "elbo_loss": 63.72697375604511,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1100,
+      "train_rmse": 0.7283149763361407,
+      "train_nlpd": 54.36220934274603,
+      "elbo_loss": 62.99750788722342,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1200,
+      "train_rmse": 0.7192818719212376,
+      "train_nlpd": 53.47035347346948,
+      "elbo_loss": 61.17050682884826,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1300,
+      "train_rmse": 0.7093057564896331,
+      "train_nlpd": 52.572127852789514,
+      "elbo_loss": 61.59662712949118,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1400,
+      "train_rmse": 0.6998224559352055,
+      "train_nlpd": 51.557254943378716,
+      "elbo_loss": 59.47061959874976,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1500,
+      "train_rmse": 0.6889194101613505,
+      "train_nlpd": 50.82283399119838,
+      "elbo_loss": 59.831312796708175,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1600,
+      "train_rmse": 0.6798579212627823,
+      "train_nlpd": 49.78152911302127,
+      "elbo_loss": 59.061726706923,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1700,
+      "train_rmse": 0.6695789934425298,
+      "train_nlpd": 49.06296737639909,
+      "elbo_loss": 58.68342163527616,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1800,
+      "train_rmse": 0.6619075400548274,
+      "train_nlpd": 48.3703949855786,
+      "elbo_loss": 57.15350796301247,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 1900,
+      "train_rmse": 0.6534816439273696,
+      "train_nlpd": 47.675106220433264,
+      "elbo_loss": 57.41191223082215,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2000,
+      "train_rmse": 0.6432884296851491,
+      "train_nlpd": 47.00052394693973,
+      "elbo_loss": 57.207750645568,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2100,
+      "train_rmse": 0.6353085613659797,
+      "train_nlpd": 46.49053844205008,
+      "elbo_loss": 56.07571071902068,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2200,
+      "train_rmse": 0.6252832877794856,
+      "train_nlpd": 45.7186283295073,
+      "elbo_loss": 55.51667914820568,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2300,
+      "train_rmse": 0.6175801350267484,
+      "train_nlpd": 45.233348662582515,
+      "elbo_loss": 54.44295289461253,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2400,
+      "train_rmse": 0.6106098265424815,
+      "train_nlpd": 44.54259551356568,
+      "elbo_loss": 54.55140802285587,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2500,
+      "train_rmse": 0.6038638457961765,
+      "train_nlpd": 44.01775309163052,
+      "elbo_loss": 54.45797647303786,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2600,
+      "train_rmse": 0.5992020547033603,
+      "train_nlpd": 43.514902329456724,
+      "elbo_loss": 54.77056218813069,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2700,
+      "train_rmse": 0.5931925578862828,
+      "train_nlpd": 43.086292588498,
+      "elbo_loss": 52.684268090407244,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2800,
+      "train_rmse": 0.5922538829610922,
+      "train_nlpd": 42.970415068536994,
+      "elbo_loss": 53.49062231365731,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 2900,
+      "train_rmse": 0.5877730178686863,
+      "train_nlpd": 42.64803328267761,
+      "elbo_loss": 55.54995267473747,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3000,
+      "train_rmse": 0.5852713009269226,
+      "train_nlpd": 42.37938320867266,
+      "elbo_loss": 52.60548090507607,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3100,
+      "train_rmse": 0.5813101147643693,
+      "train_nlpd": 42.17084499030872,
+      "elbo_loss": 53.059211818561,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3200,
+      "train_rmse": 0.5804741652183341,
+      "train_nlpd": 41.98083130012041,
+      "elbo_loss": 53.92732565289683,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3300,
+      "train_rmse": 0.5774169423903333,
+      "train_nlpd": 41.733777396879425,
+      "elbo_loss": 52.96982244250928,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3400,
+      "train_rmse": 0.575151212947453,
+      "train_nlpd": 41.635306578091836,
+      "elbo_loss": 52.40634519537565,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3500,
+      "train_rmse": 0.5738751609687632,
+      "train_nlpd": 41.444243522435094,
+      "elbo_loss": 52.35765065379255,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3600,
+      "train_rmse": 0.5718371857223792,
+      "train_nlpd": 41.180363880136476,
+      "elbo_loss": 52.486703303095666,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3700,
+      "train_rmse": 0.5689266763392556,
+      "train_nlpd": 41.05366196929324,
+      "elbo_loss": 51.86052715790052,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3800,
+      "train_rmse": 0.567801401023246,
+      "train_nlpd": 40.913817559019066,
+      "elbo_loss": 51.78636779399072,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 3900,
+      "train_rmse": 0.5664300844609166,
+      "train_nlpd": 40.80154141068529,
+      "elbo_loss": 51.42683463877246,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4000,
+      "train_rmse": 0.564675696624966,
+      "train_nlpd": 40.641847711826145,
+      "elbo_loss": 51.571137120178456,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4100,
+      "train_rmse": 0.5630199237022384,
+      "train_nlpd": 40.54976783743438,
+      "elbo_loss": 51.63106778861524,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4200,
+      "train_rmse": 0.5611038914457485,
+      "train_nlpd": 40.38373326449015,
+      "elbo_loss": 51.02289206487362,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4300,
+      "train_rmse": 0.5599159765061394,
+      "train_nlpd": 40.22960199057119,
+      "elbo_loss": 52.34826683221567,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4400,
+      "train_rmse": 0.5584882904783932,
+      "train_nlpd": 40.11895615073398,
+      "elbo_loss": 51.204997940154726,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4500,
+      "train_rmse": 0.5578460558008072,
+      "train_nlpd": 40.06263856815681,
+      "elbo_loss": 51.323825013314575,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4600,
+      "train_rmse": 0.5561993425227725,
+      "train_nlpd": 39.92296531077592,
+      "elbo_loss": 50.57932792613785,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4700,
+      "train_rmse": 0.5558650493784149,
+      "train_nlpd": 39.827357588360016,
+      "elbo_loss": 50.66566374261399,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4800,
+      "train_rmse": 0.5554068184241813,
+      "train_nlpd": 39.74482777112422,
+      "elbo_loss": 51.47134919797066,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 4900,
+      "train_rmse": 0.5531807591774411,
+      "train_nlpd": 39.65179640780796,
+      "elbo_loss": 51.04128625668981,
+      "effective_dims": 10,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5000,
+      "train_rmse": 0.5542424570600921,
+      "train_nlpd": 39.55901875043779,
+      "elbo_loss": 50.09879035980234,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5100,
+      "train_rmse": 0.5548412044779598,
+      "train_nlpd": 39.539646186076865,
+      "elbo_loss": 52.01790863419553,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5200,
+      "train_rmse": 0.5514259130723684,
+      "train_nlpd": 39.32991111285631,
+      "elbo_loss": 50.58586439166034,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5300,
+      "train_rmse": 0.551415788341981,
+      "train_nlpd": 39.26074630871788,
+      "elbo_loss": 49.62065004439263,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5400,
+      "train_rmse": 0.551139086024777,
+      "train_nlpd": 39.21350595923662,
+      "elbo_loss": 51.22953099709197,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5500,
+      "train_rmse": 0.5510708654880863,
+      "train_nlpd": 39.15944284508638,
+      "elbo_loss": 50.59765140318086,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5600,
+      "train_rmse": 0.5494890642199164,
+      "train_nlpd": 39.08784449222095,
+      "elbo_loss": 49.30418559619561,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5700,
+      "train_rmse": 0.5499704590866656,
+      "train_nlpd": 39.05473619116508,
+      "elbo_loss": 50.13748768194793,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5800,
+      "train_rmse": 0.5465522683544537,
+      "train_nlpd": 38.736438888364184,
+      "elbo_loss": 49.72340436537341,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 5900,
+      "train_rmse": 0.5456367435913057,
+      "train_nlpd": 38.67092048335454,
+      "elbo_loss": 50.09650210031317,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6000,
+      "train_rmse": 0.5459414326064479,
+      "train_nlpd": 38.70587406857823,
+      "elbo_loss": 50.51392758002103,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6100,
+      "train_rmse": 0.5450149746583327,
+      "train_nlpd": 38.62635794358126,
+      "elbo_loss": 49.73301450222015,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6200,
+      "train_rmse": 0.5442035314276062,
+      "train_nlpd": 38.49703704836463,
+      "elbo_loss": 49.65605357237067,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6300,
+      "train_rmse": 0.5443785295859798,
+      "train_nlpd": 38.58220438908282,
+      "elbo_loss": 50.03020474157323,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6400,
+      "train_rmse": 0.5434444051494345,
+      "train_nlpd": 38.34578015100083,
+      "elbo_loss": 50.09245119020557,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6500,
+      "train_rmse": 0.5412747131594899,
+      "train_nlpd": 38.261044795483215,
+      "elbo_loss": 50.368297777569836,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6600,
+      "train_rmse": 0.5420829920106043,
+      "train_nlpd": 38.226490227479154,
+      "elbo_loss": 49.39187405445746,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6700,
+      "train_rmse": 0.5416659913256318,
+      "train_nlpd": 38.179824972313796,
+      "elbo_loss": 50.03737398337352,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6800,
+      "train_rmse": 0.5405487107355058,
+      "train_nlpd": 38.12025508457864,
+      "elbo_loss": 49.792384851890276,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 6900,
+      "train_rmse": 0.5398457271187846,
+      "train_nlpd": 38.04058636483052,
+      "elbo_loss": 49.02012910611483,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7000,
+      "train_rmse": 0.5398475214014494,
+      "train_nlpd": 37.99844809398466,
+      "elbo_loss": 48.653805686267845,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7100,
+      "train_rmse": 0.5397753854580496,
+      "train_nlpd": 38.00452377820046,
+      "elbo_loss": 48.84403771546236,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7200,
+      "train_rmse": 0.5394261487078528,
+      "train_nlpd": 37.96281892227176,
+      "elbo_loss": 48.58802066936057,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7300,
+      "train_rmse": 0.5377765430608943,
+      "train_nlpd": 37.82311561440278,
+      "elbo_loss": 48.940911479221626,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7400,
+      "train_rmse": 0.537857797016878,
+      "train_nlpd": 37.84674839806274,
+      "elbo_loss": 48.63592962926489,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7500,
+      "train_rmse": 0.5380360673051954,
+      "train_nlpd": 37.727972343256326,
+      "elbo_loss": 49.785658937213526,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7600,
+      "train_rmse": 0.5379391123785175,
+      "train_nlpd": 37.704688886426155,
+      "elbo_loss": 48.50888497377713,
+      "effective_dims": 9,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7700,
+      "train_rmse": 0.5373156882341528,
+      "train_nlpd": 37.6373670262411,
+      "elbo_loss": 49.05729668814277,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7800,
+      "train_rmse": 0.5361478074595832,
+      "train_nlpd": 37.525950386161334,
+      "elbo_loss": 48.406240119366466,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 7900,
+      "train_rmse": 0.535444879589992,
+      "train_nlpd": 37.51122610131001,
+      "elbo_loss": 48.428380044223346,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8000,
+      "train_rmse": 0.5346511131456254,
+      "train_nlpd": 37.377827520488346,
+      "elbo_loss": 49.26471095113697,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8100,
+      "train_rmse": 0.534992523672456,
+      "train_nlpd": 37.392007781103345,
+      "elbo_loss": 48.3873740329834,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8200,
+      "train_rmse": 0.5338631479978623,
+      "train_nlpd": 37.39372367078292,
+      "elbo_loss": 48.791806461660855,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8300,
+      "train_rmse": 0.5339355723635751,
+      "train_nlpd": 37.330863558780784,
+      "elbo_loss": 47.836035929331246,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8400,
+      "train_rmse": 0.5336268018296411,
+      "train_nlpd": 37.301056096424425,
+      "elbo_loss": 49.649049326050985,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8500,
+      "train_rmse": 0.5337411787004087,
+      "train_nlpd": 37.18287110541771,
+      "elbo_loss": 48.683205992006656,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8600,
+      "train_rmse": 0.5319984028289061,
+      "train_nlpd": 37.0902340308647,
+      "elbo_loss": 48.4224007693671,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8700,
+      "train_rmse": 0.5309392853062255,
+      "train_nlpd": 37.12025647828705,
+      "elbo_loss": 48.70967737434265,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8800,
+      "train_rmse": 0.5316240114527447,
+      "train_nlpd": 37.05983387083291,
+      "elbo_loss": 49.382820490001066,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 8900,
+      "train_rmse": 0.5309347802562757,
+      "train_nlpd": 36.99871760811346,
+      "elbo_loss": 48.58676658083479,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9000,
+      "train_rmse": 0.5311491985450301,
+      "train_nlpd": 36.98034714956321,
+      "elbo_loss": 48.94206356277975,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9100,
+      "train_rmse": 0.5298890220333273,
+      "train_nlpd": 36.94147490816138,
+      "elbo_loss": 47.85263860465902,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9200,
+      "train_rmse": 0.530112285217908,
+      "train_nlpd": 36.854541700252405,
+      "elbo_loss": 48.413846658666664,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9300,
+      "train_rmse": 0.5284695452390358,
+      "train_nlpd": 36.75661469646254,
+      "elbo_loss": 48.64213567942207,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9400,
+      "train_rmse": 0.5286500837120527,
+      "train_nlpd": 36.79365830960066,
+      "elbo_loss": 47.11459856808494,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9500,
+      "train_rmse": 0.5273251837500357,
+      "train_nlpd": 36.63475083504035,
+      "elbo_loss": 48.05861363963952,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9600,
+      "train_rmse": 0.5279793351033578,
+      "train_nlpd": 36.77891311144769,
+      "elbo_loss": 47.787842464650616,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9700,
+      "train_rmse": 0.5275679134252255,
+      "train_nlpd": 36.69481893979458,
+      "elbo_loss": 48.56197322500884,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9800,
+      "train_rmse": 0.5271572090380138,
+      "train_nlpd": 36.593254101334736,
+      "elbo_loss": 48.37780058506001,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 9900,
+      "train_rmse": 0.5262619733948444,
+      "train_nlpd": 36.575586554085085,
+      "elbo_loss": 47.4999276005846,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10000,
+      "train_rmse": 0.526796747850457,
+      "train_nlpd": 36.59312972219647,
+      "elbo_loss": 47.09446322287368,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10100,
+      "train_rmse": 0.527016058693397,
+      "train_nlpd": 36.58309389564181,
+      "elbo_loss": 47.257813760178145,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10200,
+      "train_rmse": 0.5258652281913447,
+      "train_nlpd": 36.535472480511274,
+      "elbo_loss": 46.959235719400766,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10300,
+      "train_rmse": 0.5250748101886693,
+      "train_nlpd": 36.53349608027238,
+      "elbo_loss": 47.826757058790136,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10400,
+      "train_rmse": 0.5244958774865228,
+      "train_nlpd": 36.38935491832211,
+      "elbo_loss": 47.99265295428643,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10500,
+      "train_rmse": 0.5241721347508047,
+      "train_nlpd": 36.32554954382916,
+      "elbo_loss": 48.46171033168792,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10600,
+      "train_rmse": 0.5239745639180134,
+      "train_nlpd": 36.400706298508446,
+      "elbo_loss": 47.93115663971592,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10700,
+      "train_rmse": 0.5235839054363063,
+      "train_nlpd": 36.18667100804979,
+      "elbo_loss": 47.77076274743954,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10800,
+      "train_rmse": 0.5246563724078585,
+      "train_nlpd": 36.316463575427576,
+      "elbo_loss": 48.715736213273956,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 10900,
+      "train_rmse": 0.5232408018014058,
+      "train_nlpd": 36.261064181127274,
+      "elbo_loss": 48.14599320100187,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11000,
+      "train_rmse": 0.5230948893251613,
+      "train_nlpd": 36.25891636736509,
+      "elbo_loss": 47.42138697314759,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11100,
+      "train_rmse": 0.5227051380069757,
+      "train_nlpd": 36.15351984615539,
+      "elbo_loss": 47.291817528099934,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11200,
+      "train_rmse": 0.522002764850242,
+      "train_nlpd": 36.01784489321673,
+      "elbo_loss": 46.94072855575467,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11300,
+      "train_rmse": 0.5224375289130267,
+      "train_nlpd": 36.137757949738706,
+      "elbo_loss": 47.027566439456145,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11400,
+      "train_rmse": 0.5219480609342516,
+      "train_nlpd": 36.10109487566596,
+      "elbo_loss": 47.379350459599536,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11500,
+      "train_rmse": 0.5224209062515693,
+      "train_nlpd": 36.07713992747231,
+      "elbo_loss": 47.462395192104296,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11600,
+      "train_rmse": 0.5268519683696492,
+      "train_nlpd": 36.521208558011466,
+      "elbo_loss": 48.0576925750804,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11700,
+      "train_rmse": 0.5281455810308753,
+      "train_nlpd": 36.62857250153065,
+      "elbo_loss": 47.448597362414716,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11800,
+      "train_rmse": 0.5313261329554957,
+      "train_nlpd": 36.9338492507866,
+      "elbo_loss": 48.429971744147686,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 11900,
+      "train_rmse": 0.5379551390598755,
+      "train_nlpd": 37.417512362531106,
+      "elbo_loss": 48.79773416643867,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12000,
+      "train_rmse": 0.5349316282232018,
+      "train_nlpd": 37.14148249677553,
+      "elbo_loss": 49.41801317271023,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12100,
+      "train_rmse": 0.5295528789396975,
+      "train_nlpd": 36.746728450222925,
+      "elbo_loss": 48.859110681463505,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12200,
+      "train_rmse": 0.5306217715216075,
+      "train_nlpd": 36.85188282956647,
+      "elbo_loss": 47.65874404405008,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12300,
+      "train_rmse": 0.5263378421006784,
+      "train_nlpd": 36.43744266485905,
+      "elbo_loss": 47.350468362746085,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12400,
+      "train_rmse": 0.5226571076092827,
+      "train_nlpd": 36.139387889179105,
+      "elbo_loss": 46.675932551297485,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12500,
+      "train_rmse": 0.5229539333453109,
+      "train_nlpd": 36.15801437863922,
+      "elbo_loss": 46.80974204926889,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12600,
+      "train_rmse": 0.5220221181534899,
+      "train_nlpd": 36.02313715971371,
+      "elbo_loss": 47.226929514912314,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12700,
+      "train_rmse": 0.5217839266817695,
+      "train_nlpd": 36.063278347158345,
+      "elbo_loss": 46.69376957530656,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12800,
+      "train_rmse": 0.5203042389600145,
+      "train_nlpd": 35.934431932890234,
+      "elbo_loss": 47.41462605654624,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 12900,
+      "train_rmse": 0.5202165285400497,
+      "train_nlpd": 35.96813027417993,
+      "elbo_loss": 47.00303644084562,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13000,
+      "train_rmse": 0.5206975906720047,
+      "train_nlpd": 35.91134632839466,
+      "elbo_loss": 46.97868898587089,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13100,
+      "train_rmse": 0.5200270043041995,
+      "train_nlpd": 35.833592906187384,
+      "elbo_loss": 47.234988770869265,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13200,
+      "train_rmse": 0.5192035114392237,
+      "train_nlpd": 35.783428110656814,
+      "elbo_loss": 46.113897260935246,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13300,
+      "train_rmse": 0.5188838236961346,
+      "train_nlpd": 35.76220752677394,
+      "elbo_loss": 47.12374863106287,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13400,
+      "train_rmse": 0.5191150152346619,
+      "train_nlpd": 35.71662616618481,
+      "elbo_loss": 47.67890139359315,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13500,
+      "train_rmse": 0.5180059398420296,
+      "train_nlpd": 35.718924797598156,
+      "elbo_loss": 46.486018554822905,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13600,
+      "train_rmse": 0.5182486463261604,
+      "train_nlpd": 35.710753470046924,
+      "elbo_loss": 46.42836636070156,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13700,
+      "train_rmse": 0.5178636266366032,
+      "train_nlpd": 35.67497806053079,
+      "elbo_loss": 47.124739836393836,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13800,
+      "train_rmse": 0.5182681919649852,
+      "train_nlpd": 35.64417460621539,
+      "elbo_loss": 46.42857928137673,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 13900,
+      "train_rmse": 0.5181756771202174,
+      "train_nlpd": 35.73348971138626,
+      "elbo_loss": 45.670786066720176,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14000,
+      "train_rmse": 0.5176496410668158,
+      "train_nlpd": 35.636407270901934,
+      "elbo_loss": 46.68510889122168,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14100,
+      "train_rmse": 0.5181813516925139,
+      "train_nlpd": 35.69812000906499,
+      "elbo_loss": 46.470244362627696,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14200,
+      "train_rmse": 0.5174312758912354,
+      "train_nlpd": 35.56824144432609,
+      "elbo_loss": 46.79118184459482,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14300,
+      "train_rmse": 0.5170255020492035,
+      "train_nlpd": 35.619908228380304,
+      "elbo_loss": 46.30845432617666,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14400,
+      "train_rmse": 0.5175390513712452,
+      "train_nlpd": 35.65771627588385,
+      "elbo_loss": 47.51263649380293,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14500,
+      "train_rmse": 0.5170538337460454,
+      "train_nlpd": 35.579317649366075,
+      "elbo_loss": 47.47739679209224,
+      "effective_dims": 8,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14600,
+      "train_rmse": 0.5169249524287268,
+      "train_nlpd": 35.554070647671274,
+      "elbo_loss": 47.23824005402942,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14700,
+      "train_rmse": 0.5173770126622046,
+      "train_nlpd": 35.62265926949256,
+      "elbo_loss": 46.3113449973216,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14800,
+      "train_rmse": 0.5191984567187801,
+      "train_nlpd": 35.78064682634336,
+      "elbo_loss": 45.52256195205591,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 14900,
+      "train_rmse": 0.5175890120779263,
+      "train_nlpd": 35.69099930262797,
+      "elbo_loss": 46.7722492737761,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15000,
+      "train_rmse": 0.5182451116228234,
+      "train_nlpd": 35.75422156660024,
+      "elbo_loss": 48.04069997225503,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15100,
+      "train_rmse": 0.5165098428607346,
+      "train_nlpd": 35.606776902473676,
+      "elbo_loss": 45.50609178914604,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15200,
+      "train_rmse": 0.5152608632731704,
+      "train_nlpd": 35.41994866940246,
+      "elbo_loss": 46.74193436520059,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15300,
+      "train_rmse": 0.515768723180262,
+      "train_nlpd": 35.478290600818596,
+      "elbo_loss": 46.475588646682134,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15400,
+      "train_rmse": 0.5153371959431764,
+      "train_nlpd": 35.39490587283536,
+      "elbo_loss": 45.69732898249512,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15500,
+      "train_rmse": 0.5153254654697856,
+      "train_nlpd": 35.352794990007276,
+      "elbo_loss": 45.780166707226016,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15600,
+      "train_rmse": 0.5155547440124287,
+      "train_nlpd": 35.46858613977987,
+      "elbo_loss": 45.686251683451246,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15700,
+      "train_rmse": 0.5150101656192168,
+      "train_nlpd": 35.33111385609298,
+      "elbo_loss": 46.08285130332606,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15800,
+      "train_rmse": 0.5151560928062604,
+      "train_nlpd": 35.354270427558454,
+      "elbo_loss": 46.53036344694871,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 15900,
+      "train_rmse": 0.5156304270504288,
+      "train_nlpd": 35.38091595672298,
+      "elbo_loss": 47.81899901248883,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16000,
+      "train_rmse": 0.5155668620801653,
+      "train_nlpd": 35.42528876077539,
+      "elbo_loss": 46.358506277974996,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16100,
+      "train_rmse": 0.514451964187518,
+      "train_nlpd": 35.2817015267969,
+      "elbo_loss": 46.25425580370009,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16200,
+      "train_rmse": 0.5150380163572985,
+      "train_nlpd": 35.3965161817234,
+      "elbo_loss": 47.711295739074245,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16300,
+      "train_rmse": 0.514169273301368,
+      "train_nlpd": 35.267824270244475,
+      "elbo_loss": 46.37433741314459,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16400,
+      "train_rmse": 0.5131131323712915,
+      "train_nlpd": 35.22309865775311,
+      "elbo_loss": 45.68300719614031,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16500,
+      "train_rmse": 0.5139128984950742,
+      "train_nlpd": 35.23136824838949,
+      "elbo_loss": 45.79223033053487,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16600,
+      "train_rmse": 0.5134203870754968,
+      "train_nlpd": 35.219063600304416,
+      "elbo_loss": 47.30804369149508,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16700,
+      "train_rmse": 0.5134669809051067,
+      "train_nlpd": 35.25819299755209,
+      "elbo_loss": 46.075685260967134,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16800,
+      "train_rmse": 0.5150226084528756,
+      "train_nlpd": 35.29697490815287,
+      "elbo_loss": 46.40128780716279,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 16900,
+      "train_rmse": 0.5153716715767185,
+      "train_nlpd": 35.363935205136656,
+      "elbo_loss": 47.20216275394078,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17000,
+      "train_rmse": 0.5147849852234236,
+      "train_nlpd": 35.32866776132823,
+      "elbo_loss": 47.07036684747492,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17100,
+      "train_rmse": 0.5142889121037929,
+      "train_nlpd": 35.38724490476762,
+      "elbo_loss": 44.58350661492142,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17200,
+      "train_rmse": 0.5138017160696738,
+      "train_nlpd": 35.21971124734937,
+      "elbo_loss": 45.77934199257159,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17300,
+      "train_rmse": 0.5158418841921625,
+      "train_nlpd": 35.35085676101958,
+      "elbo_loss": 46.10321693889617,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17400,
+      "train_rmse": 0.5146647262557339,
+      "train_nlpd": 35.339645611703176,
+      "elbo_loss": 45.8873949456732,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17500,
+      "train_rmse": 0.5152390421407459,
+      "train_nlpd": 35.24846985784093,
+      "elbo_loss": 45.92622545530366,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17600,
+      "train_rmse": 0.5161129601830129,
+      "train_nlpd": 35.291191605409374,
+      "elbo_loss": 46.44400239554484,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17700,
+      "train_rmse": 0.5138472514250696,
+      "train_nlpd": 35.25510787078828,
+      "elbo_loss": 47.11157659761939,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17800,
+      "train_rmse": 0.5128203880986361,
+      "train_nlpd": 35.12432624939862,
+      "elbo_loss": 45.53548117609239,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 17900,
+      "train_rmse": 0.5118963892577125,
+      "train_nlpd": 34.994123556511376,
+      "elbo_loss": 46.41479914448476,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18000,
+      "train_rmse": 0.5115671695299121,
+      "train_nlpd": 34.9998019220414,
+      "elbo_loss": 45.01960540748241,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18100,
+      "train_rmse": 0.5125402193494811,
+      "train_nlpd": 35.05863311884854,
+      "elbo_loss": 47.193696393529805,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18200,
+      "train_rmse": 0.5121778668531899,
+      "train_nlpd": 35.13263170862918,
+      "elbo_loss": 45.490604024330906,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18300,
+      "train_rmse": 0.5125292827362187,
+      "train_nlpd": 35.049604372309425,
+      "elbo_loss": 46.137673653961194,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18400,
+      "train_rmse": 0.5131149359652157,
+      "train_nlpd": 35.11425368912285,
+      "elbo_loss": 46.48854634777209,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18500,
+      "train_rmse": 0.5114261493102537,
+      "train_nlpd": 34.98112878010868,
+      "elbo_loss": 45.74968976302806,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18600,
+      "train_rmse": 0.5122622621850584,
+      "train_nlpd": 35.04688511595766,
+      "elbo_loss": 45.98296564030316,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18700,
+      "train_rmse": 0.5113181487368349,
+      "train_nlpd": 34.965625861161904,
+      "elbo_loss": 44.06190278742697,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18800,
+      "train_rmse": 0.5110240373376488,
+      "train_nlpd": 34.852270516246755,
+      "elbo_loss": 45.74807940126322,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 18900,
+      "train_rmse": 0.511307690658583,
+      "train_nlpd": 34.97871463726832,
+      "elbo_loss": 46.06317487322809,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19000,
+      "train_rmse": 0.5119187460848369,
+      "train_nlpd": 34.94663089816347,
+      "elbo_loss": 45.80073380893553,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19100,
+      "train_rmse": 0.5118751261800719,
+      "train_nlpd": 35.042479027286866,
+      "elbo_loss": 45.684230713686325,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19200,
+      "train_rmse": 0.5110465664859429,
+      "train_nlpd": 34.84084700210496,
+      "elbo_loss": 45.31348105963296,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19300,
+      "train_rmse": 0.5106712264475337,
+      "train_nlpd": 34.82839506610943,
+      "elbo_loss": 46.564314022709546,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19400,
+      "train_rmse": 0.5098450440503229,
+      "train_nlpd": 34.79572676263096,
+      "elbo_loss": 46.82633401964185,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19500,
+      "train_rmse": 0.5108490777130384,
+      "train_nlpd": 34.965538201470984,
+      "elbo_loss": 45.89163765356075,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19600,
+      "train_rmse": 0.5102386906070284,
+      "train_nlpd": 34.70247374166309,
+      "elbo_loss": 45.6830683348603,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19700,
+      "train_rmse": 0.5112464620402284,
+      "train_nlpd": 35.01293277965281,
+      "elbo_loss": 45.342292590557165,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19800,
+      "train_rmse": 0.509984228731111,
+      "train_nlpd": 34.86593109255815,
+      "elbo_loss": 44.80880305572594,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 19900,
+      "train_rmse": 0.5104682275703759,
+      "train_nlpd": 34.91720406312813,
+      "elbo_loss": 45.393750139219556,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20000,
+      "train_rmse": 0.5113346193881543,
+      "train_nlpd": 34.898917343605305,
+      "elbo_loss": 45.523355992257635,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20100,
+      "train_rmse": 0.5099352720219155,
+      "train_nlpd": 34.827761932428274,
+      "elbo_loss": 46.50755587187186,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20200,
+      "train_rmse": 0.510624347923977,
+      "train_nlpd": 34.90629919606773,
+      "elbo_loss": 46.349621022217136,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20300,
+      "train_rmse": 0.5100628121739692,
+      "train_nlpd": 34.881126782181894,
+      "elbo_loss": 45.7155652520498,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20400,
+      "train_rmse": 0.510169173080213,
+      "train_nlpd": 34.83013650933259,
+      "elbo_loss": 46.07261187108659,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20500,
+      "train_rmse": 0.510370142863392,
+      "train_nlpd": 34.85598634642637,
+      "elbo_loss": 45.19051991182219,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20600,
+      "train_rmse": 0.5086932793858763,
+      "train_nlpd": 34.66271024296856,
+      "elbo_loss": 46.11559597874393,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20700,
+      "train_rmse": 0.5092458091822906,
+      "train_nlpd": 34.736514184888044,
+      "elbo_loss": 46.937349305241725,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20800,
+      "train_rmse": 0.5089996052601923,
+      "train_nlpd": 34.805655643676204,
+      "elbo_loss": 46.178261639332995,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 20900,
+      "train_rmse": 0.5087604128329164,
+      "train_nlpd": 34.75554238573972,
+      "elbo_loss": 44.63729795834861,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21000,
+      "train_rmse": 0.5091865396345323,
+      "train_nlpd": 34.686023836458965,
+      "elbo_loss": 44.886305967759256,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21100,
+      "train_rmse": 0.5094036335026138,
+      "train_nlpd": 34.715252578114004,
+      "elbo_loss": 45.367527987508105,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21200,
+      "train_rmse": 0.5092543063458567,
+      "train_nlpd": 34.748489651722245,
+      "elbo_loss": 45.49206602230986,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21300,
+      "train_rmse": 0.509404003105051,
+      "train_nlpd": 34.75738409480644,
+      "elbo_loss": 45.14638793712254,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21400,
+      "train_rmse": 0.5089162603701154,
+      "train_nlpd": 34.71546144981756,
+      "elbo_loss": 45.381060912864356,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21500,
+      "train_rmse": 0.5088333903798087,
+      "train_nlpd": 34.61441463032792,
+      "elbo_loss": 45.9436446498745,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21600,
+      "train_rmse": 0.5081362921216885,
+      "train_nlpd": 34.700961684095255,
+      "elbo_loss": 45.96342343520911,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21700,
+      "train_rmse": 0.5083503308726809,
+      "train_nlpd": 34.66138643980753,
+      "elbo_loss": 46.54318921402488,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21800,
+      "train_rmse": 0.5096814335181946,
+      "train_nlpd": 34.80445643678554,
+      "elbo_loss": 44.66610116513496,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 21900,
+      "train_rmse": 0.5095915855780194,
+      "train_nlpd": 34.82791069989288,
+      "elbo_loss": 46.220253553636155,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22000,
+      "train_rmse": 0.5093450264490926,
+      "train_nlpd": 34.83433265682216,
+      "elbo_loss": 45.91083732419832,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22100,
+      "train_rmse": 0.5169742531705942,
+      "train_nlpd": 35.32342180939038,
+      "elbo_loss": 45.3801982477507,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22200,
+      "train_rmse": 0.5239392687338801,
+      "train_nlpd": 35.913030077905375,
+      "elbo_loss": 46.021744573334274,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22300,
+      "train_rmse": 0.5340625975076143,
+      "train_nlpd": 36.80347471066858,
+      "elbo_loss": 47.40700908611518,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22400,
+      "train_rmse": 0.5172070013475725,
+      "train_nlpd": 35.61967019690885,
+      "elbo_loss": 46.305319217972006,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22500,
+      "train_rmse": 0.5159744368927471,
+      "train_nlpd": 35.32676715667093,
+      "elbo_loss": 45.81906700188014,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22600,
+      "train_rmse": 0.514465889999063,
+      "train_nlpd": 35.19948330409116,
+      "elbo_loss": 45.935299579362436,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22700,
+      "train_rmse": 0.510321714140109,
+      "train_nlpd": 34.9310171828696,
+      "elbo_loss": 45.35482981422158,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22800,
+      "train_rmse": 0.5100972522901681,
+      "train_nlpd": 34.74648114842332,
+      "elbo_loss": 45.55154553968181,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 22900,
+      "train_rmse": 0.5092879152186343,
+      "train_nlpd": 34.686744322189504,
+      "elbo_loss": 45.54940782617111,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23000,
+      "train_rmse": 0.5091967006516572,
+      "train_nlpd": 34.78052334143076,
+      "elbo_loss": 45.73279597395704,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23100,
+      "train_rmse": 0.5097825945871554,
+      "train_nlpd": 34.78068855260903,
+      "elbo_loss": 45.63691475075528,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23200,
+      "train_rmse": 0.5080779727060802,
+      "train_nlpd": 34.61432191982895,
+      "elbo_loss": 45.589292399029745,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23300,
+      "train_rmse": 0.5097650091792535,
+      "train_nlpd": 34.77698142507297,
+      "elbo_loss": 45.08244379731969,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23400,
+      "train_rmse": 0.508030101714258,
+      "train_nlpd": 34.573735823714,
+      "elbo_loss": 45.840683019173795,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23500,
+      "train_rmse": 0.5077740411422815,
+      "train_nlpd": 34.62209578952372,
+      "elbo_loss": 45.022212963446805,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23600,
+      "train_rmse": 0.5083278409652312,
+      "train_nlpd": 34.629444368754086,
+      "elbo_loss": 45.36489359711392,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23700,
+      "train_rmse": 0.5079060401910329,
+      "train_nlpd": 34.686178735771314,
+      "elbo_loss": 45.673100910568024,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23800,
+      "train_rmse": 0.5077493929287943,
+      "train_nlpd": 34.65426821740485,
+      "elbo_loss": 45.710402061505754,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 23900,
+      "train_rmse": 0.508197958781616,
+      "train_nlpd": 34.539076001788466,
+      "elbo_loss": 44.57664653405399,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24000,
+      "train_rmse": 0.5078988248750284,
+      "train_nlpd": 34.660286108840445,
+      "elbo_loss": 45.10866665815302,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24100,
+      "train_rmse": 0.5079272521522719,
+      "train_nlpd": 34.65964382493526,
+      "elbo_loss": 44.5374374396647,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24200,
+      "train_rmse": 0.5075609983478946,
+      "train_nlpd": 34.57098396219295,
+      "elbo_loss": 44.819117609532874,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24300,
+      "train_rmse": 0.5081253136929623,
+      "train_nlpd": 34.684521702662806,
+      "elbo_loss": 44.89460380380613,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24400,
+      "train_rmse": 0.5073590557687002,
+      "train_nlpd": 34.510241150109316,
+      "elbo_loss": 45.20437395380282,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24500,
+      "train_rmse": 0.5077088245577899,
+      "train_nlpd": 34.53294748142129,
+      "elbo_loss": 45.55979901272525,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24600,
+      "train_rmse": 0.506891546909537,
+      "train_nlpd": 34.481137213790426,
+      "elbo_loss": 44.94164277371486,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24700,
+      "train_rmse": 0.5070253637616293,
+      "train_nlpd": 34.57879402185856,
+      "elbo_loss": 45.5041524710565,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24800,
+      "train_rmse": 0.5073830662833607,
+      "train_nlpd": 34.53988631772412,
+      "elbo_loss": 45.650884166083515,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 24900,
+      "train_rmse": 0.5075583150591562,
+      "train_nlpd": 34.59974135068125,
+      "elbo_loss": 44.985371861607916,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25000,
+      "train_rmse": 0.507408278106645,
+      "train_nlpd": 34.63263446899734,
+      "elbo_loss": 44.7848684185086,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25100,
+      "train_rmse": 0.5065554629246919,
+      "train_nlpd": 34.564237234657455,
+      "elbo_loss": 45.333341325579,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25200,
+      "train_rmse": 0.5059092926852335,
+      "train_nlpd": 34.36638136490849,
+      "elbo_loss": 44.878948571180295,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25300,
+      "train_rmse": 0.5066567122745176,
+      "train_nlpd": 34.51830456577169,
+      "elbo_loss": 44.20679847394153,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25400,
+      "train_rmse": 0.5067105512322703,
+      "train_nlpd": 34.54105238310902,
+      "elbo_loss": 45.41063855687976,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25500,
+      "train_rmse": 0.5068467093266185,
+      "train_nlpd": 34.314609912366414,
+      "elbo_loss": 45.16456538624732,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25600,
+      "train_rmse": 0.5064326453777385,
+      "train_nlpd": 34.389759307066086,
+      "elbo_loss": 45.320897081121316,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25700,
+      "train_rmse": 0.5062061054821487,
+      "train_nlpd": 34.41460173862248,
+      "elbo_loss": 46.17702485019854,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25800,
+      "train_rmse": 0.5065484440391859,
+      "train_nlpd": 34.49775294794188,
+      "elbo_loss": 44.64767415087853,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 25900,
+      "train_rmse": 0.5065765103894322,
+      "train_nlpd": 34.51965602052177,
+      "elbo_loss": 44.81960519430776,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26000,
+      "train_rmse": 0.5070075629500612,
+      "train_nlpd": 34.46831689114327,
+      "elbo_loss": 45.21121236506171,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26100,
+      "train_rmse": 0.5065449964753733,
+      "train_nlpd": 34.451196752976614,
+      "elbo_loss": 44.972807844756474,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26200,
+      "train_rmse": 0.506097230601977,
+      "train_nlpd": 34.436469393650874,
+      "elbo_loss": 45.046100386190155,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26300,
+      "train_rmse": 0.5069174711888449,
+      "train_nlpd": 34.44511432008903,
+      "elbo_loss": 44.69805898252757,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26400,
+      "train_rmse": 0.5065552176663076,
+      "train_nlpd": 34.47232478843099,
+      "elbo_loss": 45.160867688300144,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26500,
+      "train_rmse": 0.5058310802092526,
+      "train_nlpd": 34.501464316705786,
+      "elbo_loss": 45.179856199717946,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26600,
+      "train_rmse": 0.5063877987561342,
+      "train_nlpd": 34.48471253283749,
+      "elbo_loss": 44.4392306051066,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26700,
+      "train_rmse": 0.5056572120979816,
+      "train_nlpd": 34.365222173464495,
+      "elbo_loss": 45.08026408417132,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26800,
+      "train_rmse": 0.5059293355946857,
+      "train_nlpd": 34.39444784133084,
+      "elbo_loss": 45.3125415168418,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 26900,
+      "train_rmse": 0.5061353257396779,
+      "train_nlpd": 34.39247537723877,
+      "elbo_loss": 44.94593191334229,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27000,
+      "train_rmse": 0.5055848454660811,
+      "train_nlpd": 34.41676290108526,
+      "elbo_loss": 45.77269532414142,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27100,
+      "train_rmse": 0.5050198737137751,
+      "train_nlpd": 34.25114432254969,
+      "elbo_loss": 44.711594598718364,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27200,
+      "train_rmse": 0.5059957239342522,
+      "train_nlpd": 34.32326792902081,
+      "elbo_loss": 44.43437024835893,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27300,
+      "train_rmse": 0.5055960837619418,
+      "train_nlpd": 34.5193680415104,
+      "elbo_loss": 44.21365465483896,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27400,
+      "train_rmse": 0.5063554716867716,
+      "train_nlpd": 34.54131315146267,
+      "elbo_loss": 44.31311071857694,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27500,
+      "train_rmse": 0.506336874924467,
+      "train_nlpd": 34.37779459497984,
+      "elbo_loss": 45.82321579217046,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27600,
+      "train_rmse": 0.5050096037798449,
+      "train_nlpd": 34.386975964554416,
+      "elbo_loss": 44.453161762606186,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27700,
+      "train_rmse": 0.5058791752586937,
+      "train_nlpd": 34.45085988445259,
+      "elbo_loss": 44.29370076291822,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27800,
+      "train_rmse": 0.5053838224885355,
+      "train_nlpd": 34.389879510559155,
+      "elbo_loss": 46.05304010018813,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 27900,
+      "train_rmse": 0.5050120864772809,
+      "train_nlpd": 34.29376198432468,
+      "elbo_loss": 45.42641069942308,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28000,
+      "train_rmse": 0.5058574877444783,
+      "train_nlpd": 34.390587380732406,
+      "elbo_loss": 46.413457856878246,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28100,
+      "train_rmse": 0.505668203826124,
+      "train_nlpd": 34.36477274589331,
+      "elbo_loss": 45.93905383870935,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28200,
+      "train_rmse": 0.5052573485318128,
+      "train_nlpd": 34.26750912257309,
+      "elbo_loss": 44.75996213343022,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28300,
+      "train_rmse": 0.5044688386827793,
+      "train_nlpd": 34.2261817484578,
+      "elbo_loss": 44.696368023158364,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28400,
+      "train_rmse": 0.504436025419121,
+      "train_nlpd": 34.218664731128584,
+      "elbo_loss": 44.66284651481888,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28500,
+      "train_rmse": 0.5046822066136836,
+      "train_nlpd": 34.33900752096162,
+      "elbo_loss": 44.77049222569873,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28600,
+      "train_rmse": 0.5045753854684338,
+      "train_nlpd": 34.29749363130626,
+      "elbo_loss": 45.523808086621514,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28700,
+      "train_rmse": 0.5050140666590269,
+      "train_nlpd": 34.32124617974435,
+      "elbo_loss": 44.38602035123171,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28800,
+      "train_rmse": 0.5044526987065763,
+      "train_nlpd": 34.31463507615389,
+      "elbo_loss": 45.83748916691371,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 28900,
+      "train_rmse": 0.5042745333584373,
+      "train_nlpd": 34.26276969965427,
+      "elbo_loss": 44.21468976743986,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29000,
+      "train_rmse": 0.5045506848076753,
+      "train_nlpd": 34.2415613860296,
+      "elbo_loss": 45.653457358585186,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29100,
+      "train_rmse": 0.5041841143303133,
+      "train_nlpd": 34.2508112558849,
+      "elbo_loss": 44.806724906590446,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29200,
+      "train_rmse": 0.503685697249878,
+      "train_nlpd": 34.290604558959515,
+      "elbo_loss": 44.6653625217307,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29300,
+      "train_rmse": 0.5048155677332862,
+      "train_nlpd": 34.23876895659565,
+      "elbo_loss": 44.9278873587905,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29400,
+      "train_rmse": 0.5047982858728615,
+      "train_nlpd": 34.30534020528118,
+      "elbo_loss": 45.064360511883656,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29500,
+      "train_rmse": 0.5045907355873687,
+      "train_nlpd": 34.27632361723642,
+      "elbo_loss": 44.314294471320025,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29600,
+      "train_rmse": 0.5051542126862418,
+      "train_nlpd": 34.31995695275935,
+      "elbo_loss": 45.575831083679816,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29700,
+      "train_rmse": 0.504277245786885,
+      "train_nlpd": 34.210819564253605,
+      "elbo_loss": 44.33636663698325,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29800,
+      "train_rmse": 0.5064715328450059,
+      "train_nlpd": 34.32684372395547,
+      "elbo_loss": 45.190319616149466,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 29900,
+      "train_rmse": 0.5059475816369278,
+      "train_nlpd": 34.43854673819802,
+      "elbo_loss": 44.86748895793767,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30000,
+      "train_rmse": 0.5071242129976822,
+      "train_nlpd": 34.46908950905358,
+      "elbo_loss": 45.3346646697149,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30100,
+      "train_rmse": 0.5047494494197609,
+      "train_nlpd": 34.36805096377345,
+      "elbo_loss": 44.245920468642375,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30200,
+      "train_rmse": 0.5079178222605333,
+      "train_nlpd": 34.50749208917378,
+      "elbo_loss": 45.596544796141245,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30300,
+      "train_rmse": 0.5046018564417958,
+      "train_nlpd": 34.31521103010182,
+      "elbo_loss": 44.813975372816586,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30400,
+      "train_rmse": 0.5045500970421124,
+      "train_nlpd": 34.30429407422961,
+      "elbo_loss": 44.71945780634002,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30500,
+      "train_rmse": 0.5088949437696297,
+      "train_nlpd": 34.64622801969457,
+      "elbo_loss": 44.854166965996185,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30600,
+      "train_rmse": 0.5141085657363937,
+      "train_nlpd": 35.07975787591997,
+      "elbo_loss": 45.98008930809874,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30700,
+      "train_rmse": 0.512827976309234,
+      "train_nlpd": 35.0328360865714,
+      "elbo_loss": 45.35511280546887,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30800,
+      "train_rmse": 0.5097323032229935,
+      "train_nlpd": 34.77166101334033,
+      "elbo_loss": 45.33204307527437,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 30900,
+      "train_rmse": 0.5102207195243982,
+      "train_nlpd": 34.78475108822237,
+      "elbo_loss": 44.705530473781465,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31000,
+      "train_rmse": 0.5100558642614847,
+      "train_nlpd": 34.73488954062211,
+      "elbo_loss": 44.54246606637809,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31100,
+      "train_rmse": 0.5055086626950078,
+      "train_nlpd": 34.35524542133338,
+      "elbo_loss": 43.45217772304956,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31200,
+      "train_rmse": 0.5057677444586157,
+      "train_nlpd": 34.35428198636361,
+      "elbo_loss": 44.40661554750034,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31300,
+      "train_rmse": 0.5049695401475768,
+      "train_nlpd": 34.37677743300965,
+      "elbo_loss": 44.76434586272535,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31400,
+      "train_rmse": 0.5048922969142188,
+      "train_nlpd": 34.32706115613427,
+      "elbo_loss": 44.77149520382842,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31500,
+      "train_rmse": 0.5046475462820575,
+      "train_nlpd": 34.24920818676333,
+      "elbo_loss": 45.20495069173566,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31600,
+      "train_rmse": 0.5048478988706506,
+      "train_nlpd": 34.216177169325334,
+      "elbo_loss": 44.70125131396186,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31700,
+      "train_rmse": 0.5047603134455257,
+      "train_nlpd": 34.269272225224796,
+      "elbo_loss": 44.77921232894252,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31800,
+      "train_rmse": 0.5038943619929948,
+      "train_nlpd": 34.14965760576835,
+      "elbo_loss": 45.57270365673274,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 31900,
+      "train_rmse": 0.5048081003792159,
+      "train_nlpd": 34.26092484591692,
+      "elbo_loss": 44.57189712426525,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32000,
+      "train_rmse": 0.504267254484298,
+      "train_nlpd": 34.31864428267459,
+      "elbo_loss": 44.65153525606941,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32100,
+      "train_rmse": 0.5034715577074375,
+      "train_nlpd": 34.207793110419175,
+      "elbo_loss": 45.40826705197972,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32200,
+      "train_rmse": 0.5037266834201004,
+      "train_nlpd": 34.144232113462515,
+      "elbo_loss": 46.249336620589595,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32300,
+      "train_rmse": 0.5042875199761783,
+      "train_nlpd": 34.22953953000162,
+      "elbo_loss": 45.03663047764435,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32400,
+      "train_rmse": 0.5042748339396997,
+      "train_nlpd": 34.25902244244596,
+      "elbo_loss": 44.699327508221316,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32500,
+      "train_rmse": 0.5038694931307174,
+      "train_nlpd": 34.18892086794453,
+      "elbo_loss": 44.55569896264042,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32600,
+      "train_rmse": 0.502849791442437,
+      "train_nlpd": 34.10625012168763,
+      "elbo_loss": 44.80382398041351,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32700,
+      "train_rmse": 0.5040677015290808,
+      "train_nlpd": 34.191854450578994,
+      "elbo_loss": 45.46729091581241,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32800,
+      "train_rmse": 0.5040354446623644,
+      "train_nlpd": 34.14244197636899,
+      "elbo_loss": 45.036772718859005,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 32900,
+      "train_rmse": 0.5040060384567333,
+      "train_nlpd": 34.19664678433361,
+      "elbo_loss": 45.98714575902373,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33000,
+      "train_rmse": 0.5037472926459403,
+      "train_nlpd": 34.2642635571476,
+      "elbo_loss": 44.21988524266868,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33100,
+      "train_rmse": 0.5038965177809025,
+      "train_nlpd": 34.2579177107432,
+      "elbo_loss": 44.78989346673797,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33200,
+      "train_rmse": 0.5032787217420804,
+      "train_nlpd": 34.06670550695519,
+      "elbo_loss": 45.321957319557,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33300,
+      "train_rmse": 0.5032237134640688,
+      "train_nlpd": 34.0496638114007,
+      "elbo_loss": 45.1159270247409,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33400,
+      "train_rmse": 0.5030369444579144,
+      "train_nlpd": 34.19019340884553,
+      "elbo_loss": 44.92041235162442,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33500,
+      "train_rmse": 0.5033423632388889,
+      "train_nlpd": 34.15205978577811,
+      "elbo_loss": 46.02571191441638,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33600,
+      "train_rmse": 0.5029046727307784,
+      "train_nlpd": 34.179915625077975,
+      "elbo_loss": 44.63445617941255,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33700,
+      "train_rmse": 0.503208875501156,
+      "train_nlpd": 34.06179741756351,
+      "elbo_loss": 44.769800771010196,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33800,
+      "train_rmse": 0.503131333282633,
+      "train_nlpd": 34.04935874423929,
+      "elbo_loss": 44.955458116813304,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 33900,
+      "train_rmse": 0.5024838859455466,
+      "train_nlpd": 34.063891339160755,
+      "elbo_loss": 44.84728369274691,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34000,
+      "train_rmse": 0.5030232986391537,
+      "train_nlpd": 34.135490079228546,
+      "elbo_loss": 44.03262626547465,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34100,
+      "train_rmse": 0.5028209408414225,
+      "train_nlpd": 34.088880646091795,
+      "elbo_loss": 44.57974084605112,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34200,
+      "train_rmse": 0.5023937580721326,
+      "train_nlpd": 34.16082635757697,
+      "elbo_loss": 44.90042661723009,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34300,
+      "train_rmse": 0.5020677297175385,
+      "train_nlpd": 34.0843252184681,
+      "elbo_loss": 45.08767646293871,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34400,
+      "train_rmse": 0.5019897241627364,
+      "train_nlpd": 34.06975391365441,
+      "elbo_loss": 44.7879836178906,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34500,
+      "train_rmse": 0.5024419250234016,
+      "train_nlpd": 34.14149755279616,
+      "elbo_loss": 46.088352934979106,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34600,
+      "train_rmse": 0.503173757389305,
+      "train_nlpd": 34.13996615496749,
+      "elbo_loss": 44.8462547221895,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34700,
+      "train_rmse": 0.5020935225098204,
+      "train_nlpd": 34.05947882753002,
+      "elbo_loss": 45.74432910266461,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34800,
+      "train_rmse": 0.5031427500390998,
+      "train_nlpd": 34.066665591424176,
+      "elbo_loss": 44.58311521474671,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 34900,
+      "train_rmse": 0.5019942056279746,
+      "train_nlpd": 34.0386770308162,
+      "elbo_loss": 44.74787327604416,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35000,
+      "train_rmse": 0.502368214762388,
+      "train_nlpd": 34.13884193939383,
+      "elbo_loss": 44.73822609292572,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35100,
+      "train_rmse": 0.5026907344628082,
+      "train_nlpd": 34.062930801365994,
+      "elbo_loss": 44.24742681776318,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35200,
+      "train_rmse": 0.5024482616725695,
+      "train_nlpd": 34.114024381369596,
+      "elbo_loss": 45.919504496614145,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35300,
+      "train_rmse": 0.5028725304069573,
+      "train_nlpd": 34.089198616431226,
+      "elbo_loss": 44.740148900847146,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35400,
+      "train_rmse": 0.5011052125413081,
+      "train_nlpd": 34.031792412203686,
+      "elbo_loss": 45.1083104051921,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35500,
+      "train_rmse": 0.5020143221670981,
+      "train_nlpd": 33.99979399371644,
+      "elbo_loss": 44.58122689481929,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35600,
+      "train_rmse": 0.5016435213425967,
+      "train_nlpd": 34.05806272758535,
+      "elbo_loss": 44.00814932860386,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35700,
+      "train_rmse": 0.5014115624468407,
+      "train_nlpd": 34.060263674969214,
+      "elbo_loss": 44.18111655422987,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35800,
+      "train_rmse": 0.5019627974975465,
+      "train_nlpd": 34.11227538135083,
+      "elbo_loss": 44.3264902069312,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 35900,
+      "train_rmse": 0.5020715121355235,
+      "train_nlpd": 34.04600298022813,
+      "elbo_loss": 44.72848411070965,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36000,
+      "train_rmse": 0.5026120951541083,
+      "train_nlpd": 34.06887932197758,
+      "elbo_loss": 44.25917890180136,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36100,
+      "train_rmse": 0.5025440684360851,
+      "train_nlpd": 33.954914180676646,
+      "elbo_loss": 44.818743893393616,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36200,
+      "train_rmse": 0.5018463049619863,
+      "train_nlpd": 33.97516261324326,
+      "elbo_loss": 44.9271006485434,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36300,
+      "train_rmse": 0.5017182838067402,
+      "train_nlpd": 33.950383516501596,
+      "elbo_loss": 46.024952865497866,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36400,
+      "train_rmse": 0.5018072550026499,
+      "train_nlpd": 34.12364806929332,
+      "elbo_loss": 44.786403180151694,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36500,
+      "train_rmse": 0.5021351737602511,
+      "train_nlpd": 34.06175348585835,
+      "elbo_loss": 44.708758219955826,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36600,
+      "train_rmse": 0.5010691557042627,
+      "train_nlpd": 34.02312402751655,
+      "elbo_loss": 43.96184347192859,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36700,
+      "train_rmse": 0.5017166676397091,
+      "train_nlpd": 34.015584877037675,
+      "elbo_loss": 44.4830574444836,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36800,
+      "train_rmse": 0.5017910405786046,
+      "train_nlpd": 33.99286512594954,
+      "elbo_loss": 45.5381316105624,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 36900,
+      "train_rmse": 0.5021608512825165,
+      "train_nlpd": 34.0323108381767,
+      "elbo_loss": 44.752296313794844,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37000,
+      "train_rmse": 0.5021296834751652,
+      "train_nlpd": 34.134959873775564,
+      "elbo_loss": 44.3665737499767,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37100,
+      "train_rmse": 0.5016034641403319,
+      "train_nlpd": 33.99206455908937,
+      "elbo_loss": 45.387146458271296,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37200,
+      "train_rmse": 0.5019443814469308,
+      "train_nlpd": 34.008040646593,
+      "elbo_loss": 44.957002411573306,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37300,
+      "train_rmse": 0.5012253252515366,
+      "train_nlpd": 34.033107745464285,
+      "elbo_loss": 44.55070406347247,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37400,
+      "train_rmse": 0.5021782061954624,
+      "train_nlpd": 34.13892567952041,
+      "elbo_loss": 45.45339480879254,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37500,
+      "train_rmse": 0.5011771353747388,
+      "train_nlpd": 33.945472595233184,
+      "elbo_loss": 43.94627244084273,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37600,
+      "train_rmse": 0.501619834769991,
+      "train_nlpd": 33.98096567164925,
+      "elbo_loss": 44.728783563155446,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37700,
+      "train_rmse": 0.5019983311700232,
+      "train_nlpd": 34.06459888364328,
+      "elbo_loss": 44.950007677393714,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37800,
+      "train_rmse": 0.5010467916911651,
+      "train_nlpd": 33.97620685470973,
+      "elbo_loss": 44.829746692105566,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 37900,
+      "train_rmse": 0.5004603592480585,
+      "train_nlpd": 33.922618109811786,
+      "elbo_loss": 44.56067246873158,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38000,
+      "train_rmse": 0.5008453524153534,
+      "train_nlpd": 34.06589316962083,
+      "elbo_loss": 44.54657586397326,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38100,
+      "train_rmse": 0.5011697609791863,
+      "train_nlpd": 34.05248243711085,
+      "elbo_loss": 44.92832013579002,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38200,
+      "train_rmse": 0.5014093544454788,
+      "train_nlpd": 34.024600610786415,
+      "elbo_loss": 45.051961773218096,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38300,
+      "train_rmse": 0.5008203567937201,
+      "train_nlpd": 34.017471244430105,
+      "elbo_loss": 45.82410063443612,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38400,
+      "train_rmse": 0.5006783633150675,
+      "train_nlpd": 33.92510277465243,
+      "elbo_loss": 44.99008621099059,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38500,
+      "train_rmse": 0.5009885815002066,
+      "train_nlpd": 33.962753461370674,
+      "elbo_loss": 44.75937629943563,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38600,
+      "train_rmse": 0.5006638276611519,
+      "train_nlpd": 33.88081187451004,
+      "elbo_loss": 43.91112778688412,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38700,
+      "train_rmse": 0.500042113833208,
+      "train_nlpd": 33.87735523462731,
+      "elbo_loss": 44.50124449256933,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38800,
+      "train_rmse": 0.5007278157494931,
+      "train_nlpd": 33.86523821291133,
+      "elbo_loss": 45.134937822847675,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 38900,
+      "train_rmse": 0.5005958064108744,
+      "train_nlpd": 33.95162052601009,
+      "elbo_loss": 44.34396809593036,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39000,
+      "train_rmse": 0.500363149352803,
+      "train_nlpd": 33.924617119429236,
+      "elbo_loss": 44.20846154948699,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39100,
+      "train_rmse": 0.5000157274233192,
+      "train_nlpd": 34.04435470145017,
+      "elbo_loss": 45.95093432615384,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39200,
+      "train_rmse": 0.5013617977121936,
+      "train_nlpd": 34.00407759073339,
+      "elbo_loss": 44.56748970554723,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39300,
+      "train_rmse": 0.5010172588427277,
+      "train_nlpd": 33.92003700475759,
+      "elbo_loss": 45.06118461748234,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39400,
+      "train_rmse": 0.5002443122627563,
+      "train_nlpd": 33.91974659054143,
+      "elbo_loss": 45.64747765138659,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39500,
+      "train_rmse": 0.5002226019522363,
+      "train_nlpd": 33.92508928853244,
+      "elbo_loss": 45.014349797510775,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39600,
+      "train_rmse": 0.5008919336391527,
+      "train_nlpd": 33.941995327937306,
+      "elbo_loss": 44.01950386650575,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39700,
+      "train_rmse": 0.5009501012247998,
+      "train_nlpd": 33.90482893799431,
+      "elbo_loss": 43.57060279598166,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39800,
+      "train_rmse": 0.5005560516759238,
+      "train_nlpd": 33.83668932943439,
+      "elbo_loss": 45.51671081562378,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 39900,
+      "train_rmse": 0.5004466868264063,
+      "train_nlpd": 33.91536882403348,
+      "elbo_loss": 44.5956912009747,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40000,
+      "train_rmse": 0.5006738700459331,
+      "train_nlpd": 33.90941972748191,
+      "elbo_loss": 45.06530813180946,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40100,
+      "train_rmse": 0.5009613572438005,
+      "train_nlpd": 33.9188171669539,
+      "elbo_loss": 45.01462624384773,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40200,
+      "train_rmse": 0.4998731534674525,
+      "train_nlpd": 33.88715570643461,
+      "elbo_loss": 44.9868409327312,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40300,
+      "train_rmse": 0.5000698874173235,
+      "train_nlpd": 33.81679259605367,
+      "elbo_loss": 44.02649857348027,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40400,
+      "train_rmse": 0.5001859060801105,
+      "train_nlpd": 33.93230499047108,
+      "elbo_loss": 44.60681883896168,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40500,
+      "train_rmse": 0.501416487362574,
+      "train_nlpd": 34.1112084778121,
+      "elbo_loss": 44.66162754910356,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40600,
+      "train_rmse": 0.4998095016142778,
+      "train_nlpd": 33.81881553836552,
+      "elbo_loss": 44.5316336540523,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40700,
+      "train_rmse": 0.4996747756931246,
+      "train_nlpd": 33.92893080488429,
+      "elbo_loss": 45.14896862969316,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40800,
+      "train_rmse": 0.5002613781702776,
+      "train_nlpd": 33.82566382848884,
+      "elbo_loss": 44.17156614255164,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 40900,
+      "train_rmse": 0.5005510254844259,
+      "train_nlpd": 33.913937998485835,
+      "elbo_loss": 45.25791028323219,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41000,
+      "train_rmse": 0.50050735208791,
+      "train_nlpd": 33.92054422729647,
+      "elbo_loss": 44.27721996182301,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41100,
+      "train_rmse": 0.5001454547376698,
+      "train_nlpd": 33.81224065624657,
+      "elbo_loss": 45.15087943985541,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41200,
+      "train_rmse": 0.5002508983148564,
+      "train_nlpd": 33.836868692949196,
+      "elbo_loss": 44.97477441699918,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41300,
+      "train_rmse": 0.49966426324620433,
+      "train_nlpd": 33.84460202891429,
+      "elbo_loss": 44.37703831962979,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41400,
+      "train_rmse": 0.5001554102436986,
+      "train_nlpd": 33.872597683410405,
+      "elbo_loss": 43.91858998548567,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41500,
+      "train_rmse": 0.5019895197061917,
+      "train_nlpd": 33.962306166218866,
+      "elbo_loss": 44.478042292508036,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41600,
+      "train_rmse": 0.49957696430716103,
+      "train_nlpd": 33.82667624100026,
+      "elbo_loss": 45.336577243163774,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41700,
+      "train_rmse": 0.4996568383255767,
+      "train_nlpd": 33.83641706878566,
+      "elbo_loss": 44.664911905410115,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41800,
+      "train_rmse": 0.49929623312248533,
+      "train_nlpd": 33.84221835705269,
+      "elbo_loss": 45.85014268853724,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 41900,
+      "train_rmse": 0.4999591514263658,
+      "train_nlpd": 33.892801631225275,
+      "elbo_loss": 44.805850170389135,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42000,
+      "train_rmse": 0.5013029090214759,
+      "train_nlpd": 33.90986191763959,
+      "elbo_loss": 45.02780686310048,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42100,
+      "train_rmse": 0.5012307663137391,
+      "train_nlpd": 34.084433269199195,
+      "elbo_loss": 45.15159763961175,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42200,
+      "train_rmse": 0.5030747445633968,
+      "train_nlpd": 34.27270480265363,
+      "elbo_loss": 44.69436943185132,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42300,
+      "train_rmse": 0.5082655821740296,
+      "train_nlpd": 34.5828052709017,
+      "elbo_loss": 45.46681549181426,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42400,
+      "train_rmse": 0.5130617097651147,
+      "train_nlpd": 34.94780644036067,
+      "elbo_loss": 46.02914764740602,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42500,
+      "train_rmse": 0.5194946993221919,
+      "train_nlpd": 35.56147738721447,
+      "elbo_loss": 46.155196245900896,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42600,
+      "train_rmse": 0.5200662938938267,
+      "train_nlpd": 35.57049772143104,
+      "elbo_loss": 46.61004869300052,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42700,
+      "train_rmse": 0.5154331960272168,
+      "train_nlpd": 35.26850191755669,
+      "elbo_loss": 46.30118942847727,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42800,
+      "train_rmse": 0.5055862123961643,
+      "train_nlpd": 34.35795888490817,
+      "elbo_loss": 43.973740669094624,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 42900,
+      "train_rmse": 0.5020399385701042,
+      "train_nlpd": 34.119594813694256,
+      "elbo_loss": 44.06698073249336,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43000,
+      "train_rmse": 0.5019095099169661,
+      "train_nlpd": 34.00933944378593,
+      "elbo_loss": 44.879355548395935,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43100,
+      "train_rmse": 0.5017820382299563,
+      "train_nlpd": 34.079751128005086,
+      "elbo_loss": 45.47826707969023,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43200,
+      "train_rmse": 0.5007214551738487,
+      "train_nlpd": 33.90471758129459,
+      "elbo_loss": 45.17416122064573,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43300,
+      "train_rmse": 0.5006324279307897,
+      "train_nlpd": 33.97173580981423,
+      "elbo_loss": 44.84374074059461,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43400,
+      "train_rmse": 0.5001760742712217,
+      "train_nlpd": 33.9557443936445,
+      "elbo_loss": 44.010804480576205,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43500,
+      "train_rmse": 0.5013889563519622,
+      "train_nlpd": 34.13128948261708,
+      "elbo_loss": 44.45158670581793,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43600,
+      "train_rmse": 0.5005561477499554,
+      "train_nlpd": 33.88385468135578,
+      "elbo_loss": 44.93891448602598,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43700,
+      "train_rmse": 0.5002506886487595,
+      "train_nlpd": 33.94310111205339,
+      "elbo_loss": 44.77949147957247,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43800,
+      "train_rmse": 0.5001306933266829,
+      "train_nlpd": 33.83168934122354,
+      "elbo_loss": 43.94502121327496,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 43900,
+      "train_rmse": 0.4998524657554818,
+      "train_nlpd": 33.85973346614592,
+      "elbo_loss": 43.975948797196956,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44000,
+      "train_rmse": 0.49957007654550595,
+      "train_nlpd": 33.77694667287683,
+      "elbo_loss": 44.08259970356711,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44100,
+      "train_rmse": 0.49984265465573785,
+      "train_nlpd": 33.812390032809944,
+      "elbo_loss": 44.699504209857906,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44200,
+      "train_rmse": 0.4995004217642939,
+      "train_nlpd": 33.79459941816905,
+      "elbo_loss": 44.6866831850769,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44300,
+      "train_rmse": 0.5000414669007458,
+      "train_nlpd": 33.87017096298337,
+      "elbo_loss": 44.51723705593258,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44400,
+      "train_rmse": 0.4990473940262482,
+      "train_nlpd": 33.87293877107714,
+      "elbo_loss": 43.88173983545198,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44500,
+      "train_rmse": 0.5001562578876168,
+      "train_nlpd": 33.89935906991706,
+      "elbo_loss": 44.480116407998096,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44600,
+      "train_rmse": 0.4998078156948809,
+      "train_nlpd": 33.822130346260835,
+      "elbo_loss": 44.16888444553892,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44700,
+      "train_rmse": 0.4993342724320526,
+      "train_nlpd": 33.805213457351236,
+      "elbo_loss": 44.13393799632382,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44800,
+      "train_rmse": 0.49891986473742017,
+      "train_nlpd": 33.73682227700833,
+      "elbo_loss": 43.970020138349255,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 44900,
+      "train_rmse": 0.49877907945508143,
+      "train_nlpd": 33.7930328633287,
+      "elbo_loss": 44.56249530655355,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45000,
+      "train_rmse": 0.4994263035866614,
+      "train_nlpd": 33.99018537883147,
+      "elbo_loss": 43.928596303475864,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45100,
+      "train_rmse": 0.49960502435577464,
+      "train_nlpd": 33.85755639473409,
+      "elbo_loss": 44.55142286738849,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45200,
+      "train_rmse": 0.49932729988660496,
+      "train_nlpd": 33.7663622057636,
+      "elbo_loss": 44.486105002725175,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45300,
+      "train_rmse": 0.4991621433001675,
+      "train_nlpd": 33.78351898305049,
+      "elbo_loss": 43.55659221570165,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45400,
+      "train_rmse": 0.49943617503081755,
+      "train_nlpd": 33.82438385348595,
+      "elbo_loss": 43.42054769947272,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45500,
+      "train_rmse": 0.49833535496794107,
+      "train_nlpd": 33.71347351361264,
+      "elbo_loss": 43.973076288269986,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45600,
+      "train_rmse": 0.49855204178882384,
+      "train_nlpd": 33.8438448648439,
+      "elbo_loss": 44.710674463503466,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45700,
+      "train_rmse": 0.49803900619199415,
+      "train_nlpd": 33.65453869720866,
+      "elbo_loss": 44.69016165880634,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45800,
+      "train_rmse": 0.4981990404817184,
+      "train_nlpd": 33.69250628982963,
+      "elbo_loss": 44.35614806703399,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 45900,
+      "train_rmse": 0.498007439491375,
+      "train_nlpd": 33.67883505891572,
+      "elbo_loss": 45.13909902526988,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46000,
+      "train_rmse": 0.49874495753778897,
+      "train_nlpd": 33.78152006387865,
+      "elbo_loss": 44.231973355612155,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46100,
+      "train_rmse": 0.498610255373572,
+      "train_nlpd": 33.79202681207856,
+      "elbo_loss": 46.08010913286015,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46200,
+      "train_rmse": 0.4982310259200095,
+      "train_nlpd": 33.64877147445502,
+      "elbo_loss": 44.46555586760269,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46300,
+      "train_rmse": 0.4989568280237656,
+      "train_nlpd": 33.71202554919201,
+      "elbo_loss": 45.20579369661775,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46400,
+      "train_rmse": 0.4979827361307658,
+      "train_nlpd": 33.72158315288867,
+      "elbo_loss": 45.299282108641655,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46500,
+      "train_rmse": 0.497996918696398,
+      "train_nlpd": 33.64365108370612,
+      "elbo_loss": 44.67694776064978,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46600,
+      "train_rmse": 0.49799686861712067,
+      "train_nlpd": 33.78226817803848,
+      "elbo_loss": 45.19482421936283,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46700,
+      "train_rmse": 0.4982243492640457,
+      "train_nlpd": 33.71285149641736,
+      "elbo_loss": 44.44749201663137,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46800,
+      "train_rmse": 0.4974801950712213,
+      "train_nlpd": 33.756048637927734,
+      "elbo_loss": 45.33512800248477,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 46900,
+      "train_rmse": 0.497819942053146,
+      "train_nlpd": 33.69547837372288,
+      "elbo_loss": 44.642840485953094,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47000,
+      "train_rmse": 0.4984999053176206,
+      "train_nlpd": 33.724309364225235,
+      "elbo_loss": 44.73756129357365,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47100,
+      "train_rmse": 0.49813898170364074,
+      "train_nlpd": 33.680325462096114,
+      "elbo_loss": 44.74456139095888,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47200,
+      "train_rmse": 0.49735484518969675,
+      "train_nlpd": 33.65628327817811,
+      "elbo_loss": 43.858696819384846,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47300,
+      "train_rmse": 0.4978254819007689,
+      "train_nlpd": 33.70447328476008,
+      "elbo_loss": 44.856251993546664,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47400,
+      "train_rmse": 0.4985925839047907,
+      "train_nlpd": 33.67454344053126,
+      "elbo_loss": 43.03688891566959,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47500,
+      "train_rmse": 0.49776874896724627,
+      "train_nlpd": 33.59615249928827,
+      "elbo_loss": 44.02946080937831,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47600,
+      "train_rmse": 0.497536074434627,
+      "train_nlpd": 33.660684592212,
+      "elbo_loss": 44.41206100010232,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47700,
+      "train_rmse": 0.49692215726706596,
+      "train_nlpd": 33.67970651597147,
+      "elbo_loss": 45.3612284666735,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47800,
+      "train_rmse": 0.4977875899137343,
+      "train_nlpd": 33.66172148190445,
+      "elbo_loss": 45.96913730295363,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 47900,
+      "train_rmse": 0.49791365381926245,
+      "train_nlpd": 33.733300326246635,
+      "elbo_loss": 43.79288881706513,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48000,
+      "train_rmse": 0.49743183816521264,
+      "train_nlpd": 33.589782296949416,
+      "elbo_loss": 45.00233873180613,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48100,
+      "train_rmse": 0.49713531712688847,
+      "train_nlpd": 33.72481732619624,
+      "elbo_loss": 45.08866110747171,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48200,
+      "train_rmse": 0.49768797615798505,
+      "train_nlpd": 33.709088043775985,
+      "elbo_loss": 44.47213010722462,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48300,
+      "train_rmse": 0.4974437804449349,
+      "train_nlpd": 33.605050836143235,
+      "elbo_loss": 43.79027004508827,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48400,
+      "train_rmse": 0.49699379623324924,
+      "train_nlpd": 33.56744899524938,
+      "elbo_loss": 44.3266071086133,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48500,
+      "train_rmse": 0.49755468152463106,
+      "train_nlpd": 33.69460327224165,
+      "elbo_loss": 43.79955491531281,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48600,
+      "train_rmse": 0.49763558605303965,
+      "train_nlpd": 33.66126744780898,
+      "elbo_loss": 44.460966742533955,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48700,
+      "train_rmse": 0.4977039623523793,
+      "train_nlpd": 33.69408194728696,
+      "elbo_loss": 45.27367686737841,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48800,
+      "train_rmse": 0.4983927741354595,
+      "train_nlpd": 33.79312194164349,
+      "elbo_loss": 45.562348604731184,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 48900,
+      "train_rmse": 0.49734047849796936,
+      "train_nlpd": 33.6229527130581,
+      "elbo_loss": 44.71153092125577,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49000,
+      "train_rmse": 0.4965757815240085,
+      "train_nlpd": 33.57402498815094,
+      "elbo_loss": 44.738026510449224,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49100,
+      "train_rmse": 0.49649648389248346,
+      "train_nlpd": 33.71649645736034,
+      "elbo_loss": 45.2364079924728,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49200,
+      "train_rmse": 0.49760555977349485,
+      "train_nlpd": 33.63899244535272,
+      "elbo_loss": 44.88077425035641,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49300,
+      "train_rmse": 0.49690484772391563,
+      "train_nlpd": 33.589998593047746,
+      "elbo_loss": 45.0252593711773,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49400,
+      "train_rmse": 0.49800941081407046,
+      "train_nlpd": 33.75364272793528,
+      "elbo_loss": 45.21905014071896,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49500,
+      "train_rmse": 0.49693511675694196,
+      "train_nlpd": 33.60610831165408,
+      "elbo_loss": 45.0419338226495,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49600,
+      "train_rmse": 0.49707048821586935,
+      "train_nlpd": 33.672711588400645,
+      "elbo_loss": 44.6685059266162,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49700,
+      "train_rmse": 0.49757538857830813,
+      "train_nlpd": 33.639941964750136,
+      "elbo_loss": 44.23782817738146,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49800,
+      "train_rmse": 0.49676340256224727,
+      "train_nlpd": 33.507676531065506,
+      "elbo_loss": 45.74370151984145,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 49900,
+      "train_rmse": 0.4969413939543794,
+      "train_nlpd": 33.665645262531626,
+      "elbo_loss": 45.052103580235475,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50000,
+      "train_rmse": 0.49809734787512755,
+      "train_nlpd": 33.598008471731355,
+      "elbo_loss": 44.4170606717449,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50100,
+      "train_rmse": 0.4968727180822108,
+      "train_nlpd": 33.54159446127943,
+      "elbo_loss": 44.144693065643395,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50200,
+      "train_rmse": 0.49683687408455907,
+      "train_nlpd": 33.56659019084128,
+      "elbo_loss": 44.792210856861075,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50300,
+      "train_rmse": 0.4961490379127423,
+      "train_nlpd": 33.387946952605844,
+      "elbo_loss": 43.733386880562676,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50400,
+      "train_rmse": 0.49672094628921215,
+      "train_nlpd": 33.56117578188287,
+      "elbo_loss": 44.01835266636097,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50500,
+      "train_rmse": 0.4970719712803856,
+      "train_nlpd": 33.66633652858908,
+      "elbo_loss": 43.82079805572759,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50600,
+      "train_rmse": 0.4964674830448598,
+      "train_nlpd": 33.58295413589719,
+      "elbo_loss": 44.84334699871168,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50700,
+      "train_rmse": 0.4962218463880404,
+      "train_nlpd": 33.57026772207539,
+      "elbo_loss": 44.57218669065267,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50800,
+      "train_rmse": 0.4970763252399902,
+      "train_nlpd": 33.6178782381255,
+      "elbo_loss": 44.38456397973688,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 50900,
+      "train_rmse": 0.4967823895268763,
+      "train_nlpd": 33.65240268759412,
+      "elbo_loss": 43.832454283821754,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51000,
+      "train_rmse": 0.4963414615966234,
+      "train_nlpd": 33.57385253935311,
+      "elbo_loss": 43.68440872190088,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51100,
+      "train_rmse": 0.4958551574340415,
+      "train_nlpd": 33.609049368734084,
+      "elbo_loss": 44.072041132788776,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51200,
+      "train_rmse": 0.49592155259991777,
+      "train_nlpd": 33.54632775214289,
+      "elbo_loss": 45.43027023855835,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51300,
+      "train_rmse": 0.49688544598002043,
+      "train_nlpd": 33.58837824894737,
+      "elbo_loss": 45.02923487012507,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51400,
+      "train_rmse": 0.49651457649381603,
+      "train_nlpd": 33.57585784262012,
+      "elbo_loss": 43.932141630386795,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51500,
+      "train_rmse": 0.4962955193023249,
+      "train_nlpd": 33.52340718645219,
+      "elbo_loss": 44.34419675141532,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51600,
+      "train_rmse": 0.4963056539370622,
+      "train_nlpd": 33.5227964585108,
+      "elbo_loss": 43.69839077926653,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51700,
+      "train_rmse": 0.49707496455904515,
+      "train_nlpd": 33.59750535700697,
+      "elbo_loss": 44.553310160155775,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51800,
+      "train_rmse": 0.49629261614853964,
+      "train_nlpd": 33.586901213943065,
+      "elbo_loss": 44.67431689980463,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 51900,
+      "train_rmse": 0.4959614756478657,
+      "train_nlpd": 33.632295616752664,
+      "elbo_loss": 45.27860066858254,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52000,
+      "train_rmse": 0.49627283590653315,
+      "train_nlpd": 33.5523949274225,
+      "elbo_loss": 43.81491431093982,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52100,
+      "train_rmse": 0.49586598107010954,
+      "train_nlpd": 33.462766929512384,
+      "elbo_loss": 43.972267481590166,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52200,
+      "train_rmse": 0.4961409363754098,
+      "train_nlpd": 33.46403221212471,
+      "elbo_loss": 43.68351013159243,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52300,
+      "train_rmse": 0.4965286515879081,
+      "train_nlpd": 33.50653763441595,
+      "elbo_loss": 44.644858734768164,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52400,
+      "train_rmse": 0.49598781715512247,
+      "train_nlpd": 33.69324196924348,
+      "elbo_loss": 45.43079524451315,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52500,
+      "train_rmse": 0.49603718334891045,
+      "train_nlpd": 33.533932764290434,
+      "elbo_loss": 44.17849864926863,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52600,
+      "train_rmse": 0.49585524974012385,
+      "train_nlpd": 33.61695027853967,
+      "elbo_loss": 45.23854858314304,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52700,
+      "train_rmse": 0.4958712326843042,
+      "train_nlpd": 33.49509190879456,
+      "elbo_loss": 46.021686226074735,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52800,
+      "train_rmse": 0.4955264726500001,
+      "train_nlpd": 33.410439148183215,
+      "elbo_loss": 43.96938332997878,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 52900,
+      "train_rmse": 0.4958965397473622,
+      "train_nlpd": 33.629767576189295,
+      "elbo_loss": 43.063466253783076,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53000,
+      "train_rmse": 0.49528383303087054,
+      "train_nlpd": 33.35245211031766,
+      "elbo_loss": 44.22004878020935,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53100,
+      "train_rmse": 0.49555752235129913,
+      "train_nlpd": 33.40634928849755,
+      "elbo_loss": 44.76392756496608,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53200,
+      "train_rmse": 0.49570375898499924,
+      "train_nlpd": 33.47783189319953,
+      "elbo_loss": 45.28590314441861,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53300,
+      "train_rmse": 0.4957576043439195,
+      "train_nlpd": 33.588349632752994,
+      "elbo_loss": 44.683026650079285,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53400,
+      "train_rmse": 0.49662448565999473,
+      "train_nlpd": 33.5226551535319,
+      "elbo_loss": 44.33745496642504,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53500,
+      "train_rmse": 0.49600669043305373,
+      "train_nlpd": 33.530646903260795,
+      "elbo_loss": 42.430081099483544,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53600,
+      "train_rmse": 0.495439200522187,
+      "train_nlpd": 33.55662257791189,
+      "elbo_loss": 44.575368705503294,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53700,
+      "train_rmse": 0.49659324969209245,
+      "train_nlpd": 33.503824776189276,
+      "elbo_loss": 44.330730448998764,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53800,
+      "train_rmse": 0.4964666471590692,
+      "train_nlpd": 33.622820329512116,
+      "elbo_loss": 44.315023720640845,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 53900,
+      "train_rmse": 0.4962416097211423,
+      "train_nlpd": 33.48453762447832,
+      "elbo_loss": 44.510372061584604,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54000,
+      "train_rmse": 0.49544997630198356,
+      "train_nlpd": 33.42858459462669,
+      "elbo_loss": 43.90712532910326,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54100,
+      "train_rmse": 0.4950584699813043,
+      "train_nlpd": 33.433241376574834,
+      "elbo_loss": 44.826801514097866,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54200,
+      "train_rmse": 0.49563400977538524,
+      "train_nlpd": 33.47728115553435,
+      "elbo_loss": 44.165083345496846,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54300,
+      "train_rmse": 0.496113848958992,
+      "train_nlpd": 33.6132748929193,
+      "elbo_loss": 45.15707999140733,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54400,
+      "train_rmse": 0.495437126969288,
+      "train_nlpd": 33.48935185392023,
+      "elbo_loss": 44.520185615481395,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54500,
+      "train_rmse": 0.4954316881375653,
+      "train_nlpd": 33.41129717882954,
+      "elbo_loss": 44.921648465873076,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54600,
+      "train_rmse": 0.49487516630276157,
+      "train_nlpd": 33.43544899655388,
+      "elbo_loss": 43.73141331972505,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54700,
+      "train_rmse": 0.4949635158836935,
+      "train_nlpd": 33.43328870974796,
+      "elbo_loss": 44.03449851755022,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54800,
+      "train_rmse": 0.49460641380743064,
+      "train_nlpd": 33.40345815810589,
+      "elbo_loss": 45.09501764961297,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 54900,
+      "train_rmse": 0.495049594639595,
+      "train_nlpd": 33.448323961413024,
+      "elbo_loss": 43.732515394448264,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55000,
+      "train_rmse": 0.4947658163212811,
+      "train_nlpd": 33.326851526085704,
+      "elbo_loss": 45.19076306316064,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55100,
+      "train_rmse": 0.49446188845472855,
+      "train_nlpd": 33.302945976326676,
+      "elbo_loss": 45.56547801163119,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55200,
+      "train_rmse": 0.4949825810202473,
+      "train_nlpd": 33.47828096996355,
+      "elbo_loss": 44.38713033118287,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55300,
+      "train_rmse": 0.4958272206943119,
+      "train_nlpd": 33.45206595287814,
+      "elbo_loss": 44.48143729939838,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55400,
+      "train_rmse": 0.4948661560029704,
+      "train_nlpd": 33.420962312819626,
+      "elbo_loss": 44.03452282652545,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55500,
+      "train_rmse": 0.49499025695424265,
+      "train_nlpd": 33.55925475028649,
+      "elbo_loss": 43.91231649229893,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55600,
+      "train_rmse": 0.49636921914323273,
+      "train_nlpd": 33.585750045020916,
+      "elbo_loss": 44.93608552729768,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55700,
+      "train_rmse": 0.4965555258208114,
+      "train_nlpd": 33.620999563881405,
+      "elbo_loss": 45.26733433575311,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55800,
+      "train_rmse": 0.4959017650507748,
+      "train_nlpd": 33.45105391851687,
+      "elbo_loss": 44.12781532063974,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 55900,
+      "train_rmse": 0.49731219058291054,
+      "train_nlpd": 33.54186966130774,
+      "elbo_loss": 44.866449915273314,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56000,
+      "train_rmse": 0.4993564045923599,
+      "train_nlpd": 33.87187436910281,
+      "elbo_loss": 44.5054121160277,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56100,
+      "train_rmse": 0.50412102473141,
+      "train_nlpd": 34.27628075154842,
+      "elbo_loss": 44.30333710693373,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56200,
+      "train_rmse": 0.5127982010548074,
+      "train_nlpd": 34.90057684519161,
+      "elbo_loss": 46.432685711592526,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56300,
+      "train_rmse": 0.510453583070445,
+      "train_nlpd": 34.74625878519922,
+      "elbo_loss": 45.78886730965979,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56400,
+      "train_rmse": 0.5021386870774327,
+      "train_nlpd": 34.000104219781996,
+      "elbo_loss": 45.45157762015488,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56500,
+      "train_rmse": 0.5015906687397006,
+      "train_nlpd": 34.01204176998854,
+      "elbo_loss": 44.27054282860939,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56600,
+      "train_rmse": 0.5008836225934049,
+      "train_nlpd": 33.89301008977528,
+      "elbo_loss": 43.91394498110109,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56700,
+      "train_rmse": 0.49820903150837875,
+      "train_nlpd": 33.69729417757103,
+      "elbo_loss": 44.024364168020774,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56800,
+      "train_rmse": 0.4968386862172966,
+      "train_nlpd": 33.5382961448641,
+      "elbo_loss": 44.19545246638953,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 56900,
+      "train_rmse": 0.4963700837062404,
+      "train_nlpd": 33.54603140942252,
+      "elbo_loss": 43.22599097854443,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57000,
+      "train_rmse": 0.49649857117609797,
+      "train_nlpd": 33.54085207914401,
+      "elbo_loss": 44.79862128660663,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57100,
+      "train_rmse": 0.4964374951056295,
+      "train_nlpd": 33.59039719130441,
+      "elbo_loss": 45.39368712367036,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57200,
+      "train_rmse": 0.49628952403983456,
+      "train_nlpd": 33.55600954670855,
+      "elbo_loss": 44.435441007310246,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57300,
+      "train_rmse": 0.4966168618694321,
+      "train_nlpd": 33.534854892563686,
+      "elbo_loss": 45.22053825214792,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57400,
+      "train_rmse": 0.4958125797960699,
+      "train_nlpd": 33.48987529382943,
+      "elbo_loss": 44.622647491548335,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57500,
+      "train_rmse": 0.4962552849760872,
+      "train_nlpd": 33.515699365181696,
+      "elbo_loss": 44.132369764989704,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57600,
+      "train_rmse": 0.49518389416746017,
+      "train_nlpd": 33.38655649201723,
+      "elbo_loss": 43.658107944360616,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57700,
+      "train_rmse": 0.49594817339875896,
+      "train_nlpd": 33.44071606957348,
+      "elbo_loss": 44.163434616365926,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57800,
+      "train_rmse": 0.4954227773117323,
+      "train_nlpd": 33.38006247507435,
+      "elbo_loss": 44.953154093603544,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 57900,
+      "train_rmse": 0.49595901990225916,
+      "train_nlpd": 33.4653195113052,
+      "elbo_loss": 43.523681014051505,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58000,
+      "train_rmse": 0.4958881363330966,
+      "train_nlpd": 33.607083016376016,
+      "elbo_loss": 44.41897727246058,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58100,
+      "train_rmse": 0.49560577505433734,
+      "train_nlpd": 33.48694504886775,
+      "elbo_loss": 44.53908209743716,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58200,
+      "train_rmse": 0.4951510329294884,
+      "train_nlpd": 33.4404518169252,
+      "elbo_loss": 44.68009603398463,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58300,
+      "train_rmse": 0.4964094590481291,
+      "train_nlpd": 33.550206508103074,
+      "elbo_loss": 44.54689741463864,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58400,
+      "train_rmse": 0.4948306627056643,
+      "train_nlpd": 33.37151001528999,
+      "elbo_loss": 43.9588385430058,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58500,
+      "train_rmse": 0.4952779933757853,
+      "train_nlpd": 33.3954891258177,
+      "elbo_loss": 44.26879677676576,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58600,
+      "train_rmse": 0.4949343334015306,
+      "train_nlpd": 33.30451525843815,
+      "elbo_loss": 44.731223533826146,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58700,
+      "train_rmse": 0.4945188445805818,
+      "train_nlpd": 33.42648125160666,
+      "elbo_loss": 44.5146078453289,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58800,
+      "train_rmse": 0.4958080913420279,
+      "train_nlpd": 33.61111362640742,
+      "elbo_loss": 45.01447025670477,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 58900,
+      "train_rmse": 0.4944996432192468,
+      "train_nlpd": 33.441212808619845,
+      "elbo_loss": 43.80213148258713,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59000,
+      "train_rmse": 0.4948394800653078,
+      "train_nlpd": 33.49194045639065,
+      "elbo_loss": 45.148886044765845,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59100,
+      "train_rmse": 0.49482395285075786,
+      "train_nlpd": 33.35818681342615,
+      "elbo_loss": 44.092584922698876,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59200,
+      "train_rmse": 0.49528851035884836,
+      "train_nlpd": 33.44728494202523,
+      "elbo_loss": 44.14253026995825,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59300,
+      "train_rmse": 0.4958271361099387,
+      "train_nlpd": 33.59503167406758,
+      "elbo_loss": 43.65478676122223,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59400,
+      "train_rmse": 0.4945747410950204,
+      "train_nlpd": 33.30236160681826,
+      "elbo_loss": 44.69309585467265,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59500,
+      "train_rmse": 0.4950002859637986,
+      "train_nlpd": 33.35986391912244,
+      "elbo_loss": 44.094449516290744,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59600,
+      "train_rmse": 0.4943293212520928,
+      "train_nlpd": 33.35015110081095,
+      "elbo_loss": 43.58855177347031,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59700,
+      "train_rmse": 0.4945009915302339,
+      "train_nlpd": 33.38011679127119,
+      "elbo_loss": 43.553910122802456,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59800,
+      "train_rmse": 0.49512851121960444,
+      "train_nlpd": 33.38092735513747,
+      "elbo_loss": 44.59490123763524,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59900,
+      "train_rmse": 0.49576092250840836,
+      "train_nlpd": 33.55811063215888,
+      "elbo_loss": 44.585839028119565,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    },
+    {
+      "iteration": 59999,
+      "train_rmse": 0.49574973842598985,
+      "train_nlpd": 33.67523893637315,
+      "elbo_loss": 43.94288125789469,
+      "effective_dims": 7,
+      "train_missing_nlpd": NaN,
+      "train_missing_rmse": NaN
+    }
+  ]
+}

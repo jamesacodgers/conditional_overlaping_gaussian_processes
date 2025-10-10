@@ -114,33 +114,39 @@ def generate_config_grid():
     """Generate grid of configurations for both SSVI and Original GP-LVM"""
 
     # Parameter ranges
-    n_inducing_values = [16]
-    init_lengthscales_values = [1.0]
-    init_output_noise_scale_values = [1.0]
-    batch_size_values = [32]
-    random_seed_values = [7]
-    learning_rate_values = [0.005]
-    n_training_steps = [5000]
+    n_inducing_values = [64]
+    init_lengthscales_values = [0.001, 0.01, 0.1, 1, 10, 100]
+    # init_lengthscales_values = [1]
+    init_output_noise_scale_values = [1]
+    batch_size_values = [128]
+    random_seed_values = [0,1,2,3,4]
+    learning_rate_values = [0.001]
+    n_training_steps = [60_000]
     num_inducing_samples_list = [64]  # For SSVI only
-
+    
     # Architecture parameters
     # For SSVI: encoder_hidden_dims
     # For Original GP-LVM: nn_layers
     # Both use the same architecture options
-    architecture_values = [[128, 64, 32], [64, 32]]  # Can add more options like [[256, 128, 64], [64, 32]]
-
+    architecture_values = [[128, 64]]  # Can add more options like [[256, 128, 64], [64, 32]]
+    
     # Missing data parameters
-    enable_missing_data_values = [True, False]
-    missing_data_ratio_values = [0.3, 0.5]
+    enable_missing_data_values = [False]
+    missing_data_ratio_values = [0.0]
+    # enable_missing_data_values = [True]
+    # missing_data_ratio_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
+    # Output folder names 
+    output_folder_name = "fixed_lenghscale_experiment_v1"
+    # output_folder_name = "fixed_missing_data_experiment_v1"
+    ssvi_output_folder = f"qpcr_related/{output_folder_name}_ssvi"
+    orig_output_folder = f"qpcr_related/{output_folder_name}_orig_gplvm"
+
+    
     # Base configuration paths (now in qpcr_related directory)
     ssvi_base_config = "qpcr_related/qpcr_ssvi_configs/qpcr_base_lr_0001_s7_test_missing.yaml"
     orig_base_config = "qpcr_related/qpcr_original_gp_lvm_config/qpcr_base_lr_0001_s7_test_missing.yaml"
 
-    # Output folder names (now in qpcr_related directory)
-    output_folder_name = "num_inducing_samples"
-    ssvi_output_folder = f"qpcr_related/{output_folder_name}_ssvi"
-    orig_output_folder = f"qpcr_related/{output_folder_name}_orig_gplvm"
 
     # Load base configurations
     print("Loading base configurations...")

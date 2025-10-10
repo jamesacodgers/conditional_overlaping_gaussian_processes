@@ -321,7 +321,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                     n_samples=32  # Fixed number of samples for metrics computation
                 )
             
-            print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
+            print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} ")
             print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
             if config.enable_missing_data and not np.isnan(metrics.train_missing_nlpd):
                 print(f"    Train Missing Data NLPD: {metrics.train_missing_nlpd:.3f}")
