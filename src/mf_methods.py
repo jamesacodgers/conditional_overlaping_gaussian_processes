@@ -27,7 +27,7 @@ class   MFModels(torch.nn.Module, ABC):
 
     @property 
     def sigma2(self): 
-        return torch.exp(self._log_sigma2)+1e-6
+        return torch.nn.functional.softplus(self._log_sigma2, beta=1.0, threshold=20.0)+1e-4
     
     def _elbo(self, s_train_expectation, s_train_outer_expectation, D_train, R_train,  s_test_expectation=None, s_test_outer_expectation=None,D_test=None):
         return self.coordinator._elbo(
@@ -342,11 +342,11 @@ class MF_WS_GPLVM(MFModels):
 
     @property 
     def Sigma_x_train(self): 
-        return torch.exp(self._log_sigma_x_train)
+        return torch.nn.functional.softplus(self._log_sigma_x_train, beta=1.0, threshold=20.0)
     
     @property 
     def Sigma_x_test(self): 
-        return torch.exp(self._log_sigma_x_test)
+        return torch.nn.functional.softplus(self._log_sigma_x_test, threshold=20.0)
     
     
     def _get_lv_kernel_expectation(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor) -> torch.Tensor:
