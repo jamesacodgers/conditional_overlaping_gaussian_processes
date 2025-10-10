@@ -807,9 +807,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 X_train_mean = model.X.q_mu.detach()
                 X_train_covar = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
                 
-                # Simple visualization (3 columns: original, masked, samples)
-                simple_viz_path = os.path.join(logger.get_results_dir(), f"missing_data_reconstruction_gauss_{config.random_seed}.png")
+                # Create plots directory
+                plots_dir = os.path.join(logger.get_results_dir(), "plots")
+                os.makedirs(plots_dir, exist_ok=True)
                 
+                # Simple visualization (3 columns: original, masked, samples)
+                simple_viz_path = os.path.join(plots_dir, f"missing_data_reconstruction_gauss_{config.random_seed}.png")
                 visualize_mnist_missing_reconstruction_gauss(
                     model=model,
                     y_train=Y_train,
@@ -824,8 +827,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 )
                 
                 # Detailed visualization (with mean and uncertainty)
-                detailed_viz_path = os.path.join(logger.get_results_dir(), f"missing_data_reconstruction_gauss_detailed_{config.random_seed}.png")
-                
+                detailed_viz_path = os.path.join(plots_dir, f"missing_data_reconstruction_gauss_detailed_{config.random_seed}.png")
                 visualize_mnist_missing_reconstruction_gauss_detailed(
                     model=model,
                     y_train=Y_train,

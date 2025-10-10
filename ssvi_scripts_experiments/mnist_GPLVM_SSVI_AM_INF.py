@@ -72,7 +72,10 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
         selected_digits=config.mnist_digits,
         samples_per_digit=config.samples_per_digit
     )
-    
+
+    Y = Y[:100]
+    labels = labels[:100]
+
     N = len(Y)
     
     print(f"Using {N} MNIST samples for training/testing")
@@ -620,11 +623,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         print("\n=== Missing Data Reconstruction Visualization ===")
         
         # Simple visualization (3 columns: original, masked, samples)
-        if logger:
-            simple_viz_path = os.path.join(logger.plots_dir, f"missing_data_reconstruction_{config.random_seed}.png")
-        else:
-            simple_viz_path = f"missing_data_reconstruction_{config.random_seed}.png"
-        
+        simple_viz_path = os.path.join(logger.plots_dir, f"missing_data_reconstruction_{config.random_seed}.png")
         visualize_mnist_missing_reconstruction(
             model=model,
             y_train=split_data['y_train'],
@@ -637,11 +636,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         )
         
         # Detailed visualization (with mean and uncertainty)
-        if logger:
-            detailed_viz_path = os.path.join(logger.plots_dir, f"missing_data_reconstruction_detailed_{config.random_seed}.png")
-        else:
-            detailed_viz_path = f"missing_data_reconstruction_detailed_{config.random_seed}.png"
-        
+        detailed_viz_path = os.path.join(logger.plots_dir, f"missing_data_reconstruction_detailed_{config.random_seed}.png")
         visualize_mnist_missing_reconstruction_detailed(
             model=model,
             y_train=split_data['y_train'],
