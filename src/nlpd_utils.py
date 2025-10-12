@@ -117,7 +117,7 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
             except Exception as e:
                 print(f"WARNING: NLPD computation failed for {model_name} model: {str(e)}")
                 print("Falling back to simple loss-based NLPD computation")
-                nlpd = loss_data[-1] / N
+                nlpd = None
         else:
             raise ValueError(f"Invalid model name: {model_name}")
 
