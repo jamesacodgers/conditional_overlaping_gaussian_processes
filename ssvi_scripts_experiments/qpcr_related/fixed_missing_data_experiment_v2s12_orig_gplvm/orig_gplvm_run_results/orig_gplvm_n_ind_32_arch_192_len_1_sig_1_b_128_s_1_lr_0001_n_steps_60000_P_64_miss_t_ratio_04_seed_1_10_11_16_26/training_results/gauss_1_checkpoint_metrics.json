@@ -1,0 +1,5416 @@
+{
+  "model_name": "gauss",
+  "seed": 1,
+  "total_iterations": 60000,
+  "checkpoints": [
+    {
+      "iteration": 0,
+      "train_rmse": 0.9957374155010594,
+      "train_nlpd": 42.77605508992457,
+      "elbo_loss": 83.25986755347714,
+      "effective_dims": 10,
+      "train_missing_nlpd": 28.09934195101444,
+      "train_missing_rmse": 1.0023075975097804
+    },
+    {
+      "iteration": 100,
+      "train_rmse": 0.9953084529447088,
+      "train_nlpd": 42.79887412984463,
+      "elbo_loss": 75.52623483628977,
+      "effective_dims": 10,
+      "train_missing_nlpd": 28.117331396507804,
+      "train_missing_rmse": 1.002230530493381
+    },
+    {
+      "iteration": 200,
+      "train_rmse": 0.9944984551916212,
+      "train_nlpd": 42.781309422759,
+      "elbo_loss": 70.11071854505859,
+      "effective_dims": 10,
+      "train_missing_nlpd": 28.115037290564306,
+      "train_missing_rmse": 1.0022063442279945
+    },
+    {
+      "iteration": 300,
+      "train_rmse": 0.9936776950185388,
+      "train_nlpd": 42.723540792081856,
+      "elbo_loss": 65.77219787485781,
+      "effective_dims": 10,
+      "train_missing_nlpd": 28.084549105255245,
+      "train_missing_rmse": 1.0022828232536256
+    },
+    {
+      "iteration": 400,
+      "train_rmse": 0.9921274146875313,
+      "train_nlpd": 42.61589661330288,
+      "elbo_loss": 62.85763290653158,
+      "effective_dims": 10,
+      "train_missing_nlpd": 28.03097609003824,
+      "train_missing_rmse": 1.0019712426235434
+    },
+    {
+      "iteration": 500,
+      "train_rmse": 0.9903686586233511,
+      "train_nlpd": 42.48522139782787,
+      "elbo_loss": 59.925414078912546,
+      "effective_dims": 10,
+      "train_missing_nlpd": 27.954504255742325,
+      "train_missing_rmse": 1.001277263522111
+    },
+    {
+      "iteration": 600,
+      "train_rmse": 0.988062050940264,
+      "train_nlpd": 42.316709893582306,
+      "elbo_loss": 56.6652719959851,
+      "effective_dims": 10,
+      "train_missing_nlpd": 27.863298245491507,
+      "train_missing_rmse": 0.9998746412815199
+    },
+    {
+      "iteration": 700,
+      "train_rmse": 0.9856126445198748,
+      "train_nlpd": 42.15647887838993,
+      "elbo_loss": 55.341735567344614,
+      "effective_dims": 10,
+      "train_missing_nlpd": 27.763966583169225,
+      "train_missing_rmse": 0.9975336838055385
+    },
+    {
+      "iteration": 800,
+      "train_rmse": 0.981383719126526,
+      "train_nlpd": 41.9767516958041,
+      "elbo_loss": 53.48887859081686,
+      "effective_dims": 10,
+      "train_missing_nlpd": 27.6590170095252,
+      "train_missing_rmse": 0.9941880134606382
+    },
+    {
+      "iteration": 900,
+      "train_rmse": 0.977528170663781,
+      "train_nlpd": 41.78159006921232,
+      "elbo_loss": 51.87956295040415,
+      "effective_dims": 10,
+      "train_missing_nlpd": 27.54610194147163,
+      "train_missing_rmse": 0.9902134766915728
+    },
+    {
+      "iteration": 1000,
+      "train_rmse": 0.9721228962414414,
+      "train_nlpd": 41.5823491473101,
+      "elbo_loss": 50.61902079254283,
+      "effective_dims": 10,
+      "train_missing_nlpd": 27.415496396718375,
+      "train_missing_rmse": 0.9851509735924687
+    },
+    {
+      "iteration": 1100,
+      "train_rmse": 0.9655048686587803,
+      "train_nlpd": 41.358093555349996,
+      "elbo_loss": 49.29882402680584,
+      "effective_dims": 10,
+      "train_missing_nlpd": 27.27420370759983,
+      "train_missing_rmse": 0.9800217218368752
+    },
+    {
+      "iteration": 1200,
+      "train_rmse": 0.9580044591992128,
+      "train_nlpd": 41.08850189352939,
+      "elbo_loss": 48.83691565601049,
+      "effective_dims": 10,
+      "train_missing_nlpd": 27.12556446677741,
+      "train_missing_rmse": 0.9736678690509836
+    },
+    {
+      "iteration": 1300,
+      "train_rmse": 0.9507043474635164,
+      "train_nlpd": 40.832870463599164,
+      "elbo_loss": 48.41634142576531,
+      "effective_dims": 10,
+      "train_missing_nlpd": 26.96494219245543,
+      "train_missing_rmse": 0.9666710136171971
+    },
+    {
+      "iteration": 1400,
+      "train_rmse": 0.9408776895905612,
+      "train_nlpd": 40.54780029146969,
+      "elbo_loss": 47.2469421824132,
+      "effective_dims": 10,
+      "train_missing_nlpd": 26.787114240680932,
+      "train_missing_rmse": 0.9576708564241462
+    },
+    {
+      "iteration": 1500,
+      "train_rmse": 0.9299943043318035,
+      "train_nlpd": 40.22690244900076,
+      "elbo_loss": 46.64815892374273,
+      "effective_dims": 10,
+      "train_missing_nlpd": 26.568153992859955,
+      "train_missing_rmse": 0.9486463389358031
+    },
+    {
+      "iteration": 1600,
+      "train_rmse": 0.9182768878121731,
+      "train_nlpd": 39.834271200573994,
+      "elbo_loss": 45.738565559138664,
+      "effective_dims": 10,
+      "train_missing_nlpd": 26.37498527455825,
+      "train_missing_rmse": 0.9370137667745208
+    },
+    {
+      "iteration": 1700,
+      "train_rmse": 0.905458834284116,
+      "train_nlpd": 39.44581537557457,
+      "elbo_loss": 45.07663805335728,
+      "effective_dims": 10,
+      "train_missing_nlpd": 26.147835008315074,
+      "train_missing_rmse": 0.9256488716750525
+    },
+    {
+      "iteration": 1800,
+      "train_rmse": 0.8893458123257818,
+      "train_nlpd": 39.01190834391588,
+      "elbo_loss": 44.59793331462223,
+      "effective_dims": 10,
+      "train_missing_nlpd": 25.885351309560253,
+      "train_missing_rmse": 0.911240817118809
+    },
+    {
+      "iteration": 1900,
+      "train_rmse": 0.8746809644803998,
+      "train_nlpd": 38.56706299738022,
+      "elbo_loss": 43.925433702519456,
+      "effective_dims": 10,
+      "train_missing_nlpd": 25.61428029937573,
+      "train_missing_rmse": 0.8985248647688541
+    },
+    {
+      "iteration": 2000,
+      "train_rmse": 0.8597129296568438,
+      "train_nlpd": 38.13473106886129,
+      "elbo_loss": 43.15991886382019,
+      "effective_dims": 10,
+      "train_missing_nlpd": 25.369027709094492,
+      "train_missing_rmse": 0.8858807739942731
+    },
+    {
+      "iteration": 2100,
+      "train_rmse": 0.8458185282709347,
+      "train_nlpd": 37.70795982349615,
+      "elbo_loss": 43.58229998109596,
+      "effective_dims": 10,
+      "train_missing_nlpd": 25.123958142454505,
+      "train_missing_rmse": 0.8725716412135963
+    },
+    {
+      "iteration": 2200,
+      "train_rmse": 0.8337880237068993,
+      "train_nlpd": 37.25270702393079,
+      "elbo_loss": 42.2863917880852,
+      "effective_dims": 10,
+      "train_missing_nlpd": 24.870153810982128,
+      "train_missing_rmse": 0.8603003397480595
+    },
+    {
+      "iteration": 2300,
+      "train_rmse": 0.8215603651538501,
+      "train_nlpd": 36.86253703153013,
+      "elbo_loss": 41.96224532278435,
+      "effective_dims": 10,
+      "train_missing_nlpd": 24.637864518912195,
+      "train_missing_rmse": 0.8508570399657578
+    },
+    {
+      "iteration": 2400,
+      "train_rmse": 0.8101871746877581,
+      "train_nlpd": 36.483302882296606,
+      "elbo_loss": 41.385837250338255,
+      "effective_dims": 10,
+      "train_missing_nlpd": 24.402388832227402,
+      "train_missing_rmse": 0.8399973142526922
+    },
+    {
+      "iteration": 2500,
+      "train_rmse": 0.7981955800482895,
+      "train_nlpd": 36.08923940850423,
+      "elbo_loss": 41.022144229885384,
+      "effective_dims": 10,
+      "train_missing_nlpd": 24.184803694028734,
+      "train_missing_rmse": 0.8302596460302192
+    },
+    {
+      "iteration": 2600,
+      "train_rmse": 0.7881467572744221,
+      "train_nlpd": 35.69309796347573,
+      "elbo_loss": 40.196558202899126,
+      "effective_dims": 10,
+      "train_missing_nlpd": 23.947915030404193,
+      "train_missing_rmse": 0.8196818086277506
+    },
+    {
+      "iteration": 2700,
+      "train_rmse": 0.7770628927029308,
+      "train_nlpd": 35.29083444542593,
+      "elbo_loss": 40.02761356840473,
+      "effective_dims": 10,
+      "train_missing_nlpd": 23.72834728630086,
+      "train_missing_rmse": 0.8105347661232213
+    },
+    {
+      "iteration": 2800,
+      "train_rmse": 0.7665379523306973,
+      "train_nlpd": 34.90709535059142,
+      "elbo_loss": 40.31699441324753,
+      "effective_dims": 10,
+      "train_missing_nlpd": 23.49482447580889,
+      "train_missing_rmse": 0.8018224748393733
+    },
+    {
+      "iteration": 2900,
+      "train_rmse": 0.7563055539098656,
+      "train_nlpd": 34.53760022068285,
+      "elbo_loss": 38.69303277576591,
+      "effective_dims": 10,
+      "train_missing_nlpd": 23.251727938376206,
+      "train_missing_rmse": 0.790940865198105
+    },
+    {
+      "iteration": 3000,
+      "train_rmse": 0.7460074933793801,
+      "train_nlpd": 34.14299916597437,
+      "elbo_loss": 39.788485746697944,
+      "effective_dims": 10,
+      "train_missing_nlpd": 23.057732224541923,
+      "train_missing_rmse": 0.782257835360569
+    },
+    {
+      "iteration": 3100,
+      "train_rmse": 0.7354093868659062,
+      "train_nlpd": 33.74844778552883,
+      "elbo_loss": 38.94561467559497,
+      "effective_dims": 10,
+      "train_missing_nlpd": 22.86696215585511,
+      "train_missing_rmse": 0.7731843705895708
+    },
+    {
+      "iteration": 3200,
+      "train_rmse": 0.7249308916862862,
+      "train_nlpd": 33.36802070842081,
+      "elbo_loss": 38.81092120002289,
+      "effective_dims": 10,
+      "train_missing_nlpd": 22.645508600765794,
+      "train_missing_rmse": 0.7643106370032634
+    },
+    {
+      "iteration": 3300,
+      "train_rmse": 0.7168332256292766,
+      "train_nlpd": 33.056960791531964,
+      "elbo_loss": 39.197979997022784,
+      "effective_dims": 10,
+      "train_missing_nlpd": 22.429639043577787,
+      "train_missing_rmse": 0.7566052268617425
+    },
+    {
+      "iteration": 3400,
+      "train_rmse": 0.7080758032416637,
+      "train_nlpd": 32.733471200229246,
+      "elbo_loss": 38.5271116344682,
+      "effective_dims": 10,
+      "train_missing_nlpd": 22.25744286598477,
+      "train_missing_rmse": 0.7491215853743513
+    },
+    {
+      "iteration": 3500,
+      "train_rmse": 0.7006785228070048,
+      "train_nlpd": 32.390205246687984,
+      "elbo_loss": 37.59620305181967,
+      "effective_dims": 10,
+      "train_missing_nlpd": 22.080830340227056,
+      "train_missing_rmse": 0.7427463203913208
+    },
+    {
+      "iteration": 3600,
+      "train_rmse": 0.69352885272705,
+      "train_nlpd": 32.1322260174465,
+      "elbo_loss": 38.76338242145559,
+      "effective_dims": 10,
+      "train_missing_nlpd": 21.934783815603293,
+      "train_missing_rmse": 0.7361032446076845
+    },
+    {
+      "iteration": 3700,
+      "train_rmse": 0.6866114824551582,
+      "train_nlpd": 31.839191807820004,
+      "elbo_loss": 38.0807334482478,
+      "effective_dims": 10,
+      "train_missing_nlpd": 21.77649756711243,
+      "train_missing_rmse": 0.7312736616843841
+    },
+    {
+      "iteration": 3800,
+      "train_rmse": 0.681578139685201,
+      "train_nlpd": 31.604939559476662,
+      "elbo_loss": 36.80098148772109,
+      "effective_dims": 10,
+      "train_missing_nlpd": 21.637849070686674,
+      "train_missing_rmse": 0.725556638676123
+    },
+    {
+      "iteration": 3900,
+      "train_rmse": 0.6763316442188858,
+      "train_nlpd": 31.395521771832424,
+      "elbo_loss": 37.62655391867064,
+      "effective_dims": 10,
+      "train_missing_nlpd": 21.52809899873932,
+      "train_missing_rmse": 0.7219337210635277
+    },
+    {
+      "iteration": 4000,
+      "train_rmse": 0.672506166401706,
+      "train_nlpd": 31.199820960503608,
+      "elbo_loss": 36.64853864473474,
+      "effective_dims": 10,
+      "train_missing_nlpd": 21.440745467779973,
+      "train_missing_rmse": 0.7186107679180228
+    },
+    {
+      "iteration": 4100,
+      "train_rmse": 0.6689077771327233,
+      "train_nlpd": 31.001680589317836,
+      "elbo_loss": 38.163714538645465,
+      "effective_dims": 10,
+      "train_missing_nlpd": 21.322233284795615,
+      "train_missing_rmse": 0.715503756784028
+    },
+    {
+      "iteration": 4200,
+      "train_rmse": 0.6653566621488458,
+      "train_nlpd": 30.795461215096324,
+      "elbo_loss": 36.46810795387947,
+      "effective_dims": 10,
+      "train_missing_nlpd": 21.254008701802444,
+      "train_missing_rmse": 0.7123172363107146
+    },
+    {
+      "iteration": 4300,
+      "train_rmse": 0.6617473965816636,
+      "train_nlpd": 30.698431251609872,
+      "elbo_loss": 35.779197441823,
+      "effective_dims": 10,
+      "train_missing_nlpd": 21.157544560329864,
+      "train_missing_rmse": 0.7093767311961059
+    },
+    {
+      "iteration": 4400,
+      "train_rmse": 0.658194698803096,
+      "train_nlpd": 30.536635284862523,
+      "elbo_loss": 36.50306803055851,
+      "effective_dims": 9,
+      "train_missing_nlpd": 21.035112381908426,
+      "train_missing_rmse": 0.7062879821336953
+    },
+    {
+      "iteration": 4500,
+      "train_rmse": 0.6555137969043674,
+      "train_nlpd": 30.381645902943838,
+      "elbo_loss": 35.81838617624699,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.9887474055237,
+      "train_missing_rmse": 0.7042018270235858
+    },
+    {
+      "iteration": 4600,
+      "train_rmse": 0.6517924174354565,
+      "train_nlpd": 30.247871463044177,
+      "elbo_loss": 35.027479634069486,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.875147340518502,
+      "train_missing_rmse": 0.7008243981413652
+    },
+    {
+      "iteration": 4700,
+      "train_rmse": 0.6505816290195515,
+      "train_nlpd": 30.09254916702894,
+      "elbo_loss": 35.72578080587489,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.83484500152733,
+      "train_missing_rmse": 0.6992318912330606
+    },
+    {
+      "iteration": 4800,
+      "train_rmse": 0.6482026396913518,
+      "train_nlpd": 29.995701750974842,
+      "elbo_loss": 35.96573259284648,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.75863416616679,
+      "train_missing_rmse": 0.6977620087892136
+    },
+    {
+      "iteration": 4900,
+      "train_rmse": 0.6458729726683303,
+      "train_nlpd": 29.8862898943803,
+      "elbo_loss": 36.04335140740092,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.714272281033093,
+      "train_missing_rmse": 0.695438575140012
+    },
+    {
+      "iteration": 5000,
+      "train_rmse": 0.6436852913825062,
+      "train_nlpd": 29.71956929040495,
+      "elbo_loss": 35.90977898771371,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.641960296927596,
+      "train_missing_rmse": 0.6935626750029771
+    },
+    {
+      "iteration": 5100,
+      "train_rmse": 0.640959386000722,
+      "train_nlpd": 29.606922671634724,
+      "elbo_loss": 36.046568476763454,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.59213247106355,
+      "train_missing_rmse": 0.6909929659577225
+    },
+    {
+      "iteration": 5200,
+      "train_rmse": 0.6387468142571283,
+      "train_nlpd": 29.53739759921501,
+      "elbo_loss": 34.08588728686479,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.54177402572506,
+      "train_missing_rmse": 0.6900440708044452
+    },
+    {
+      "iteration": 5300,
+      "train_rmse": 0.6359954888107631,
+      "train_nlpd": 29.399453337536816,
+      "elbo_loss": 35.596320308920454,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.46457776407945,
+      "train_missing_rmse": 0.6878398403844145
+    },
+    {
+      "iteration": 5400,
+      "train_rmse": 0.6340400430817481,
+      "train_nlpd": 29.311864908245514,
+      "elbo_loss": 35.17030657723899,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.426604519858973,
+      "train_missing_rmse": 0.6858780806665
+    },
+    {
+      "iteration": 5500,
+      "train_rmse": 0.6325348507376919,
+      "train_nlpd": 29.19780330303909,
+      "elbo_loss": 35.00336018374094,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.360292507260645,
+      "train_missing_rmse": 0.6846704435756336
+    },
+    {
+      "iteration": 5600,
+      "train_rmse": 0.6302601866824256,
+      "train_nlpd": 29.094250428620846,
+      "elbo_loss": 36.35282333169401,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.31208032259917,
+      "train_missing_rmse": 0.6820388570226439
+    },
+    {
+      "iteration": 5700,
+      "train_rmse": 0.6280895184961968,
+      "train_nlpd": 28.986373938625697,
+      "elbo_loss": 34.93979637239822,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.26647846267599,
+      "train_missing_rmse": 0.680954686156738
+    },
+    {
+      "iteration": 5800,
+      "train_rmse": 0.6255220167451185,
+      "train_nlpd": 28.8819150537294,
+      "elbo_loss": 35.37649654364209,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.20987256004828,
+      "train_missing_rmse": 0.6790565711217048
+    },
+    {
+      "iteration": 5900,
+      "train_rmse": 0.6235715748471014,
+      "train_nlpd": 28.79977477987405,
+      "elbo_loss": 34.096625624778,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.160727963534146,
+      "train_missing_rmse": 0.6773937800796168
+    },
+    {
+      "iteration": 6000,
+      "train_rmse": 0.6216027399141714,
+      "train_nlpd": 28.672908681355146,
+      "elbo_loss": 35.51618593426261,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.098154123390206,
+      "train_missing_rmse": 0.6761727220609547
+    },
+    {
+      "iteration": 6100,
+      "train_rmse": 0.6191668005725642,
+      "train_nlpd": 28.586197568490864,
+      "elbo_loss": 35.29423436234984,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.065217202444675,
+      "train_missing_rmse": 0.6743683750519608
+    },
+    {
+      "iteration": 6200,
+      "train_rmse": 0.6174950671957796,
+      "train_nlpd": 28.48123294374652,
+      "elbo_loss": 34.41009392808978,
+      "effective_dims": 9,
+      "train_missing_nlpd": 20.007873189386338,
+      "train_missing_rmse": 0.6731700622243598
+    },
+    {
+      "iteration": 6300,
+      "train_rmse": 0.6153476840465063,
+      "train_nlpd": 28.390495205040523,
+      "elbo_loss": 34.96002256048093,
+      "effective_dims": 9,
+      "train_missing_nlpd": 19.949875142333035,
+      "train_missing_rmse": 0.6714055026806285
+    },
+    {
+      "iteration": 6400,
+      "train_rmse": 0.6134085224294774,
+      "train_nlpd": 28.29378279304816,
+      "elbo_loss": 33.79769927195604,
+      "effective_dims": 9,
+      "train_missing_nlpd": 19.9408332557171,
+      "train_missing_rmse": 0.6699377345600388
+    },
+    {
+      "iteration": 6500,
+      "train_rmse": 0.6114215665575273,
+      "train_nlpd": 28.1935101200464,
+      "elbo_loss": 34.86382710488158,
+      "effective_dims": 9,
+      "train_missing_nlpd": 19.87115845201284,
+      "train_missing_rmse": 0.667684554805758
+    },
+    {
+      "iteration": 6600,
+      "train_rmse": 0.6091462873569251,
+      "train_nlpd": 28.05063908611787,
+      "elbo_loss": 35.055523602801884,
+      "effective_dims": 9,
+      "train_missing_nlpd": 19.842462326058275,
+      "train_missing_rmse": 0.6661021908716327
+    },
+    {
+      "iteration": 6700,
+      "train_rmse": 0.6068547097726863,
+      "train_nlpd": 27.983166601037425,
+      "elbo_loss": 33.145905919183384,
+      "effective_dims": 9,
+      "train_missing_nlpd": 19.777270808001084,
+      "train_missing_rmse": 0.6640459856650824
+    },
+    {
+      "iteration": 6800,
+      "train_rmse": 0.6044705978363561,
+      "train_nlpd": 27.865119350610357,
+      "elbo_loss": 34.93858784113003,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.71116344395474,
+      "train_missing_rmse": 0.6623694223056035
+    },
+    {
+      "iteration": 6900,
+      "train_rmse": 0.6023166374424748,
+      "train_nlpd": 27.760794864669847,
+      "elbo_loss": 34.80683401151243,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.667241636376616,
+      "train_missing_rmse": 0.6607367525916488
+    },
+    {
+      "iteration": 7000,
+      "train_rmse": 0.5996641094896976,
+      "train_nlpd": 27.653126740630725,
+      "elbo_loss": 34.16050445038255,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.61741963889082,
+      "train_missing_rmse": 0.6581025894373828
+    },
+    {
+      "iteration": 7100,
+      "train_rmse": 0.5978537027843328,
+      "train_nlpd": 27.554865103389776,
+      "elbo_loss": 33.601330577626875,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.550439381173035,
+      "train_missing_rmse": 0.6568615833363652
+    },
+    {
+      "iteration": 7200,
+      "train_rmse": 0.595444462376145,
+      "train_nlpd": 27.42480450113378,
+      "elbo_loss": 34.411648988263,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.511334669629427,
+      "train_missing_rmse": 0.6552205077978352
+    },
+    {
+      "iteration": 7300,
+      "train_rmse": 0.5933597433433802,
+      "train_nlpd": 27.325386602892117,
+      "elbo_loss": 33.58805376351395,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.47679566395886,
+      "train_missing_rmse": 0.6535860827695411
+    },
+    {
+      "iteration": 7400,
+      "train_rmse": 0.5907958543099624,
+      "train_nlpd": 27.22769333935207,
+      "elbo_loss": 34.138487644495356,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.453328711978518,
+      "train_missing_rmse": 0.6519300674604891
+    },
+    {
+      "iteration": 7500,
+      "train_rmse": 0.5886995818731212,
+      "train_nlpd": 27.131113931684265,
+      "elbo_loss": 33.72997936435223,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.37396675417194,
+      "train_missing_rmse": 0.6500265357659
+    },
+    {
+      "iteration": 7600,
+      "train_rmse": 0.5868292027590464,
+      "train_nlpd": 27.040130624714486,
+      "elbo_loss": 33.10525828477708,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.316403826348285,
+      "train_missing_rmse": 0.64883081391846
+    },
+    {
+      "iteration": 7700,
+      "train_rmse": 0.5838892598466299,
+      "train_nlpd": 26.92429430118759,
+      "elbo_loss": 34.13309246268178,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.256885506984556,
+      "train_missing_rmse": 0.6467802930549424
+    },
+    {
+      "iteration": 7800,
+      "train_rmse": 0.5822767598612958,
+      "train_nlpd": 26.815040623458938,
+      "elbo_loss": 33.411989305158244,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.23406712905357,
+      "train_missing_rmse": 0.6455814957290197
+    },
+    {
+      "iteration": 7900,
+      "train_rmse": 0.5794469037913087,
+      "train_nlpd": 26.717522952761787,
+      "elbo_loss": 33.38478037307566,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.161460355961694,
+      "train_missing_rmse": 0.6432214767019124
+    },
+    {
+      "iteration": 8000,
+      "train_rmse": 0.5778850901571253,
+      "train_nlpd": 26.590086621244364,
+      "elbo_loss": 33.44309520323049,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.147025524629253,
+      "train_missing_rmse": 0.642018918923231
+    },
+    {
+      "iteration": 8100,
+      "train_rmse": 0.5761610085638041,
+      "train_nlpd": 26.537728448334086,
+      "elbo_loss": 32.63217739180154,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.080979122261972,
+      "train_missing_rmse": 0.6407248006165537
+    },
+    {
+      "iteration": 8200,
+      "train_rmse": 0.5749921120849808,
+      "train_nlpd": 26.457432742862814,
+      "elbo_loss": 33.34306731618929,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.055800259127356,
+      "train_missing_rmse": 0.6396369664190299
+    },
+    {
+      "iteration": 8300,
+      "train_rmse": 0.5734469386871368,
+      "train_nlpd": 26.35759777792305,
+      "elbo_loss": 33.49862962432236,
+      "effective_dims": 8,
+      "train_missing_nlpd": 19.009776774996183,
+      "train_missing_rmse": 0.6385046556238368
+    },
+    {
+      "iteration": 8400,
+      "train_rmse": 0.5707694932881651,
+      "train_nlpd": 26.30385310217388,
+      "elbo_loss": 32.9308861716743,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.98142427642196,
+      "train_missing_rmse": 0.6370823852720127
+    },
+    {
+      "iteration": 8500,
+      "train_rmse": 0.5691911663750677,
+      "train_nlpd": 26.19300546914087,
+      "elbo_loss": 33.57700961342158,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.966409628799926,
+      "train_missing_rmse": 0.6363826867310091
+    },
+    {
+      "iteration": 8600,
+      "train_rmse": 0.5682713116180882,
+      "train_nlpd": 26.108299018440462,
+      "elbo_loss": 32.75353045762994,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.910306281444353,
+      "train_missing_rmse": 0.635976466542347
+    },
+    {
+      "iteration": 8700,
+      "train_rmse": 0.5668844716460191,
+      "train_nlpd": 26.05559679179853,
+      "elbo_loss": 33.881854589122355,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.891095111418675,
+      "train_missing_rmse": 0.6349011602715311
+    },
+    {
+      "iteration": 8800,
+      "train_rmse": 0.56474408945687,
+      "train_nlpd": 25.978171132582496,
+      "elbo_loss": 33.49901200440263,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.866409260277695,
+      "train_missing_rmse": 0.6329698831180198
+    },
+    {
+      "iteration": 8900,
+      "train_rmse": 0.5638860979309779,
+      "train_nlpd": 25.917747499840274,
+      "elbo_loss": 32.868040069952286,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.80870994890346,
+      "train_missing_rmse": 0.6328609834487686
+    },
+    {
+      "iteration": 9000,
+      "train_rmse": 0.5626214089170369,
+      "train_nlpd": 25.84236934246578,
+      "elbo_loss": 33.69917754459488,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.801204670002953,
+      "train_missing_rmse": 0.6312546794200621
+    },
+    {
+      "iteration": 9100,
+      "train_rmse": 0.5608838492153084,
+      "train_nlpd": 25.773816713421986,
+      "elbo_loss": 32.97022225600883,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.775475871095967,
+      "train_missing_rmse": 0.6312497623610539
+    },
+    {
+      "iteration": 9200,
+      "train_rmse": 0.5600868149129231,
+      "train_nlpd": 25.672312016185142,
+      "elbo_loss": 32.480959840958384,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.737510172783562,
+      "train_missing_rmse": 0.6300486536082504
+    },
+    {
+      "iteration": 9300,
+      "train_rmse": 0.5587291324868512,
+      "train_nlpd": 25.628138961582167,
+      "elbo_loss": 33.826434349862865,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.72123327561373,
+      "train_missing_rmse": 0.6280258330339935
+    },
+    {
+      "iteration": 9400,
+      "train_rmse": 0.5572460071587131,
+      "train_nlpd": 25.57282589954508,
+      "elbo_loss": 33.25980821866003,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.697480661754454,
+      "train_missing_rmse": 0.6283708459816311
+    },
+    {
+      "iteration": 9500,
+      "train_rmse": 0.556378668551155,
+      "train_nlpd": 25.509723920493684,
+      "elbo_loss": 34.08196373341405,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.67069914581955,
+      "train_missing_rmse": 0.6273961355996142
+    },
+    {
+      "iteration": 9600,
+      "train_rmse": 0.5547939153391575,
+      "train_nlpd": 25.416174447428403,
+      "elbo_loss": 32.2092458770281,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.64185069716646,
+      "train_missing_rmse": 0.6270037268433925
+    },
+    {
+      "iteration": 9700,
+      "train_rmse": 0.5528248380564917,
+      "train_nlpd": 25.395486803189524,
+      "elbo_loss": 33.136234580648235,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.63862347620344,
+      "train_missing_rmse": 0.6262601621969184
+    },
+    {
+      "iteration": 9800,
+      "train_rmse": 0.5525382109065843,
+      "train_nlpd": 25.35294380333051,
+      "elbo_loss": 32.719442199921986,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.620858158282424,
+      "train_missing_rmse": 0.6254328930991457
+    },
+    {
+      "iteration": 9900,
+      "train_rmse": 0.5515957572436139,
+      "train_nlpd": 25.278897096042645,
+      "elbo_loss": 32.813418106557094,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.59389152254838,
+      "train_missing_rmse": 0.6250664567213088
+    },
+    {
+      "iteration": 10000,
+      "train_rmse": 0.5506852468940603,
+      "train_nlpd": 25.230680227446243,
+      "elbo_loss": 32.71277360305008,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.57195831616388,
+      "train_missing_rmse": 0.624337683654001
+    },
+    {
+      "iteration": 10100,
+      "train_rmse": 0.5494759776847816,
+      "train_nlpd": 25.171353288298437,
+      "elbo_loss": 32.25473341834564,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.54759414883806,
+      "train_missing_rmse": 0.6234146806265665
+    },
+    {
+      "iteration": 10200,
+      "train_rmse": 0.5486269839060591,
+      "train_nlpd": 25.10013827514691,
+      "elbo_loss": 32.474494767730036,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.566740305858765,
+      "train_missing_rmse": 0.6234102782112272
+    },
+    {
+      "iteration": 10300,
+      "train_rmse": 0.5467419153933037,
+      "train_nlpd": 25.051866586678084,
+      "elbo_loss": 32.1781321018388,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.559119638815698,
+      "train_missing_rmse": 0.6223361668046486
+    },
+    {
+      "iteration": 10400,
+      "train_rmse": 0.5467086594675613,
+      "train_nlpd": 25.03568643259451,
+      "elbo_loss": 32.20368510032312,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.493210772593578,
+      "train_missing_rmse": 0.6209819445926551
+    },
+    {
+      "iteration": 10500,
+      "train_rmse": 0.5453294625713523,
+      "train_nlpd": 24.968233960128117,
+      "elbo_loss": 32.08519685379198,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.472144077273835,
+      "train_missing_rmse": 0.6214941183803216
+    },
+    {
+      "iteration": 10600,
+      "train_rmse": 0.5447837598255714,
+      "train_nlpd": 24.91868379092023,
+      "elbo_loss": 32.70266156830909,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.473892963877628,
+      "train_missing_rmse": 0.6202474386280767
+    },
+    {
+      "iteration": 10700,
+      "train_rmse": 0.5434221921952708,
+      "train_nlpd": 24.851629056434938,
+      "elbo_loss": 33.00243794404402,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.46048875292396,
+      "train_missing_rmse": 0.6201393680848533
+    },
+    {
+      "iteration": 10800,
+      "train_rmse": 0.5426090994950525,
+      "train_nlpd": 24.79980620716899,
+      "elbo_loss": 32.303692019203325,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.44825573166127,
+      "train_missing_rmse": 0.6199171840275017
+    },
+    {
+      "iteration": 10900,
+      "train_rmse": 0.5423118873214111,
+      "train_nlpd": 24.767282071780695,
+      "elbo_loss": 32.408330436674746,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.435158802416538,
+      "train_missing_rmse": 0.6201473140272673
+    },
+    {
+      "iteration": 11000,
+      "train_rmse": 0.5410655817848693,
+      "train_nlpd": 24.722360231634568,
+      "elbo_loss": 32.66445038971011,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.40744886083456,
+      "train_missing_rmse": 0.6188298216837048
+    },
+    {
+      "iteration": 11100,
+      "train_rmse": 0.5405114873793366,
+      "train_nlpd": 24.663414482661654,
+      "elbo_loss": 32.07780417676213,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.415168728803778,
+      "train_missing_rmse": 0.6188256985463727
+    },
+    {
+      "iteration": 11200,
+      "train_rmse": 0.5395251023743242,
+      "train_nlpd": 24.637453328718347,
+      "elbo_loss": 32.51195493136038,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.406016222618774,
+      "train_missing_rmse": 0.6189066980406475
+    },
+    {
+      "iteration": 11300,
+      "train_rmse": 0.5389223841745355,
+      "train_nlpd": 24.583099209671058,
+      "elbo_loss": 32.03657171544058,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.367097611696288,
+      "train_missing_rmse": 0.6180367535661293
+    },
+    {
+      "iteration": 11400,
+      "train_rmse": 0.5382664951043173,
+      "train_nlpd": 24.5658825517109,
+      "elbo_loss": 33.09104699058702,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.36174776631507,
+      "train_missing_rmse": 0.6176766686422247
+    },
+    {
+      "iteration": 11500,
+      "train_rmse": 0.5370957927782286,
+      "train_nlpd": 24.496559657923296,
+      "elbo_loss": 32.16637305688788,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.39425885356679,
+      "train_missing_rmse": 0.6173149009910539
+    },
+    {
+      "iteration": 11600,
+      "train_rmse": 0.5368478893773299,
+      "train_nlpd": 24.481571628578042,
+      "elbo_loss": 31.99681376946959,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.371200924479066,
+      "train_missing_rmse": 0.6169693508043738
+    },
+    {
+      "iteration": 11700,
+      "train_rmse": 0.5363689299816817,
+      "train_nlpd": 24.45376199645284,
+      "elbo_loss": 32.098878183912745,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.342140221238218,
+      "train_missing_rmse": 0.6169514754715413
+    },
+    {
+      "iteration": 11800,
+      "train_rmse": 0.5357789287520733,
+      "train_nlpd": 24.412246290037192,
+      "elbo_loss": 32.329175790507854,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.317523749411507,
+      "train_missing_rmse": 0.6156806306238586
+    },
+    {
+      "iteration": 11900,
+      "train_rmse": 0.5350350242685413,
+      "train_nlpd": 24.36300896733858,
+      "elbo_loss": 32.246156591401856,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.31221819734442,
+      "train_missing_rmse": 0.6159299485736964
+    },
+    {
+      "iteration": 12000,
+      "train_rmse": 0.5340776785030836,
+      "train_nlpd": 24.339848319384473,
+      "elbo_loss": 32.635041498635495,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.295112320333185,
+      "train_missing_rmse": 0.6154157045419555
+    },
+    {
+      "iteration": 12100,
+      "train_rmse": 0.5337109149002845,
+      "train_nlpd": 24.326156758813266,
+      "elbo_loss": 31.989580789701773,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.306654257703975,
+      "train_missing_rmse": 0.6155420126453446
+    },
+    {
+      "iteration": 12200,
+      "train_rmse": 0.5333689727600069,
+      "train_nlpd": 24.289867155939774,
+      "elbo_loss": 32.641636240499885,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.28414851599535,
+      "train_missing_rmse": 0.6153255043895525
+    },
+    {
+      "iteration": 12300,
+      "train_rmse": 0.5320889496154673,
+      "train_nlpd": 24.228860344079767,
+      "elbo_loss": 31.445974230490677,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.28107795987185,
+      "train_missing_rmse": 0.6149559767414565
+    },
+    {
+      "iteration": 12400,
+      "train_rmse": 0.5319154454731306,
+      "train_nlpd": 24.20243841868218,
+      "elbo_loss": 31.91499288552474,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.29717228208696,
+      "train_missing_rmse": 0.6147586401297389
+    },
+    {
+      "iteration": 12500,
+      "train_rmse": 0.5314530003173967,
+      "train_nlpd": 24.19280539781514,
+      "elbo_loss": 31.976389602145876,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.26903101263022,
+      "train_missing_rmse": 0.6147202119159096
+    },
+    {
+      "iteration": 12600,
+      "train_rmse": 0.5308802962465856,
+      "train_nlpd": 24.14895288788854,
+      "elbo_loss": 31.569277241738007,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.253026292352104,
+      "train_missing_rmse": 0.6141646962505432
+    },
+    {
+      "iteration": 12700,
+      "train_rmse": 0.530269468538954,
+      "train_nlpd": 24.124766408902264,
+      "elbo_loss": 31.81593948608621,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.254826122037894,
+      "train_missing_rmse": 0.613056188238587
+    },
+    {
+      "iteration": 12800,
+      "train_rmse": 0.5296025045541499,
+      "train_nlpd": 24.078271581127034,
+      "elbo_loss": 32.5137437568505,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.24467333763354,
+      "train_missing_rmse": 0.6127843775310831
+    },
+    {
+      "iteration": 12900,
+      "train_rmse": 0.5289206746136994,
+      "train_nlpd": 24.05069056985991,
+      "elbo_loss": 32.91670034841944,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.24259450140205,
+      "train_missing_rmse": 0.6126905788869276
+    },
+    {
+      "iteration": 13000,
+      "train_rmse": 0.5287154652834082,
+      "train_nlpd": 24.038826696848815,
+      "elbo_loss": 31.920726293080858,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.23741787943867,
+      "train_missing_rmse": 0.6133035132186319
+    },
+    {
+      "iteration": 13100,
+      "train_rmse": 0.5286196214724899,
+      "train_nlpd": 24.0100858597816,
+      "elbo_loss": 31.570964751118247,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.243815013333947,
+      "train_missing_rmse": 0.6133707386075511
+    },
+    {
+      "iteration": 13200,
+      "train_rmse": 0.5277016177037797,
+      "train_nlpd": 23.977646030261415,
+      "elbo_loss": 32.291386588146594,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.229590925815753,
+      "train_missing_rmse": 0.6127603454188127
+    },
+    {
+      "iteration": 13300,
+      "train_rmse": 0.5271021436854043,
+      "train_nlpd": 23.9673615289216,
+      "elbo_loss": 31.718354089538074,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.22149508007083,
+      "train_missing_rmse": 0.6123965543037032
+    },
+    {
+      "iteration": 13400,
+      "train_rmse": 0.5271674555194366,
+      "train_nlpd": 23.927027901636652,
+      "elbo_loss": 31.944244566787106,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.20771285346316,
+      "train_missing_rmse": 0.6125498618669004
+    },
+    {
+      "iteration": 13500,
+      "train_rmse": 0.5268095119687521,
+      "train_nlpd": 23.916126382948303,
+      "elbo_loss": 32.046654604847674,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.184959419874694,
+      "train_missing_rmse": 0.6120552019819757
+    },
+    {
+      "iteration": 13600,
+      "train_rmse": 0.5260709863888512,
+      "train_nlpd": 23.887406908212927,
+      "elbo_loss": 31.71412583344522,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.19125275059337,
+      "train_missing_rmse": 0.6119572802806638
+    },
+    {
+      "iteration": 13700,
+      "train_rmse": 0.5254367302166038,
+      "train_nlpd": 23.847391328814002,
+      "elbo_loss": 32.047035091567466,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.179638378300165,
+      "train_missing_rmse": 0.6114195887372037
+    },
+    {
+      "iteration": 13800,
+      "train_rmse": 0.5254647127206401,
+      "train_nlpd": 23.843393704397215,
+      "elbo_loss": 32.16462069250055,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.16253344071995,
+      "train_missing_rmse": 0.6113659185933386
+    },
+    {
+      "iteration": 13900,
+      "train_rmse": 0.5251259747017331,
+      "train_nlpd": 23.82171705668872,
+      "elbo_loss": 31.520349314115137,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.194762776083042,
+      "train_missing_rmse": 0.6115879673909563
+    },
+    {
+      "iteration": 14000,
+      "train_rmse": 0.5251131605282485,
+      "train_nlpd": 23.78548484872631,
+      "elbo_loss": 31.27467530108875,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.17350465183755,
+      "train_missing_rmse": 0.6114536009910321
+    },
+    {
+      "iteration": 14100,
+      "train_rmse": 0.5240050153103516,
+      "train_nlpd": 23.771835878980976,
+      "elbo_loss": 31.955874079438644,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.165580060507484,
+      "train_missing_rmse": 0.6115405285639607
+    },
+    {
+      "iteration": 14200,
+      "train_rmse": 0.524104322722136,
+      "train_nlpd": 23.75419211501492,
+      "elbo_loss": 31.980541848917564,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.17301199689679,
+      "train_missing_rmse": 0.6113880037498298
+    },
+    {
+      "iteration": 14300,
+      "train_rmse": 0.5238878675453249,
+      "train_nlpd": 23.723694448279893,
+      "elbo_loss": 31.762578741567445,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.167179398306107,
+      "train_missing_rmse": 0.61082478747466
+    },
+    {
+      "iteration": 14400,
+      "train_rmse": 0.5227770748712761,
+      "train_nlpd": 23.7151706937976,
+      "elbo_loss": 32.17613855522963,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.141141929005105,
+      "train_missing_rmse": 0.6105815388821162
+    },
+    {
+      "iteration": 14500,
+      "train_rmse": 0.5225043989240935,
+      "train_nlpd": 23.705920681651357,
+      "elbo_loss": 31.211744225414858,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.151854691016112,
+      "train_missing_rmse": 0.610211500922858
+    },
+    {
+      "iteration": 14600,
+      "train_rmse": 0.522626663321498,
+      "train_nlpd": 23.693076707269235,
+      "elbo_loss": 31.44607561214996,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.143303017349144,
+      "train_missing_rmse": 0.6104803759581122
+    },
+    {
+      "iteration": 14700,
+      "train_rmse": 0.5220746666763905,
+      "train_nlpd": 23.66268011629511,
+      "elbo_loss": 31.216279667267532,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.138212797600374,
+      "train_missing_rmse": 0.6096628647568806
+    },
+    {
+      "iteration": 14800,
+      "train_rmse": 0.5220157884410394,
+      "train_nlpd": 23.63972390826203,
+      "elbo_loss": 32.15060283339665,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.13415837552836,
+      "train_missing_rmse": 0.6100741853018922
+    },
+    {
+      "iteration": 14900,
+      "train_rmse": 0.5212453275074386,
+      "train_nlpd": 23.610081184880094,
+      "elbo_loss": 32.89812255843125,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.118852520113638,
+      "train_missing_rmse": 0.60987957518003
+    },
+    {
+      "iteration": 15000,
+      "train_rmse": 0.5213458384990636,
+      "train_nlpd": 23.600412678569317,
+      "elbo_loss": 31.78321042165194,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.130975679138423,
+      "train_missing_rmse": 0.6097137600942868
+    },
+    {
+      "iteration": 15100,
+      "train_rmse": 0.5213097575661056,
+      "train_nlpd": 23.592566703454608,
+      "elbo_loss": 32.240208429299116,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.12465307162446,
+      "train_missing_rmse": 0.6099990934846674
+    },
+    {
+      "iteration": 15200,
+      "train_rmse": 0.5207083080709587,
+      "train_nlpd": 23.56596750618952,
+      "elbo_loss": 31.92986899164955,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.13334256314057,
+      "train_missing_rmse": 0.6099214090454684
+    },
+    {
+      "iteration": 15300,
+      "train_rmse": 0.5205680249705337,
+      "train_nlpd": 23.56932092299818,
+      "elbo_loss": 31.583734269609494,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.11054920567459,
+      "train_missing_rmse": 0.6097671828969226
+    },
+    {
+      "iteration": 15400,
+      "train_rmse": 0.5196968854977613,
+      "train_nlpd": 23.530570012258273,
+      "elbo_loss": 31.868379012526603,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.107916061005632,
+      "train_missing_rmse": 0.6093714578297125
+    },
+    {
+      "iteration": 15500,
+      "train_rmse": 0.5201321257115098,
+      "train_nlpd": 23.54517690794713,
+      "elbo_loss": 31.81297676647273,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.106975162164346,
+      "train_missing_rmse": 0.6085427319392871
+    },
+    {
+      "iteration": 15600,
+      "train_rmse": 0.519526079529721,
+      "train_nlpd": 23.505579406111682,
+      "elbo_loss": 31.907502156129276,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.108955825750716,
+      "train_missing_rmse": 0.6093165367838043
+    },
+    {
+      "iteration": 15700,
+      "train_rmse": 0.5192058933883036,
+      "train_nlpd": 23.486188829491933,
+      "elbo_loss": 31.827493785088368,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.11460283854111,
+      "train_missing_rmse": 0.6092532086589446
+    },
+    {
+      "iteration": 15800,
+      "train_rmse": 0.5188411538622327,
+      "train_nlpd": 23.49004672065199,
+      "elbo_loss": 31.29519687998885,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.087304180320007,
+      "train_missing_rmse": 0.6089723627299912
+    },
+    {
+      "iteration": 15900,
+      "train_rmse": 0.518861469310926,
+      "train_nlpd": 23.448541819901685,
+      "elbo_loss": 31.53352916113099,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.07880731898671,
+      "train_missing_rmse": 0.6084291218805521
+    },
+    {
+      "iteration": 16000,
+      "train_rmse": 0.5184933156256483,
+      "train_nlpd": 23.450679078567585,
+      "elbo_loss": 31.776501226571952,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.09383428175298,
+      "train_missing_rmse": 0.6083414998042811
+    },
+    {
+      "iteration": 16100,
+      "train_rmse": 0.5179339629016947,
+      "train_nlpd": 23.430188535277473,
+      "elbo_loss": 31.90637508026017,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.092983343451827,
+      "train_missing_rmse": 0.6078258329548034
+    },
+    {
+      "iteration": 16200,
+      "train_rmse": 0.518179134958335,
+      "train_nlpd": 23.386902855946925,
+      "elbo_loss": 31.454755719450088,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.067168494403766,
+      "train_missing_rmse": 0.6083696554151484
+    },
+    {
+      "iteration": 16300,
+      "train_rmse": 0.5178388078415583,
+      "train_nlpd": 23.387410210697833,
+      "elbo_loss": 30.97177433266807,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.07955875926278,
+      "train_missing_rmse": 0.608104344001769
+    },
+    {
+      "iteration": 16400,
+      "train_rmse": 0.51745326222486,
+      "train_nlpd": 23.392761484707115,
+      "elbo_loss": 31.719891448073845,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.075970676017473,
+      "train_missing_rmse": 0.6074426302408443
+    },
+    {
+      "iteration": 16500,
+      "train_rmse": 0.5176829086891331,
+      "train_nlpd": 23.377247778703378,
+      "elbo_loss": 31.86453098296912,
+      "effective_dims": 8,
+      "train_missing_nlpd": 18.08985581570197,
+      "train_missing_rmse": 0.6077235011444249
+    },
+    {
+      "iteration": 16600,
+      "train_rmse": 0.5171277586071316,
+      "train_nlpd": 23.359917289598883,
+      "elbo_loss": 31.579750710668144,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.076399663604825,
+      "train_missing_rmse": 0.6081091915436845
+    },
+    {
+      "iteration": 16700,
+      "train_rmse": 0.5167603075574208,
+      "train_nlpd": 23.35236264092782,
+      "elbo_loss": 31.515203496493733,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.043665210643834,
+      "train_missing_rmse": 0.6078503696657025
+    },
+    {
+      "iteration": 16800,
+      "train_rmse": 0.5170809863811358,
+      "train_nlpd": 23.31076486493368,
+      "elbo_loss": 32.458947970019594,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.05691326078689,
+      "train_missing_rmse": 0.6075533995943654
+    },
+    {
+      "iteration": 16900,
+      "train_rmse": 0.516628409837547,
+      "train_nlpd": 23.31322098497193,
+      "elbo_loss": 31.402946653072508,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.04642346827223,
+      "train_missing_rmse": 0.6071460344733414
+    },
+    {
+      "iteration": 17000,
+      "train_rmse": 0.5162345361096112,
+      "train_nlpd": 23.300260519482098,
+      "elbo_loss": 31.14240028090901,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.03527864613339,
+      "train_missing_rmse": 0.6069159998546831
+    },
+    {
+      "iteration": 17100,
+      "train_rmse": 0.5156716041593552,
+      "train_nlpd": 23.291836619704398,
+      "elbo_loss": 31.45551638086202,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.06754234036436,
+      "train_missing_rmse": 0.6068517786340886
+    },
+    {
+      "iteration": 17200,
+      "train_rmse": 0.5158605682203057,
+      "train_nlpd": 23.2861883529672,
+      "elbo_loss": 31.231917895886593,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.095949466268788,
+      "train_missing_rmse": 0.6071299578524799
+    },
+    {
+      "iteration": 17300,
+      "train_rmse": 0.515288782532174,
+      "train_nlpd": 23.262774389353044,
+      "elbo_loss": 31.21946632836583,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.054686499127122,
+      "train_missing_rmse": 0.6070596196873667
+    },
+    {
+      "iteration": 17400,
+      "train_rmse": 0.5157553378985167,
+      "train_nlpd": 23.24431974004846,
+      "elbo_loss": 31.421903519612815,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.04809486664478,
+      "train_missing_rmse": 0.607219095904086
+    },
+    {
+      "iteration": 17500,
+      "train_rmse": 0.5152678777655528,
+      "train_nlpd": 23.221677675964767,
+      "elbo_loss": 31.606506740189605,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.0121776340554,
+      "train_missing_rmse": 0.6072328397449518
+    },
+    {
+      "iteration": 17600,
+      "train_rmse": 0.5148075846914022,
+      "train_nlpd": 23.21711648036817,
+      "elbo_loss": 31.530276078179714,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.054970222807203,
+      "train_missing_rmse": 0.6069649698174016
+    },
+    {
+      "iteration": 17700,
+      "train_rmse": 0.5149208179079696,
+      "train_nlpd": 23.231210464721283,
+      "elbo_loss": 31.822597940911372,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.03206527890061,
+      "train_missing_rmse": 0.6063062646113642
+    },
+    {
+      "iteration": 17800,
+      "train_rmse": 0.5146739973156722,
+      "train_nlpd": 23.212775298263946,
+      "elbo_loss": 31.206083740674305,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.068106005086374,
+      "train_missing_rmse": 0.606791303103913
+    },
+    {
+      "iteration": 17900,
+      "train_rmse": 0.5144235146475356,
+      "train_nlpd": 23.198045087538734,
+      "elbo_loss": 31.695121373586584,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.02939880619845,
+      "train_missing_rmse": 0.607205347111227
+    },
+    {
+      "iteration": 18000,
+      "train_rmse": 0.5143279058751866,
+      "train_nlpd": 23.18563768429694,
+      "elbo_loss": 31.469415431353074,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.038577927737744,
+      "train_missing_rmse": 0.6068132918580642
+    },
+    {
+      "iteration": 18100,
+      "train_rmse": 0.5139705150995819,
+      "train_nlpd": 23.17136464302629,
+      "elbo_loss": 31.63244033248875,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.03474228121397,
+      "train_missing_rmse": 0.606961598489632
+    },
+    {
+      "iteration": 18200,
+      "train_rmse": 0.5138259117327918,
+      "train_nlpd": 23.14720401841129,
+      "elbo_loss": 30.963694202023593,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.020464314444318,
+      "train_missing_rmse": 0.6063354947458518
+    },
+    {
+      "iteration": 18300,
+      "train_rmse": 0.5134490898355887,
+      "train_nlpd": 23.152669070228786,
+      "elbo_loss": 30.940090075716334,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.043608163028626,
+      "train_missing_rmse": 0.6059802199209081
+    },
+    {
+      "iteration": 18400,
+      "train_rmse": 0.5137558879252246,
+      "train_nlpd": 23.149342457931173,
+      "elbo_loss": 30.734517368386044,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.032174378206644,
+      "train_missing_rmse": 0.6063933046787376
+    },
+    {
+      "iteration": 18500,
+      "train_rmse": 0.5137625120132808,
+      "train_nlpd": 23.152578256650273,
+      "elbo_loss": 31.298716502953297,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.041269151555134,
+      "train_missing_rmse": 0.606331996005098
+    },
+    {
+      "iteration": 18600,
+      "train_rmse": 0.5136286881330231,
+      "train_nlpd": 23.142471194581372,
+      "elbo_loss": 31.947159869613834,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.03114624184733,
+      "train_missing_rmse": 0.6063424300411728
+    },
+    {
+      "iteration": 18700,
+      "train_rmse": 0.5131308152777143,
+      "train_nlpd": 23.120739618745926,
+      "elbo_loss": 31.1589869235976,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.018640953971286,
+      "train_missing_rmse": 0.6066919120644592
+    },
+    {
+      "iteration": 18800,
+      "train_rmse": 0.5129091135971732,
+      "train_nlpd": 23.10791743493216,
+      "elbo_loss": 31.55115572943355,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.045561824865036,
+      "train_missing_rmse": 0.6058389248722755
+    },
+    {
+      "iteration": 18900,
+      "train_rmse": 0.5128559482998692,
+      "train_nlpd": 23.0883808315893,
+      "elbo_loss": 31.484387838552525,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.006754860218685,
+      "train_missing_rmse": 0.6062068286945222
+    },
+    {
+      "iteration": 19000,
+      "train_rmse": 0.5128522874370793,
+      "train_nlpd": 23.08121717992013,
+      "elbo_loss": 31.818835577766567,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.01675563252162,
+      "train_missing_rmse": 0.6059426906475274
+    },
+    {
+      "iteration": 19100,
+      "train_rmse": 0.5124805889584656,
+      "train_nlpd": 23.062571556387375,
+      "elbo_loss": 31.084198189405093,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.015720685878467,
+      "train_missing_rmse": 0.6056457541151826
+    },
+    {
+      "iteration": 19200,
+      "train_rmse": 0.5119730740878682,
+      "train_nlpd": 23.06026464382163,
+      "elbo_loss": 31.713425738525615,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.006912993196277,
+      "train_missing_rmse": 0.6057325495532723
+    },
+    {
+      "iteration": 19300,
+      "train_rmse": 0.5119294941043431,
+      "train_nlpd": 23.046382510786366,
+      "elbo_loss": 31.012541110301765,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.005348335831215,
+      "train_missing_rmse": 0.6054430884672274
+    },
+    {
+      "iteration": 19400,
+      "train_rmse": 0.5117395655481141,
+      "train_nlpd": 23.02573446485304,
+      "elbo_loss": 30.618923697044256,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.02994842051732,
+      "train_missing_rmse": 0.6060320948655825
+    },
+    {
+      "iteration": 19500,
+      "train_rmse": 0.5113837955983668,
+      "train_nlpd": 23.02584244432583,
+      "elbo_loss": 31.699726550189773,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.01039393309087,
+      "train_missing_rmse": 0.6055875867268504
+    },
+    {
+      "iteration": 19600,
+      "train_rmse": 0.511536476209171,
+      "train_nlpd": 23.033157375487097,
+      "elbo_loss": 31.357475120257472,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.01345527487839,
+      "train_missing_rmse": 0.6059230931247391
+    },
+    {
+      "iteration": 19700,
+      "train_rmse": 0.511216204224409,
+      "train_nlpd": 22.999327106886724,
+      "elbo_loss": 31.848492554750685,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.026791160714776,
+      "train_missing_rmse": 0.6062177254258397
+    },
+    {
+      "iteration": 19800,
+      "train_rmse": 0.5113311790949401,
+      "train_nlpd": 23.024345595471527,
+      "elbo_loss": 31.427081855790682,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.0114520016917,
+      "train_missing_rmse": 0.6054020676048948
+    },
+    {
+      "iteration": 19900,
+      "train_rmse": 0.5107051154755475,
+      "train_nlpd": 23.00597188686782,
+      "elbo_loss": 31.814549279913695,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.997303331212287,
+      "train_missing_rmse": 0.605888199296311
+    },
+    {
+      "iteration": 20000,
+      "train_rmse": 0.5105792609795361,
+      "train_nlpd": 22.986531349740567,
+      "elbo_loss": 31.374280147075385,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.020059490286055,
+      "train_missing_rmse": 0.6055079815402571
+    },
+    {
+      "iteration": 20100,
+      "train_rmse": 0.5104798573458074,
+      "train_nlpd": 22.97716973456057,
+      "elbo_loss": 31.70944223183574,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.995611856116824,
+      "train_missing_rmse": 0.6047887473239586
+    },
+    {
+      "iteration": 20200,
+      "train_rmse": 0.5106003931608835,
+      "train_nlpd": 22.975231954326485,
+      "elbo_loss": 31.01608191695771,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.980426743770327,
+      "train_missing_rmse": 0.6051511918728741
+    },
+    {
+      "iteration": 20300,
+      "train_rmse": 0.5102845506762059,
+      "train_nlpd": 22.955368514308628,
+      "elbo_loss": 31.09313991122768,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.98036439929969,
+      "train_missing_rmse": 0.6048234236799832
+    },
+    {
+      "iteration": 20400,
+      "train_rmse": 0.5103722369886968,
+      "train_nlpd": 22.950974700075054,
+      "elbo_loss": 31.568209277841188,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.00198373134584,
+      "train_missing_rmse": 0.6048842541500271
+    },
+    {
+      "iteration": 20500,
+      "train_rmse": 0.5099414112570465,
+      "train_nlpd": 22.929729536124253,
+      "elbo_loss": 30.844818695290787,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.993996155892592,
+      "train_missing_rmse": 0.6050370076805268
+    },
+    {
+      "iteration": 20600,
+      "train_rmse": 0.5102207123060284,
+      "train_nlpd": 22.943281678334372,
+      "elbo_loss": 31.97561440063823,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.98239301363181,
+      "train_missing_rmse": 0.6060783306802539
+    },
+    {
+      "iteration": 20700,
+      "train_rmse": 0.5100042229176849,
+      "train_nlpd": 22.917528092960477,
+      "elbo_loss": 31.71083893038851,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.991626914622863,
+      "train_missing_rmse": 0.6058156576976299
+    },
+    {
+      "iteration": 20800,
+      "train_rmse": 0.5098197351217713,
+      "train_nlpd": 22.91023255183685,
+      "elbo_loss": 31.584395095611484,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.980136709398796,
+      "train_missing_rmse": 0.604984572919178
+    },
+    {
+      "iteration": 20900,
+      "train_rmse": 0.509531461704657,
+      "train_nlpd": 22.905489340796585,
+      "elbo_loss": 31.318185834558662,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.978965272880686,
+      "train_missing_rmse": 0.6054231686961589
+    },
+    {
+      "iteration": 21000,
+      "train_rmse": 0.5094208375563115,
+      "train_nlpd": 22.890292562830666,
+      "elbo_loss": 31.88381214607784,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.014398539346438,
+      "train_missing_rmse": 0.6058878022840892
+    },
+    {
+      "iteration": 21100,
+      "train_rmse": 0.5089585957446433,
+      "train_nlpd": 22.880770749794443,
+      "elbo_loss": 31.343947809376726,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.989447533620847,
+      "train_missing_rmse": 0.605323650967855
+    },
+    {
+      "iteration": 21200,
+      "train_rmse": 0.5086527655692128,
+      "train_nlpd": 22.86983121131254,
+      "elbo_loss": 31.296713112234013,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.005080247631337,
+      "train_missing_rmse": 0.6048740854559322
+    },
+    {
+      "iteration": 21300,
+      "train_rmse": 0.5083683089588011,
+      "train_nlpd": 22.84730015033958,
+      "elbo_loss": 30.48619004159698,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.999926733058807,
+      "train_missing_rmse": 0.6051326006725943
+    },
+    {
+      "iteration": 21400,
+      "train_rmse": 0.5083216881577727,
+      "train_nlpd": 22.864124959156083,
+      "elbo_loss": 31.73547962917813,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.991470411418867,
+      "train_missing_rmse": 0.605281096408967
+    },
+    {
+      "iteration": 21500,
+      "train_rmse": 0.5085105976721843,
+      "train_nlpd": 22.864676248132085,
+      "elbo_loss": 32.10179340339031,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.01573179838626,
+      "train_missing_rmse": 0.6055987931778208
+    },
+    {
+      "iteration": 21600,
+      "train_rmse": 0.5080278851322767,
+      "train_nlpd": 22.837372421081767,
+      "elbo_loss": 30.732835513768457,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.999583340537708,
+      "train_missing_rmse": 0.6047600932555789
+    },
+    {
+      "iteration": 21700,
+      "train_rmse": 0.508274227469072,
+      "train_nlpd": 22.84098208716646,
+      "elbo_loss": 31.86573089885878,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.979687320316234,
+      "train_missing_rmse": 0.6041732946313426
+    },
+    {
+      "iteration": 21800,
+      "train_rmse": 0.5083040631075056,
+      "train_nlpd": 22.826933906927508,
+      "elbo_loss": 31.265451783685105,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.983688310130447,
+      "train_missing_rmse": 0.6049040205317009
+    },
+    {
+      "iteration": 21900,
+      "train_rmse": 0.5078837737316017,
+      "train_nlpd": 22.783771396381663,
+      "elbo_loss": 31.110125067565484,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.985093485120945,
+      "train_missing_rmse": 0.6043768053822481
+    },
+    {
+      "iteration": 22000,
+      "train_rmse": 0.5076656723679454,
+      "train_nlpd": 22.81713172335991,
+      "elbo_loss": 30.394428262783986,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.004205586433546,
+      "train_missing_rmse": 0.6048240873359625
+    },
+    {
+      "iteration": 22100,
+      "train_rmse": 0.50798572311088,
+      "train_nlpd": 22.79477785532273,
+      "elbo_loss": 30.99711605051955,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.98361335354392,
+      "train_missing_rmse": 0.6048661890008634
+    },
+    {
+      "iteration": 22200,
+      "train_rmse": 0.5077206729769151,
+      "train_nlpd": 22.80367545897038,
+      "elbo_loss": 31.027408995038364,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.99367768341882,
+      "train_missing_rmse": 0.605024008026905
+    },
+    {
+      "iteration": 22300,
+      "train_rmse": 0.5074935860906153,
+      "train_nlpd": 22.77334162259845,
+      "elbo_loss": 31.27994516191989,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.97705705527955,
+      "train_missing_rmse": 0.6041964528435604
+    },
+    {
+      "iteration": 22400,
+      "train_rmse": 0.5067996222141528,
+      "train_nlpd": 22.786705293245383,
+      "elbo_loss": 31.11548618489951,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.986342271607025,
+      "train_missing_rmse": 0.6041704249583981
+    },
+    {
+      "iteration": 22500,
+      "train_rmse": 0.507274767836323,
+      "train_nlpd": 22.770619622600904,
+      "elbo_loss": 30.57399530525656,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.981940675307644,
+      "train_missing_rmse": 0.6048198644655627
+    },
+    {
+      "iteration": 22600,
+      "train_rmse": 0.5070481619043175,
+      "train_nlpd": 22.76615047804676,
+      "elbo_loss": 31.060606611921816,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.981939494745195,
+      "train_missing_rmse": 0.60523166615819
+    },
+    {
+      "iteration": 22700,
+      "train_rmse": 0.5070656826739951,
+      "train_nlpd": 22.769210460309175,
+      "elbo_loss": 31.307213071291763,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.984193676340563,
+      "train_missing_rmse": 0.6042774521049232
+    },
+    {
+      "iteration": 22800,
+      "train_rmse": 0.5068382467940123,
+      "train_nlpd": 22.746350460444358,
+      "elbo_loss": 30.804587359240365,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.976202691742863,
+      "train_missing_rmse": 0.6045760250755758
+    },
+    {
+      "iteration": 22900,
+      "train_rmse": 0.5064835177452507,
+      "train_nlpd": 22.745041617796346,
+      "elbo_loss": 31.13458509310008,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.97105531660032,
+      "train_missing_rmse": 0.6045363656119227
+    },
+    {
+      "iteration": 23000,
+      "train_rmse": 0.5067705338532257,
+      "train_nlpd": 22.71378363931919,
+      "elbo_loss": 31.51939078972178,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.999418718144533,
+      "train_missing_rmse": 0.6045115431702157
+    },
+    {
+      "iteration": 23100,
+      "train_rmse": 0.506390127383566,
+      "train_nlpd": 22.717156240291583,
+      "elbo_loss": 30.714930645813897,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.98323533138567,
+      "train_missing_rmse": 0.6042526007488953
+    },
+    {
+      "iteration": 23200,
+      "train_rmse": 0.5061082146700566,
+      "train_nlpd": 22.72127221887324,
+      "elbo_loss": 31.479415112349006,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.986085308593545,
+      "train_missing_rmse": 0.604580807039975
+    },
+    {
+      "iteration": 23300,
+      "train_rmse": 0.5060923976567869,
+      "train_nlpd": 22.701853408149848,
+      "elbo_loss": 31.348457454133865,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.981802604622555,
+      "train_missing_rmse": 0.6048871991406811
+    },
+    {
+      "iteration": 23400,
+      "train_rmse": 0.5061028889893562,
+      "train_nlpd": 22.709787350886668,
+      "elbo_loss": 30.759920910963917,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.989448785587754,
+      "train_missing_rmse": 0.6049994253391902
+    },
+    {
+      "iteration": 23500,
+      "train_rmse": 0.5059519785617022,
+      "train_nlpd": 22.694987392865222,
+      "elbo_loss": 31.325179376465037,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.004399134079943,
+      "train_missing_rmse": 0.6044929807382042
+    },
+    {
+      "iteration": 23600,
+      "train_rmse": 0.5054670690450458,
+      "train_nlpd": 22.700366823464574,
+      "elbo_loss": 30.728697285043907,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.988068169515426,
+      "train_missing_rmse": 0.6051094068192432
+    },
+    {
+      "iteration": 23700,
+      "train_rmse": 0.5056057468274282,
+      "train_nlpd": 22.677127560158233,
+      "elbo_loss": 32.33850895645662,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.995274291207956,
+      "train_missing_rmse": 0.6049677105821428
+    },
+    {
+      "iteration": 23800,
+      "train_rmse": 0.5057415288333666,
+      "train_nlpd": 22.66047419903497,
+      "elbo_loss": 30.895624481303884,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.982666515197934,
+      "train_missing_rmse": 0.6043169109188019
+    },
+    {
+      "iteration": 23900,
+      "train_rmse": 0.5054478742666944,
+      "train_nlpd": 22.657179766800798,
+      "elbo_loss": 31.030340272020318,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.975761227124863,
+      "train_missing_rmse": 0.6040489645457314
+    },
+    {
+      "iteration": 24000,
+      "train_rmse": 0.5051594704346881,
+      "train_nlpd": 22.63804386355351,
+      "elbo_loss": 31.27869266601172,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.996049819932324,
+      "train_missing_rmse": 0.6046234978337477
+    },
+    {
+      "iteration": 24100,
+      "train_rmse": 0.5052001222018404,
+      "train_nlpd": 22.682108732560042,
+      "elbo_loss": 31.2238398796422,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.997137038721572,
+      "train_missing_rmse": 0.6046207815323494
+    },
+    {
+      "iteration": 24200,
+      "train_rmse": 0.5052535728719341,
+      "train_nlpd": 22.65921013403891,
+      "elbo_loss": 30.778054865694862,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.982740563357144,
+      "train_missing_rmse": 0.6048572533453116
+    },
+    {
+      "iteration": 24300,
+      "train_rmse": 0.5051290418390219,
+      "train_nlpd": 22.640566528631354,
+      "elbo_loss": 31.21500996699505,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.987523486800608,
+      "train_missing_rmse": 0.6042833068790082
+    },
+    {
+      "iteration": 24400,
+      "train_rmse": 0.504725974823464,
+      "train_nlpd": 22.611676147973732,
+      "elbo_loss": 30.333689377899674,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.007495105130907,
+      "train_missing_rmse": 0.6045317577103196
+    },
+    {
+      "iteration": 24500,
+      "train_rmse": 0.5045666651394991,
+      "train_nlpd": 22.621077759212906,
+      "elbo_loss": 30.81023050041381,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.985402516187804,
+      "train_missing_rmse": 0.6041448213031574
+    },
+    {
+      "iteration": 24600,
+      "train_rmse": 0.5044418130980513,
+      "train_nlpd": 22.620612346997486,
+      "elbo_loss": 31.49438115646301,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.998142865121707,
+      "train_missing_rmse": 0.6048527949358702
+    },
+    {
+      "iteration": 24700,
+      "train_rmse": 0.5044265452328798,
+      "train_nlpd": 22.610325603416257,
+      "elbo_loss": 31.896697817717815,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.97028040183787,
+      "train_missing_rmse": 0.6047055920223868
+    },
+    {
+      "iteration": 24800,
+      "train_rmse": 0.5042986443828703,
+      "train_nlpd": 22.611947277311412,
+      "elbo_loss": 30.878076626111564,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.986413793529294,
+      "train_missing_rmse": 0.604707336736611
+    },
+    {
+      "iteration": 24900,
+      "train_rmse": 0.5043592831361726,
+      "train_nlpd": 22.606685667243003,
+      "elbo_loss": 31.36876216354554,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.987744819132494,
+      "train_missing_rmse": 0.605016989881664
+    },
+    {
+      "iteration": 25000,
+      "train_rmse": 0.5041250562814795,
+      "train_nlpd": 22.600827121219844,
+      "elbo_loss": 30.836835887062527,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.996189055920382,
+      "train_missing_rmse": 0.6050371541460677
+    },
+    {
+      "iteration": 25100,
+      "train_rmse": 0.5036763630545177,
+      "train_nlpd": 22.57982200657827,
+      "elbo_loss": 30.869127920646125,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.991747582070488,
+      "train_missing_rmse": 0.6052901221288401
+    },
+    {
+      "iteration": 25200,
+      "train_rmse": 0.5040012331141388,
+      "train_nlpd": 22.59811141868043,
+      "elbo_loss": 31.002772864881344,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.00099673311132,
+      "train_missing_rmse": 0.6051636985264405
+    },
+    {
+      "iteration": 25300,
+      "train_rmse": 0.5042649162121017,
+      "train_nlpd": 22.598529613772328,
+      "elbo_loss": 31.40364493270301,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.001760578985486,
+      "train_missing_rmse": 0.6054521574729289
+    },
+    {
+      "iteration": 25400,
+      "train_rmse": 0.5037684136720145,
+      "train_nlpd": 22.5650845371571,
+      "elbo_loss": 31.164813725153802,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.002606085393566,
+      "train_missing_rmse": 0.6049041337506281
+    },
+    {
+      "iteration": 25500,
+      "train_rmse": 0.5034612303100179,
+      "train_nlpd": 22.55122404456239,
+      "elbo_loss": 30.530860141581332,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.987247346185868,
+      "train_missing_rmse": 0.604873855277664
+    },
+    {
+      "iteration": 25600,
+      "train_rmse": 0.5040803939970616,
+      "train_nlpd": 22.55601783506122,
+      "elbo_loss": 30.64515975489192,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.01104577974298,
+      "train_missing_rmse": 0.60480357419995
+    },
+    {
+      "iteration": 25700,
+      "train_rmse": 0.5034530702123045,
+      "train_nlpd": 22.55383734390002,
+      "elbo_loss": 29.96502452153225,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.987829082958285,
+      "train_missing_rmse": 0.6046630128064602
+    },
+    {
+      "iteration": 25800,
+      "train_rmse": 0.503054692561168,
+      "train_nlpd": 22.559285208906076,
+      "elbo_loss": 31.061474084890783,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.010391835242718,
+      "train_missing_rmse": 0.6050416807761931
+    },
+    {
+      "iteration": 25900,
+      "train_rmse": 0.5030147509773585,
+      "train_nlpd": 22.54292859542672,
+      "elbo_loss": 30.372044109898535,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.99396015303978,
+      "train_missing_rmse": 0.604705757346442
+    },
+    {
+      "iteration": 26000,
+      "train_rmse": 0.5028604542957623,
+      "train_nlpd": 22.541877386375994,
+      "elbo_loss": 30.119119768419164,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.00101339929592,
+      "train_missing_rmse": 0.605353481546122
+    },
+    {
+      "iteration": 26100,
+      "train_rmse": 0.5030310823106122,
+      "train_nlpd": 22.529328321181325,
+      "elbo_loss": 31.30471083741157,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.008959354788843,
+      "train_missing_rmse": 0.6046410694975748
+    },
+    {
+      "iteration": 26200,
+      "train_rmse": 0.5029105530334715,
+      "train_nlpd": 22.525096449060904,
+      "elbo_loss": 30.29235735860373,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.010832136251167,
+      "train_missing_rmse": 0.6050006429802436
+    },
+    {
+      "iteration": 26300,
+      "train_rmse": 0.5027622272332304,
+      "train_nlpd": 22.507016258911626,
+      "elbo_loss": 31.826692663197534,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.020060571944587,
+      "train_missing_rmse": 0.6046778499946255
+    },
+    {
+      "iteration": 26400,
+      "train_rmse": 0.5026305271177295,
+      "train_nlpd": 22.501512448832983,
+      "elbo_loss": 31.4019279411873,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.00080994898534,
+      "train_missing_rmse": 0.6048990175438437
+    },
+    {
+      "iteration": 26500,
+      "train_rmse": 0.5023593034591487,
+      "train_nlpd": 22.498702119449174,
+      "elbo_loss": 30.717028813447183,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.98222132864092,
+      "train_missing_rmse": 0.6047628591171116
+    },
+    {
+      "iteration": 26600,
+      "train_rmse": 0.5025586562889729,
+      "train_nlpd": 22.49570096226947,
+      "elbo_loss": 30.664450381269145,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.010281017991172,
+      "train_missing_rmse": 0.604793847819385
+    },
+    {
+      "iteration": 26700,
+      "train_rmse": 0.502047183009763,
+      "train_nlpd": 22.460882991834218,
+      "elbo_loss": 31.463310862297007,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.998641444627825,
+      "train_missing_rmse": 0.6046056021681029
+    },
+    {
+      "iteration": 26800,
+      "train_rmse": 0.5022508169288206,
+      "train_nlpd": 22.467421364848057,
+      "elbo_loss": 31.362148443601065,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.016756129139743,
+      "train_missing_rmse": 0.60420715070724
+    },
+    {
+      "iteration": 26900,
+      "train_rmse": 0.5020692449547612,
+      "train_nlpd": 22.484467833352067,
+      "elbo_loss": 30.80642165930844,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.985305079534136,
+      "train_missing_rmse": 0.604710194914936
+    },
+    {
+      "iteration": 27000,
+      "train_rmse": 0.5022319948693275,
+      "train_nlpd": 22.47504836036101,
+      "elbo_loss": 30.843129212623598,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.995137637345504,
+      "train_missing_rmse": 0.604981880687059
+    },
+    {
+      "iteration": 27100,
+      "train_rmse": 0.5017066982697233,
+      "train_nlpd": 22.460577564006652,
+      "elbo_loss": 31.173174464992513,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.00868076227196,
+      "train_missing_rmse": 0.6045043589107754
+    },
+    {
+      "iteration": 27200,
+      "train_rmse": 0.5018022562696082,
+      "train_nlpd": 22.483908640532707,
+      "elbo_loss": 31.203659590436153,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.979975937001065,
+      "train_missing_rmse": 0.6045674645525017
+    },
+    {
+      "iteration": 27300,
+      "train_rmse": 0.5013191403997843,
+      "train_nlpd": 22.457240262114873,
+      "elbo_loss": 30.503578022196333,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.010692247823513,
+      "train_missing_rmse": 0.6049013221900233
+    },
+    {
+      "iteration": 27400,
+      "train_rmse": 0.5015987068450192,
+      "train_nlpd": 22.451200788084375,
+      "elbo_loss": 30.650987494046962,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.99519237639246,
+      "train_missing_rmse": 0.605165451527994
+    },
+    {
+      "iteration": 27500,
+      "train_rmse": 0.5017231019252959,
+      "train_nlpd": 22.434125632360235,
+      "elbo_loss": 31.308816164493276,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.03147187194497,
+      "train_missing_rmse": 0.6050320268384052
+    },
+    {
+      "iteration": 27600,
+      "train_rmse": 0.5014024128960618,
+      "train_nlpd": 22.43142693705957,
+      "elbo_loss": 30.847945615652034,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.993553516722937,
+      "train_missing_rmse": 0.6050551544011713
+    },
+    {
+      "iteration": 27700,
+      "train_rmse": 0.5010020302359808,
+      "train_nlpd": 22.42355127782453,
+      "elbo_loss": 31.126936808273882,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.99559151028331,
+      "train_missing_rmse": 0.605230525108576
+    },
+    {
+      "iteration": 27800,
+      "train_rmse": 0.500920071208866,
+      "train_nlpd": 22.421930513274297,
+      "elbo_loss": 31.215748288584702,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.006198985187524,
+      "train_missing_rmse": 0.6041893214430584
+    },
+    {
+      "iteration": 27900,
+      "train_rmse": 0.5013315250494969,
+      "train_nlpd": 22.422076549170274,
+      "elbo_loss": 31.067083082616104,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.01166143221903,
+      "train_missing_rmse": 0.6048623214544959
+    },
+    {
+      "iteration": 28000,
+      "train_rmse": 0.501018393488465,
+      "train_nlpd": 22.417246364767333,
+      "elbo_loss": 30.80619525419231,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.98227039536686,
+      "train_missing_rmse": 0.6048221056375532
+    },
+    {
+      "iteration": 28100,
+      "train_rmse": 0.5011516311714339,
+      "train_nlpd": 22.415214958602878,
+      "elbo_loss": 31.039551350392095,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.01449434331766,
+      "train_missing_rmse": 0.60507207217999
+    },
+    {
+      "iteration": 28200,
+      "train_rmse": 0.5008017973560821,
+      "train_nlpd": 22.394432006042297,
+      "elbo_loss": 30.923827366449693,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.994021136887415,
+      "train_missing_rmse": 0.6046192727005845
+    },
+    {
+      "iteration": 28300,
+      "train_rmse": 0.5007986342195253,
+      "train_nlpd": 22.405848400589345,
+      "elbo_loss": 29.78787613445505,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.031967855645487,
+      "train_missing_rmse": 0.6051871090091271
+    },
+    {
+      "iteration": 28400,
+      "train_rmse": 0.5008535674296838,
+      "train_nlpd": 22.386013204379573,
+      "elbo_loss": 30.875572925339224,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.013485076114712,
+      "train_missing_rmse": 0.6047968155427023
+    },
+    {
+      "iteration": 28500,
+      "train_rmse": 0.5008402829501244,
+      "train_nlpd": 22.38577981309666,
+      "elbo_loss": 30.639817573196034,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.00486898003268,
+      "train_missing_rmse": 0.6049555283687942
+    },
+    {
+      "iteration": 28600,
+      "train_rmse": 0.5003807184214094,
+      "train_nlpd": 22.374846558397138,
+      "elbo_loss": 30.523517437068897,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.025234160077567,
+      "train_missing_rmse": 0.6048472221117535
+    },
+    {
+      "iteration": 28700,
+      "train_rmse": 0.5004978767813526,
+      "train_nlpd": 22.361856386801097,
+      "elbo_loss": 30.879116855359584,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.02973069338002,
+      "train_missing_rmse": 0.6050777383741521
+    },
+    {
+      "iteration": 28800,
+      "train_rmse": 0.5007728625977347,
+      "train_nlpd": 22.37380221227538,
+      "elbo_loss": 30.89891296791899,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.043734935365617,
+      "train_missing_rmse": 0.6050689630578338
+    },
+    {
+      "iteration": 28900,
+      "train_rmse": 0.5000676989093332,
+      "train_nlpd": 22.36572753934853,
+      "elbo_loss": 30.650585971218604,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.97957331571469,
+      "train_missing_rmse": 0.6050327518693092
+    },
+    {
+      "iteration": 29000,
+      "train_rmse": 0.5002674989879116,
+      "train_nlpd": 22.366311886607004,
+      "elbo_loss": 31.229447306192995,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.024901999031933,
+      "train_missing_rmse": 0.604655202904945
+    },
+    {
+      "iteration": 29100,
+      "train_rmse": 0.4998622309208012,
+      "train_nlpd": 22.360328848281167,
+      "elbo_loss": 30.95624648116587,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.021948808471777,
+      "train_missing_rmse": 0.6057317469931175
+    },
+    {
+      "iteration": 29200,
+      "train_rmse": 0.4998619223375754,
+      "train_nlpd": 22.353141576152225,
+      "elbo_loss": 31.10064248729192,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.02071894468638,
+      "train_missing_rmse": 0.6048483252525605
+    },
+    {
+      "iteration": 29300,
+      "train_rmse": 0.49984456562967416,
+      "train_nlpd": 22.35367481256357,
+      "elbo_loss": 30.238480765518915,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.040366603277057,
+      "train_missing_rmse": 0.6054408816577392
+    },
+    {
+      "iteration": 29400,
+      "train_rmse": 0.5003803031077397,
+      "train_nlpd": 22.344511502498534,
+      "elbo_loss": 30.227520645268147,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.02532939578662,
+      "train_missing_rmse": 0.604851326053656
+    },
+    {
+      "iteration": 29500,
+      "train_rmse": 0.4999813584533858,
+      "train_nlpd": 22.329638580810407,
+      "elbo_loss": 31.281917128937526,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.019278881979258,
+      "train_missing_rmse": 0.6048920709291578
+    },
+    {
+      "iteration": 29600,
+      "train_rmse": 0.49978290248047214,
+      "train_nlpd": 22.33726117927427,
+      "elbo_loss": 30.681523063689774,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.034755633956816,
+      "train_missing_rmse": 0.6049900486750313
+    },
+    {
+      "iteration": 29700,
+      "train_rmse": 0.4998161595338254,
+      "train_nlpd": 22.33228494422021,
+      "elbo_loss": 30.707250481439942,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.035740416463216,
+      "train_missing_rmse": 0.6056316195971954
+    },
+    {
+      "iteration": 29800,
+      "train_rmse": 0.49967247507198337,
+      "train_nlpd": 22.33687429051587,
+      "elbo_loss": 31.73583585622434,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.050077948393497,
+      "train_missing_rmse": 0.6058078448606792
+    },
+    {
+      "iteration": 29900,
+      "train_rmse": 0.4993935772235058,
+      "train_nlpd": 22.32313876172449,
+      "elbo_loss": 31.109050290078937,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.039729618303323,
+      "train_missing_rmse": 0.6058667229221069
+    },
+    {
+      "iteration": 30000,
+      "train_rmse": 0.49930948499807193,
+      "train_nlpd": 22.313069336259105,
+      "elbo_loss": 31.40365132809964,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.02917647672253,
+      "train_missing_rmse": 0.6051024807664257
+    },
+    {
+      "iteration": 30100,
+      "train_rmse": 0.49942493043371133,
+      "train_nlpd": 22.29533156967723,
+      "elbo_loss": 31.24251039586264,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.019261118439402,
+      "train_missing_rmse": 0.6050393517723183
+    },
+    {
+      "iteration": 30200,
+      "train_rmse": 0.4990109877506871,
+      "train_nlpd": 22.29704307956022,
+      "elbo_loss": 31.440059292689863,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.013661366636903,
+      "train_missing_rmse": 0.6050511867583183
+    },
+    {
+      "iteration": 30300,
+      "train_rmse": 0.4993570370505689,
+      "train_nlpd": 22.313714586966654,
+      "elbo_loss": 30.486603804644794,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.01031906320322,
+      "train_missing_rmse": 0.6051492563749439
+    },
+    {
+      "iteration": 30400,
+      "train_rmse": 0.49901253258341105,
+      "train_nlpd": 22.312229677978006,
+      "elbo_loss": 30.97033624413917,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.03276055665491,
+      "train_missing_rmse": 0.6057614838503678
+    },
+    {
+      "iteration": 30500,
+      "train_rmse": 0.49935998905757467,
+      "train_nlpd": 22.30766279835235,
+      "elbo_loss": 30.12537389743804,
+      "effective_dims": 7,
+      "train_missing_nlpd": 17.99344355497913,
+      "train_missing_rmse": 0.6046046784708753
+    },
+    {
+      "iteration": 30600,
+      "train_rmse": 0.49868196840454904,
+      "train_nlpd": 22.282537786293403,
+      "elbo_loss": 31.27074395909696,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.039568496514104,
+      "train_missing_rmse": 0.60455927330912
+    },
+    {
+      "iteration": 30700,
+      "train_rmse": 0.499001015374106,
+      "train_nlpd": 22.271988571075006,
+      "elbo_loss": 30.782507808545127,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.043237552442957,
+      "train_missing_rmse": 0.6054483248998234
+    },
+    {
+      "iteration": 30800,
+      "train_rmse": 0.4987990763603226,
+      "train_nlpd": 22.2804005289518,
+      "elbo_loss": 30.96160564563428,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.0378090939549,
+      "train_missing_rmse": 0.6051556358040873
+    },
+    {
+      "iteration": 30900,
+      "train_rmse": 0.498879006232756,
+      "train_nlpd": 22.270177215443514,
+      "elbo_loss": 31.559210392454077,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.032356460510453,
+      "train_missing_rmse": 0.6054925188687127
+    },
+    {
+      "iteration": 31000,
+      "train_rmse": 0.49877376101673243,
+      "train_nlpd": 22.276791992893248,
+      "elbo_loss": 31.30507103277356,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.047440917374644,
+      "train_missing_rmse": 0.6055250740984361
+    },
+    {
+      "iteration": 31100,
+      "train_rmse": 0.4989027600997736,
+      "train_nlpd": 22.274952639606838,
+      "elbo_loss": 30.61747896151539,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.030326732422537,
+      "train_missing_rmse": 0.6055700702871661
+    },
+    {
+      "iteration": 31200,
+      "train_rmse": 0.49846066254037064,
+      "train_nlpd": 22.27152477489353,
+      "elbo_loss": 30.792434108857655,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.02017439640267,
+      "train_missing_rmse": 0.6051928596189201
+    },
+    {
+      "iteration": 31300,
+      "train_rmse": 0.4986425927870943,
+      "train_nlpd": 22.271693910511605,
+      "elbo_loss": 30.82498463465865,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.05354872142517,
+      "train_missing_rmse": 0.6058941516161368
+    },
+    {
+      "iteration": 31400,
+      "train_rmse": 0.49843298847075157,
+      "train_nlpd": 22.251955954642547,
+      "elbo_loss": 31.102738060637996,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.07446387290609,
+      "train_missing_rmse": 0.6057717499235692
+    },
+    {
+      "iteration": 31500,
+      "train_rmse": 0.4983885595700261,
+      "train_nlpd": 22.24657492423946,
+      "elbo_loss": 30.62034050249156,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.052819351891674,
+      "train_missing_rmse": 0.6063242811391242
+    },
+    {
+      "iteration": 31600,
+      "train_rmse": 0.4981720488206799,
+      "train_nlpd": 22.2583390801852,
+      "elbo_loss": 30.386323573524155,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.039125473011293,
+      "train_missing_rmse": 0.605693432689555
+    },
+    {
+      "iteration": 31700,
+      "train_rmse": 0.49812950669150335,
+      "train_nlpd": 22.246149046831675,
+      "elbo_loss": 31.068004501434707,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.049959020104033,
+      "train_missing_rmse": 0.6057622109206475
+    },
+    {
+      "iteration": 31800,
+      "train_rmse": 0.4980629068116517,
+      "train_nlpd": 22.251360520726525,
+      "elbo_loss": 31.248682579855576,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.05326301525461,
+      "train_missing_rmse": 0.6059721320157856
+    },
+    {
+      "iteration": 31900,
+      "train_rmse": 0.4983328608610483,
+      "train_nlpd": 22.237534583318816,
+      "elbo_loss": 31.226378043548827,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.05545273289609,
+      "train_missing_rmse": 0.606101238645678
+    },
+    {
+      "iteration": 32000,
+      "train_rmse": 0.49805825099206463,
+      "train_nlpd": 22.23295165808871,
+      "elbo_loss": 31.392852331242224,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.030760862850048,
+      "train_missing_rmse": 0.6054316607170926
+    },
+    {
+      "iteration": 32100,
+      "train_rmse": 0.4981569773029021,
+      "train_nlpd": 22.24230854440424,
+      "elbo_loss": 30.545896320533288,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.03316325170993,
+      "train_missing_rmse": 0.6057968894845069
+    },
+    {
+      "iteration": 32200,
+      "train_rmse": 0.49819302354843614,
+      "train_nlpd": 22.233707193688534,
+      "elbo_loss": 30.976437166509257,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.045216622887406,
+      "train_missing_rmse": 0.6050059181270365
+    },
+    {
+      "iteration": 32300,
+      "train_rmse": 0.49794623611009675,
+      "train_nlpd": 22.22778274075392,
+      "elbo_loss": 31.270966167548835,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.08087556940861,
+      "train_missing_rmse": 0.6055839432258391
+    },
+    {
+      "iteration": 32400,
+      "train_rmse": 0.4982545274535949,
+      "train_nlpd": 22.226196260848756,
+      "elbo_loss": 30.65799551645,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.055481100987127,
+      "train_missing_rmse": 0.6059093895772981
+    },
+    {
+      "iteration": 32500,
+      "train_rmse": 0.4980301145915079,
+      "train_nlpd": 22.221261450476295,
+      "elbo_loss": 30.677648776899048,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.065442148737095,
+      "train_missing_rmse": 0.6059741614286337
+    },
+    {
+      "iteration": 32600,
+      "train_rmse": 0.4978765735533275,
+      "train_nlpd": 22.217820686538357,
+      "elbo_loss": 31.71813479437374,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.06561718002978,
+      "train_missing_rmse": 0.6057878177737454
+    },
+    {
+      "iteration": 32700,
+      "train_rmse": 0.4979853154980878,
+      "train_nlpd": 22.22855662673734,
+      "elbo_loss": 30.661719566954222,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.035443939887557,
+      "train_missing_rmse": 0.6056344609627846
+    },
+    {
+      "iteration": 32800,
+      "train_rmse": 0.49780980621538057,
+      "train_nlpd": 22.225286209289923,
+      "elbo_loss": 31.033225338526503,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.051030335276312,
+      "train_missing_rmse": 0.6058550809709857
+    },
+    {
+      "iteration": 32900,
+      "train_rmse": 0.4977295849375457,
+      "train_nlpd": 22.222107892028163,
+      "elbo_loss": 31.129624879890756,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.064478910710136,
+      "train_missing_rmse": 0.6066563792857622
+    },
+    {
+      "iteration": 33000,
+      "train_rmse": 0.4975987810824625,
+      "train_nlpd": 22.1950751624045,
+      "elbo_loss": 31.096991918884477,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.04237688996085,
+      "train_missing_rmse": 0.6049237570262512
+    },
+    {
+      "iteration": 33100,
+      "train_rmse": 0.49757324814273535,
+      "train_nlpd": 22.214151023402952,
+      "elbo_loss": 30.789631012270938,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.051104863764245,
+      "train_missing_rmse": 0.6054368910545219
+    },
+    {
+      "iteration": 33200,
+      "train_rmse": 0.4973703744681568,
+      "train_nlpd": 22.21727005641287,
+      "elbo_loss": 30.52837921567965,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.058372929031595,
+      "train_missing_rmse": 0.6058796570527291
+    },
+    {
+      "iteration": 33300,
+      "train_rmse": 0.49762688235024527,
+      "train_nlpd": 22.199363708481332,
+      "elbo_loss": 30.742239902468768,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.06653881154328,
+      "train_missing_rmse": 0.6065133192225273
+    },
+    {
+      "iteration": 33400,
+      "train_rmse": 0.49757432147173447,
+      "train_nlpd": 22.188048926300784,
+      "elbo_loss": 30.174737533559846,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.084759194939725,
+      "train_missing_rmse": 0.6062507172852847
+    },
+    {
+      "iteration": 33500,
+      "train_rmse": 0.49709558368755047,
+      "train_nlpd": 22.16141626896344,
+      "elbo_loss": 30.488351162722296,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.08700259112915,
+      "train_missing_rmse": 0.6061529838320296
+    },
+    {
+      "iteration": 33600,
+      "train_rmse": 0.49721798617092966,
+      "train_nlpd": 22.181806297294095,
+      "elbo_loss": 30.989555387557065,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.06998427730578,
+      "train_missing_rmse": 0.6059776253906852
+    },
+    {
+      "iteration": 33700,
+      "train_rmse": 0.4974598633518317,
+      "train_nlpd": 22.184267584058162,
+      "elbo_loss": 29.900580781953714,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.070853569433662,
+      "train_missing_rmse": 0.6062192558118862
+    },
+    {
+      "iteration": 33800,
+      "train_rmse": 0.49707621843183836,
+      "train_nlpd": 22.183928406023906,
+      "elbo_loss": 30.57443589578921,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.077996486284697,
+      "train_missing_rmse": 0.6054614224091794
+    },
+    {
+      "iteration": 33900,
+      "train_rmse": 0.4968228829382582,
+      "train_nlpd": 22.174668022913174,
+      "elbo_loss": 30.554367345693215,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.08984625300307,
+      "train_missing_rmse": 0.605707508950859
+    },
+    {
+      "iteration": 34000,
+      "train_rmse": 0.49728356545239893,
+      "train_nlpd": 22.1862821238778,
+      "elbo_loss": 30.656638533702065,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.05173041309157,
+      "train_missing_rmse": 0.6066376633657257
+    },
+    {
+      "iteration": 34100,
+      "train_rmse": 0.49674117762183073,
+      "train_nlpd": 22.174143990212112,
+      "elbo_loss": 31.03036424279218,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.066412575219328,
+      "train_missing_rmse": 0.6066071508068374
+    },
+    {
+      "iteration": 34200,
+      "train_rmse": 0.496776876778553,
+      "train_nlpd": 22.170095592831334,
+      "elbo_loss": 30.79565885466907,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.06680033935851,
+      "train_missing_rmse": 0.6061722698169599
+    },
+    {
+      "iteration": 34300,
+      "train_rmse": 0.4969718679295202,
+      "train_nlpd": 22.172612618326948,
+      "elbo_loss": 30.54441234481365,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.06448529484197,
+      "train_missing_rmse": 0.6064129219042634
+    },
+    {
+      "iteration": 34400,
+      "train_rmse": 0.49691850271705873,
+      "train_nlpd": 22.16389304838074,
+      "elbo_loss": 30.946274900785617,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.081023513901307,
+      "train_missing_rmse": 0.6070153496747288
+    },
+    {
+      "iteration": 34500,
+      "train_rmse": 0.49703342099366377,
+      "train_nlpd": 22.168943684187,
+      "elbo_loss": 30.34643651202374,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.0807562719193,
+      "train_missing_rmse": 0.6059709873574552
+    },
+    {
+      "iteration": 34600,
+      "train_rmse": 0.49650806556166827,
+      "train_nlpd": 22.13686024411223,
+      "elbo_loss": 30.46457080577821,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.090732907631647,
+      "train_missing_rmse": 0.6057993676997769
+    },
+    {
+      "iteration": 34700,
+      "train_rmse": 0.4967704062609547,
+      "train_nlpd": 22.123620679490386,
+      "elbo_loss": 30.676635930685904,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.092135581691185,
+      "train_missing_rmse": 0.6063830852901516
+    },
+    {
+      "iteration": 34800,
+      "train_rmse": 0.49622279318017065,
+      "train_nlpd": 22.131776157285504,
+      "elbo_loss": 30.538391058389223,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.057431442240844,
+      "train_missing_rmse": 0.6058584612045849
+    },
+    {
+      "iteration": 34900,
+      "train_rmse": 0.4964903557374607,
+      "train_nlpd": 22.148876475214994,
+      "elbo_loss": 31.19510760964348,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.06831790791887,
+      "train_missing_rmse": 0.6057987390195878
+    },
+    {
+      "iteration": 35000,
+      "train_rmse": 0.4962301438619262,
+      "train_nlpd": 22.163741988199767,
+      "elbo_loss": 30.985024606417497,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.073337359323595,
+      "train_missing_rmse": 0.6060431630184113
+    },
+    {
+      "iteration": 35100,
+      "train_rmse": 0.4964683541301071,
+      "train_nlpd": 22.13431235358776,
+      "elbo_loss": 31.007525544548038,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.062416852023564,
+      "train_missing_rmse": 0.6061440984134078
+    },
+    {
+      "iteration": 35200,
+      "train_rmse": 0.4964591272243414,
+      "train_nlpd": 22.130310500257014,
+      "elbo_loss": 31.029159907857498,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.091967892183643,
+      "train_missing_rmse": 0.6063637196221143
+    },
+    {
+      "iteration": 35300,
+      "train_rmse": 0.4966205963304581,
+      "train_nlpd": 22.14054578282561,
+      "elbo_loss": 29.921501579176546,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.083440691131756,
+      "train_missing_rmse": 0.6063994355928183
+    },
+    {
+      "iteration": 35400,
+      "train_rmse": 0.4963062429666208,
+      "train_nlpd": 22.137601943588123,
+      "elbo_loss": 30.514765603559674,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.089043148384206,
+      "train_missing_rmse": 0.6066428068069183
+    },
+    {
+      "iteration": 35500,
+      "train_rmse": 0.49643850011169816,
+      "train_nlpd": 22.14918959205742,
+      "elbo_loss": 30.636420328472063,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.077061160834525,
+      "train_missing_rmse": 0.6069316379990867
+    },
+    {
+      "iteration": 35600,
+      "train_rmse": 0.4967330775834062,
+      "train_nlpd": 22.140951725801045,
+      "elbo_loss": 30.763100206432842,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.052993650188554,
+      "train_missing_rmse": 0.6063364777060594
+    },
+    {
+      "iteration": 35700,
+      "train_rmse": 0.49633166863508577,
+      "train_nlpd": 22.13182571212732,
+      "elbo_loss": 30.65359628334972,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.075950877833456,
+      "train_missing_rmse": 0.6058924663287752
+    },
+    {
+      "iteration": 35800,
+      "train_rmse": 0.4959007132398388,
+      "train_nlpd": 22.108991386050192,
+      "elbo_loss": 31.08063665049644,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.083600544389444,
+      "train_missing_rmse": 0.606186974520414
+    },
+    {
+      "iteration": 35900,
+      "train_rmse": 0.49660927054997084,
+      "train_nlpd": 22.131151102473222,
+      "elbo_loss": 30.08191519481587,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.080539337818838,
+      "train_missing_rmse": 0.606438790208898
+    },
+    {
+      "iteration": 36000,
+      "train_rmse": 0.49607409629638666,
+      "train_nlpd": 22.129310181466014,
+      "elbo_loss": 30.589094034870758,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.074900202400592,
+      "train_missing_rmse": 0.6060847705172966
+    },
+    {
+      "iteration": 36100,
+      "train_rmse": 0.49592833073881193,
+      "train_nlpd": 22.10468168633482,
+      "elbo_loss": 30.73182745780583,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.08929712018724,
+      "train_missing_rmse": 0.6063753719080726
+    },
+    {
+      "iteration": 36200,
+      "train_rmse": 0.49604621844485647,
+      "train_nlpd": 22.114022545052094,
+      "elbo_loss": 30.416016266326302,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.086479166098098,
+      "train_missing_rmse": 0.6064660487524773
+    },
+    {
+      "iteration": 36300,
+      "train_rmse": 0.49608878451466415,
+      "train_nlpd": 22.10401552342835,
+      "elbo_loss": 30.64378821241533,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.097574840009884,
+      "train_missing_rmse": 0.6067142045915878
+    },
+    {
+      "iteration": 36400,
+      "train_rmse": 0.4959933431021338,
+      "train_nlpd": 22.08374252840082,
+      "elbo_loss": 30.756633233294565,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.07717503796911,
+      "train_missing_rmse": 0.607040823538809
+    },
+    {
+      "iteration": 36500,
+      "train_rmse": 0.4953672652842085,
+      "train_nlpd": 22.100923543589357,
+      "elbo_loss": 31.299008492917686,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.110345588941836,
+      "train_missing_rmse": 0.6069466216517774
+    },
+    {
+      "iteration": 36600,
+      "train_rmse": 0.49620549028536276,
+      "train_nlpd": 22.100427392725393,
+      "elbo_loss": 31.03629875402821,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.076633262735108,
+      "train_missing_rmse": 0.6063840347839586
+    },
+    {
+      "iteration": 36700,
+      "train_rmse": 0.4957824927154552,
+      "train_nlpd": 22.10387428550303,
+      "elbo_loss": 30.75096731264221,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.067976415459544,
+      "train_missing_rmse": 0.606492125701742
+    },
+    {
+      "iteration": 36800,
+      "train_rmse": 0.4957772912418462,
+      "train_nlpd": 22.093595671647254,
+      "elbo_loss": 31.15032903159411,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.07293731152894,
+      "train_missing_rmse": 0.6066324445334463
+    },
+    {
+      "iteration": 36900,
+      "train_rmse": 0.49535530683293616,
+      "train_nlpd": 22.087838106235278,
+      "elbo_loss": 30.549663804131598,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.075395484281078,
+      "train_missing_rmse": 0.6066262201795269
+    },
+    {
+      "iteration": 37000,
+      "train_rmse": 0.49590026089506706,
+      "train_nlpd": 22.082973380569758,
+      "elbo_loss": 30.552337605779122,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.060839318742392,
+      "train_missing_rmse": 0.6060496017820077
+    },
+    {
+      "iteration": 37100,
+      "train_rmse": 0.49555843012125345,
+      "train_nlpd": 22.077889985164564,
+      "elbo_loss": 31.090578127314842,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.097873066711472,
+      "train_missing_rmse": 0.6067040248482646
+    },
+    {
+      "iteration": 37200,
+      "train_rmse": 0.4954675882740288,
+      "train_nlpd": 22.077388018516707,
+      "elbo_loss": 30.372533644748735,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.084961889290273,
+      "train_missing_rmse": 0.6071586772496228
+    },
+    {
+      "iteration": 37300,
+      "train_rmse": 0.4961093799382317,
+      "train_nlpd": 22.092780473250762,
+      "elbo_loss": 30.589667986995735,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.053277995132195,
+      "train_missing_rmse": 0.6060451323761051
+    },
+    {
+      "iteration": 37400,
+      "train_rmse": 0.4956098496605282,
+      "train_nlpd": 22.093929346801264,
+      "elbo_loss": 30.05053530785296,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.055128569605067,
+      "train_missing_rmse": 0.6063442711086896
+    },
+    {
+      "iteration": 37500,
+      "train_rmse": 0.49454193745898717,
+      "train_nlpd": 22.054801848869154,
+      "elbo_loss": 30.68581023622044,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.07981125829274,
+      "train_missing_rmse": 0.6070224176909459
+    },
+    {
+      "iteration": 37600,
+      "train_rmse": 0.49545580362525105,
+      "train_nlpd": 22.07978157692957,
+      "elbo_loss": 30.68306193819378,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.07205904089475,
+      "train_missing_rmse": 0.6060665907236742
+    },
+    {
+      "iteration": 37700,
+      "train_rmse": 0.49518828784079716,
+      "train_nlpd": 22.064802189821364,
+      "elbo_loss": 30.405508419130907,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.10707061970521,
+      "train_missing_rmse": 0.6069151115997039
+    },
+    {
+      "iteration": 37800,
+      "train_rmse": 0.4951530187874907,
+      "train_nlpd": 22.07649485129275,
+      "elbo_loss": 30.96072251784075,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.092377174024552,
+      "train_missing_rmse": 0.6058101270563285
+    },
+    {
+      "iteration": 37900,
+      "train_rmse": 0.49494556288462827,
+      "train_nlpd": 22.05901704448633,
+      "elbo_loss": 29.972423378602556,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.094398229016086,
+      "train_missing_rmse": 0.6062520704384136
+    },
+    {
+      "iteration": 38000,
+      "train_rmse": 0.4951113085635499,
+      "train_nlpd": 22.056604797803498,
+      "elbo_loss": 31.352794947917623,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.11309287938206,
+      "train_missing_rmse": 0.6070197475663931
+    },
+    {
+      "iteration": 38100,
+      "train_rmse": 0.4945958632396168,
+      "train_nlpd": 22.059822700652713,
+      "elbo_loss": 30.455741250996052,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.111214533122865,
+      "train_missing_rmse": 0.6066393053539108
+    },
+    {
+      "iteration": 38200,
+      "train_rmse": 0.4951415708036044,
+      "train_nlpd": 22.05041942267017,
+      "elbo_loss": 31.453420300424135,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.103061460478308,
+      "train_missing_rmse": 0.6062449911596798
+    },
+    {
+      "iteration": 38300,
+      "train_rmse": 0.4946902085147097,
+      "train_nlpd": 22.04916576012714,
+      "elbo_loss": 30.498153805173402,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.107878227111893,
+      "train_missing_rmse": 0.6060439533326049
+    },
+    {
+      "iteration": 38400,
+      "train_rmse": 0.49522676993420456,
+      "train_nlpd": 22.035930837824218,
+      "elbo_loss": 30.21065218529482,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.10204966773821,
+      "train_missing_rmse": 0.6068745541090345
+    },
+    {
+      "iteration": 38500,
+      "train_rmse": 0.49513123796552017,
+      "train_nlpd": 22.052708268699742,
+      "elbo_loss": 30.8042861057217,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.090358021662905,
+      "train_missing_rmse": 0.6068082390030208
+    },
+    {
+      "iteration": 38600,
+      "train_rmse": 0.4947063528291394,
+      "train_nlpd": 22.032395201947036,
+      "elbo_loss": 30.648766323142794,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.0905275018819,
+      "train_missing_rmse": 0.6067263890508248
+    },
+    {
+      "iteration": 38700,
+      "train_rmse": 0.49449319904828454,
+      "train_nlpd": 22.034378673284053,
+      "elbo_loss": 30.550677274796758,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.083539573538808,
+      "train_missing_rmse": 0.6064483722907125
+    },
+    {
+      "iteration": 38800,
+      "train_rmse": 0.4946935718423638,
+      "train_nlpd": 22.036104581614797,
+      "elbo_loss": 31.067306251600723,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.10577916690148,
+      "train_missing_rmse": 0.6066099115315807
+    },
+    {
+      "iteration": 38900,
+      "train_rmse": 0.49461660017102455,
+      "train_nlpd": 22.022216040351772,
+      "elbo_loss": 30.682426367488297,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.088958677260848,
+      "train_missing_rmse": 0.6064826493001731
+    },
+    {
+      "iteration": 39000,
+      "train_rmse": 0.49462488751667827,
+      "train_nlpd": 22.02752976399978,
+      "elbo_loss": 30.691694671992096,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.08456217809411,
+      "train_missing_rmse": 0.6065156348301771
+    },
+    {
+      "iteration": 39100,
+      "train_rmse": 0.4947130548999135,
+      "train_nlpd": 22.026426514489096,
+      "elbo_loss": 30.585244083197097,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.090280723137642,
+      "train_missing_rmse": 0.6060375442298684
+    },
+    {
+      "iteration": 39200,
+      "train_rmse": 0.49411186291406667,
+      "train_nlpd": 22.00980396041224,
+      "elbo_loss": 30.953453532854788,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.123414108030836,
+      "train_missing_rmse": 0.6062181360283666
+    },
+    {
+      "iteration": 39300,
+      "train_rmse": 0.494172745739821,
+      "train_nlpd": 22.010413713474314,
+      "elbo_loss": 30.89622335502297,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.09227221962916,
+      "train_missing_rmse": 0.6061948517093227
+    },
+    {
+      "iteration": 39400,
+      "train_rmse": 0.4944962344861717,
+      "train_nlpd": 22.02945667162811,
+      "elbo_loss": 30.820606862742068,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.098462869364518,
+      "train_missing_rmse": 0.6065661980429182
+    },
+    {
+      "iteration": 39500,
+      "train_rmse": 0.4946329374002358,
+      "train_nlpd": 22.01190432528522,
+      "elbo_loss": 30.941623224412503,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.086860943118545,
+      "train_missing_rmse": 0.6065871306944939
+    },
+    {
+      "iteration": 39600,
+      "train_rmse": 0.49429645338155165,
+      "train_nlpd": 22.02681368594887,
+      "elbo_loss": 30.611689346954982,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.09938030542579,
+      "train_missing_rmse": 0.6061172981514044
+    },
+    {
+      "iteration": 39700,
+      "train_rmse": 0.49417174273654696,
+      "train_nlpd": 21.99937111405192,
+      "elbo_loss": 30.82374310401238,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.101545567508015,
+      "train_missing_rmse": 0.606978585941179
+    },
+    {
+      "iteration": 39800,
+      "train_rmse": 0.49386736091165623,
+      "train_nlpd": 22.009969906235337,
+      "elbo_loss": 31.22794444617485,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.078718291350413,
+      "train_missing_rmse": 0.607082572661341
+    },
+    {
+      "iteration": 39900,
+      "train_rmse": 0.49406338251680454,
+      "train_nlpd": 21.997035170047493,
+      "elbo_loss": 30.707485364919368,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.09520316111431,
+      "train_missing_rmse": 0.6062697943039371
+    },
+    {
+      "iteration": 40000,
+      "train_rmse": 0.4939301841889677,
+      "train_nlpd": 21.99629935755047,
+      "elbo_loss": 30.98126184548422,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.137482455180432,
+      "train_missing_rmse": 0.6068823758137588
+    },
+    {
+      "iteration": 40100,
+      "train_rmse": 0.4937577940499953,
+      "train_nlpd": 21.99781237189275,
+      "elbo_loss": 30.60316990225004,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.114659499733726,
+      "train_missing_rmse": 0.6067351258300512
+    },
+    {
+      "iteration": 40200,
+      "train_rmse": 0.49444808799738427,
+      "train_nlpd": 21.994276472790535,
+      "elbo_loss": 30.880929034227847,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.108163065217585,
+      "train_missing_rmse": 0.6066624492457727
+    },
+    {
+      "iteration": 40300,
+      "train_rmse": 0.4940909056331259,
+      "train_nlpd": 21.99508539803066,
+      "elbo_loss": 30.749830109196914,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.1215677745052,
+      "train_missing_rmse": 0.6064498553434847
+    },
+    {
+      "iteration": 40400,
+      "train_rmse": 0.4937770822779077,
+      "train_nlpd": 21.973097483471197,
+      "elbo_loss": 30.458589665942537,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.090298900712593,
+      "train_missing_rmse": 0.6063887137291665
+    },
+    {
+      "iteration": 40500,
+      "train_rmse": 0.4934264711988646,
+      "train_nlpd": 21.96880527424072,
+      "elbo_loss": 30.754648247612657,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.113066877863226,
+      "train_missing_rmse": 0.6070477320116849
+    },
+    {
+      "iteration": 40600,
+      "train_rmse": 0.49422657008563936,
+      "train_nlpd": 21.963485078928635,
+      "elbo_loss": 31.012927827312375,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.11331686652205,
+      "train_missing_rmse": 0.6067068674719743
+    },
+    {
+      "iteration": 40700,
+      "train_rmse": 0.4935672482174725,
+      "train_nlpd": 21.971905136271324,
+      "elbo_loss": 30.468229420622865,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.116103849780192,
+      "train_missing_rmse": 0.6062443535391643
+    },
+    {
+      "iteration": 40800,
+      "train_rmse": 0.4935475728658379,
+      "train_nlpd": 21.962376945426566,
+      "elbo_loss": 30.705661484759958,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.13217216810438,
+      "train_missing_rmse": 0.6069993920342242
+    },
+    {
+      "iteration": 40900,
+      "train_rmse": 0.4933576649329555,
+      "train_nlpd": 21.969275726375873,
+      "elbo_loss": 30.31790624008223,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.107263687722618,
+      "train_missing_rmse": 0.6074050387421134
+    },
+    {
+      "iteration": 41000,
+      "train_rmse": 0.4935209461378297,
+      "train_nlpd": 21.95204693552084,
+      "elbo_loss": 30.475436377196736,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.100218795968566,
+      "train_missing_rmse": 0.6063183186558153
+    },
+    {
+      "iteration": 41100,
+      "train_rmse": 0.4934756032910022,
+      "train_nlpd": 21.93925204955618,
+      "elbo_loss": 30.38073877636083,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.09616220865138,
+      "train_missing_rmse": 0.60638959146036
+    },
+    {
+      "iteration": 41200,
+      "train_rmse": 0.49326352370656174,
+      "train_nlpd": 21.953386090711618,
+      "elbo_loss": 31.13186071446743,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.090991860594432,
+      "train_missing_rmse": 0.6061644503257311
+    },
+    {
+      "iteration": 41300,
+      "train_rmse": 0.49334853408073304,
+      "train_nlpd": 21.941317875388695,
+      "elbo_loss": 30.10058852159445,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.107952694859307,
+      "train_missing_rmse": 0.6068193652462002
+    },
+    {
+      "iteration": 41400,
+      "train_rmse": 0.4930343707805883,
+      "train_nlpd": 21.946430858223252,
+      "elbo_loss": 30.767300565208835,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.08742169760086,
+      "train_missing_rmse": 0.6066861188984127
+    },
+    {
+      "iteration": 41500,
+      "train_rmse": 0.4925878794417157,
+      "train_nlpd": 21.923463616420264,
+      "elbo_loss": 30.006493203763803,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.1183575395655,
+      "train_missing_rmse": 0.6072318007529292
+    },
+    {
+      "iteration": 41600,
+      "train_rmse": 0.49322050773620274,
+      "train_nlpd": 21.92536217561753,
+      "elbo_loss": 31.132007883572975,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.109013932373312,
+      "train_missing_rmse": 0.6060667693997533
+    },
+    {
+      "iteration": 41700,
+      "train_rmse": 0.49300729998689546,
+      "train_nlpd": 21.93532752551682,
+      "elbo_loss": 30.29173805201811,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.103325391649584,
+      "train_missing_rmse": 0.6068773241362455
+    },
+    {
+      "iteration": 41800,
+      "train_rmse": 0.49318533872473436,
+      "train_nlpd": 21.92573270287299,
+      "elbo_loss": 30.655263703967695,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.113506572568028,
+      "train_missing_rmse": 0.6064008331023242
+    },
+    {
+      "iteration": 41900,
+      "train_rmse": 0.49289817367992395,
+      "train_nlpd": 21.944275583191875,
+      "elbo_loss": 30.97755167086252,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.081724197509903,
+      "train_missing_rmse": 0.6068057429424087
+    },
+    {
+      "iteration": 42000,
+      "train_rmse": 0.4927201805573273,
+      "train_nlpd": 21.90282996250577,
+      "elbo_loss": 31.02526275419742,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.144641813372914,
+      "train_missing_rmse": 0.6071954688406656
+    },
+    {
+      "iteration": 42100,
+      "train_rmse": 0.4925656735731303,
+      "train_nlpd": 21.915152746368577,
+      "elbo_loss": 30.894880458578303,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.115604932873214,
+      "train_missing_rmse": 0.6067692896567866
+    },
+    {
+      "iteration": 42200,
+      "train_rmse": 0.49274443357277603,
+      "train_nlpd": 21.908782467975467,
+      "elbo_loss": 30.272286441491467,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.1361198912312,
+      "train_missing_rmse": 0.6064152758202699
+    },
+    {
+      "iteration": 42300,
+      "train_rmse": 0.4927668202372523,
+      "train_nlpd": 21.9171476328635,
+      "elbo_loss": 29.880561577533847,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.124787495522675,
+      "train_missing_rmse": 0.6064800933426095
+    },
+    {
+      "iteration": 42400,
+      "train_rmse": 0.4926845148166412,
+      "train_nlpd": 21.925067126975634,
+      "elbo_loss": 30.212970863742118,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.087779405949156,
+      "train_missing_rmse": 0.6066812718832195
+    },
+    {
+      "iteration": 42500,
+      "train_rmse": 0.4928582230518955,
+      "train_nlpd": 21.91189878741824,
+      "elbo_loss": 30.257182724296385,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.1075539917665,
+      "train_missing_rmse": 0.6062881126649753
+    },
+    {
+      "iteration": 42600,
+      "train_rmse": 0.49257231446199007,
+      "train_nlpd": 21.909567952678525,
+      "elbo_loss": 29.911843032235282,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.10478798905935,
+      "train_missing_rmse": 0.6067209875990779
+    },
+    {
+      "iteration": 42700,
+      "train_rmse": 0.49251106058400196,
+      "train_nlpd": 21.886748950834402,
+      "elbo_loss": 30.573485391472396,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.133699022244286,
+      "train_missing_rmse": 0.606824791379666
+    },
+    {
+      "iteration": 42800,
+      "train_rmse": 0.49253842658633756,
+      "train_nlpd": 21.901710419410794,
+      "elbo_loss": 31.037193325671552,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.14226968448935,
+      "train_missing_rmse": 0.6063262879412818
+    },
+    {
+      "iteration": 42900,
+      "train_rmse": 0.4925252470442613,
+      "train_nlpd": 21.891305816850515,
+      "elbo_loss": 30.78613926325221,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.082172992460297,
+      "train_missing_rmse": 0.6076108941512849
+    },
+    {
+      "iteration": 43000,
+      "train_rmse": 0.4926527656296658,
+      "train_nlpd": 21.898757757726017,
+      "elbo_loss": 30.740036032609115,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.107301961295168,
+      "train_missing_rmse": 0.606435703817647
+    },
+    {
+      "iteration": 43100,
+      "train_rmse": 0.492458623008169,
+      "train_nlpd": 21.895161156090996,
+      "elbo_loss": 30.03200718247588,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.1315165182769,
+      "train_missing_rmse": 0.6067545803120897
+    },
+    {
+      "iteration": 43200,
+      "train_rmse": 0.49228157983573073,
+      "train_nlpd": 21.89976978864298,
+      "elbo_loss": 29.942459448145655,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.11214934356025,
+      "train_missing_rmse": 0.60701911159324
+    },
+    {
+      "iteration": 43300,
+      "train_rmse": 0.4918083828694949,
+      "train_nlpd": 21.896767283950894,
+      "elbo_loss": 30.44115250981315,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.137657468850765,
+      "train_missing_rmse": 0.6071447798530778
+    },
+    {
+      "iteration": 43400,
+      "train_rmse": 0.4923656210076696,
+      "train_nlpd": 21.868132049882256,
+      "elbo_loss": 30.4174015753754,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.135827039119125,
+      "train_missing_rmse": 0.6064840460009546
+    },
+    {
+      "iteration": 43500,
+      "train_rmse": 0.4918876117629574,
+      "train_nlpd": 21.889893268555944,
+      "elbo_loss": 30.56483820684003,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.135257701480175,
+      "train_missing_rmse": 0.6066887898570508
+    },
+    {
+      "iteration": 43600,
+      "train_rmse": 0.49219877861104305,
+      "train_nlpd": 21.87457108295806,
+      "elbo_loss": 30.287738905256386,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.12695679817794,
+      "train_missing_rmse": 0.6070035340499905
+    },
+    {
+      "iteration": 43700,
+      "train_rmse": 0.491761830553889,
+      "train_nlpd": 21.851181594567894,
+      "elbo_loss": 30.296700834633487,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.140106705735207,
+      "train_missing_rmse": 0.6070789929810333
+    },
+    {
+      "iteration": 43800,
+      "train_rmse": 0.49201982158325025,
+      "train_nlpd": 21.875889275942598,
+      "elbo_loss": 30.583634204007108,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.14762854747358,
+      "train_missing_rmse": 0.6067399272967543
+    },
+    {
+      "iteration": 43900,
+      "train_rmse": 0.4919044179970495,
+      "train_nlpd": 21.866233178818906,
+      "elbo_loss": 30.716021874447954,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.115011995300687,
+      "train_missing_rmse": 0.6073721903910322
+    },
+    {
+      "iteration": 44000,
+      "train_rmse": 0.49182108137455094,
+      "train_nlpd": 21.850662163697205,
+      "elbo_loss": 31.23825590891242,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.12632853738148,
+      "train_missing_rmse": 0.6066420326550619
+    },
+    {
+      "iteration": 44100,
+      "train_rmse": 0.49206061063249995,
+      "train_nlpd": 21.862368006151126,
+      "elbo_loss": 30.371938459142577,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.104899724382424,
+      "train_missing_rmse": 0.6067564246214914
+    },
+    {
+      "iteration": 44200,
+      "train_rmse": 0.4916451244529959,
+      "train_nlpd": 21.87506826374916,
+      "elbo_loss": 30.336830072592086,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.109139848935932,
+      "train_missing_rmse": 0.6070206995646648
+    },
+    {
+      "iteration": 44300,
+      "train_rmse": 0.4915749878328641,
+      "train_nlpd": 21.853344062975204,
+      "elbo_loss": 30.142644098564574,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.11423081875021,
+      "train_missing_rmse": 0.6070886414602339
+    },
+    {
+      "iteration": 44400,
+      "train_rmse": 0.49166467918904005,
+      "train_nlpd": 21.84599648241043,
+      "elbo_loss": 30.873474798108692,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.136109181143862,
+      "train_missing_rmse": 0.6064852448927509
+    },
+    {
+      "iteration": 44500,
+      "train_rmse": 0.49111656126170977,
+      "train_nlpd": 21.837815509915693,
+      "elbo_loss": 30.564102142704638,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.124582875416696,
+      "train_missing_rmse": 0.607228247195859
+    },
+    {
+      "iteration": 44600,
+      "train_rmse": 0.4914634678424127,
+      "train_nlpd": 21.855941583976573,
+      "elbo_loss": 31.15569458259952,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.109244241562738,
+      "train_missing_rmse": 0.6071356604797155
+    },
+    {
+      "iteration": 44700,
+      "train_rmse": 0.49142072500340817,
+      "train_nlpd": 21.83679926443963,
+      "elbo_loss": 30.504384174283466,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.127731728787023,
+      "train_missing_rmse": 0.6072355197312108
+    },
+    {
+      "iteration": 44800,
+      "train_rmse": 0.49156102531053325,
+      "train_nlpd": 21.833651886680776,
+      "elbo_loss": 30.80709671946566,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.148488995439262,
+      "train_missing_rmse": 0.6065989643411365
+    },
+    {
+      "iteration": 44900,
+      "train_rmse": 0.49147008846479895,
+      "train_nlpd": 21.84665253849145,
+      "elbo_loss": 30.78530740373228,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.130484015970595,
+      "train_missing_rmse": 0.6061322047259676
+    },
+    {
+      "iteration": 45000,
+      "train_rmse": 0.49156077703051904,
+      "train_nlpd": 21.849566646110674,
+      "elbo_loss": 30.45097545820876,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.132331028523126,
+      "train_missing_rmse": 0.6071070185628211
+    },
+    {
+      "iteration": 45100,
+      "train_rmse": 0.4912917202004756,
+      "train_nlpd": 21.854508076338746,
+      "elbo_loss": 30.321627135926292,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.11322303175379,
+      "train_missing_rmse": 0.6066654069594338
+    },
+    {
+      "iteration": 45200,
+      "train_rmse": 0.49126521286721525,
+      "train_nlpd": 21.814557391930474,
+      "elbo_loss": 30.386111443082946,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.13306828311895,
+      "train_missing_rmse": 0.6069913460863541
+    },
+    {
+      "iteration": 45300,
+      "train_rmse": 0.4915448699463824,
+      "train_nlpd": 21.845603584656125,
+      "elbo_loss": 29.84674472361587,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.137355332884127,
+      "train_missing_rmse": 0.6067126924901034
+    },
+    {
+      "iteration": 45400,
+      "train_rmse": 0.4910645673393971,
+      "train_nlpd": 21.862819256681263,
+      "elbo_loss": 30.531394202143176,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.11720806423785,
+      "train_missing_rmse": 0.607870498864232
+    },
+    {
+      "iteration": 45500,
+      "train_rmse": 0.4914083024172713,
+      "train_nlpd": 21.84875306780079,
+      "elbo_loss": 31.001147017553606,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.14641460396425,
+      "train_missing_rmse": 0.6071473679416669
+    },
+    {
+      "iteration": 45600,
+      "train_rmse": 0.49092810272851334,
+      "train_nlpd": 21.817086665316758,
+      "elbo_loss": 30.901274341244658,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.15964365131356,
+      "train_missing_rmse": 0.6072999825321287
+    },
+    {
+      "iteration": 45700,
+      "train_rmse": 0.49100596900996185,
+      "train_nlpd": 21.826910769706064,
+      "elbo_loss": 30.102292625274277,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.127677086294558,
+      "train_missing_rmse": 0.6067257277104637
+    },
+    {
+      "iteration": 45800,
+      "train_rmse": 0.4912907905600555,
+      "train_nlpd": 21.83266890489047,
+      "elbo_loss": 30.18079576576294,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.14603395729709,
+      "train_missing_rmse": 0.6063850172186747
+    },
+    {
+      "iteration": 45900,
+      "train_rmse": 0.49104747180453384,
+      "train_nlpd": 21.79850345362531,
+      "elbo_loss": 30.236566543731314,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.13683113422084,
+      "train_missing_rmse": 0.6068516795355761
+    },
+    {
+      "iteration": 46000,
+      "train_rmse": 0.4907635929456174,
+      "train_nlpd": 21.818079591209322,
+      "elbo_loss": 29.574216234919604,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.13539576842189,
+      "train_missing_rmse": 0.6070469886630423
+    },
+    {
+      "iteration": 46100,
+      "train_rmse": 0.4909347826092805,
+      "train_nlpd": 21.79420253484411,
+      "elbo_loss": 30.407225666507497,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.1411049243778,
+      "train_missing_rmse": 0.6069428683555855
+    },
+    {
+      "iteration": 46200,
+      "train_rmse": 0.49113325146422604,
+      "train_nlpd": 21.829833932743792,
+      "elbo_loss": 30.904531840795116,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.12287977860036,
+      "train_missing_rmse": 0.6064705992700563
+    },
+    {
+      "iteration": 46300,
+      "train_rmse": 0.4901526201530219,
+      "train_nlpd": 21.78919153723245,
+      "elbo_loss": 31.355161594225237,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.13897664109318,
+      "train_missing_rmse": 0.6066850977287511
+    },
+    {
+      "iteration": 46400,
+      "train_rmse": 0.49046150701149294,
+      "train_nlpd": 21.80412936835728,
+      "elbo_loss": 30.139152578890265,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.149223738161684,
+      "train_missing_rmse": 0.607601266604441
+    },
+    {
+      "iteration": 46500,
+      "train_rmse": 0.4907438418247415,
+      "train_nlpd": 21.78013544733033,
+      "elbo_loss": 30.00239684794321,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.158099276068466,
+      "train_missing_rmse": 0.6067574417822743
+    },
+    {
+      "iteration": 46600,
+      "train_rmse": 0.4904416155112359,
+      "train_nlpd": 21.802377090121425,
+      "elbo_loss": 30.3153009238458,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.12440339070556,
+      "train_missing_rmse": 0.6073283681489641
+    },
+    {
+      "iteration": 46700,
+      "train_rmse": 0.49075363988305215,
+      "train_nlpd": 21.816618420193304,
+      "elbo_loss": 30.476744055980603,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.132331486022156,
+      "train_missing_rmse": 0.6066056236940609
+    },
+    {
+      "iteration": 46800,
+      "train_rmse": 0.490222853138757,
+      "train_nlpd": 21.789917614036302,
+      "elbo_loss": 30.446822802899852,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.153537081417984,
+      "train_missing_rmse": 0.6078175316006043
+    },
+    {
+      "iteration": 46900,
+      "train_rmse": 0.4903816734199358,
+      "train_nlpd": 21.783784823988537,
+      "elbo_loss": 29.619536435666966,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.156356526070347,
+      "train_missing_rmse": 0.6077711941914229
+    },
+    {
+      "iteration": 47000,
+      "train_rmse": 0.49049164417807034,
+      "train_nlpd": 21.78817282807982,
+      "elbo_loss": 30.683522269474075,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.138729978849057,
+      "train_missing_rmse": 0.6076306048084449
+    },
+    {
+      "iteration": 47100,
+      "train_rmse": 0.4901553469770088,
+      "train_nlpd": 21.778890780403312,
+      "elbo_loss": 30.026200732463973,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.152180983666636,
+      "train_missing_rmse": 0.6074546434196738
+    },
+    {
+      "iteration": 47200,
+      "train_rmse": 0.49001567240129495,
+      "train_nlpd": 21.761886145763075,
+      "elbo_loss": 30.41995647397504,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.161323400039525,
+      "train_missing_rmse": 0.6076518007175176
+    },
+    {
+      "iteration": 47300,
+      "train_rmse": 0.49048806604428485,
+      "train_nlpd": 21.785237299662644,
+      "elbo_loss": 30.50897304895567,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.15085597693603,
+      "train_missing_rmse": 0.6073678912766869
+    },
+    {
+      "iteration": 47400,
+      "train_rmse": 0.48995549075701605,
+      "train_nlpd": 21.766929422670888,
+      "elbo_loss": 30.953771988710788,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17325054039371,
+      "train_missing_rmse": 0.6074890611520506
+    },
+    {
+      "iteration": 47500,
+      "train_rmse": 0.4903947359285958,
+      "train_nlpd": 21.776846498955596,
+      "elbo_loss": 30.225884179665215,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17522509632118,
+      "train_missing_rmse": 0.6073545389250791
+    },
+    {
+      "iteration": 47600,
+      "train_rmse": 0.4901467526993353,
+      "train_nlpd": 21.77489578237448,
+      "elbo_loss": 30.503095895545194,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.16745077984063,
+      "train_missing_rmse": 0.6070724833520084
+    },
+    {
+      "iteration": 47700,
+      "train_rmse": 0.48997243568050824,
+      "train_nlpd": 21.770553981440464,
+      "elbo_loss": 30.245020132920143,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.176419106533324,
+      "train_missing_rmse": 0.6078978522012083
+    },
+    {
+      "iteration": 47800,
+      "train_rmse": 0.4900925474567039,
+      "train_nlpd": 21.77375957893021,
+      "elbo_loss": 30.496317731361046,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.177921430146785,
+      "train_missing_rmse": 0.6076208133744662
+    },
+    {
+      "iteration": 47900,
+      "train_rmse": 0.490130502300084,
+      "train_nlpd": 21.780091776023934,
+      "elbo_loss": 29.886548798039275,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.188765217454794,
+      "train_missing_rmse": 0.607856410765922
+    },
+    {
+      "iteration": 48000,
+      "train_rmse": 0.4898397487618554,
+      "train_nlpd": 21.76525153385249,
+      "elbo_loss": 30.80876529188179,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.159128423188044,
+      "train_missing_rmse": 0.6077716251158326
+    },
+    {
+      "iteration": 48100,
+      "train_rmse": 0.49009007326729037,
+      "train_nlpd": 21.76738845355572,
+      "elbo_loss": 30.267512571589478,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.16610740161235,
+      "train_missing_rmse": 0.6076750026164613
+    },
+    {
+      "iteration": 48200,
+      "train_rmse": 0.4898410079573146,
+      "train_nlpd": 21.759118359324976,
+      "elbo_loss": 30.576764038610616,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.147946061156862,
+      "train_missing_rmse": 0.6075628170796638
+    },
+    {
+      "iteration": 48300,
+      "train_rmse": 0.48987550743381597,
+      "train_nlpd": 21.75990271687361,
+      "elbo_loss": 30.56477818814043,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.158841843581605,
+      "train_missing_rmse": 0.607725031803088
+    },
+    {
+      "iteration": 48400,
+      "train_rmse": 0.4899135494811585,
+      "train_nlpd": 21.748840440016007,
+      "elbo_loss": 30.163953230291597,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.175414814361016,
+      "train_missing_rmse": 0.6076819877409368
+    },
+    {
+      "iteration": 48500,
+      "train_rmse": 0.48981881607283184,
+      "train_nlpd": 21.744814442543053,
+      "elbo_loss": 30.513969019047963,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.158513098328267,
+      "train_missing_rmse": 0.6075652981094434
+    },
+    {
+      "iteration": 48600,
+      "train_rmse": 0.4899159205912478,
+      "train_nlpd": 21.770892156244948,
+      "elbo_loss": 29.860357031223252,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.14313102039644,
+      "train_missing_rmse": 0.607831771968045
+    },
+    {
+      "iteration": 48700,
+      "train_rmse": 0.4896980681813699,
+      "train_nlpd": 21.744976893806317,
+      "elbo_loss": 30.235927316693818,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.172999179922236,
+      "train_missing_rmse": 0.6076802233092078
+    },
+    {
+      "iteration": 48800,
+      "train_rmse": 0.4898590341302443,
+      "train_nlpd": 21.761485080642274,
+      "elbo_loss": 31.388278910101512,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.14657042220918,
+      "train_missing_rmse": 0.607634479506238
+    },
+    {
+      "iteration": 48900,
+      "train_rmse": 0.4902894004144686,
+      "train_nlpd": 21.774852430897713,
+      "elbo_loss": 30.55859082625374,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.170360087474325,
+      "train_missing_rmse": 0.6073807861311495
+    },
+    {
+      "iteration": 49000,
+      "train_rmse": 0.4904663988586108,
+      "train_nlpd": 21.768416803132578,
+      "elbo_loss": 30.188161055319565,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.15877782961949,
+      "train_missing_rmse": 0.607273640367669
+    },
+    {
+      "iteration": 49100,
+      "train_rmse": 0.4900835157479226,
+      "train_nlpd": 21.738846323602427,
+      "elbo_loss": 30.02426632680923,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.182189962608156,
+      "train_missing_rmse": 0.607660508611757
+    },
+    {
+      "iteration": 49200,
+      "train_rmse": 0.48993829668479655,
+      "train_nlpd": 21.761267807115992,
+      "elbo_loss": 30.03576093281761,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.143474734530287,
+      "train_missing_rmse": 0.6085381511322723
+    },
+    {
+      "iteration": 49300,
+      "train_rmse": 0.4899284337469228,
+      "train_nlpd": 21.770773537369593,
+      "elbo_loss": 30.400525389592342,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.154939199325863,
+      "train_missing_rmse": 0.6074210857018129
+    },
+    {
+      "iteration": 49400,
+      "train_rmse": 0.4895875428913734,
+      "train_nlpd": 21.757949527958324,
+      "elbo_loss": 30.654677363950263,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.172055645618563,
+      "train_missing_rmse": 0.6082608690687946
+    },
+    {
+      "iteration": 49500,
+      "train_rmse": 0.489607402345281,
+      "train_nlpd": 21.737195058697978,
+      "elbo_loss": 30.63667250178861,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18899678494424,
+      "train_missing_rmse": 0.6077082142659322
+    },
+    {
+      "iteration": 49600,
+      "train_rmse": 0.48956468311953905,
+      "train_nlpd": 21.756410232954885,
+      "elbo_loss": 30.445628936653133,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.14457617310041,
+      "train_missing_rmse": 0.6080826923537185
+    },
+    {
+      "iteration": 49700,
+      "train_rmse": 0.4898574017337739,
+      "train_nlpd": 21.757120620197007,
+      "elbo_loss": 30.24133549794218,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.179728574367214,
+      "train_missing_rmse": 0.607414190828438
+    },
+    {
+      "iteration": 49800,
+      "train_rmse": 0.49035480324708164,
+      "train_nlpd": 21.74619560336052,
+      "elbo_loss": 30.41043764290054,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.170400941496652,
+      "train_missing_rmse": 0.6077330015230871
+    },
+    {
+      "iteration": 49900,
+      "train_rmse": 0.48941174008447685,
+      "train_nlpd": 21.75589971551833,
+      "elbo_loss": 30.70958711544488,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.181803011887137,
+      "train_missing_rmse": 0.6084467394706227
+    },
+    {
+      "iteration": 50000,
+      "train_rmse": 0.48966771806419557,
+      "train_nlpd": 21.72470146817864,
+      "elbo_loss": 30.22483294398785,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17896096225098,
+      "train_missing_rmse": 0.6074313728057741
+    },
+    {
+      "iteration": 50100,
+      "train_rmse": 0.4894217851998889,
+      "train_nlpd": 21.726626286509347,
+      "elbo_loss": 30.640808304385637,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.180729514355857,
+      "train_missing_rmse": 0.6073288115213084
+    },
+    {
+      "iteration": 50200,
+      "train_rmse": 0.4897036490452276,
+      "train_nlpd": 21.74324613692292,
+      "elbo_loss": 30.135889115551784,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.155606265104026,
+      "train_missing_rmse": 0.6074734653827497
+    },
+    {
+      "iteration": 50300,
+      "train_rmse": 0.4897466819562493,
+      "train_nlpd": 21.7520859711472,
+      "elbo_loss": 29.979111875182742,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.139921679446513,
+      "train_missing_rmse": 0.6074321502214195
+    },
+    {
+      "iteration": 50400,
+      "train_rmse": 0.4899186007123535,
+      "train_nlpd": 21.726159794970947,
+      "elbo_loss": 30.542979928821197,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.16594595330951,
+      "train_missing_rmse": 0.6079157238592279
+    },
+    {
+      "iteration": 50500,
+      "train_rmse": 0.4898130156485812,
+      "train_nlpd": 21.737260910792276,
+      "elbo_loss": 30.136713111670645,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.167195407802605,
+      "train_missing_rmse": 0.6077807175317812
+    },
+    {
+      "iteration": 50600,
+      "train_rmse": 0.4893983752668023,
+      "train_nlpd": 21.724192082076733,
+      "elbo_loss": 30.878413564834197,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.169129483701433,
+      "train_missing_rmse": 0.6071221165384074
+    },
+    {
+      "iteration": 50700,
+      "train_rmse": 0.4893668044313848,
+      "train_nlpd": 21.723417969318884,
+      "elbo_loss": 30.909011606391054,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.162449215480038,
+      "train_missing_rmse": 0.6074553840250161
+    },
+    {
+      "iteration": 50800,
+      "train_rmse": 0.4898223505192096,
+      "train_nlpd": 21.736410697385516,
+      "elbo_loss": 30.49267928877864,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.178793189099697,
+      "train_missing_rmse": 0.6078432797967104
+    },
+    {
+      "iteration": 50900,
+      "train_rmse": 0.48967235814884685,
+      "train_nlpd": 21.732624885212253,
+      "elbo_loss": 29.904674873408034,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.190807104658642,
+      "train_missing_rmse": 0.6077354599087993
+    },
+    {
+      "iteration": 51000,
+      "train_rmse": 0.48952662328699165,
+      "train_nlpd": 21.726285000508412,
+      "elbo_loss": 29.89433935020488,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.16830726998534,
+      "train_missing_rmse": 0.6077477866684711
+    },
+    {
+      "iteration": 51100,
+      "train_rmse": 0.4898789550418821,
+      "train_nlpd": 21.72865545472818,
+      "elbo_loss": 30.90292066801493,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.162468369322113,
+      "train_missing_rmse": 0.6078377537404054
+    },
+    {
+      "iteration": 51200,
+      "train_rmse": 0.4895113509354036,
+      "train_nlpd": 21.74017196523406,
+      "elbo_loss": 30.49902442810853,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.153700086768076,
+      "train_missing_rmse": 0.6072846745979604
+    },
+    {
+      "iteration": 51300,
+      "train_rmse": 0.4894592615289405,
+      "train_nlpd": 21.702083855437902,
+      "elbo_loss": 29.554227331504315,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.174006479285808,
+      "train_missing_rmse": 0.6077547086947278
+    },
+    {
+      "iteration": 51400,
+      "train_rmse": 0.48939948826547836,
+      "train_nlpd": 21.708754999419405,
+      "elbo_loss": 30.08202447654799,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.184818731421345,
+      "train_missing_rmse": 0.6074694622741844
+    },
+    {
+      "iteration": 51500,
+      "train_rmse": 0.48941807167483264,
+      "train_nlpd": 21.7196082342702,
+      "elbo_loss": 31.26996026449304,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17910056312565,
+      "train_missing_rmse": 0.6078853768319685
+    },
+    {
+      "iteration": 51600,
+      "train_rmse": 0.4890487366226493,
+      "train_nlpd": 21.703287635265504,
+      "elbo_loss": 30.73808620789043,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.188908013647787,
+      "train_missing_rmse": 0.6078719748375196
+    },
+    {
+      "iteration": 51700,
+      "train_rmse": 0.4891875193451025,
+      "train_nlpd": 21.71453940186079,
+      "elbo_loss": 30.92595591161733,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.157910385535967,
+      "train_missing_rmse": 0.607724968562342
+    },
+    {
+      "iteration": 51800,
+      "train_rmse": 0.4892875171826082,
+      "train_nlpd": 21.71375611982415,
+      "elbo_loss": 30.949265383013966,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.15534703108862,
+      "train_missing_rmse": 0.6071363142592789
+    },
+    {
+      "iteration": 51900,
+      "train_rmse": 0.4895630635159974,
+      "train_nlpd": 21.742392212996858,
+      "elbo_loss": 30.60620828014065,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.15153070499537,
+      "train_missing_rmse": 0.6075857979973973
+    },
+    {
+      "iteration": 52000,
+      "train_rmse": 0.48955808410030444,
+      "train_nlpd": 21.747564429806935,
+      "elbo_loss": 30.166538828287017,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.16377749957233,
+      "train_missing_rmse": 0.6080012127008619
+    },
+    {
+      "iteration": 52100,
+      "train_rmse": 0.4895126562870439,
+      "train_nlpd": 21.73425546282353,
+      "elbo_loss": 30.139742410957318,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.182928308075997,
+      "train_missing_rmse": 0.6078871753133043
+    },
+    {
+      "iteration": 52200,
+      "train_rmse": 0.49001378520073013,
+      "train_nlpd": 21.734012584916147,
+      "elbo_loss": 30.436313981263133,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.170177317843315,
+      "train_missing_rmse": 0.6068494166947197
+    },
+    {
+      "iteration": 52300,
+      "train_rmse": 0.48958390250083295,
+      "train_nlpd": 21.72401182347715,
+      "elbo_loss": 29.82041202752586,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18094202975183,
+      "train_missing_rmse": 0.6077928963753714
+    },
+    {
+      "iteration": 52400,
+      "train_rmse": 0.4895840806917345,
+      "train_nlpd": 21.714893585647225,
+      "elbo_loss": 30.09276000341164,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.160651801920917,
+      "train_missing_rmse": 0.6073723802400874
+    },
+    {
+      "iteration": 52500,
+      "train_rmse": 0.4893809305619917,
+      "train_nlpd": 21.708654894881633,
+      "elbo_loss": 30.136611005934153,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.194525827684625,
+      "train_missing_rmse": 0.6082426191820738
+    },
+    {
+      "iteration": 52600,
+      "train_rmse": 0.4891371310753477,
+      "train_nlpd": 21.69904809074273,
+      "elbo_loss": 30.36124800679213,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18069827119364,
+      "train_missing_rmse": 0.6076471140252288
+    },
+    {
+      "iteration": 52700,
+      "train_rmse": 0.48890137304435016,
+      "train_nlpd": 21.72184961448307,
+      "elbo_loss": 30.633981011388126,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.169787726541692,
+      "train_missing_rmse": 0.6078734588565597
+    },
+    {
+      "iteration": 52800,
+      "train_rmse": 0.4893726743334503,
+      "train_nlpd": 21.696226413126315,
+      "elbo_loss": 30.316619269711524,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17309502178247,
+      "train_missing_rmse": 0.6075499266899361
+    },
+    {
+      "iteration": 52900,
+      "train_rmse": 0.48895274578380754,
+      "train_nlpd": 21.719754418219054,
+      "elbo_loss": 30.542901543139976,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.168756941054603,
+      "train_missing_rmse": 0.6081733477478835
+    },
+    {
+      "iteration": 53000,
+      "train_rmse": 0.4889346384429398,
+      "train_nlpd": 21.708059765346803,
+      "elbo_loss": 29.959278529858047,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.210691842407776,
+      "train_missing_rmse": 0.6082350252890911
+    },
+    {
+      "iteration": 53100,
+      "train_rmse": 0.4890781405551822,
+      "train_nlpd": 21.718414732862797,
+      "elbo_loss": 30.803786976649413,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.2022051424338,
+      "train_missing_rmse": 0.6077907721648974
+    },
+    {
+      "iteration": 53200,
+      "train_rmse": 0.48954246888513026,
+      "train_nlpd": 21.71910669174143,
+      "elbo_loss": 29.763840213125142,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.1673529295774,
+      "train_missing_rmse": 0.607850328135705
+    },
+    {
+      "iteration": 53300,
+      "train_rmse": 0.4888513019767181,
+      "train_nlpd": 21.729665040958068,
+      "elbo_loss": 30.197755614506953,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17660833447615,
+      "train_missing_rmse": 0.6078508234694977
+    },
+    {
+      "iteration": 53400,
+      "train_rmse": 0.4897492387253225,
+      "train_nlpd": 21.715378096158705,
+      "elbo_loss": 30.573777515832234,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17454100766824,
+      "train_missing_rmse": 0.6077566080708166
+    },
+    {
+      "iteration": 53500,
+      "train_rmse": 0.489413112658186,
+      "train_nlpd": 21.703594515530412,
+      "elbo_loss": 30.603200645385797,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.206591025583048,
+      "train_missing_rmse": 0.608119633151548
+    },
+    {
+      "iteration": 53600,
+      "train_rmse": 0.4893110907869194,
+      "train_nlpd": 21.71020199460835,
+      "elbo_loss": 30.685119254114202,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.181105786897,
+      "train_missing_rmse": 0.608003594165626
+    },
+    {
+      "iteration": 53700,
+      "train_rmse": 0.4892503150130181,
+      "train_nlpd": 21.70352652347067,
+      "elbo_loss": 30.15191661710152,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.148317329791798,
+      "train_missing_rmse": 0.6077357470337192
+    },
+    {
+      "iteration": 53800,
+      "train_rmse": 0.4891148337762274,
+      "train_nlpd": 21.714932792250487,
+      "elbo_loss": 29.961352813559273,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.173731409906196,
+      "train_missing_rmse": 0.6076113741471472
+    },
+    {
+      "iteration": 53900,
+      "train_rmse": 0.48919995342720024,
+      "train_nlpd": 21.687501008806127,
+      "elbo_loss": 30.915000597852448,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.166593700300684,
+      "train_missing_rmse": 0.6077112411872053
+    },
+    {
+      "iteration": 54000,
+      "train_rmse": 0.4887976240871137,
+      "train_nlpd": 21.680678074329347,
+      "elbo_loss": 30.200336452868136,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.202125281092524,
+      "train_missing_rmse": 0.6078313796878559
+    },
+    {
+      "iteration": 54100,
+      "train_rmse": 0.4889130004785361,
+      "train_nlpd": 21.693043938709447,
+      "elbo_loss": 30.839467845025748,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17940521095107,
+      "train_missing_rmse": 0.6076536957271612
+    },
+    {
+      "iteration": 54200,
+      "train_rmse": 0.4891334145657037,
+      "train_nlpd": 21.689962833757985,
+      "elbo_loss": 29.56144863466246,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.177567545498444,
+      "train_missing_rmse": 0.6083275031988682
+    },
+    {
+      "iteration": 54300,
+      "train_rmse": 0.4891350397083391,
+      "train_nlpd": 21.699828086112223,
+      "elbo_loss": 30.660893940204804,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.190650721237347,
+      "train_missing_rmse": 0.6079682059416146
+    },
+    {
+      "iteration": 54400,
+      "train_rmse": 0.4890096632063974,
+      "train_nlpd": 21.720840602416526,
+      "elbo_loss": 30.709232661348906,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17625009025673,
+      "train_missing_rmse": 0.6080515868361512
+    },
+    {
+      "iteration": 54500,
+      "train_rmse": 0.48911185178276173,
+      "train_nlpd": 21.704507445411274,
+      "elbo_loss": 30.384271788470183,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18978618349633,
+      "train_missing_rmse": 0.6082117488153458
+    },
+    {
+      "iteration": 54600,
+      "train_rmse": 0.48915569951111737,
+      "train_nlpd": 21.708486335025313,
+      "elbo_loss": 29.651974740506283,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.19319985333651,
+      "train_missing_rmse": 0.6086994148675337
+    },
+    {
+      "iteration": 54700,
+      "train_rmse": 0.48891400117940603,
+      "train_nlpd": 21.68920127381385,
+      "elbo_loss": 30.214212858015856,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.220883069266176,
+      "train_missing_rmse": 0.6081924341812394
+    },
+    {
+      "iteration": 54800,
+      "train_rmse": 0.4891218577499983,
+      "train_nlpd": 21.71942928424454,
+      "elbo_loss": 29.7440426150317,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.20092906314354,
+      "train_missing_rmse": 0.607920256718385
+    },
+    {
+      "iteration": 54900,
+      "train_rmse": 0.48910143352555996,
+      "train_nlpd": 21.708540061899324,
+      "elbo_loss": 30.68749566019049,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.16511032991265,
+      "train_missing_rmse": 0.608054267014127
+    },
+    {
+      "iteration": 55000,
+      "train_rmse": 0.4894467821539107,
+      "train_nlpd": 21.727168365187765,
+      "elbo_loss": 29.788060666138904,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.166643997610702,
+      "train_missing_rmse": 0.608265007692346
+    },
+    {
+      "iteration": 55100,
+      "train_rmse": 0.48955235370583017,
+      "train_nlpd": 21.690284237987658,
+      "elbo_loss": 30.303479419301134,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17596273019054,
+      "train_missing_rmse": 0.6073566063438659
+    },
+    {
+      "iteration": 55200,
+      "train_rmse": 0.4887422483078556,
+      "train_nlpd": 21.664978924563933,
+      "elbo_loss": 30.74519561747712,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.188290544807316,
+      "train_missing_rmse": 0.607463683436988
+    },
+    {
+      "iteration": 55300,
+      "train_rmse": 0.4891135274410873,
+      "train_nlpd": 21.68766509253246,
+      "elbo_loss": 30.676126186036218,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18590273524426,
+      "train_missing_rmse": 0.6079701509904532
+    },
+    {
+      "iteration": 55400,
+      "train_rmse": 0.4889935396046125,
+      "train_nlpd": 21.687113045876693,
+      "elbo_loss": 30.877047744206706,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.171114691547697,
+      "train_missing_rmse": 0.6080519295804309
+    },
+    {
+      "iteration": 55500,
+      "train_rmse": 0.4888811680772103,
+      "train_nlpd": 21.688723056498223,
+      "elbo_loss": 30.183334612589846,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.21217383226609,
+      "train_missing_rmse": 0.6082225624414082
+    },
+    {
+      "iteration": 55600,
+      "train_rmse": 0.48903110711340037,
+      "train_nlpd": 21.703578473638736,
+      "elbo_loss": 30.15315370126571,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17337636125813,
+      "train_missing_rmse": 0.6080365284401638
+    },
+    {
+      "iteration": 55700,
+      "train_rmse": 0.48907821385643196,
+      "train_nlpd": 21.698330850068302,
+      "elbo_loss": 30.1311783591544,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.153579780022007,
+      "train_missing_rmse": 0.6073131468154541
+    },
+    {
+      "iteration": 55800,
+      "train_rmse": 0.4894000103184355,
+      "train_nlpd": 21.69598006512483,
+      "elbo_loss": 30.516028586778724,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18445026393815,
+      "train_missing_rmse": 0.6071914995082296
+    },
+    {
+      "iteration": 55900,
+      "train_rmse": 0.48873107614017386,
+      "train_nlpd": 21.680667348805173,
+      "elbo_loss": 30.315979821946748,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.184701072290284,
+      "train_missing_rmse": 0.6081921120152531
+    },
+    {
+      "iteration": 56000,
+      "train_rmse": 0.4887229852002028,
+      "train_nlpd": 21.695747300261466,
+      "elbo_loss": 30.272829650737094,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.204840398098014,
+      "train_missing_rmse": 0.6082230413076702
+    },
+    {
+      "iteration": 56100,
+      "train_rmse": 0.4887033039890586,
+      "train_nlpd": 21.68514735902981,
+      "elbo_loss": 30.464305490081294,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.175490074242788,
+      "train_missing_rmse": 0.6082944460388506
+    },
+    {
+      "iteration": 56200,
+      "train_rmse": 0.4884853055262669,
+      "train_nlpd": 21.6817891733752,
+      "elbo_loss": 30.379296599904485,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.161899913576136,
+      "train_missing_rmse": 0.6084857890855357
+    },
+    {
+      "iteration": 56300,
+      "train_rmse": 0.488859444955979,
+      "train_nlpd": 21.678216854457297,
+      "elbo_loss": 30.34843348280861,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.17741653956066,
+      "train_missing_rmse": 0.6081259923380388
+    },
+    {
+      "iteration": 56400,
+      "train_rmse": 0.4888559364804291,
+      "train_nlpd": 21.677349400014975,
+      "elbo_loss": 30.139107243208656,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.207476098957102,
+      "train_missing_rmse": 0.6080216225544406
+    },
+    {
+      "iteration": 56500,
+      "train_rmse": 0.48885115045997435,
+      "train_nlpd": 21.69270133123143,
+      "elbo_loss": 30.52197809617965,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.194411633621275,
+      "train_missing_rmse": 0.60840540028284
+    },
+    {
+      "iteration": 56600,
+      "train_rmse": 0.48870615227728403,
+      "train_nlpd": 21.67447832210117,
+      "elbo_loss": 29.69493988612112,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.199234886668258,
+      "train_missing_rmse": 0.6077985070434845
+    },
+    {
+      "iteration": 56700,
+      "train_rmse": 0.48872153133571755,
+      "train_nlpd": 21.655675055759374,
+      "elbo_loss": 30.381406660456417,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.194698793077354,
+      "train_missing_rmse": 0.6079453930684141
+    },
+    {
+      "iteration": 56800,
+      "train_rmse": 0.4888195364973395,
+      "train_nlpd": 21.67205047350653,
+      "elbo_loss": 30.05250419359715,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18230738865085,
+      "train_missing_rmse": 0.6088550805615263
+    },
+    {
+      "iteration": 56900,
+      "train_rmse": 0.4886825398696746,
+      "train_nlpd": 21.671312957339026,
+      "elbo_loss": 30.426026561221022,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.19603542183572,
+      "train_missing_rmse": 0.6080759729223411
+    },
+    {
+      "iteration": 57000,
+      "train_rmse": 0.48846202051561105,
+      "train_nlpd": 21.65402779351123,
+      "elbo_loss": 30.94864617419154,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18452076580559,
+      "train_missing_rmse": 0.6086019740655312
+    },
+    {
+      "iteration": 57100,
+      "train_rmse": 0.4890438396433095,
+      "train_nlpd": 21.672657191661152,
+      "elbo_loss": 29.962360445560726,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.194978654220634,
+      "train_missing_rmse": 0.608270541724965
+    },
+    {
+      "iteration": 57200,
+      "train_rmse": 0.4886900127674618,
+      "train_nlpd": 21.68883415548466,
+      "elbo_loss": 30.858115957412274,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.16893079640924,
+      "train_missing_rmse": 0.6079364410041719
+    },
+    {
+      "iteration": 57300,
+      "train_rmse": 0.4883899820908596,
+      "train_nlpd": 21.660119210419033,
+      "elbo_loss": 29.579859690108684,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.189089644070805,
+      "train_missing_rmse": 0.6077532521878676
+    },
+    {
+      "iteration": 57400,
+      "train_rmse": 0.48860207269859396,
+      "train_nlpd": 21.654813788234765,
+      "elbo_loss": 31.075428238527522,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.199693511077882,
+      "train_missing_rmse": 0.6076209382659962
+    },
+    {
+      "iteration": 57500,
+      "train_rmse": 0.488698405582018,
+      "train_nlpd": 21.657057679258358,
+      "elbo_loss": 30.371414514885124,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.19682362073754,
+      "train_missing_rmse": 0.6082532672450304
+    },
+    {
+      "iteration": 57600,
+      "train_rmse": 0.48843023133663027,
+      "train_nlpd": 21.667229015480537,
+      "elbo_loss": 30.412061692023343,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.197233480693214,
+      "train_missing_rmse": 0.6079715798384272
+    },
+    {
+      "iteration": 57700,
+      "train_rmse": 0.48865887928895296,
+      "train_nlpd": 21.648288086885415,
+      "elbo_loss": 30.864779446977117,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.187309462315422,
+      "train_missing_rmse": 0.608437017365274
+    },
+    {
+      "iteration": 57800,
+      "train_rmse": 0.48849062733962784,
+      "train_nlpd": 21.67023203906506,
+      "elbo_loss": 30.627265575814203,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.174071828237103,
+      "train_missing_rmse": 0.6076546177466475
+    },
+    {
+      "iteration": 57900,
+      "train_rmse": 0.48848733531106503,
+      "train_nlpd": 21.654018486364272,
+      "elbo_loss": 30.053056896922037,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.19334278176745,
+      "train_missing_rmse": 0.6077915170164834
+    },
+    {
+      "iteration": 58000,
+      "train_rmse": 0.48843670612706475,
+      "train_nlpd": 21.67274931995237,
+      "elbo_loss": 30.285103481014662,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.180150098287022,
+      "train_missing_rmse": 0.6082081739024447
+    },
+    {
+      "iteration": 58100,
+      "train_rmse": 0.48853126952424,
+      "train_nlpd": 21.662131973592558,
+      "elbo_loss": 30.35271717355829,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.208326597106637,
+      "train_missing_rmse": 0.6073251685768821
+    },
+    {
+      "iteration": 58200,
+      "train_rmse": 0.48842443843344124,
+      "train_nlpd": 21.654593915558827,
+      "elbo_loss": 30.300716025591804,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.198715345516252,
+      "train_missing_rmse": 0.608359075676303
+    },
+    {
+      "iteration": 58300,
+      "train_rmse": 0.4882471632144546,
+      "train_nlpd": 21.670963863657335,
+      "elbo_loss": 31.05468214215377,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.201971305872778,
+      "train_missing_rmse": 0.6079181344133552
+    },
+    {
+      "iteration": 58400,
+      "train_rmse": 0.4886623804127454,
+      "train_nlpd": 21.656848177218084,
+      "elbo_loss": 30.479222817575767,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18872961577925,
+      "train_missing_rmse": 0.6084300875792861
+    },
+    {
+      "iteration": 58500,
+      "train_rmse": 0.48849783389481055,
+      "train_nlpd": 21.65596309615636,
+      "elbo_loss": 30.24567284777725,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.193783843294785,
+      "train_missing_rmse": 0.6084981827075648
+    },
+    {
+      "iteration": 58600,
+      "train_rmse": 0.4882149877004067,
+      "train_nlpd": 21.659382287663515,
+      "elbo_loss": 30.294913393412955,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.211713166877754,
+      "train_missing_rmse": 0.6078683093535492
+    },
+    {
+      "iteration": 58700,
+      "train_rmse": 0.4883419495829464,
+      "train_nlpd": 21.65956029786546,
+      "elbo_loss": 29.32023642969429,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.18824257024655,
+      "train_missing_rmse": 0.6087357943732987
+    },
+    {
+      "iteration": 58800,
+      "train_rmse": 0.48844094543785993,
+      "train_nlpd": 21.63856728476171,
+      "elbo_loss": 29.809670567962236,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.20597224572127,
+      "train_missing_rmse": 0.6085769674543727
+    },
+    {
+      "iteration": 58900,
+      "train_rmse": 0.4881222252266259,
+      "train_nlpd": 21.668185978563017,
+      "elbo_loss": 29.76412423093606,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.21381471721268,
+      "train_missing_rmse": 0.607817426692688
+    },
+    {
+      "iteration": 59000,
+      "train_rmse": 0.4879049716023322,
+      "train_nlpd": 21.655035739602237,
+      "elbo_loss": 30.474076516314906,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.149171515255482,
+      "train_missing_rmse": 0.6082735952577885
+    },
+    {
+      "iteration": 59100,
+      "train_rmse": 0.488461384390151,
+      "train_nlpd": 21.651330709741213,
+      "elbo_loss": 29.821448041400046,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.2141633423097,
+      "train_missing_rmse": 0.6079988579002381
+    },
+    {
+      "iteration": 59200,
+      "train_rmse": 0.4885142816456804,
+      "train_nlpd": 21.679548431976922,
+      "elbo_loss": 30.63123760184412,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.195107637333194,
+      "train_missing_rmse": 0.6079864251911477
+    },
+    {
+      "iteration": 59300,
+      "train_rmse": 0.48817867992091585,
+      "train_nlpd": 21.67229726826176,
+      "elbo_loss": 30.43580984904834,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.191369477641622,
+      "train_missing_rmse": 0.6080845406116535
+    },
+    {
+      "iteration": 59400,
+      "train_rmse": 0.48831701362901003,
+      "train_nlpd": 21.655637078769647,
+      "elbo_loss": 30.40589380943004,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.19845449274985,
+      "train_missing_rmse": 0.6080010947802569
+    },
+    {
+      "iteration": 59500,
+      "train_rmse": 0.48857636068185384,
+      "train_nlpd": 21.65112137706747,
+      "elbo_loss": 30.807069669979306,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.181524803387607,
+      "train_missing_rmse": 0.6080991065484864
+    },
+    {
+      "iteration": 59600,
+      "train_rmse": 0.4885764949967334,
+      "train_nlpd": 21.674236315353355,
+      "elbo_loss": 30.16780747362872,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.188922394479025,
+      "train_missing_rmse": 0.6077886036523257
+    },
+    {
+      "iteration": 59700,
+      "train_rmse": 0.4883468609501879,
+      "train_nlpd": 21.64557913279542,
+      "elbo_loss": 30.19178503828723,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.19844776024152,
+      "train_missing_rmse": 0.6091026870812456
+    },
+    {
+      "iteration": 59800,
+      "train_rmse": 0.48864974389227056,
+      "train_nlpd": 21.645108033975305,
+      "elbo_loss": 30.42816166380407,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.208967855644293,
+      "train_missing_rmse": 0.6084033811675194
+    },
+    {
+      "iteration": 59900,
+      "train_rmse": 0.48836838693470824,
+      "train_nlpd": 21.66924310892112,
+      "elbo_loss": 30.20580696558333,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.173310426568097,
+      "train_missing_rmse": 0.6089015283930427
+    },
+    {
+      "iteration": 59999,
+      "train_rmse": 0.48855645042811324,
+      "train_nlpd": 21.666502721534343,
+      "elbo_loss": 30.513382255307167,
+      "effective_dims": 7,
+      "train_missing_nlpd": 18.19899129684465,
+      "train_missing_rmse": 0.6077543725697231
+    }
+  ]
+}

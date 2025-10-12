@@ -118,14 +118,14 @@ def generate_config_grid():
     """Generate grid of configurations for both SSVI and Original GP-LVM"""
 
     # Parameter ranges
-    n_inducing_values = [128]
+    n_inducing_values = [32]
     init_lengthscales_values = [1.0]
     init_output_noise_scale_values = [1.0]
     batch_size_values = [32]
     random_seed_values = [7]
     learning_rate_values = [0.001]
     n_training_steps = [100_000]
-    num_inducing_samples_list = [64, 128]  # For SSVI only
+    num_inducing_samples_list = [64]  # For SSVI only
 
     # Architecture parameters
     # For SSVI: encoder_hidden_dims
@@ -134,19 +134,19 @@ def generate_config_grid():
     architecture_values = [[128, 64]]  # Can add more options like [[256, 128, 64], [64, 32]]
 
     # Missing data parameters
-    # enable_missing_data_values = [False]
-    # missing_data_ratio_values = [0.0]
-    enable_missing_data_values = [True]
-    missing_data_ratio_values = [0.25, 0.5, 0.75, 0.9]
+    enable_missing_data_values = [False]
+    missing_data_ratio_values = [0.0]
+    # enable_missing_data_values = [True]
+    # missing_data_ratio_values = [0.25, 0.5, 0.75, 0.9]
     
     # MNIST filtering parameters
     # mnist_digits_values = [[1, 2], [0,1,2,3,4], [0,1,2,3,4,5,6,7,8,9]]  # List of digit combinations to try
     # mnist_digits_values = [[0, 2, 8]]  # List of digit combinations to try
-    mnist_digits_values = [[0, 1,2,3,4,5,6,7,8,9]]  # List of digit combinations to try
-    samples_per_digit_values = [1000,7500]  # Number of samples per digit
+    mnist_digits_values = [[1,2,3,4]]  # List of digit combinations to try
+    samples_per_digit_values = [40]  # Number of samples per digit
 
     # Output folder names (now in qpcr_related directory)
-    output_folder_name = "fixed_diff_sample_numbers"
+    output_folder_name = "fewer_inducing_test"
     ssvi_output_folder = f"mnist_related/{output_folder_name}_ssvi"
     orig_output_folder = f"mnist_related/{output_folder_name}_orig_gplvm"
 
