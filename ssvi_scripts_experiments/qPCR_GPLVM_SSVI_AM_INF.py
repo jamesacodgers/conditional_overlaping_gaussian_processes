@@ -189,8 +189,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
     
     def __init__(self, config: OilFlowSSVIConfig, Vx, mu_x, M):
         # Use init_lengthscales to create beta values
-        # beta = 1/lengthscales, so for init_lengthscales=1.0, beta=[1,1,1,1,1,1]
-        beta = [[1.0/config.init_lengthscales] * config.latent_dim] * 1  # C=1 for GP-LVM
+        # beta = lengthscales, so for init_lengthscales=1.0, beta=[1,1,1,1,1,1]
+        beta = [[config.init_lengthscales] * config.latent_dim] * 1  # C=1 for GP-LVM
         
         # Use init_output_noise_scale for sigma2 initialization
         sigma2 = config.init_output_noise_scale
