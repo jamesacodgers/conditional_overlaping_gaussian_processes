@@ -942,32 +942,11 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
     mu_x = Xgrid[None, :, :].expand(P, -1, -1)          # [P,G,Q]
     Sigma_x = torch.zeros_like(mu_x)                    # [P,G,Q]
 
-    # 5) psi-statistics wrt q(x)
-    Psi1 = model._get_lv_kernel_expectation(mu_x, Sigma_x)         # [P,G,1,L]
-    print(f"Debug: Psi1 shape: {Psi1.shape}, has NaN: {torch.isnan(Psi1).any().item()}")
-
-    # 6) sample U ~ q(U)
-    U = model.get_u_samples()                                     # [P,M,1,L]
-    print(f"Debug: U shape: {U.shape}, has NaN: {torch.isnan(U).any().item()}")
-
-    # 7) mean curve (x -> y), averaging over q(U)
-    f_given_U = model._f_expectation_given_U(Psi1, U)[..., 0]     # [P,G,M]
-    print(f"Debug: f_given_U shape: {f_given_U.shape}, has NaN: {torch.isnan(f_given_U).any().item()}")
-    
-    mean = f_given_U.mean(0)                                      # [G,M]
-    
-    # Handle NaN values
-    if torch.isnan(mean).any():
-        print(f"Warning: NaN values detected in predictions. Replacing with zeros.")
-        mean = torch.nan_to_num(mean, nan=0.0)
-    
-    # Debug print
-    print(f"Debug: Mean predictions range: [{mean.min().item():.6f}, {mean.max().item():.6f}]")
-    print(f"Debug: Mean predictions shape: {mean.shape}")
+    f = model.gp.get_gp_expectation(Xgrid)     # [P,G,M]
 
     # 8) ELBO-consistent variance using GP covariance method
     # This is the same method used in NLPD computation
-    gp_cov = model.gp.get_gp_covariance_given_U(Xgrid, U)        # [G,M,C,C]
+    gp_cov = model.gp.get_gp_covariance(Xgrid)        # [G,M,C,C]
     
     # Extract diagonal elements (variance for each output) and add observation noise
     if gp_cov.shape[-1] == 1:
@@ -979,7 +958,7 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
         pred_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [G,M,C]
     
     # Add MC variance from q(U) uncertainty
-    var_mc = f_given_U.var(0, unbiased=False)                     # [G,M]
+    var_mc = f.var(0, unbiased=False)                     # [G,M]
     pred_var = pred_var + var_mc                                  # [G,M]
     
     pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))        # [G,M]
