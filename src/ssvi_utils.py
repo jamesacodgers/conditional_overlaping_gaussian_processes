@@ -868,6 +868,145 @@ def plot_final_metrics_summary(metrics_computer,
     return fig
 
 
+@torch.no_grad()
+def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_path=None):
+    """
+    Plot 1D latent slice with outer-expectation uncertainty bands.
+    
+    This function creates a visualization of the GP-LVM's predictive behavior along
+    the most informative latent dimension (smallest lengthscale), showing both the
+    mean prediction and ELBO-consistent uncertainty bands.
+    
+    Args:
+        model: GPLVM_SSVI_AM_INF model instance
+        y_train: Training data [N, M] - used to encode latent representations
+        center: str, either "zeros" (default) or "data_point". If "data_point", 
+                must provide n_idx to specify which data point to use as center.
+        n_idx: int, index of data point to use as center when center="data_point"
+        save_path: str, optional path to save the plot. If None, displays the plot.
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import torch
+    device = model.device
+    Q, M, P = model.A, model.M, model.P
+    N = y_train.shape[0]  # Number of training points from actual data
+
+    # Encode training data to get latent representations
+    U_samples = model.get_u_samples()
+    y_encoder_input = torch.where(torch.isnan(y_train), 
+                                   torch.full_like(y_train, -9.0, dtype=torch.float64), 
+                                   y_train)
+    mu_x_encoded, sigma_x_encoded = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+    mu_x_mean = mu_x_encoded.mean(0)  # [N, Q] - average over P samples
+
+    # 1) pick most-informative latent dim (smallest lengthscale)
+    betas = model.gp.beta[0].detach().cpu().numpy()  # (Q,)
+    ells = 1.0 / np.maximum(betas, 1e-12)
+    j = int(np.argmin(ells))
+
+    # 2) center
+    x0 = torch.zeros(Q, dtype=torch.float64, device=device)
+    if center == "data_point":
+        assert n_idx is not None, "n_idx must be provided when center='data_point'"
+        x0 = mu_x_mean[n_idx].to(device)
+
+    # 3) adaptive grid based on actual latent distribution along dimension j
+    x_j_values = mu_x_mean[:, j].detach().cpu().numpy()
+    x_j_min, x_j_max = x_j_values.min(), x_j_values.max()
+    x_j_range = x_j_max - x_j_min
+    
+    # Debug print
+    print(f"Debug: Latent dim {j} range: [{x_j_min:.6f}, {x_j_max:.6f}], span: {x_j_range:.6f}")
+    
+    # Use reasonable range based on data, with sensible expansion
+    if x_j_range < 0.1:  # If range is very small, expand moderately
+        expansion_factor = 2.0  # 2x expansion
+        center = (x_j_min + x_j_max) / 2
+        lo = center - x_j_range * expansion_factor / 2
+        hi = center + x_j_range * expansion_factor / 2
+        print(f"Debug: Using small range expansion: [{lo:.6f}, {hi:.6f}]")
+    else:
+        # Expand range by 50% on each side for extrapolation
+        lo = x_j_min - 0.5 * x_j_range
+        hi = x_j_max + 0.5 * x_j_range
+        print(f"Debug: Using expanded range: [{lo:.6f}, {hi:.6f}]")
+    
+    G = 200  # Grid resolution
+    
+    xs = torch.linspace(lo, hi, G, dtype=torch.float64, device=device)
+    Xgrid = x0.repeat(G, 1)
+    Xgrid[:, j] = xs
+
+    # 4) deterministic q(x) on grid
+    mu_x = Xgrid[None, :, :].expand(P, -1, -1)          # [P,G,Q]
+    Sigma_x = torch.zeros_like(mu_x)                    # [P,G,Q]
+
+    # 5) psi-statistics wrt q(x)
+    Psi1 = model._get_lv_kernel_expectation(mu_x, Sigma_x)         # [P,G,1,L]
+    print(f"Debug: Psi1 shape: {Psi1.shape}, has NaN: {torch.isnan(Psi1).any().item()}")
+
+    # 6) sample U ~ q(U)
+    U = model.get_u_samples()                                     # [P,M,1,L]
+    print(f"Debug: U shape: {U.shape}, has NaN: {torch.isnan(U).any().item()}")
+
+    # 7) mean curve (x -> y), averaging over q(U)
+    f_given_U = model._f_expectation_given_U(Psi1, U)[..., 0]     # [P,G,M]
+    print(f"Debug: f_given_U shape: {f_given_U.shape}, has NaN: {torch.isnan(f_given_U).any().item()}")
+    
+    mean = f_given_U.mean(0)                                      # [G,M]
+    
+    # Handle NaN values
+    if torch.isnan(mean).any():
+        print(f"Warning: NaN values detected in predictions. Replacing with zeros.")
+        mean = torch.nan_to_num(mean, nan=0.0)
+    
+    # Debug print
+    print(f"Debug: Mean predictions range: [{mean.min().item():.6f}, {mean.max().item():.6f}]")
+    print(f"Debug: Mean predictions shape: {mean.shape}")
+
+    # 8) ELBO-consistent variance using GP covariance method
+    # This is the same method used in NLPD computation
+    gp_cov = model.gp.get_gp_covariance_given_U(Xgrid, U)        # [G,M,C,C]
+    
+    # Extract diagonal elements (variance for each output) and add observation noise
+    if gp_cov.shape[-1] == 1:
+        # C=1 case (standard GP-LVM)
+        gp_var = gp_cov[..., 0, 0]                                # [G,M]
+        pred_var = gp_var + model.sigma2                          # [G,M]
+    else:
+        # Multi-output case
+        pred_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [G,M,C]
+    
+    # Add MC variance from q(U) uncertainty
+    var_mc = f_given_U.var(0, unbiased=False)                     # [G,M]
+    pred_var = pred_var + var_mc                                  # [G,M]
+    
+    pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))        # [G,M]
+
+    # 9) plot
+    xnp = xs.detach().cpu().numpy()
+    fig, axes = plt.subplots(3, 4, figsize=(12, 7.5), constrained_layout=True)
+    axes = axes.ravel()
+    for m in range(M):
+        mu = mean[:, m].cpu().numpy()
+        sd = pred_sd[:, m].cpu().numpy()
+        ax = axes[m]
+        ax.plot(xnp, mu, lw=2)
+        ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
+        ax.set_title(f"y[{m}] vs x_{j} (ℓ≈{ells[j]:.2g})", fontsize=9)
+        ax.set_xlabel(f"x_{j}")
+        ax.set_ylabel(f"y[{m}]")
+    for k in range(M, len(axes)):
+        axes[k].axis("off")
+    
+    if save_path:
+        fig.savefig(save_path, dpi=160)
+        plt.close(fig)
+        print(f"Saved latent slice plot to: {save_path}")
+    else:
+        plt.show()
+
 
 
 
