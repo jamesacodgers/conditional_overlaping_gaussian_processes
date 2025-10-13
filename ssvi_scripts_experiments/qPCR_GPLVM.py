@@ -50,6 +50,8 @@ from gpytorch.variational import CholeskyVariationalDistribution
 from gpytorch.kernels import ScaleKernel, RBFKernel
 from gpytorch.distributions import MultivariateNormal
 from sklearn.model_selection import train_test_split
+from gpytorch.constraints import Positive
+from torch.distributions import transforms
 
 # Import metrics
 from utils.metrics import rmse
@@ -297,10 +299,17 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         
         # Use missing data aware likelihood if enabled (original approach)
         if config.enable_missing_data:
-            likelihood = GaussianLikelihoodWithMissingObs()
+            likelihood = GaussianLikelihoodWithMissingObs(noise_constraint=Positive(transform=transforms.ExpTransform()))
         else:
-            likelihood = GaussianLikelihood()
-        
+            likelihood = GaussianLikelihood(noise_constraint=Positive(transform=transforms.ExpTransform()))
+
+        model.covar_module.base_kernel.register_constraint(
+            "raw_lengthscale", Positive(transform=transforms.ExpTransform())
+        )
+        model.covar_module.register_constraint(
+            "raw_outputscale", Positive(transform=transforms.ExpTransform())
+        )
+
         # Initialize likelihood noise from config if provided
         if config is not None:
             with torch.no_grad():
