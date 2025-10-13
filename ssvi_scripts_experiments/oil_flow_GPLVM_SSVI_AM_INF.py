@@ -547,36 +547,6 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     print(f"\nVisualizing results...")
     visualize_ssvi_results(model, y_train, labels_train, losses, config, logger, show_plot=False, train_indices=split_data['train_indices'])
     
-    # Generate latent slice visualization if enabled
-    if config.plot_latent_slice and logger:
-        print(f"\nGenerating latent slice visualizations (adaptive grid from data)...")
-        
-        # Plot slice centered at origin
-        latent_slice_path_origin = os.path.join(logger.plots_dir, f"latent_slice_origin_seed_{config.random_seed}.png")
-        plot_latent_slice_outer(
-            model=model,
-            y_train=y_train,
-            center="zeros",
-            save_path=latent_slice_path_origin
-        )
-        print(f"  Saved latent slice (origin) to: {latent_slice_path_origin}")
-        
-        # Plot slices centered at a few interesting data points
-        N = y_train.shape[0]  # Number of training points from actual data
-        # Select 3 representative points (beginning, middle, end)
-        representative_indices = [0, N // 2, N - 1]
-        
-        for idx in representative_indices:
-            latent_slice_path = os.path.join(logger.plots_dir, f"latent_slice_point_{idx}_seed_{config.random_seed}.png")
-            plot_latent_slice_outer(
-                model=model,
-                y_train=y_train,
-                center="data_point",
-                n_idx=idx,
-                save_path=latent_slice_path
-            )
-            print(f"  Saved latent slice (point {idx}) to: {latent_slice_path}")
-    
     # Generate final metrics and plots if metrics were computed
     if metrics_computer is not None and config.enable_metrics and split_data is not None:
         print(f"\nGenerating final metrics and plots...")
@@ -652,6 +622,37 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             logger.save_training_losses(losses, "oilflow_ssvi", config.random_seed)
 
     
+    # Generate latent slice visualization (after all metrics and plots)
+    try:
+        print(f"\nGenerating latent slice visualizations (adaptive grid from data)...")
+        
+        # Plot slice centered at origin
+        latent_slice_path_origin = os.path.join(logger.plots_dir, f"latent_slice_origin_seed_{config.random_seed}.png")
+        plot_latent_slice_outer(
+            model=model,
+            y_train=y_train,
+            center="zeros",
+            save_path=latent_slice_path_origin
+        )
+        print(f"  Saved latent slice (origin) to: {latent_slice_path_origin}")
+        
+        # Plot slices centered at a few interesting data points
+        N = y_train.shape[0]  # Number of training points from actual data
+        # Select 3 representative points (beginning, middle, end)
+        representative_indices = [0, N // 2, N - 1]
+        
+        for idx in representative_indices:
+            latent_slice_path = os.path.join(logger.plots_dir, f"latent_slice_point_{idx}_seed_{config.random_seed}.png")
+            plot_latent_slice_outer(
+                model=model,
+                y_train=y_train,
+                center="data_point",
+                n_idx=idx,
+                save_path=latent_slice_path
+            )
+            print(f"  Saved latent slice (point {idx}) to: {latent_slice_path}")
+    except Exception as e:
+        print(f"  Warning: Failed to generate latent slice visualizations: {e}")
     
     # Print final model parameters
     print_final_model_parameters(model, "GP LVM SSVI")

@@ -885,9 +885,6 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
         n_idx: int, index of data point to use as center when center="data_point"
         save_path: str, optional path to save the plot. If None, displays the plot.
     """
-    import numpy as np
-    import matplotlib.pyplot as plt
-    import torch
     device = model.device
     Q, M, P = model.A, model.M, model.P
     N = y_train.shape[0]  # Number of training points from actual data
@@ -911,69 +908,47 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
         assert n_idx is not None, "n_idx must be provided when center='data_point'"
         x0 = mu_x_mean[n_idx].to(device)
 
-    # 3) adaptive grid based on actual latent distribution along dimension j
-    x_j_values = mu_x_mean[:, j].detach().cpu().numpy()
-    x_j_min, x_j_max = x_j_values.min(), x_j_values.max()
-    x_j_range = x_j_max - x_j_min
-    
-    # Debug print
-    print(f"Debug: Latent dim {j} range: [{x_j_min:.6f}, {x_j_max:.6f}], span: {x_j_range:.6f}")
-    
-    # Use reasonable range based on data, with sensible expansion
-    if x_j_range < 0.1:  # If range is very small, expand moderately
-        expansion_factor = 2.0  # 2x expansion
-        center = (x_j_min + x_j_max) / 2
-        lo = center - x_j_range * expansion_factor / 2
-        hi = center + x_j_range * expansion_factor / 2
-        print(f"Debug: Using small range expansion: [{lo:.6f}, {hi:.6f}]")
-    else:
-        # Expand range by 50% on each side for extrapolation
-        lo = x_j_min - 0.5 * x_j_range
-        hi = x_j_max + 0.5 * x_j_range
-        print(f"Debug: Using expanded range: [{lo:.6f}, {hi:.6f}]")
-    
+    # 3) Use fixed range for consistent comparison across models
+    # Use a standard range of [-3, 3] which covers typical latent space
+    lo, hi = -3.0, 3.0
     G = 200  # Grid resolution
     
     xs = torch.linspace(lo, hi, G, dtype=torch.float64, device=device)
     Xgrid = x0.repeat(G, 1)
     Xgrid[:, j] = xs
 
-    # 4) deterministic q(x) on grid
-    mu_x = Xgrid[None, :, :].expand(P, -1, -1)          # [P,G,Q]
-    Sigma_x = torch.zeros_like(mu_x)                    # [P,G,Q]
+    # Get GP expectation - returns [G, M, C]
+    f_full = model.gp.get_gp_expectation(Xgrid)  # [G, M, C]
 
-    f = model.gp.get_gp_expectation(Xgrid)     # [P,G,M]
-
-    # 8) ELBO-consistent variance using GP covariance method
-    # This is the same method used in NLPD computation
-    gp_cov = model.gp.get_gp_covariance(Xgrid)        # [G,M,C,C]
+    # ELBO-consistent variance using GP covariance method
+    gp_cov = model.gp.get_gp_covariance(Xgrid)        # [G, M, C, C]
     
-    # Extract diagonal elements (variance for each output) and add observation noise
-    if gp_cov.shape[-1] == 1:
-        # C=1 case (standard GP-LVM)
-        gp_var = gp_cov[..., 0, 0]                                # [G,M]
-        pred_var = gp_var + model.sigma2                          # [G,M]
+    # Handle C dimension (channels/components)
+    C = f_full.shape[-1]
+    if C == 1:
+        # C=1 case (standard GP-LVM) - squeeze the channel dimension
+        f = f_full[..., 0]                                        # [G, M]
+        gp_var = gp_cov[..., 0, 0]                                # [G, M]
+        pred_var = gp_var + model.sigma2                          # [G, M]
     else:
-        # Multi-output case
-        pred_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [G,M,C]
+        # Multi-output case - average over channels for visualization
+        f = f_full.mean(dim=-1)                                   # [G, M]
+        # For variance, use diagonal and average over channels
+        pred_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1).mean(dim=-1) + model.sigma2  # [G, M]
     
-    # Add MC variance from q(U) uncertainty
-    var_mc = f.var(0, unbiased=False)                     # [G,M]
-    pred_var = pred_var + var_mc                                  # [G,M]
-    
-    pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))        # [G,M]
+    pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))        # [G, M]
 
     # 9) plot
     xnp = xs.detach().cpu().numpy()
     fig, axes = plt.subplots(3, 4, figsize=(12, 7.5), constrained_layout=True)
     axes = axes.ravel()
     for m in range(M):
-        mu = mean[:, m].cpu().numpy()
+        mu = f[:, m].cpu().numpy()
         sd = pred_sd[:, m].cpu().numpy()
         ax = axes[m]
         ax.plot(xnp, mu, lw=2)
         ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
-        ax.set_title(f"y[{m}] vs x_{j} (ℓ≈{ells[j]:.2g})", fontsize=9)
+        ax.set_title(f"y[{m}] vs x_{j} (l={ells[j]:.2g})", fontsize=9)
         ax.set_xlabel(f"x_{j}")
         ax.set_ylabel(f"y[{m}]")
     for k in range(M, len(axes)):
