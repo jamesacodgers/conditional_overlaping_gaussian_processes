@@ -115,14 +115,14 @@ def generate_config_grid():
     """Generate grid of configurations for both SSVI and Original GP-LVM"""
 
     # Parameter ranges
-    n_inducing_values = [32]
-    init_lengthscales_values = [0.001, 0.01, 0.1, 1, 10, 100]
+    n_inducing_values = [64]
+    init_lengthscales_values = [0.01,0.001]
     # init_lengthscales_values = [1]
     init_output_noise_scale_values = [1]
-    batch_size_values = [128]
-    random_seed_values = [1, 2]
+    batch_size_values = [32]
+    random_seed_values = [0]
     learning_rate_values = [0.001]
-    n_training_steps = [60_000]
+    n_training_steps = [100_000]
     num_inducing_samples_list = [64]  # For SSVI only
     
     # Architecture parameters
@@ -134,15 +134,13 @@ def generate_config_grid():
     # Missing data parameters
     enable_missing_data_values = [False]
     missing_data_ratio_values = [0.0]
+    output_folder_name = "fixed_lenghscale_experiment_v8"
+    
+    
     # enable_missing_data_values = [True]
     # missing_data_ratio_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    
-    # Test size parameters (fraction of data for testing)
-    test_size_values = [0.1]  # Can add more options like [0.1, 0.2, 0.3]
+    # output_folder_name = "fixed_missing_data_experiment_v6"
 
-    # Output folder names 
-    output_folder_name = "fixed_lenghscale_experiment_v2s12"
-    # output_folder_name = "fixed_missing_data_experiment_v2s12"
     ssvi_output_folder = f"qpcr_related/{output_folder_name}_ssvi"
     orig_output_folder = f"qpcr_related/{output_folder_name}_orig_gplvm"
 
