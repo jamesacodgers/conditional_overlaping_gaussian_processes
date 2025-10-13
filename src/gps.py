@@ -70,11 +70,11 @@ class AbstractGP(ABC, torch.nn.Module):
 
     @property
     def sigma2_s(self):
-        return torch.nn.functional.softplus(self._log_sigma2_s, beta=1.0, threshold=20.0)
+        return  torch.exp(self._log_sigma2_s)
 
     @property
     def beta(self):
-        return torch.nn.functional.softplus(self._log_beta, beta=1.0, threshold=20.0)
+        return  torch.exp(self._log_beta) + 1e-5
 
 class WLIndependentGPs(AbstractGP):
     """
