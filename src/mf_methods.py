@@ -342,11 +342,11 @@ class MF_WS_GPLVM(MFModels):
 
     @property 
     def Sigma_x_train(self): 
-        return torch.nn.functional.softplus(self._log_sigma_x_train, beta=1.0, threshold=20.0)
+        return torch.exp(self._log_sigma_x_train)
     
     @property 
     def Sigma_x_test(self): 
-        return torch.nn.functional.softplus(self._log_sigma_x_test, threshold=20.0)
+        return torch.exp(self._log_sigma_x_test)
     
     
     def _get_lv_kernel_expectation(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor) -> torch.Tensor:
