@@ -92,7 +92,7 @@ def update_nested_training_steps(config_text, new_value):
 
 
 def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate,
-                       n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio):
+                       n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio, test_size):
     """Create a valid filename from parameter values"""
     # Replace dots with nothing for valid filenames
     len_str = str(init_lengthscales).replace('.', '')
@@ -100,6 +100,7 @@ def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, b
     lr_str = str(learning_rate).replace('.', '')
     n_steps_str = str(n_training_steps).replace('.', '')
     missing_ratio_str = str(missing_data_ratio).replace('.', '')
+    test_size_str = str(test_size).replace('.', '')
 
     # Sum of neurons in architecture (e.g., [128, 64, 32] -> 224)
     arch_sum = sum(architecture)
@@ -107,7 +108,7 @@ def create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, b
     # Missing data flag (t for True, f for False)
     missing_flag = 't' if enable_missing_data else 'f'
 
-    return f"n_ind_{n_inducing}_arch_{arch_sum}_len_{len_str}_sig_{sigm_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}_P_{num_inducing_samples}_miss_{missing_flag}_ratio_{missing_ratio_str}.yaml"
+    return f"n_ind_{n_inducing}_arch_{arch_sum}_len_{len_str}_sig_{sigm_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}_P_{num_inducing_samples}_miss_{missing_flag}_ratio_{missing_ratio_str}_test_{test_size_str}.yaml"
 
 
 def generate_config_grid():
@@ -115,14 +116,17 @@ def generate_config_grid():
 
     # Parameter ranges
     n_inducing_values = [32]
-    init_lengthscales_values = [0.001, 0.01, 0.1, 1, 10, 100]
+    init_lengthscales_values = [0.01,0.001]
     # init_lengthscales_values = [1]
     init_output_noise_scale_values = [1]
-    batch_size_values = [128]
-    random_seed_values = [1, 2]
+    batch_size_values = [32]
+    random_seed_values = [0]
     learning_rate_values = [0.001]
-    n_training_steps = [60_000]
+    n_training_steps = [100_000]
     num_inducing_samples_list = [64]  # For SSVI only
+
+    test_size_values = [0.9, 0.5]
+
     
     # Architecture parameters
     # For SSVI: encoder_hidden_dims
@@ -133,12 +137,14 @@ def generate_config_grid():
     # Missing data parameters
     enable_missing_data_values = [False]
     missing_data_ratio_values = [0.0]
+    # output_folder_name = "fixed_lenghscale_experiment_v8"
+    
+    
     # enable_missing_data_values = [True]
     # missing_data_ratio_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    # output_folder_name = "fixed_missing_data_experiment_v6"
 
-    # Output folder names 
-    output_folder_name = "fixed_lenghscale_experiment_v2s12"
-    # output_folder_name = "fixed_missing_data_experiment_v2s12"
+    output_folder_name = "test_fractions_v1"
     ssvi_output_folder = f"qpcr_related/{output_folder_name}_ssvi"
     orig_output_folder = f"qpcr_related/{output_folder_name}_orig_gplvm"
 
@@ -165,14 +171,15 @@ def generate_config_grid():
         num_inducing_samples_list,
         architecture_values,
         enable_missing_data_values,
-        missing_data_ratio_values
+        missing_data_ratio_values,
+        test_size_values
     ))
 
     print(f"Generating {len(param_combinations)} configuration combinations...")
 
     # Generate SSVI configurations
     ssvi_count = 0
-    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio in param_combinations:
+    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio, test_size in param_combinations:
         # Create new config based on base text
         ssvi_config_text = ssvi_base_text
 
@@ -190,11 +197,12 @@ def generate_config_grid():
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'enable_missing_data',
                                                    str(enable_missing_data).lower())
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'missing_data_ratio', missing_data_ratio)
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'test_size', test_size)
 
         # Create filename
         filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed,
                                       learning_rate, n_training_steps, num_inducing_samples, architecture,
-                                      enable_missing_data, missing_data_ratio)
+                                      enable_missing_data, missing_data_ratio, test_size)
         output_path = os.path.join(ssvi_output_folder, filename)
 
         # Save configuration
@@ -206,7 +214,7 @@ def generate_config_grid():
 
     # Generate Original GP-LVM configurations
     orig_count = 0
-    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio in param_combinations:
+    for n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed, learning_rate, n_training_steps, num_inducing_samples, architecture, enable_missing_data, missing_data_ratio, test_size in param_combinations:
         # Create new config based on base text
         orig_config_text = orig_base_text
 
@@ -222,11 +230,12 @@ def generate_config_grid():
         orig_config_text = update_config_parameter(orig_config_text, 'enable_missing_data',
                                                    str(enable_missing_data).lower())
         orig_config_text = update_config_parameter(orig_config_text, 'missing_data_ratio', missing_data_ratio)
+        orig_config_text = update_config_parameter(orig_config_text, 'test_size', test_size)
 
         # Create filename
         filename = create_config_name(n_inducing, init_lengthscales, init_output_noise_scale, batch_size, random_seed,
                                       learning_rate, n_training_steps, num_inducing_samples, architecture,
-                                      enable_missing_data, missing_data_ratio)
+                                      enable_missing_data, missing_data_ratio, test_size)
         output_path = os.path.join(orig_output_folder, filename)
 
         # Save configuration
@@ -252,6 +261,7 @@ def generate_config_grid():
     print(f"  num_inducing_samples: {num_inducing_samples_list}")
     print(f"  enable_missing_data: {enable_missing_data_values}")
     print(f"  missing_data_ratio: {missing_data_ratio_values}")
+    print(f"  test_size: {test_size_values}")
 
 
 if __name__ == "__main__":

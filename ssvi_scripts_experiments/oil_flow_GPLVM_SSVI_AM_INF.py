@@ -231,8 +231,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
     
     def __init__(self, config: OilFlowSSVIConfig, Vx, mu_x, M):
         # Use init_lengthscales to create beta values
-        # beta = 1/lengthscales, so for init_lengthscales=1.0, beta=[1,1,1,1,1,1]
-        beta = [[1.0/config.init_lengthscales] * config.latent_dim] * 1  # C=1 for GP-LVM
+        # beta = lengthscales, so for init_lengthscales=1.0, beta=[1,1,1,1,1,1]
+        beta = [[config.init_lengthscales] * config.latent_dim] * 1  # C=1 for GP-LVM
         
         # Use init_output_noise_scale for sigma2 initialization
         sigma2 = config.init_output_noise_scale
@@ -279,7 +279,9 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         else:
             # Standard case: no missing data preprocessing needed
             mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
-        
+
+        sigma_n_batch = sigma_n_batch**2
+
         # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()
         
