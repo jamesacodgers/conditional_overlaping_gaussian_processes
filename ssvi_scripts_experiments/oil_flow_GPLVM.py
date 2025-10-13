@@ -62,7 +62,7 @@ from src.original_gplvm_config_utils import (
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.data_utils import download_oilflow_data_if_needed
 from src.nlpd_utils import compute_nlpd_nll_based, compute_missing_data_nlpd_gauss
-from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression
+from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_latent_slice_original_gplvm
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
@@ -765,6 +765,44 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             }
             
             logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
+
+        # Generate latent slice visualization (after training and testing)
+        try:
+            print(f"\nGenerating latent slice visualizations (adaptive grid from data)...")
+            
+            # Plot slice centered at origin
+            if logger.get_results_dir():
+                plots_dir = os.path.join(logger.get_results_dir(), 'plots')
+                os.makedirs(plots_dir, exist_ok=True)
+                
+                latent_slice_path_origin = os.path.join(plots_dir, f"latent_slice_origin_{model_name}_seed_{config.random_seed}.png")
+                plot_latent_slice_original_gplvm(
+                    model=model,
+                    y_train=Y_train,
+                    model_name=model_name,
+                    center="zeros",
+                    save_path=latent_slice_path_origin
+                )
+                print(f"  Saved latent slice (origin) to: {latent_slice_path_origin}")
+                
+                # Plot slices centered at a few interesting data points
+                N_train = Y_train.shape[0]  # Number of training points from actual data
+                # Select 3 representative points (beginning, middle, end)
+                representative_indices = [0, N_train // 2, N_train - 1]
+                
+                for idx in representative_indices:
+                    latent_slice_path = os.path.join(plots_dir, f"latent_slice_point_{idx}_{model_name}_seed_{config.random_seed}.png")
+                    plot_latent_slice_original_gplvm(
+                        model=model,
+                        y_train=Y_train,
+                        model_name=model_name,
+                        center="data_point",
+                        n_idx=idx,
+                        save_path=latent_slice_path
+                    )
+                    print(f"  Saved latent slice (point {idx}) to: {latent_slice_path}")
+        except Exception as e:
+            print(f"  Warning: Failed to generate latent slice visualizations: {e}")
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)

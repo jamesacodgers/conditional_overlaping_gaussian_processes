@@ -224,3 +224,116 @@ def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iteration
     plt.close()
     
     print(f"Metrics progression plot saved to: {plot_path}")
+
+
+def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros", n_idx=None, save_path=None):
+    """
+    Plot 1D latent slice for original GP-LVM models (gauss and nn_gauss).
+    
+    Args:
+        model: Original BayesianGPLVM model instance (gauss or nn_gauss)
+        y_train: Training data [N, M]
+        model_name: Type of model ('gauss' or 'nn_gauss')
+        center: str, either "zeros" (default) or "data_point". If "data_point", 
+                must provide n_idx to specify which data point to use as center.
+        n_idx: int, index of data point to use as center when center="data_point"
+        save_path: str, optional path to save the plot. If None, displays the plot.
+    """
+    import numpy as np
+    
+    # Determine device
+    device = next(model.parameters()).device
+    
+    # Get latent dimension
+    if hasattr(model.X, 'latent_dim'):
+        Q = model.X.latent_dim
+    else:
+        raise ValueError("Model does not have latent_dim attribute")
+    
+    M = y_train.shape[1]  # Observation dimension
+    N = y_train.shape[0]  # Number of training points
+    
+    model.eval()
+    
+    with torch.no_grad():
+        # Get latent representations based on model type
+        if model_name == 'gauss':
+            # For gauss: latent is variational parameters
+            mu_x_mean = model.X.q_mu.detach()  # [N, Q]
+        elif model_name == 'nn_gauss':
+            # For nn_gauss: encode the training data
+            # Handle missing data if present
+            y_encoder_input = torch.where(torch.isnan(y_train), 
+                                         torch.full_like(y_train, -999.0, dtype=torch.float64), 
+                                         y_train)
+            mu_x_mean = model.X.mu(y_encoder_input).detach()  # [N, Q]
+        else:
+            raise ValueError(f"Unsupported model type: {model_name}. Use 'gauss' or 'nn_gauss'")
+        
+        # 1) Pick most-informative latent dim (smallest lengthscale)
+        # For original GP-LVM: lengthscale from kernel
+        kernel_lengthscales = model.covar_module.base_kernel.lengthscale.flatten().detach().cpu().numpy()
+        # Convert to same scale as SSVI (init_lengthscales scale)
+        ells = kernel_lengthscales ** 2  # lengthscale^2 gives init_lengthscales
+        j = int(np.argmin(ells))
+        
+        # 2) Center
+        x0 = torch.zeros(Q, dtype=torch.float64, device=device)
+        if center == "data_point":
+            assert n_idx is not None, "n_idx must be provided when center='data_point'"
+            x0 = mu_x_mean[n_idx].to(device)
+        
+        # 3) Use fixed range for consistent comparison across models
+        # Use a standard range of [-3, 3] which covers typical latent space
+        lo, hi = -3.0, 3.0
+        
+        G = 200  # Grid resolution
+        
+        xs = torch.linspace(lo, hi, G, dtype=torch.float64, device=device)
+        Xgrid = x0.repeat(G, 1)
+        Xgrid[:, j] = xs
+        
+        # Get GP predictions using original GP-LVM's forward method
+        # model(x) returns MultivariateNormal distribution
+        Y_pred = model(Xgrid)  # Returns MultivariateNormal
+        
+        # Extract predictive mean and variance
+        # Y_pred.loc has shape [M, G] (transposed)
+        # Y_pred.covariance_matrix has shape [M] list of [G, G] matrices
+        f_mean = Y_pred.loc.T  # [G, M] - transpose to match our convention
+        
+        # Extract diagonal variances from covariance matrices
+        # Y_pred.covariance_matrix is a batch of covariance matrices
+        f_var = torch.stack([torch.diag(Y_pred.covariance_matrix[m]) for m in range(M)]).T  # [G, M]
+        
+        # Add observation noise to get full predictive variance
+        obs_noise = model.likelihood.noise.item()
+        pred_var = f_var + obs_noise  # [G, M]
+        pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))  # [G, M]
+        
+        # 4) Plot
+        xnp = xs.detach().cpu().numpy()
+        fig, axes = plt.subplots(3, 4, figsize=(12, 7.5), constrained_layout=True)
+        axes = axes.ravel()
+        
+        for m in range(M):
+            mu = f_mean[:, m].cpu().numpy()
+            sd = pred_sd[:, m].cpu().numpy()
+            ax = axes[m]
+            ax.plot(xnp, mu, lw=2)
+            ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
+            ax.set_title(f"y[{m}] vs x_{j} (l={ells[j]:.2g})", fontsize=9)
+            ax.set_xlabel(f"x_{j}")
+            ax.set_ylabel(f"y[{m}]")
+        
+        for k in range(M, len(axes)):
+            axes[k].axis("off")
+        
+        if save_path:
+            fig.savefig(save_path, dpi=160)
+            plt.close(fig)
+            print(f"Saved latent slice plot to: {save_path}")
+        else:
+            plt.show()
+    
+    model.train()

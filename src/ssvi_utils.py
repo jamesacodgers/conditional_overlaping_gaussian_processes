@@ -868,6 +868,99 @@ def plot_final_metrics_summary(metrics_computer,
     return fig
 
 
+@torch.no_grad()
+def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_path=None):
+    """
+    Plot 1D latent slice with outer-expectation uncertainty bands.
+    
+    This function creates a visualization of the GP-LVM's predictive behavior along
+    the most informative latent dimension (smallest lengthscale), showing both the
+    mean prediction and ELBO-consistent uncertainty bands.
+    
+    Args:
+        model: GPLVM_SSVI_AM_INF model instance
+        y_train: Training data [N, M] - used to encode latent representations
+        center: str, either "zeros" (default) or "data_point". If "data_point", 
+                must provide n_idx to specify which data point to use as center.
+        n_idx: int, index of data point to use as center when center="data_point"
+        save_path: str, optional path to save the plot. If None, displays the plot.
+    """
+    device = model.device
+    Q, M, P = model.A, model.M, model.P
+    N = y_train.shape[0]  # Number of training points from actual data
+
+    # Encode training data to get latent representations
+    U_samples = model.get_u_samples()
+    y_encoder_input = torch.where(torch.isnan(y_train), 
+                                   torch.full_like(y_train, -9.0, dtype=torch.float64), 
+                                   y_train)
+    mu_x_encoded, sigma_x_encoded = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+    mu_x_mean = mu_x_encoded.mean(0)  # [N, Q] - average over P samples
+
+    # 1) pick most-informative latent dim (smallest lengthscale)
+    betas = model.gp.beta[0].detach().cpu().numpy()  # (Q,)
+    ells = 1.0 / np.maximum(betas, 1e-12)
+    j = int(np.argmin(ells))
+
+    # 2) center
+    x0 = torch.zeros(Q, dtype=torch.float64, device=device)
+    if center == "data_point":
+        assert n_idx is not None, "n_idx must be provided when center='data_point'"
+        x0 = mu_x_mean[n_idx].to(device)
+
+    # 3) Use fixed range for consistent comparison across models
+    # Use a standard range of [-3, 3] which covers typical latent space
+    lo, hi = -3.0, 3.0
+    G = 200  # Grid resolution
+    
+    xs = torch.linspace(lo, hi, G, dtype=torch.float64, device=device)
+    Xgrid = x0.repeat(G, 1)
+    Xgrid[:, j] = xs
+
+    # Get GP expectation - returns [G, M, C]
+    f_full = model.gp.get_gp_expectation(Xgrid)  # [G, M, C]
+
+    # ELBO-consistent variance using GP covariance method
+    gp_cov = model.gp.get_gp_covariance(Xgrid)        # [G, M, C, C]
+    
+    # Handle C dimension (channels/components)
+    C = f_full.shape[-1]
+    if C == 1:
+        # C=1 case (standard GP-LVM) - squeeze the channel dimension
+        f = f_full[..., 0]                                        # [G, M]
+        gp_var = gp_cov[..., 0, 0]                                # [G, M]
+        pred_var = gp_var + model.sigma2                          # [G, M]
+    else:
+        # Multi-output case - average over channels for visualization
+        f = f_full.mean(dim=-1)                                   # [G, M]
+        # For variance, use diagonal and average over channels
+        pred_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1).mean(dim=-1) + model.sigma2  # [G, M]
+    
+    pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))        # [G, M]
+
+    # 9) plot
+    xnp = xs.detach().cpu().numpy()
+    fig, axes = plt.subplots(3, 4, figsize=(12, 7.5), constrained_layout=True)
+    axes = axes.ravel()
+    for m in range(M):
+        mu = f[:, m].cpu().numpy()
+        sd = pred_sd[:, m].cpu().numpy()
+        ax = axes[m]
+        ax.plot(xnp, mu, lw=2)
+        ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
+        ax.set_title(f"y[{m}] vs x_{j} (l={ells[j]:.2g})", fontsize=9)
+        ax.set_xlabel(f"x_{j}")
+        ax.set_ylabel(f"y[{m}]")
+    for k in range(M, len(axes)):
+        axes[k].axis("off")
+    
+    if save_path:
+        fig.savefig(save_path, dpi=160)
+        plt.close(fig)
+        print(f"Saved latent slice plot to: {save_path}")
+    else:
+        plt.show()
+
 
 
 
