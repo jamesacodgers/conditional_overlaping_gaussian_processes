@@ -142,7 +142,7 @@ run_config() {
     local config_name=$(basename "$config_file" .yaml)
     
     # Build command (now running from ssvi_scripts_experiments directory)
-    local cmd="/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/bin/python qPCR_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
+    local cmd="/home/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/.venv/bin/python qPCR_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
     
     # Only add device parameter if explicitly specified
     if [[ -n "$DEVICE" ]]; then
