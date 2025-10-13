@@ -160,7 +160,6 @@ class SSVIMetricsComputer:
             RMSE value for missing data dimensions only
         """
         model.eval()
-        missing_mask = ~missing_mask
         with torch.no_grad():
             # Check if we have any missing dimensions to evaluate
             if missing_mask.sum() == 0:
@@ -310,7 +309,6 @@ class SSVIMetricsComputer:
             NLPD value for missing data dimensions only (lower is better)
         """
         model.eval()
-        missing_mask = ~missing_mask
         with torch.no_grad():
             # Check if we have any missing dimensions to evaluate
             if missing_mask.sum() == 0:
