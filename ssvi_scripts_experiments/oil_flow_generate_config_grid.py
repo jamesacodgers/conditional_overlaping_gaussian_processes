@@ -108,8 +108,8 @@ def generate_config_grid():
     """Generate grid of configurations for both SSVI and Original GP-LVM"""
     
     # Parameter ranges
-    n_inducing_values = [64]
-    init_lengthscales_values = [0.1, 0.001]
+    n_inducing_values = [32]
+    init_lengthscales_values = [1]
     init_output_noise_scale_values = [1]
     batch_size_values = [32]
     # random_seed_values = [0]
@@ -129,10 +129,13 @@ def generate_config_grid():
     missing_data_ratio_values = [0.0]
     output_folder_name = "fixed_lenghscale_experiment_v7"
 
+
     # enable_missing_data_values = [True]
     # missing_data_ratio_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     # output_folder_name = "fixed_missing_data_experiment_v5"
 
+    test_size_values = [0.9, 0.5]
+    output_folder_name = "test_fractions_v1"
 
     ssvi_output_folder = f"oil_flow_related/{output_folder_name}_ssvi"
     orig_output_folder = f"oil_flow_related/{output_folder_name}_orig_gplvm"
