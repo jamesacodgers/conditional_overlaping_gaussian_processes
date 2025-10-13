@@ -278,7 +278,9 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         else:
             # Standard case: no missing data preprocessing needed
             mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
-        
+
+        sigma_n_batch = sigma_n_batch**2
+
         # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()
         
