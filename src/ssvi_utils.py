@@ -938,11 +938,18 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
     
     pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))        # [G, M]
 
-    # 9) plot
+    # 9) plot - show first 12 dimensions (or M if M < 12)
     xnp = xs.detach().cpu().numpy()
-    fig, axes = plt.subplots(3, 4, figsize=(12, 7.5), constrained_layout=True)
+    
+    # Plot only first 12 dimensions (or all if M < 12)
+    M_plot = min(M, 12)
+    n_cols = 4
+    n_rows = int(np.ceil(M_plot / n_cols))
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2.5 * n_rows), constrained_layout=True)
     axes = axes.ravel()
-    for m in range(M):
+    
+    for m in range(M_plot):
         mu = f[:, m].cpu().numpy()
         sd = pred_sd[:, m].cpu().numpy()
         ax = axes[m]
@@ -951,7 +958,8 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
         ax.set_title(f"y[{m}] vs x_{j} (l={ells[j]:.2g})", fontsize=9)
         ax.set_xlabel(f"x_{j}")
         ax.set_ylabel(f"y[{m}]")
-    for k in range(M, len(axes)):
+    
+    for k in range(M_plot, len(axes)):
         axes[k].axis("off")
     
     if save_path:
