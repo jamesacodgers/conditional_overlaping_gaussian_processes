@@ -116,7 +116,7 @@ def generate_config_grid():
 
     # Parameter ranges
     n_inducing_values = [32]
-    init_lengthscales_values = [0.01,0.001]
+    init_lengthscales_values = [1.0]
     # init_lengthscales_values = [1]
     init_output_noise_scale_values = [1]
     batch_size_values = [32]
@@ -144,7 +144,7 @@ def generate_config_grid():
     # missing_data_ratio_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     # output_folder_name = "fixed_missing_data_experiment_v6"
 
-    output_folder_name = "test_fractions_v1"
+    output_folder_name = "test_fractions_v2"
     ssvi_output_folder = f"qpcr_related/{output_folder_name}_ssvi"
     orig_output_folder = f"qpcr_related/{output_folder_name}_orig_gplvm"
 

@@ -274,7 +274,7 @@ def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros",
         # For original GP-LVM: lengthscale from kernel
         kernel_lengthscales = model.covar_module.base_kernel.lengthscale.flatten().detach().cpu().numpy()
         # Convert to same scale as SSVI (init_lengthscales scale)
-        ells = kernel_lengthscales ** 2  # lengthscale^2 gives init_lengthscales
+        ells = kernel_lengthscales
         j = int(np.argmin(ells))
         
         # 2) Center
