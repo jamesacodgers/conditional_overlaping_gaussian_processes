@@ -120,12 +120,12 @@ def generate_config_grid():
     # init_lengthscales_values = [1]
     init_output_noise_scale_values = [1]
     batch_size_values = [32]
-    random_seed_values = [0]
+    random_seed_values = [0, 1 , 2, 3, 4]
     learning_rate_values = [0.001]
     n_training_steps = [100_000]
     num_inducing_samples_list = [64]  # For SSVI only
 
-    test_size_values = [0.9, 0.5]
+    test_size_values = [0.1]
 
     
     # Architecture parameters
@@ -144,7 +144,7 @@ def generate_config_grid():
     # missing_data_ratio_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     # output_folder_name = "fixed_missing_data_experiment_v6"
 
-    output_folder_name = "test_fractions_v2"
+    output_folder_name = "final_v1"
     ssvi_output_folder = f"qpcr_related/{output_folder_name}_ssvi"
     orig_output_folder = f"qpcr_related/{output_folder_name}_orig_gplvm"
 

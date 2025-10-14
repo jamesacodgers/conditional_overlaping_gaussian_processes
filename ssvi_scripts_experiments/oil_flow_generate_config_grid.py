@@ -113,7 +113,7 @@ def generate_config_grid():
     init_output_noise_scale_values = [1]
     batch_size_values = [32]
     # random_seed_values = [0]
-    random_seed_values = [0]
+    random_seed_values = [0,1,2,3,4]
     learning_rate_values = [0.001]
     n_training_steps = [100_000]
     num_inducing_samples_list = [64]  # For SSVI only
@@ -128,7 +128,7 @@ def generate_config_grid():
     # Missing data parameters
     enable_missing_data_values = [False]
     missing_data_ratio_values = [0.0]
-    output_folder_name = "test"
+    output_folder_name = "final_v1"
 
 
     # enable_missing_data_values = [True]
