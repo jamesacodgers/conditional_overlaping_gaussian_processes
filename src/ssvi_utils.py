@@ -900,7 +900,7 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
     # 1) pick most-informative latent dim (smallest lengthscale)
     betas = model.gp.beta[0].detach().cpu().numpy()  # (Q,)
     ells = 1.0 / np.maximum(betas, 1e-12)
-    j = int(np.argmin(ells))
+    j = int(np.argmax(ells))
 
     # 2) center
     x0 = torch.zeros(Q, dtype=torch.float64, device=device)

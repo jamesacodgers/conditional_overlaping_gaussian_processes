@@ -123,19 +123,19 @@ def generate_config_grid():
     # For Original GP-LVM: nn_layers
     # Both use the same architecture options
     architecture_values = [[128, 64]]  # Can add more options like [[256, 128, 64], [64, 32]]
+    test_size_values = [0.1]
     
     # Missing data parameters
     enable_missing_data_values = [False]
     missing_data_ratio_values = [0.0]
-    output_folder_name = "fixed_lenghscale_experiment_v7"
+    output_folder_name = "test"
 
 
     # enable_missing_data_values = [True]
     # missing_data_ratio_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     # output_folder_name = "fixed_missing_data_experiment_v5"
 
-    test_size_values = [0.9, 0.5]
-    output_folder_name = "test_fractions_v1"
+    # output_folder_name = "test_fractions_v1"
 
     ssvi_output_folder = f"oil_flow_related/{output_folder_name}_ssvi"
     orig_output_folder = f"oil_flow_related/{output_folder_name}_orig_gplvm"
