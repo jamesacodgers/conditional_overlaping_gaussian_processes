@@ -96,11 +96,12 @@ class ResultsComparator:
         
         Examples:
         - orig_gplvm_n_ind_64_arch_192_len_01_sig_1_b_128_s_0_lr_0001_n_steps_60000_P_64_miss_f_ratio_00_seed_0_10_10_05_49
+        - orig_gplvm_n_ind_32_arch_192_len_1_sig_1_b_32_s_0_lr_0001_n_steps_100000_P_64_miss_f_ratio_00_test_01_seed_0_10_14_11_32
         - ssvi_n_ind_64_arch_192_len_001_sig_1_b_128_s_0_lr_0001_n_steps_60000_P_64_miss_f_ratio_00_seed_0_10_10_04_39
         """
         # Pattern to match the run name structure
-        # Handle both miss_f_ratio and miss_t_ratio formats
-        pattern = r'(?:orig_gplvm_|ssvi_)?n_ind_(\d+)_arch_(\d+)_len_([\d.]+)_sig_([\d.]+)_b_(\d+)_s_(\d+)_lr_([\d.]+)_n_steps_(\d+)_P_(\d+)_miss_[tf]_ratio_([\d.]+)_seed_(\d+)_(\d+_\d+_\d+_\d+)'
+        # Handle both miss_f_ratio and miss_t_ratio formats, and optional test_XX parameter
+        pattern = r'(?:orig_gplvm_|ssvi_)?n_ind_(\d+)_arch_(\d+)_len_([\d.]+)_sig_([\d.]+)_b_(\d+)_s_(\d+)_lr_([\d.]+)_n_steps_(\d+)_P_(\d+)_miss_[tf]_ratio_([\d.]+)(?:_test_\d+)?_seed_(\d+)_(\d+_\d+_\d+_\d+)'
         
         match = re.match(pattern, run_name)
         if not match:
@@ -155,13 +156,21 @@ class ResultsComparator:
             # Check if data is nested by model type
             model_data = None
             
-            # If data is nested (has keys that look like model types), go one level deeper
-            if len(data) == 1 and isinstance(list(data.values())[0], dict):
-                # Take the first (and likely only) nested dictionary
-                model_data = list(data.values())[0]
+            # Try to find the model_type key in the data
+            # Handle variations in naming (e.g., 'ssvi' might be 'oilflow_ssvi', 'mnist_ssvi', etc.)
+            if model_type in data:
+                model_data = data[model_type]
             else:
-                # Use flat structure
-                model_data = data
+                # Try to find a key containing the model_type (for ssvi variants)
+                matching_keys = [k for k in data.keys() if model_type in k.lower()]
+                if matching_keys:
+                    model_data = data[matching_keys[0]]
+                elif len(data) == 1 and isinstance(list(data.values())[0], dict):
+                    # Fall back to taking the first nested dictionary
+                    model_data = list(data.values())[0]
+                else:
+                    # Use flat structure
+                    model_data = data
             
             # Handle NaN values by converting them to None
             def safe_float(value):
@@ -394,11 +403,17 @@ class ResultsComparator:
     def plot_comparison(self, config_key: str, model_runs: Dict[str, List[RunResults]]):
         """Create comparison plots for a specific configuration"""
         
-        # Define colors for different model types
+        # Define colors and display names for different model types
         model_colors = {
             'gauss': 'blue',
             'nn_gauss': 'red', 
             'ssvi': 'green'
+        }
+        
+        model_display_names = {
+            'gauss': 'SVI',
+            'nn_gauss': 'AE-SVI', 
+            'ssvi': 'AE-SSVI'
         }
         
         # Create figure with subplots (only 3 plots, no text box)
@@ -410,6 +425,7 @@ class ResultsComparator:
                 continue
                 
             color = model_colors.get(model_type, 'black')
+            display_name = model_display_names.get(model_type, model_type)
             
             # Aggregate metrics
             iterations, mean_train_rmse, mean_train_nlpd, mean_elbo_loss = self.aggregate_metrics_across_runs(runs)
@@ -427,21 +443,21 @@ class ResultsComparator:
             std_elbo_loss = np.array(std_elbo_loss)
             
             # Plot 1: ELBO Loss
-            ax1.plot(iterations, mean_elbo_loss, color=color, label=f'{model_type} (n={len(runs)})', linewidth=2)
+            ax1.plot(iterations, mean_elbo_loss, color=color, label=f'{display_name} (n={len(runs)})', linewidth=2)
             ax1.fill_between(iterations, 
                            mean_elbo_loss - std_elbo_loss, 
                            mean_elbo_loss + std_elbo_loss, 
                            color=color, alpha=0.2)
             
             # Plot 2: Train RMSE
-            ax2.plot(iterations, mean_train_rmse, color=color, label=f'{model_type} (n={len(runs)})', linewidth=2)
+            ax2.plot(iterations, mean_train_rmse, color=color, label=f'{display_name} (n={len(runs)})', linewidth=2)
             ax2.fill_between(iterations, 
                            mean_train_rmse - std_train_rmse, 
                            mean_train_rmse + std_train_rmse, 
                            color=color, alpha=0.2)
             
             # Plot 3: Train NLPD
-            ax3.plot(iterations, mean_train_nlpd, color=color, label=f'{model_type} (n={len(runs)})', linewidth=2)
+            ax3.plot(iterations, mean_train_nlpd, color=color, label=f'{display_name} (n={len(runs)})', linewidth=2)
             ax3.fill_between(iterations, 
                            mean_train_nlpd - std_train_nlpd, 
                            mean_train_nlpd + std_train_nlpd, 
@@ -483,11 +499,17 @@ class ResultsComparator:
     def create_final_metrics_boxplots(self, config_key: str, model_runs: Dict[str, List[RunResults]]):
         """Create boxplots for final metrics comparison"""
         
-        # Define colors for different model types
+        # Define colors and display names for different model types
         model_colors = {
             'gauss': 'blue',
             'nn_gauss': 'red', 
             'ssvi': 'green'
+        }
+        
+        model_display_names = {
+            'gauss': 'SVI',
+            'nn_gauss': 'AE-SVI', 
+            'ssvi': 'AE-SSVI'
         }
         
         # Collect final metrics for each model type
@@ -534,8 +556,9 @@ class ResultsComparator:
             
             for model_type in ['gauss', 'nn_gauss', 'ssvi']:
                 if model_type in final_metrics_data and final_metrics_data[model_type][metric_key]:
+                    display_name = model_display_names.get(model_type, model_type)
                     boxplot_data.append(final_metrics_data[model_type][metric_key])
-                    boxplot_labels.append(f'{model_type}\n(n={len(final_metrics_data[model_type][metric_key])})')
+                    boxplot_labels.append(f'{display_name}\n(n={len(final_metrics_data[model_type][metric_key])})')
                     boxplot_colors.append(model_colors.get(model_type, 'gray'))
             
             if boxplot_data:
@@ -602,6 +625,97 @@ class ResultsComparator:
         
         print(f"Generated summary report: {summary_file}")
     
+    def generate_json_results_table(self, config_key: str, model_runs: Dict[str, List[RunResults]], json_file: str):
+        """Generate JSON output with mean ± std results in table format"""
+        
+        # Collect final metrics for each model type
+        results_table = {}
+        
+        for model_type, runs in model_runs.items():
+            if not runs:
+                continue
+                
+            # Collect metrics from runs that have final_metrics
+            valid_runs = [run for run in runs if run.final_metrics is not None]
+            if not valid_runs:
+                continue
+            
+            # Calculate mean and std for each metric
+            metrics_data = {
+                'train_rmse': [run.final_metrics.train_rmse for run in valid_runs if run.final_metrics.train_rmse is not None],
+                'test_rmse': [run.final_metrics.test_rmse for run in valid_runs if run.final_metrics.test_rmse is not None],
+                'train_nlpd': [run.final_metrics.train_nlpd for run in valid_runs if run.final_metrics.train_nlpd is not None],
+                'test_nlpd': [run.final_metrics.test_nlpd for run in valid_runs if run.final_metrics.test_nlpd is not None],
+                'final_loss': [run.final_metrics.final_loss for run in valid_runs if run.final_metrics.final_loss is not None],
+                'final_noise': [run.final_metrics.final_noise for run in valid_runs if run.final_metrics.final_noise is not None]
+            }
+            
+            # Calculate mean ± std for each metric
+            model_results = {}
+            for metric_name, values in metrics_data.items():
+                if values:  # Only if we have valid values
+                    mean_val = np.mean(values)
+                    std_val = np.std(values)
+                    model_results[metric_name] = {
+                        'mean': float(mean_val),
+                        'std': float(std_val),
+                        'mean_plus_minus_std': f"{mean_val:.4f} ± {std_val:.4f}",
+                        'n_runs': len(values)
+                    }
+                else:
+                    model_results[metric_name] = {
+                        'mean': None,
+                        'std': None,
+                        'mean_plus_minus_std': "-",
+                        'n_runs': 0
+                    }
+            
+            results_table[model_type] = model_results
+        
+        # Create the complete JSON structure
+        json_output = {
+            'experiment_name': self.experiment_name,
+            'configuration': config_key,
+            'output_directory': self.output_dir,
+            'results_table': results_table,
+            'summary': {
+                'total_configurations': 1,
+                'total_runs': sum(len(runs) for runs in model_runs.values()),
+                'model_types': list(model_runs.keys()),
+                'runs_per_model': {model_type: len(runs) for model_type, runs in model_runs.items()}
+            }
+        }
+        
+        # Write JSON file
+        with open(json_file, 'w') as f:
+            json.dump(json_output, f, indent=2)
+        
+        print(f"Generated JSON results table: {json_file}")
+        
+        # Also print a summary table to console
+        print(f"\nResults Table for {config_key}:")
+        print("=" * 80)
+        print(f"{'Model':<15} {'Train RMSE':<20} {'Test RMSE':<20} {'Train NLPD':<20} {'Test NLPD':<20}")
+        print("-" * 80)
+        
+        # Define display names for console output
+        model_display_names = {
+            'gauss': 'SVI',
+            'nn_gauss': 'AE-SVI', 
+            'ssvi': 'AE-SSVI'
+        }
+        
+        for model_type in ['gauss', 'nn_gauss', 'ssvi']:
+            if model_type in results_table:
+                display_name = model_display_names.get(model_type, model_type)
+                train_rmse = results_table[model_type]['train_rmse']['mean_plus_minus_std']
+                test_rmse = results_table[model_type]['test_rmse']['mean_plus_minus_std']
+                train_nlpd = results_table[model_type]['train_nlpd']['mean_plus_minus_std']
+                test_nlpd = results_table[model_type]['test_nlpd']['mean_plus_minus_std']
+                print(f"{display_name:<15} {train_rmse:<20} {test_rmse:<20} {train_nlpd:<20} {test_nlpd:<20}")
+        
+        print("=" * 80)
+    
     def run_comparison(self, orig_gplvm_dir: str, ssvi_dir: str):
         """Main method to run the complete comparison"""
         
@@ -628,6 +742,9 @@ class ResultsComparator:
             safe_config_key = re.sub(r'[^\w\-_\.]', '_', config_key)
             summary_file = os.path.join(self.output_dir, f'{self.experiment_name}_comparison_summary_{safe_config_key}.txt')
             self.generate_summary_report(config_key, model_runs, summary_file)
+            # Generate JSON results table with mean ± std
+            json_file = os.path.join(self.output_dir, f'{self.experiment_name}_results_table_{safe_config_key}.json')
+            self.generate_json_results_table(config_key, model_runs, json_file)
         
         print(f"\nComparison complete! Results saved to: {self.output_dir}")
 
@@ -646,15 +763,15 @@ def main():
     # =============================================================================
     # HARDCODED DEFAULT PATHS - Modify these for your specific setup
     # =============================================================================
-    DEFAULT_ORIG_GPLVM_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\qpcr_related\fixed_missing_data_experiment_v1_orig_gplvm"
-    DEFAULT_SSVI_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\qpcr_related\fixed_missing_data_experiment_v1_ssvi"
+    DEFAULT_ORIG_GPLVM_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\qpcr_related\final_v1_orig_gplvm\orig_gplvm_run_results"
+    DEFAULT_SSVI_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\qpcr_related\final_v1_ssvi\ssvi_run_results"
     
     # Auto-detect experiment name and create output directory in ssvi_scripts_experiments
     experiment_name = detect_experiment_name(DEFAULT_ORIG_GPLVM_DIR)
     DEFAULT_OUTPUT_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\comparison_results"
     
     # Hardcoded subfolder name for this comparison
-    COMPARISON_SUBFOLDER = "qpcr_missing_data_comparison"
+    COMPARISON_SUBFOLDER = "qpcr_related_comparison"
     # =============================================================================
     
     parser = argparse.ArgumentParser(description='Automatic Results Comparison for GP-LVM Experiments')
