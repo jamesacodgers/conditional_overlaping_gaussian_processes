@@ -106,8 +106,8 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         self.Q_total = self.Q_x + self.Q_h  # Total latent dimensions
         
         # Initialize dummy mu_x for parent class
-        # Parent expects [P, N, A] where A is latent dim
-        dummy_mu_x = torch.randn(P, self.N, self.Q_total, dtype=torch.float64, device=device) * 0.1
+        # Parent expects [N, A] and will add P dimension internally
+        dummy_mu_x = torch.randn(self.N, self.Q_total, dtype=torch.float64, device=device) * 0.1
         
         # Ensure Vx and beta are correct dimensions
         Vx = Vx.to(device)
