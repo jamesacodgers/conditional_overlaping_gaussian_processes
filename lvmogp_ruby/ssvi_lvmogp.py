@@ -1,8 +1,4 @@
 """
-LVMOGP_SSVI: Proper mathematical LVMOGP based on GPLVM_SSVI_AM_INF
-
-This implements the same mathematical structure as LVMOGP.py but uses
-GPLVM_SSVI_AM_INF's SSVI computational machinery:
 - X_data: Fixed observed input features [N, Q_x]
 - X_data_fn: Function IDs [N]
 - H: Learned function-level latent positions [num_fns, Q_h]
