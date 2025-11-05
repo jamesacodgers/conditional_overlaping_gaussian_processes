@@ -369,16 +369,18 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         H_mean = mu_x.mean(dim=0)  # [batch_size, Q_h]
         H_var = Sigma_x.mean(dim=0)  # [batch_size, Q_h]
         
-        # For batch, we need to be careful about which functions are in the batch
-        # For now, compute KL for the batch assuming prior mean=0, prior_var=1
+        # Use PyTorch's KL divergence: KL[q(H) || p(H)]
+        # Prior: N(0, 1)
+        prior = torch.distributions.Normal(
+            torch.zeros_like(H_mean), 
+            torch.ones_like(H_var)
+        )
         
-        NQ = torch.tensor(H_mean.numel(), dtype=torch.float64, device=self.device)
+        # Variational: N(H_mean, sqrt(H_var))
+        variational = torch.distributions.Normal(H_mean, torch.sqrt(H_var))
         
-        # Following LVMOGP.py KL computation
-        KL = -0.5 * torch.sum(torch.log(H_var + 1e-8))
-        KL += 0.5 * torch.sum(torch.log(torch.ones_like(H_var)))  # log(prior_var), prior_var=1
-        KL -= 0.5 * NQ
-        KL += 0.5 * torch.sum(H_mean ** 2 + H_var)  # assuming prior_mean=0, prior_var=1
+        # Compute KL divergence and sum over all dimensions
+        KL = torch.distributions.kl_divergence(variational, prior).sum()
         
         return KL
     
