@@ -24,7 +24,11 @@ from lvmogp_ruby.ssvi_lvmogp import LVMOGP_SSVI
 
 def generate_synthetic_data(num_fns=3, points_per_fn=20, Q_x=2, seed=42):
     """
-    Generate synthetic data for LVMOGP.
+    Generate synthetic data for LVMOGP with truly different functional forms.
+    
+    Function 0: Y = sin(x1) + cos(x2)
+    Function 1: Y = exp(-0.5 * x1^2) + 0.5 * x2^2
+    Function 2: Y = tanh(x1) * sin(x2)
     
     Returns:
     --------
@@ -43,9 +47,20 @@ def generate_synthetic_data(num_fns=3, points_per_fn=20, Q_x=2, seed=42):
         # Generate random spatial locations for this function
         X_fn = torch.randn(points_per_fn, Q_x, dtype=torch.float64) * 2.0
         
-        # Generate observations: y = sin(x1) + cos(x2) + fn_offset
-        fn_offset = fn_id * 2.0  # Different offset for each function
-        Y_fn = (torch.sin(X_fn[:, 0]) + torch.cos(X_fn[:, 1]) + fn_offset).unsqueeze(1)
+        # Generate observations with DIFFERENT functional forms per function
+        if fn_id == 0:
+            # Function 0: Standard sinusoidal
+            Y_fn = torch.sin(X_fn[:, 0]) + torch.cos(X_fn[:, 1])
+        elif fn_id == 1:
+            # Function 1: Gaussian-like with quadratic terms
+            Y_fn = torch.exp(-0.5 * X_fn[:, 0]**2) + 0.5 * X_fn[:, 1]**2
+        elif fn_id == 2:
+            # Function 2: Mixed trigonometric
+            Y_fn = torch.tanh(X_fn[:, 0]) * torch.sin(X_fn[:, 1])
+        else:
+            raise ValueError(f"Only 3 function IDs (0, 1, 2) are supported, got {fn_id}")
+        
+        Y_fn = Y_fn.unsqueeze(1)
         Y_fn += torch.randn(points_per_fn, 1, dtype=torch.float64) * 0.1  # Add noise
         
         # Function IDs
@@ -143,9 +158,9 @@ def main():
         
         print(f"Step {step + 1}/3: Loss = {loss:.4f}")
         
-        # Show learned H values
-        print(f"  H_data_mean[0]: {model.H_data_mean[0].detach().cpu().numpy()}")
-        print(f"  H_data_var[0]: {model.H_data_var[0].detach().cpu().numpy()}")
+        # Show learned H values (averaged over P samples)
+        print(f"  H_data_mean[fn=0]: {model.H_data_mean[:, 0, :].mean(dim=0).detach().cpu().numpy()}")
+        print(f"  H_data_var[fn=0]: {model.H_data_var[:, 0, :].mean(dim=0).detach().cpu().numpy()}")
     
     print()
     
@@ -178,12 +193,12 @@ def main():
     
     print()
     
-    # Show final learned H values
-    print("Final learned H values:")
+    # Show final learned H values (averaged over P samples)
+    print("Final learned H values (averaged over P samples):")
     for fn_id in range(num_fns):
         print(f"  Function {fn_id}:")
-        print(f"    H_mean: {model.H_data_mean[fn_id].detach().cpu().numpy()}")
-        print(f"    H_var:  {model.H_data_var[fn_id].detach().cpu().numpy()}")
+        print(f"    H_mean: {model.H_data_mean[:, fn_id, :].mean(dim=0).detach().cpu().numpy()}")
+        print(f"    H_var:  {model.H_data_var[:, fn_id, :].mean(dim=0).detach().cpu().numpy()}")
     
     print()
     print("=" * 60)

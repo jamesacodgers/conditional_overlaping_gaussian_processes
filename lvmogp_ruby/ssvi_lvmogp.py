@@ -137,24 +137,27 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         self.Q_h = Q_h
         self.Q_x = X_data.shape[1]
         
-        # Initialize H_data_mean and H_data_var (following LVMOGP.py structure)
-        # These store the current learned H values
+        # Initialize H_data_mean and H_data_var with P dimension (like parent's mu_x_train)
+        # Shape: [P, num_fns, Q_h] to store P samples per function
         if H_data_mean is None:
             # Initialize randomly (small values)
-            H_data_mean = torch.randn(num_fns, Q_h, dtype=torch.float64, device=device) * 0.1
+            H_data_mean = torch.randn(P, num_fns, Q_h, dtype=torch.float64, device=device) * 0.1
         else:
             H_data_mean = H_data_mean.to(device)
+            # If provided without P dimension, expand it
+            if H_data_mean.ndim == 2:
+                H_data_mean = H_data_mean.unsqueeze(0).expand(P, -1, -1).clone()
         
         if H_data_var is None:
             # Initialize to small positive values
-            H_data_var = torch.ones(num_fns, Q_h, dtype=torch.float64, device=device) * 0.1
+            H_data_var = torch.ones(P, num_fns, Q_h, dtype=torch.float64, device=device) * 0.1
         else:
             H_data_var = H_data_var.to(device)
+            # If provided without P dimension, expand it
+            if H_data_var.ndim == 2:
+                H_data_var = H_data_var.unsqueeze(0).expand(P, -1, -1).clone()
         
-        # Store as Parameters (following LVMOGP.py)
-        # Note: In LVMOGP.py these are directly optimized
-        # Here they are updated via encoder (amortized inference) and stored for predictions
-        # We don't add them to the optimizer - they're updated in train_step
+        # Store as Parameters (not optimized, updated via encoder like parent's mu_x_train)
         self.H_data_mean = nn.Parameter(H_data_mean, requires_grad=False)
         self.H_data_var = nn.Parameter(H_data_var, requires_grad=False)
         
@@ -306,11 +309,13 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         # For LVMOGP, we aggregate by function
         unique_fns = torch.unique(X_data_fn_batch)
         
-        # Initialize H mean and var for ALL functions (will update for functions in batch)
-        H_mean_all = torch.zeros(self.P, self.num_fns, self.Q_h, dtype=torch.float64, device=self.device)
-        H_var_all = torch.ones(self.P, self.num_fns, self.Q_h, dtype=torch.float64, device=self.device) * 0.1
+        # Initialize H mean and var for ALL functions from stored values
+        # For functions not in batch, we'll use stored H_data_mean/H_data_var
+        # H_data_mean and H_data_var already have shape [P, num_fns, Q_h]
+        H_mean_all = self.H_data_mean.clone()  # [P, num_fns, Q_h]
+        H_var_all = self.H_data_var.clone()  # [P, num_fns, Q_h]
         
-        # For each function in batch, aggregate observations and infer H
+        # For each function in batch, encode all observations and infer H
         for fn_id in unique_fns:
             fn_mask = (X_data_fn_batch == fn_id)
             Y_fn = Y_batch[fn_mask]  # [n_obs_fn, M]
@@ -318,26 +323,26 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             if Y_fn.shape[0] == 0:
                 continue
             
-            # Aggregate (take mean of observations for this function)
-            Y_fn_agg = Y_fn.mean(dim=0, keepdim=True)  # [1, M]
-            
-            # Encode to get H for this function
-            H_mean_fn, H_var_fn = super().encode_local_params(Y_fn_agg, U_samples)
-            # Returns [P, 1, Q_total]
+            # Encode all observations for this function
+            H_mean_fn, H_var_fn = super().encode_local_params(Y_fn, U_samples)
+            # Returns [P, n_obs_fn, Q_total]
             
             # Extract H portion (last Q_h dims)
-            H_mean_fn = H_mean_fn[:, 0, self.Q_x:]  # [P, Q_h]
-            H_var_fn = H_var_fn[:, 0, self.Q_x:] ** 2  # [P, Q_h]
+            H_mean_fn = H_mean_fn[:, :, self.Q_x:]  # [P, n_obs_fn, Q_h]
+            H_var_fn = H_var_fn[:, :, self.Q_x:] ** 2  # [P, n_obs_fn, Q_h]
+            
+            # Aggregate encoded H values across observations for this function
+            H_mean_fn = H_mean_fn.mean(dim=1)  # [P, Q_h]
+            H_var_fn = H_var_fn.mean(dim=1)  # [P, Q_h]
             
             # Store for this function
             H_mean_all[:, fn_id, :] = H_mean_fn
             H_var_all[:, fn_id, :] = H_var_fn
             
-            # Update stored H_data_mean and H_data_var (following LVMOGP.py structure)
-            # Average over P samples for storage
+            # Update stored H_data_mean and H_data_var (keeping all P samples like parent class)
             with torch.no_grad():
-                self.H_data_mean[fn_id, :] = H_mean_fn.mean(dim=0)
-                self.H_data_var[fn_id, :] = H_var_fn.mean(dim=0)
+                self.H_data_mean[:, fn_id, :] = H_mean_fn.detach()
+                self.H_data_var[:, fn_id, :] = H_var_fn.detach()
         
         # Construct X_tilde for batch using fill_Hs()
         X_batch = self.X_data[batch_indices]  # [batch_size, Q_x]
@@ -347,40 +352,35 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
     
     def get_kl_x_from(self, mu_x: torch.Tensor, Sigma_x: torch.Tensor):
         """
-        Override parent's KL divergence computation following LVMOGP.py math.
+        Override parent's KL divergence computation for LVMOGP.
         
         For LVMOGP:
         - X_data is FIXED (no KL needed)
         - Only H has KL divergence: KL[q(H) || p(H)]
         
-        Following LVMOGP.py lines 195-207:
-        KL = -0.5 * sum(log(var_H)) + 0.5 * sum(log(prior_var)) - 0.5*NQ 
-             + 0.5 * sum((H_mean - prior_mean)^2 / prior_var + var_H / prior_var)
-        
         Parameters:
         -----------
-        mu_x : [P, batch_size, Q_h]
-            H mean from encoder
-        Sigma_x : [P, batch_size, Q_h]
-            H variance from encoder
+        mu_x : [P, batch_size, Q_total]
+            X_tilde mean (includes both X_data and H)
+        Sigma_x : [P, batch_size, Q_total]
+            X_tilde variance (includes both X_data and H)
         """
-        # mu_x: [P, batch_size, Q_h], Sigma_x: [P, batch_size, Q_h]
-        # Average over P samples
-        H_mean = mu_x.mean(dim=0)  # [batch_size, Q_h]
-        H_var = Sigma_x.mean(dim=0)  # [batch_size, Q_h]
+        # Extract H portion (last Q_h dimensions) from X_tilde
+        H_mean = mu_x[..., self.Q_x:]  # [P, batch_size, Q_h]
+        H_var = Sigma_x[..., self.Q_x:]  # [P, batch_size, Q_h]
         
-        # Use PyTorch's KL divergence: KL[q(H) || p(H)]
-        # Prior: N(0, 1)
+        # Prior: N(0, 1) - same shape as H
         prior = torch.distributions.Normal(
-            torch.zeros_like(H_mean), 
-            torch.ones_like(H_var)
+            torch.zeros(self.Q_h, device=self.device), 
+            torch.ones(self.Q_h, device=self.device)
         )
         
-        # Variational: N(H_mean, sqrt(H_var))
+        # Variational: N(H_mean, sqrt(H_var)) with shape [P, batch_size, Q_h]
         variational = torch.distributions.Normal(H_mean, torch.sqrt(H_var))
         
-        # Compute KL divergence and sum over all dimensions
-        KL = torch.distributions.kl_divergence(variational, prior).sum()
+        # Compute KL divergence following parent class pattern:
+        # KL for each sample, then average over P, then sum over batch_size * Q_h
+        KL = torch.distributions.kl_divergence(variational, prior).mean(dim=0).sum()
         
         return KL
     
@@ -411,8 +411,7 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         # Sample U if not provided
         if U_samples is None:
-            U_samples = self.get_u_vec_samples()
-            U_samples = U_samples.reshape(self.P, self.M, 1, self.Lx)
+            U_samples = self.get_u_samples()  # Returns [P, M, C, Lx] directly
         
         # Amortized inference: infer H and construct X_tilde
         X_tilde_mean, X_tilde_var = self.infer_H_for_batch(Y_batch, batch_indices, U_samples)
@@ -475,30 +474,35 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         with torch.no_grad():
             # Use stored H_data_mean and H_data_var (learned during training)
-            
-            # Expand stored H for P samples
-            # H_data_mean: [num_fns, Q_h] -> unsqueeze(0) -> [1, num_fns, Q_h] -> expand -> [P, num_fns, Q_h]
-            H_mean_all = self.H_data_mean.unsqueeze(0).expand(self.P, self.num_fns, self.Q_h)
-            H_var_all = self.H_data_var.unsqueeze(0).expand(self.P, self.num_fns, self.Q_h)
+            # H_data_mean and H_data_var already have shape [P, num_fns, Q_h]
+            H_mean_all = self.H_data_mean
+            H_var_all = self.H_data_var
             
             # Construct X_tilde for predictions
             X_tilde_mean, X_tilde_var = self.fill_Hs(X_new, X_new_fn, H_mean_all, H_var_all)
+            # X_tilde_mean: [P, N_new, Q_total], X_tilde_var: [P, N_new, Q_total]
             
-            # Average over P samples for prediction
-            X_tilde_mean_avg = X_tilde_mean.mean(dim=0)  # [N_new, Q_total]
+            # Sample U from q(u) for prediction
+            U_samples = self.get_u_samples()  # [P, M, C, Lx]
             
-            # Use parent's prediction method
-            mu_pred = self.get_ssvi_mean_prediction(X_tilde_mean_avg)  # [N_new, M]
+            # Get GP expectation - use proper GP method
+            # For LVMOGP: C=1 (single output component)
+            f_mean = self.gp.get_gp_expectation_given_U(X_tilde_mean, U_samples)  # [P, N_new, M, 1]
+            mu_pred = f_mean[..., 0].mean(dim=0)  # [N_new, M]
             
             if full_cov:
                 # Full covariance prediction (not implemented for simplicity)
                 raise NotImplementedError("Full covariance prediction not implemented")
             else:
-                # Diagonal variance
-                noise_var = self.sigma2.item()
+                # Get proper GP predictive variance using GP covariance method
+                gp_cov = self.gp.get_gp_covariance_given_U(X_tilde_mean, U_samples)  # [P, N_new, M, 1, 1]
                 
-                # Simple variance estimate (could be improved)
-                var_pred = torch.ones(mu_pred.shape[0], self.M, dtype=torch.float64, device=self.device) * noise_var
+                # Extract diagonal: [P, N_new, M, 1, 1] -> [P, N_new, M]
+                gp_var = gp_cov[..., 0, 0]  # [P, N_new, M]
+                # Average over P samples
+                gp_var_avg = gp_var.mean(dim=0)  # [N_new, M]
+                # Add observation noise
+                var_pred = gp_var_avg + self.sigma2
                 
                 return mu_pred, var_pred
     
