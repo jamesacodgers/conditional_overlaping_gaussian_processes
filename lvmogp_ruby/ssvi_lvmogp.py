@@ -165,11 +165,40 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         self.H_prior_mean = H_prior_mean.to(device)
         self.H_prior_var = H_prior_var.to(device)
+        
+        # Override parent's encoder to only output H parameters (not full X_tilde)
+        # Parent encoder outputs 2*A where A=Q_total, but we only need 2*Q_h
+        self.encoder = self._build_encoder_for_H(encoder_hidden_dims)
     
     @property
     def H_data_var_positive(self):
         """Ensure H_data_var is positive (following LVMOGP.py's transform=positive())"""
         return torch.abs(self.H_data_var) + 1e-6
+    
+    def _build_encoder_for_H(self, hidden_dims):
+        """
+        Build encoder specifically for H (not full X_tilde).
+        
+        Since X_data is fixed, we only need to infer H parameters.
+        Input: y_n [M] + u_samples [M * Lx]
+        Output: mu_H [Q_h] + log_sigma_H [Q_h] = 2*Q_h
+        """
+        layers = []
+        # Input dimension same as parent: y_n [M] + u_samples [M * Lx]
+        input_dim = self.M + self.M * self.Lx
+        
+        prev_dim = input_dim
+        for hidden_dim in hidden_dims:
+            layers.extend([
+                nn.Linear(prev_dim, hidden_dim),
+                nn.ReLU(),
+            ])
+            prev_dim = hidden_dim
+        
+        # Output: mu_H [Q_h] + log_sigma_H [Q_h]
+        layers.append(nn.Linear(prev_dim, 2 * self.Q_h))
+        
+        return nn.Sequential(*layers).to(self.device)
     
     def fill_Hs(self, X_data=None, X_data_fn=None, H_mean=None, H_var=None):
         """
@@ -222,47 +251,42 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
     
     def encode_local_params(self, y_n, u_samples):
         """
-        Override parent's encode_local_params to encode Y -> H parameters for LVMOGP.
+        Override parent's encode_local_params to encode Y -> H parameters directly.
         
-        For LVMOGP, we need to infer H for each function, not X for each observation.
-        We aggregate observations by function and use the parent's encoder to infer H.
+        Since X_data is FIXED, we only infer H (not full X_tilde).
         
         Args:
             y_n: [batch_size, M] - observations
             u_samples: [P, M, C, Lx] - samples from global U distribution (C=1)
             
         Returns:
-            H_mean: [P, num_fns, Q_h] - function latent means (for all functions, not just batch)
-            H_var: [P, num_fns, Q_h] - function latent variances
+            H_mean: [P, batch_size, Q_h] - H mean for batch
+            H_var: [P, batch_size, Q_h] - H variance for batch
         """
         batch_size = y_n.shape[0]
         
-        # We'll encode each unique function in the batch
-        # But we need to return H for ALL functions for fill_Hs to work
+        # Expand y_n for P samples
+        y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
         
-        # Initialize with zeros (will be updated for functions in batch)
-        H_mean_all = torch.zeros(self.P, self.num_fns, self.Q_h, dtype=torch.float64, device=self.device)
-        H_var_all = torch.ones(self.P, self.num_fns, self.Q_h, dtype=torch.float64, device=self.device)
+        # Prepare u_samples for encoder
+        u_samples = u_samples.squeeze(2)  # Remove C=1 dimension: [P, M, Lx]
+        u_samples = u_samples.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
+        u_samples = u_samples.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
         
-        # For simplicity, use parent's encoder to encode observations
-        # The parent encoder expects [P, batch_size, M + M*Lx] and returns [P, batch_size, 2*A]
-        # where A = Q_total in our case
+        # Concatenate input for encoder
+        encoder_input = torch.cat([y_n, u_samples], dim=-1)  # [P, batch_size, M + M*Lx]
         
-        # Call parent's encode_local_params to get [P, batch_size, Q_total] parameters
-        mu_x_batch, sigma_x_batch = super().encode_local_params(y_n, u_samples)
+        # Encode to H parameters (our custom encoder outputs 2*Q_h)
+        encoder_output = self.encoder(encoder_input)  # [P, batch_size, 2*Q_h]
         
-        # Extract H portion (last Q_h dimensions)
-        H_mean_batch = mu_x_batch[:, :, self.Q_x:]  # [P, batch_size, Q_h]
-        H_var_batch = sigma_x_batch[:, :, self.Q_x:] ** 2  # [P, batch_size, Q_h]
+        # Split into mu_H and log_sigma_H
+        mu_H = encoder_output[:, :, :self.Q_h]  # [P, batch_size, Q_h]
+        log_sigma_H = encoder_output[:, :, self.Q_h:]  # [P, batch_size, Q_h]
         
-        # Average H values for observations from same function
-        # This is a simplification - ideally we'd aggregate more carefully
-        # For now, just take the mean of H predictions for each function's observations
+        # Convert log_sigma to sigma
+        sigma_H = torch.nn.functional.softplus(log_sigma_H)  # [P, batch_size, Q_h]
         
-        # Simple approach: just return the extracted H from batch
-        # Full H_mean_all will be handled by train_step
-        
-        return H_mean_batch, H_var_batch
+        return mu_H, sigma_H
     
     def get_mu_sigma_x_train_samples(self, Y_train_batch, U_samples=None):
         """
@@ -319,13 +343,9 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             if Y_fn.shape[0] == 0:
                 continue
             
-            # Encode all observations for this function
-            H_mean_fn, H_var_fn = super().encode_local_params(Y_fn, U_samples)
-            # Returns [P, n_obs_fn, Q_total]
-            
-            # Extract H portion (last Q_h dims)
-            H_mean_fn = H_mean_fn[:, :, self.Q_x:]  # [P, n_obs_fn, Q_h]
-            H_var_fn = H_var_fn[:, :, self.Q_x:] ** 2  # [P, n_obs_fn, Q_h]
+            # Encode all observations for this function to get H
+            H_mean_fn, H_var_fn = self.encode_local_params(Y_fn, U_samples)
+            # Returns [P, n_obs_fn, Q_h] directly (no need to extract from Q_total)
             
             # Aggregate encoded H values across observations for this function
             H_mean_fn = H_mean_fn.mean(dim=1)  # [P, Q_h]
@@ -333,12 +353,12 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             
             # Store for this function
             H_mean_all[:, fn_id, :] = H_mean_fn
-            H_var_all[:, fn_id, :] = H_var_fn
+            H_var_all[:, fn_id, :] = H_var_fn ** 2  # Square to get variance
             
             # Update stored H_data_mean and H_data_var (keeping all P samples like parent class)
             with torch.no_grad():
                 self.H_data_mean[:, fn_id, :] = H_mean_fn.detach()
-                self.H_data_var[:, fn_id, :] = H_var_fn.detach()
+                self.H_data_var[:, fn_id, :] = (H_var_fn ** 2).detach()
         
         # Construct X_tilde for batch using fill_Hs()
         X_batch = self.X_data[batch_indices]  # [batch_size, Q_x]
