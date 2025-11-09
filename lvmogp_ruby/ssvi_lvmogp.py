@@ -1,4 +1,7 @@
 """
+LVMOGP with SSVI and Neural Processes inspired Permutation-Invariant Encoder
+
+Structure:
 - X_data: Fixed observed input features [N, Q_x]
 - X_data_fn: Function IDs [N]
 - H: Learned function-level latent positions [num_fns, Q_h]
@@ -7,9 +10,32 @@
 
 Mathematical Equivalence to LVMOGP.py:
 1. fill_Hs(): Constructs X_tilde = [X_data, H[fn_id]]
-2. elbo(): ELBO with psi statistics and KL[q(H) || p(H)]
+2. elbo(): ELBO and KL[q(H) || p(H)]
 3. predict_f(): Posterior predictions with proper variance
 4. KL divergence only on H (X_data is fixed)
+
+Neural Processes-Inspired Encoder (Permutation Invariant):
+
+Stage 1 - Individual Encoder h:
+  Input: (X, Y) observation pairs + U samples
+  Output: representation r_i for each observation
+  h: (x_i, y_i) -> r_i
+  
+Stage 2 - Aggregation for permutation invariance:
+  Operation: Mean pooling across observations by fn_id
+  r = mean(r_1, r_2, ..., r_n) for all observations of function
+  Key property: Order of observations doesn't affect result
+  Location: Inside encode_local_params() method
+  
+Stage 3 - Set Encoder g:
+  Input: aggregated representation r
+  Output: H parameters (mu_H, sigma_H) for function
+  g: r -> (mu_H, sigma_H)
+
+This ensures that:
+- Different orderings of observations yield identical H distributions
+- The encoder is a universal approximator for set functions
+- Follows the Neural Processes framework for modeling distributions over functions
 """
 
 import torch
@@ -177,28 +203,53 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
     
     def _build_encoder_for_H(self, hidden_dims):
         """
-        Build encoder specifically for H (not full X_tilde).
+        Build permutation-invariant encoder for H following Neural Processes architecture.
         
-        Since X_data is fixed, we only need to infer H parameters.
-        Input: y_n [M] + u_samples [M * Lx]
+        Two-stage architecture:
+        1. Individual encoder: (X, Y) -> representation r_i
+        2. Aggregation + set encoder: mean(r_i) -> H parameters
+        
+        This ensures permutation invariance: order of observations doesn't matter.
+        
+        Input: X [Q_x] + y [M] + u_samples [M * Lx]
         Output: mu_H [Q_h] + log_sigma_H [Q_h] = 2*Q_h
         """
-        layers = []
-        # Input dimension same as parent: y_n [M] + u_samples [M * Lx]
-        input_dim = self.M + self.M * self.Lx
+        # Stage 1: Individual observation encoder
+        # Input: X [Q_x] + Y [M] + u_samples [M * Lx]
+        individual_input_dim = self.Q_x + self.M + self.M * self.Lx
         
-        prev_dim = input_dim
-        for hidden_dim in hidden_dims:
-            layers.extend([
+        # Hidden representation dimension
+        repr_dim = hidden_dims[0] if hidden_dims else 128
+        
+        individual_layers = []
+        prev_dim = individual_input_dim
+        for i, hidden_dim in enumerate(hidden_dims):
+            individual_layers.extend([
                 nn.Linear(prev_dim, hidden_dim),
                 nn.ReLU(),
             ])
             prev_dim = hidden_dim
         
-        # Output: mu_H [Q_h] + log_sigma_H [Q_h]
-        layers.append(nn.Linear(prev_dim, 2 * self.Q_h))
+        # Output representation r_i
+        individual_layers.append(nn.Linear(prev_dim, repr_dim))
         
-        return nn.Sequential(*layers).to(self.device)
+        self.individual_encoder = nn.Sequential(*individual_layers).to(self.device)
+        
+        # Stage 2: Set encoder (after aggregation)
+        # Input: aggregated representation [repr_dim]
+        # Output: mu_H [Q_h] + log_sigma_H [Q_h]
+        set_layers = []
+        prev_dim = repr_dim
+        for hidden_dim in hidden_dims:
+            set_layers.extend([
+                nn.Linear(prev_dim, hidden_dim),
+                nn.ReLU(),
+            ])
+            prev_dim = hidden_dim
+        
+        set_layers.append(nn.Linear(prev_dim, 2 * self.Q_h))
+        
+        return nn.Sequential(*set_layers).to(self.device)
     
     def fill_Hs(self, X_data=None, X_data_fn=None, H_mean=None, H_var=None):
         """
@@ -249,64 +300,125 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         return X_tilde_mean, X_tilde_var
     
-    def encode_local_params(self, y_n, u_samples):
+    def encode_local_params(self, y_n, u_samples, x_n, fn_ids):
         """
-        Override parent's encode_local_params to encode Y -> H parameters directly.
+        Permutation-invariant encoding following Neural Processes architecture.
         
-        Since X_data is FIXED, we only infer H (not full X_tilde).
+        Three-stage process (following Figure 1b of Neural Processes paper):
+        1. Individual encoder h: encode each (X, Y) observation to representation r_i
+        2. Aggregator a: mean pooling by fn_id (PERMUTATION INVARIANT)
+        3. Set encoder g: map aggregated representation to H parameters
+        
+        This ensures permutation invariance: order of observations doesn't affect result.
         
         Args:
-            y_n: [batch_size, M] - observations
+            y_n: [n_obs, M] - observations for a single function
             u_samples: [P, M, C, Lx] - samples from global U distribution (C=1)
+            x_n: [n_obs, Q_x] - fixed X_data for observations
+            fn_ids: [n_obs] - function IDs (should all be same for single function)
             
         Returns:
-            H_mean: [P, batch_size, Q_h] - H mean for batch
-            H_var: [P, batch_size, Q_h] - H variance for batch
+            H_mean: [P, Q_h] - H mean for this function
+            H_var: [P, Q_h] - H variance for this function
         """
-        batch_size = y_n.shape[0]
+        n_obs = y_n.shape[0]
         
-        # Expand y_n for P samples
-        y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
+        # Expand y_n and x_n for P samples
+        y_n_expanded = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, n_obs, M]
+        x_n_expanded = x_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, n_obs, Q_x]
         
         # Prepare u_samples for encoder
-        u_samples = u_samples.squeeze(2)  # Remove C=1 dimension: [P, M, Lx]
-        u_samples = u_samples.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
-        u_samples = u_samples.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
+        u_samples_flat = u_samples.squeeze(2)  # Remove C=1 dimension: [P, M, Lx]
+        u_samples_flat = u_samples_flat.unsqueeze(1).expand(-1, n_obs, -1, -1)  # [P, n_obs, M, Lx]
+        u_samples_flat = u_samples_flat.reshape(self.P, n_obs, -1)  # [P, n_obs, M*Lx]
         
-        # Concatenate input for encoder
-        encoder_input = torch.cat([y_n, u_samples], dim=-1)  # [P, batch_size, M + M*Lx]
+        # Stage 1: Individual encoder h - encode each (X, Y) observation to r_i
+        # h: (x_i, y_i) -> r_i
+        individual_input = torch.cat([x_n_expanded, y_n_expanded, u_samples_flat], dim=-1)  
+        # [P, n_obs, Q_x + M + M*Lx]
         
-        # Encode to H parameters (our custom encoder outputs 2*Q_h)
-        encoder_output = self.encoder(encoder_input)  # [P, batch_size, 2*Q_h]
+        representations = self.individual_encoder(individual_input)  # [P, n_obs, repr_dim]
+        
+        # Stage 2: Aggregator a - mean pooling (PERMUTATION INVARIANT)
+        # a: {r_1, ..., r_n} -> r
+        # This is the key to permutation invariance from Neural Processes paper
+        aggregated_repr = representations.mean(dim=1)  # [P, repr_dim]
+        
+        # Stage 3: Set encoder g - map aggregated representation to H parameters
+        # g: r -> (mu_H, sigma_H)
+        encoder_output = self.encoder(aggregated_repr)  # [P, 2*Q_h]
         
         # Split into mu_H and log_sigma_H
-        mu_H = encoder_output[:, :, :self.Q_h]  # [P, batch_size, Q_h]
-        log_sigma_H = encoder_output[:, :, self.Q_h:]  # [P, batch_size, Q_h]
+        mu_H = encoder_output[:, :self.Q_h]  # [P, Q_h]
+        log_sigma_H = encoder_output[:, self.Q_h:]  # [P, Q_h]
         
-        # Convert log_sigma to sigma
-        sigma_H = torch.nn.functional.softplus(log_sigma_H)  # [P, batch_size, Q_h]
+        # Convert log_sigma to sigma and compute variance
+        sigma_H = torch.nn.functional.softplus(log_sigma_H)  # [P, Q_h]
+        var_H = sigma_H ** 2  # [P, Q_h]
         
-        return mu_H, sigma_H
+        return mu_H, var_H
     
-    def get_mu_sigma_x_train_samples(self, Y_train_batch, U_samples=None):
+    def get_mu_sigma_x_train_samples(self, Y_train_batch, U_samples=None, X_train_batch=None, fn_ids=None):
         """
-        Override parent's method - not used in LVMOGP.
+        Override parent's method - not actively used in LVMOGP.
         
-        For LVMOGP, we use fill_Hs() directly in train_step.
+        For LVMOGP, we use infer_H_for_batch() directly in train_step.
+        This method is kept for compatibility but properly implements per-function encoding.
+        
+        Args:
+            Y_train_batch: [batch_size, M]
+            U_samples: [P, M, C, Lx]
+            X_train_batch: [batch_size, Q_x]
+            fn_ids: [batch_size] - function IDs
+            
+        Returns:
+            H_mean_batch: [P, batch_size, Q_h]
+            H_var_batch: [P, batch_size, Q_h]
         """
-        # Call parent's encode to get H parameters from Y
-        H_mean_batch, H_var_batch = self.encode_local_params(Y_train_batch, U_samples)
+        if X_train_batch is None or fn_ids is None:
+            raise ValueError("X_train_batch and fn_ids must be provided for LVMOGP")
         
-        # Note: This returns just the H portion, not full X_tilde
-        # fill_Hs() will construct X_tilde = [X_data, H]
+        batch_size = Y_train_batch.shape[0]
+        
+        # Initialize output tensors
+        H_mean_batch = torch.zeros(self.P, batch_size, self.Q_h, 
+                                    dtype=torch.float64, device=self.device)
+        H_var_batch = torch.zeros(self.P, batch_size, self.Q_h,
+                                   dtype=torch.float64, device=self.device)
+        
+        # Aggregate by function ID and encode each function separately
+        unique_fns = torch.unique(fn_ids)
+        
+        for fn_id in unique_fns:
+            # Get all observations for this function in batch
+            fn_mask = (fn_ids == fn_id)
+            Y_fn = Y_train_batch[fn_mask]  # [n_obs_fn, M]
+            X_fn = X_train_batch[fn_mask]  # [n_obs_fn, Q_x]
+            fn_ids_fn = fn_ids[fn_mask]  # [n_obs_fn]
+            
+            if Y_fn.shape[0] == 0:
+                continue
+            
+            # Encode this function (with aggregation inside encode_local_params)
+            mu_H_fn, var_H_fn = self.encode_local_params(Y_fn, U_samples, X_fn, fn_ids_fn)
+            # Returns [P, Q_h] for this function
+            
+            # Broadcast to all observations of this function in batch
+            H_mean_batch[:, fn_mask, :] = mu_H_fn.unsqueeze(1)  # [P, 1, Q_h] -> [P, n_obs_fn, Q_h]
+            H_var_batch[:, fn_mask, :] = var_H_fn.unsqueeze(1)  # [P, 1, Q_h] -> [P, n_obs_fn, Q_h]
+        
         return H_mean_batch, H_var_batch
     
     def infer_H_for_batch(self, Y_batch, batch_indices, U_samples):
         """
-        Amortized inference: infer H parameters for functions in batch.
+        Orchestrate Neural Processes encoding for all functions in batch.
         
-        This aggregates observations by function, uses encoder to infer H,
-        updates stored H_data_mean/H_data_var, and constructs X_tilde.
+        For each function:
+        1. Gather all observations for that function
+        2. Call encode_local_params() which does the full NP pipeline:
+           - Stage 1 (h): Individual encoding
+           - Stage 2 (a): Aggregation by mean (permutation invariant)
+           - Stage 3 (g): Set encoding to H parameters
         
         Parameters:
         -----------
@@ -322,46 +434,41 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         X_tilde_mean : [P, batch_size, Q_total]
         X_tilde_var : [P, batch_size, Q_total]
         """
-        # Get function IDs for batch
+        # Get function IDs and X_data for batch
         X_data_fn_batch = self.X_data_fn[batch_indices]
-        
-        # Amortized inference: Y + U -> H parameters
-        # For LVMOGP, we aggregate by function
-        unique_fns = torch.unique(X_data_fn_batch)
+        X_batch = self.X_data[batch_indices]  # [batch_size, Q_x]
         
         # Initialize H mean and var for ALL functions from stored values
-        # For functions not in batch, we'll use stored H_data_mean/H_data_var
-        # H_data_mean and H_data_var already have shape [P, num_fns, Q_h]
         H_mean_all = self.H_data_mean.clone()  # [P, num_fns, Q_h]
         H_var_all = self.H_data_var.clone()  # [P, num_fns, Q_h]
         
-        # For each function in batch, encode all observations and infer H
+        # For each function in batch, apply Neural Processes encoding
+        unique_fns = torch.unique(X_data_fn_batch)
+        
         for fn_id in unique_fns:
+            # Get all observations for this function in batch
             fn_mask = (X_data_fn_batch == fn_id)
             Y_fn = Y_batch[fn_mask]  # [n_obs_fn, M]
+            X_fn = X_batch[fn_mask]  # [n_obs_fn, Q_x]
+            fn_ids = X_data_fn_batch[fn_mask]  # [n_obs_fn]
             
             if Y_fn.shape[0] == 0:
                 continue
             
-            # Encode all observations for this function to get H
-            H_mean_fn, H_var_fn = self.encode_local_params(Y_fn, U_samples)
-            # Returns [P, n_obs_fn, Q_h] directly (no need to extract from Q_total)
-            
-            # Aggregate encoded H values across observations for this function
-            H_mean_fn = H_mean_fn.mean(dim=1)  # [P, Q_h]
-            H_var_fn = H_var_fn.mean(dim=1)  # [P, Q_h]
+            # Apply full Neural Processes encoding (3 stages inside encode_local_params)
+            mu_H_fn, var_H_fn = self.encode_local_params(Y_fn, U_samples, X_fn, fn_ids)
+            # Returns [P, Q_h] for both
             
             # Store for this function
-            H_mean_all[:, fn_id, :] = H_mean_fn
-            H_var_all[:, fn_id, :] = H_var_fn ** 2  # Square to get variance
+            H_mean_all[:, fn_id, :] = mu_H_fn
+            H_var_all[:, fn_id, :] = var_H_fn
             
-            # Update stored H_data_mean and H_data_var (keeping all P samples like parent class)
+            # Update stored H_data_mean and H_data_var
             with torch.no_grad():
-                self.H_data_mean[:, fn_id, :] = H_mean_fn.detach()
-                self.H_data_var[:, fn_id, :] = (H_var_fn ** 2).detach()
+                self.H_data_mean[:, fn_id, :] = mu_H_fn.detach()
+                self.H_data_var[:, fn_id, :] = var_H_fn.detach()
         
         # Construct X_tilde for batch using fill_Hs()
-        X_batch = self.X_data[batch_indices]  # [batch_size, Q_x]
         X_tilde_mean, X_tilde_var = self.fill_Hs(X_batch, X_data_fn_batch, H_mean_all, H_var_all)
         
         return X_tilde_mean, X_tilde_var
@@ -371,7 +478,7 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         Override parent's KL divergence computation for LVMOGP.
         
         For LVMOGP:
-        - X_data is FIXED (no KL needed)
+        - X_data is fixed (no KL needed)
         - Only H has KL divergence: KL[q(H) || p(H)]
         
         Parameters:
