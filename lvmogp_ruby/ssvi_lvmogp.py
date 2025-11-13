@@ -195,6 +195,9 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         # Override parent's encoder to only output H parameters (not full X_tilde)
         # Parent encoder outputs 2*A where A=Q_total, but we only need 2*Q_h
         self.encoder = self._build_encoder_for_H(encoder_hidden_dims)
+        
+        # Add individual_encoder parameters to the existing local optimizer
+        self.optimizer_local.add_param_group({'params': list(self.individual_encoder.parameters())})
     
     @property
     def H_data_var_positive(self):
@@ -612,7 +615,9 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             # For LVMOGP: C=1 (single output component)
             f_mean = self.gp.get_gp_expectation_given_U(X_tilde_mean, U_samples)  # [P, N_new, M, 1]
             mu_pred = f_mean[..., 0].mean(dim=0)  # [N_new, M]
-            
+
+            #gps.py question regarding "A" variable in get_gp_covariance and get_gp_covariance_given_U
+
             if full_cov:
                 # Full covariance prediction (not implemented for simplicity)
                 raise NotImplementedError("Full covariance prediction not implemented")
