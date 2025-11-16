@@ -297,7 +297,7 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         X_data_expanded = X_data.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, Q_x]
         
         # X_data is fixed, so variance is tiny
-        X_var_expanded = torch.ones_like(X_data_expanded) * 1e-5
+        X_var_expanded = torch.ones(X_data_expanded.shape, device=self.device, dtype=X_data_expanded.dtype) * 1e-5
         
         # Concatenate [X_data, H]
         X_tilde_mean = torch.cat([X_data_expanded, H_for_obs_mean], dim=-1)  # [P, batch_size, Q_total]
@@ -511,10 +511,10 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         H_mean = mu_x[..., self.Q_x:]  # [P, batch_size, Q_h]
         H_var = Sigma_x[..., self.Q_x:]  # [P, batch_size, Q_h]
         
-        # Prior: N(0, 1) - same shape as H
+        # Prior: N(0, 1) - same shape as H (on correct device)
         prior = torch.distributions.Normal(
-            torch.zeros(self.Q_h, device=self.device), 
-            torch.ones(self.Q_h, device=self.device)
+            torch.zeros(self.Q_h, device=self.device, dtype=torch.float64), 
+            torch.ones(self.Q_h, device=self.device, dtype=torch.float64)
         )
         
         # Variational: N(H_mean, sqrt(H_var)) with shape [P, batch_size, Q_h]
