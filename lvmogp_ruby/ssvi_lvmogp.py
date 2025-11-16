@@ -401,6 +401,13 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             X_fn = X_train_batch[fn_mask]  # [n_obs_fn, Q_x]
             fn_ids_fn = fn_ids[fn_mask]  # [n_obs_fn]
             
+            # Ensure proper 2D shape even if dimensions are 1
+            # This is needed because boolean indexing can squeeze singleton dimensions
+            if Y_fn.ndim == 1:
+                Y_fn = Y_fn.unsqueeze(-1)  # [n_obs_fn] -> [n_obs_fn, 1]
+            if X_fn.ndim == 1:
+                X_fn = X_fn.unsqueeze(-1)  # [n_obs_fn] -> [n_obs_fn, 1]
+            
             if Y_fn.shape[0] == 0:
                 continue
             
@@ -456,6 +463,13 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             Y_fn = Y_batch[fn_mask]  # [n_obs_fn, M]
             X_fn = X_batch[fn_mask]  # [n_obs_fn, Q_x]
             fn_ids = X_data_fn_batch[fn_mask]  # [n_obs_fn]
+            
+            # Ensure proper 2D shape even if dimensions are 1
+            # This is needed because boolean indexing can squeeze singleton dimensions
+            if Y_fn.ndim == 1:
+                Y_fn = Y_fn.unsqueeze(-1)  # [n_obs_fn] -> [n_obs_fn, 1]
+            if X_fn.ndim == 1:
+                X_fn = X_fn.unsqueeze(-1)  # [n_obs_fn] -> [n_obs_fn, 1]
             
             if Y_fn.shape[0] == 0:
                 continue
