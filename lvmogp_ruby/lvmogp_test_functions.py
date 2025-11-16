@@ -1,10 +1,94 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import gpflow
-import tensorflow as tf
-from gpflow import default_float
-from gpflow.base import Parameter, _cast_to_dtype
+import torch
+from scipy.interpolate import interp1d, RBFInterpolator
+
+
+class RBFKernel:
+    """RBF (Squared Exponential) kernel replacement for GPFlow."""
+    def __init__(self, lengthscales, variance=1.0, active_dims=None):
+        self.lengthscales = np.array(lengthscales) if not isinstance(lengthscales, np.ndarray) else lengthscales
+        self.variance = variance
+        self.active_dims = active_dims
+        
+    def __call__(self, X1, X2=None):
+        """Compute kernel matrix K(X1, X2)."""
+        if X2 is None:
+            X2 = X1
+            
+        # Apply active dimensions if specified
+        if self.active_dims is not None:
+            X1 = X1[:, self.active_dims]
+            X2 = X2[:, self.active_dims]
+            
+        # Compute squared distances scaled by lengthscales
+        # ||x1 - x2||^2 / l^2
+        X1_scaled = X1 / self.lengthscales
+        X2_scaled = X2 / self.lengthscales
+        
+        # Efficient distance computation
+        X1_sq = np.sum(X1_scaled**2, axis=1, keepdims=True)
+        X2_sq = np.sum(X2_scaled**2, axis=1, keepdims=True)
+        distances_sq = X1_sq + X2_sq.T - 2 * X1_scaled @ X2_scaled.T
+        
+        # RBF kernel: variance * exp(-0.5 * r^2)
+        return self.variance * np.exp(-0.5 * distances_sq)
+
+
+class SimpleGP:
+    """Simple GP model for generating test functions (replacement for GPFlow GPR)."""
+    def __init__(self, X, Y, kernel, noise_variance=1e-6):
+        self.X = np.array(X)
+        self.Y = np.array(Y)
+        self.kernel = kernel
+        self.noise_variance = noise_variance
+        
+        # Precompute for predictions
+        self.K = kernel(self.X) + np.eye(len(self.X)) * noise_variance
+        self.L = np.linalg.cholesky(self.K)
+        self.alpha = np.linalg.solve(self.L.T, np.linalg.solve(self.L, self.Y))
+        
+    def predict_f(self, X_new):
+        """Predict mean and variance at new points."""
+        X_new = np.array(X_new)
+        K_s = self.kernel(self.X, X_new)
+        K_ss = self.kernel(X_new)
+        
+        # Mean
+        mean = K_s.T @ self.alpha
+        
+        # Variance
+        v = np.linalg.solve(self.L, K_s)
+        var = K_ss - v.T @ v
+        
+        return mean, np.maximum(np.diag(var).reshape(-1, 1), 1e-10)
+    
+    def predict_y(self, X_new):
+        """Predict with observation noise."""
+        mean, var = self.predict_f(X_new)
+        var = var + self.noise_variance
+        return mean, var
+    
+    @staticmethod
+    def sample_prior(X, kernel, n_samples=1, seed=None):
+        """Sample from GP prior."""
+        if seed is not None:
+            np.random.seed(seed)
+            
+        X = np.array(X)
+        K = kernel(X) + np.eye(len(X)) * 1e-6  # Add jitter for numerical stability
+        L = np.linalg.cholesky(K)
+        
+        # Generate samples
+        samples = []
+        for _ in range(n_samples):
+            z = np.random.randn(len(X), 1)
+            sample = L @ z
+            samples.append(sample)
+            
+        return np.array(samples).squeeze()  # Shape: (n_samples, n_points, 1) or (n_points, 1)
+
 
 class TestFun:
 
@@ -34,6 +118,7 @@ class TestFun:
         self.h_new = None
         self.test_type = test_type
         self.non_zero_kap = non_zero_kap
+        self.seed = seed  # Set seed before create_functions needs it
 
         if lengthscales_H is None:
             self.lengthscales_H = [0.2, 0.15]
@@ -59,21 +144,21 @@ class TestFun:
             # self.fun_no.append(np.ones([len(self.max_points)])*i)
 
         self.y = None
-        self.seed = seed
 
     def create_functions(self, test_type):
         """creates the test functions. This is done by drawing samples from what is essentially a GP prior then
         fitting a smoothing spline to it to create callable functions.
         :returns fs: a list of the data generating functions"""
 
-        # create a GP with one observed data point far away from the domain of interest
+        # Set random seed for reproducibility
+        np.random.seed(self.seed)
 
+        # create a GP with one observed data point far away from the domain of interest
         lengthscales_X = self.lengthscales_X[:self.observed_dims]
         lengthscales_H = self.lengthscales_H[:self.latent_dims]
 
-        kernel_X = gpflow.kernels.RBF(lengthscales=tf.convert_to_tensor(lengthscales_X,
-                                                                        dtype=default_float()), variance=2,
-                                      active_dims=list(range(self.observed_dims)))
+        kernel_X = RBFKernel(lengthscales=lengthscales_X, variance=2.0,
+                            active_dims=list(range(self.observed_dims)))
 
         if test_type == 'unrelated' or test_type == 'linear_relation':
             kernel = kernel_X
@@ -88,33 +173,28 @@ class TestFun:
             self.h_new = h_new
             x_new = self.get_x_new(self.x_full, self.n_fun, self.observed_dims, H_news)
 
-
             if test_type == 'non-linear_relation':
-
-                kernel = gpflow.kernels.RBF(lengthscales=tf.convert_to_tensor(lengthscales_X +lengthscales_H,
-                                                                                dtype=default_float()), variance=1)
+                kernel = RBFKernel(lengthscales=lengthscales_X + lengthscales_H, variance=1.0)
                 X = np.array([[-1e6] * (self.observed_dims + self.latent_dims)])
-
             else:
-                Exception('type must be one of unrelated, linear_relation or non-linear_relation')
+                raise Exception('type must be one of unrelated, linear_relation or non-linear_relation')
 
         Y = np.array([[0.]])
-        gp = gpflow.models.GPR(data=(tf.convert_to_tensor(X, dtype=default_float()),
-                                     tf.convert_to_tensor(Y, dtype=default_float())), kernel=kernel)
 
-        # take one extra sample as the first sample doesn't seem to interpolate very well for some reason
-
+        # Sample from GP prior
         if test_type == 'unrelated':
-            samples = gp.predict_f_samples(tf.convert_to_tensor(x_new, dtype=default_float()), self.n_fun)
+            # Sample n_fun independent functions
+            samples = SimpleGP.sample_prior(x_new, kernel, n_samples=self.n_fun)
+            if samples.ndim == 2:
+                samples = samples[:, :, np.newaxis]  # Add output dimension
 
             functions = []
-            for sample in samples:
-                gp = gpflow.models.GPR(data=(tf.convert_to_tensor(self.x_full, dtype=default_float()),
-                                         tf.convert_to_tensor(sample, dtype=default_float())), kernel=kernel_X)
+            for i in range(self.n_fun):
+                sample = samples[i] if samples.shape[0] == self.n_fun else samples[:, i:i+1]
+                gp = SimpleGP(X=self.x_full, Y=sample, kernel=kernel_X)
                 functions.append(gp)
 
         elif test_type == 'linear_relation':
-
             X = np.array([[-1e6] * (self.observed_dims)])
             x_new = self.x_full
             Y = np.array([[0.]])
@@ -122,38 +202,40 @@ class TestFun:
             h_new = np.random.uniform(-1, 1, (self.n_fun, self.latent_dims))
             H_news = np.repeat(h_new, repeats=len(self.x_full), axis=0)
             self.h_new = h_new
-            samples = gp.predict_f_samples(tf.convert_to_tensor(x_new, dtype=default_float()), self.latent_dims)
-
+            
+            # Sample latent functions
+            samples = SimpleGP.sample_prior(x_new, kernel, n_samples=self.latent_dims)
+            if samples.ndim == 2:
+                samples = samples[:, :, np.newaxis]
+            
             if self.non_zero_kap:
-                ValueError('non zero kappa not implemented')
-                # samples2 = gp.predict_f_samples(tf.convert_to_tensor(x_new, dtype=default_float()), self.n_fun)
-            # else:
-            #     samples2 = tf.zeros([self.n_fun, len(x_new), 1], tf.float64)
+                raise ValueError('non zero kappa not implemented')
 
             self.x_new = x_new
             self.latents = samples
             functions = []
 
             for i in range(self.n_fun):
-                y = samples[0]*self.h_new[i, 0] + samples[1]*self.h_new[i, 1] #+ samples2[i]
-                gp = gpflow.models.GPR(data=(tf.convert_to_tensor(self.x_full, dtype=default_float()),
-                                             tf.convert_to_tensor(y,
-                                                 dtype=default_float())), kernel=kernel_X)
+                # Linear combination of latent functions
+                y = samples[0] * self.h_new[i, 0] + samples[1] * self.h_new[i, 1]
+                gp = SimpleGP(X=self.x_full, Y=y, kernel=kernel_X)
                 functions.append(gp)
 
-        else:
-            sample = gp.predict_f_samples(tf.convert_to_tensor(x_new, dtype=default_float()), 1)
+        else:  # non-linear_relation
+            sample = SimpleGP.sample_prior(x_new, kernel, n_samples=1)
+            if sample.ndim == 1:
+                sample = sample[:, np.newaxis]
+            
             functions = []
             for i in range(self.n_fun):
-                gp = gpflow.models.GPR(data=(tf.convert_to_tensor(
-                    x_new[len(self.x_full) * i:len(self.x_full) * (i + 1), :self.observed_dims], dtype=default_float()),
-                                                         tf.convert_to_tensor(
-                                                             sample[0][len(self.x_full) * i:len(self.x_full) * (i + 1)],
-                                                             dtype=default_float())), kernel=kernel_X)
+                start_idx = len(self.x_full) * i
+                end_idx = len(self.x_full) * (i + 1)
+                X_i = x_new[start_idx:end_idx, :self.observed_dims]
+                Y_i = sample[start_idx:end_idx]
+                gp = SimpleGP(X=X_i, Y=Y_i, kernel=kernel_X)
                 functions.append(gp)
 
         self.functions = functions
-
         return self.functions
 
     def get_x_new(self, x_full, n_fun, observed_dims, H_news):
@@ -187,7 +269,8 @@ class TestFun:
             else:
                 idx = range(0, len(self.xs[i]))
             x_ = self.xs[i][idx][:n_points[i]]
-            y_ = self.ys[i].numpy()[idx][:n_points[i]]
+            # ys[i] is already numpy array
+            y_ = self.ys[i][idx][:n_points[i]]
 
             fun_no_ = np.ones((len(x_), 1)) * i
             self.X = np.concatenate([self.X, x_])
@@ -230,7 +313,7 @@ class TestFun:
         if self.observed_dims == 1:
             for i, fun in enumerate(self.functions):
                 ys_mean, ys_var = fun.predict_y(self.x_full)
-                plt.plot(self.x_full, ys_mean.numpy(), label=f'function {i + 1}', alpha=0.5)
+                plt.plot(self.x_full, ys_mean, label=f'function {i + 1}', alpha=0.5)
                 idx = np.where(self.fun_no == i)
                 x_ = self.xs[i][:n_points[i]]
                 y_ = self.ys[i][:n_points[i]]
@@ -251,7 +334,7 @@ class TestFun:
 
             for i, fun in enumerate(self.functions):
                 ys_mean, ys_var = fun.predict_y(self.x_full)
-                contour = ax[i].contourf(self.xs_full[0], self.xs_full[1], ys_mean.numpy().reshape(self.xs_full[1].shape).T,
+                contour = ax[i].contourf(self.xs_full[0], self.xs_full[1], ys_mean.reshape(self.xs_full[1].shape).T,
                                          label=f'sample {i + 1}')
 
                 # idx = np.where(self.fun_no == i)
@@ -276,7 +359,7 @@ class TestFun:
         if self.observed_dims == 1:
             for i, fun in enumerate(self.functions):
                 ys_mean, ys_var = fun.predict_y(self.x_full)
-                ax[i].plot(self.x_full, ys_mean.numpy(), label=f'function {i + 1}', alpha=0.5)
+                ax[i].plot(self.x_full, ys_mean, label=f'function {i + 1}', alpha=0.5)
                 idx = np.where(self.fun_no == i)
                 x_ = self.xs[i]
                 y_ = self.ys[i]
@@ -300,7 +383,7 @@ class TestFun:
 
             for i, fun in enumerate(self.functions):
                 ys_mean, ys_var = fun.predict_y(self.x_full)
-                contour = ax[i].contourf(self.xs_full[0], self.xs_full[1], ys_mean.numpy().reshape(self.xs_full[1].shape).T,
+                contour = ax[i].contourf(self.xs_full[0], self.xs_full[1], ys_mean.reshape(self.xs_full[1].shape).T,
                                          label=f'sample {i + 1}')
 
                 # idx = np.where(self.fun_no == i)
