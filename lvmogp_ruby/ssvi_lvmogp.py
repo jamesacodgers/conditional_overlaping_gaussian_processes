@@ -285,11 +285,13 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             raise ValueError("H_mean and H_var must be provided")
         
         batch_size = X_data.shape[0]
+
+        X_data_fn_flat = X_data_fn.flatten()  # Ensure 1D shape [batch_size]
         
         # Gather H for each observation based on function ID
-        # H_mean: [P, num_fns, Q_h], X_data_fn: [batch_size]
-        H_for_obs_mean = H_mean[:, X_data_fn, :]  # [P, batch_size, Q_h]
-        H_for_obs_var = H_var[:, X_data_fn, :]  # [P, batch_size, Q_h]
+        # H_mean: [P, num_fns, Q_h], X_data_fn_flat: [batch_size]
+        H_for_obs_mean = torch.stack([H_mean[p, X_data_fn_flat, :] for p in range(self.P)], dim=0)  # [P, batch_size, Q_h]
+        H_for_obs_var = torch.stack([H_var[p, X_data_fn_flat, :] for p in range(self.P)], dim=0)  # [P, batch_size, Q_h]
         
         # Expand X_data for all P samples
         X_data_expanded = X_data.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, Q_x]
@@ -527,6 +529,11 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             Indices of observations in batch
         U_samples : [P, M, C, Lx]
             Samples from q(u)
+            
+        Returns:
+        --------
+        loss : float
+            Negative ELBO (loss value)
         """
         # Convert to float64
         Y_batch = Y_batch.to(dtype=torch.float64)
