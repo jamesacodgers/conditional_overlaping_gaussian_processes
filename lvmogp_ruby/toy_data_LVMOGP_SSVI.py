@@ -94,7 +94,7 @@ class LVMOGPConfig:
     
     # === Results Configuration ===
     save_results: bool = True
-    results_dir: str = "lvmogp_results/toy_data_results"  # Results directory (relative to current working directory)
+    results_dir: str = "lvmogp_ruby/lvmogp_results/toy_data_results"  # Results directory (relative to current working directory)
     experiment_name: str = "toy_data_lvmogp_ssvi"  # Experiment name for folder structure
     
     # === Visualization Configuration ===
@@ -662,7 +662,7 @@ def get_fast_config():
         checkpoint_frequency=25,  # Checkpoint every 25 iterations
         
         # === Results Configuration ===
-        results_dir="lvmogp_results/toy_data_results",
+        results_dir="lvmogp_ruby/lvmogp_results/toy_data_results",
         experiment_name="fast_toy_data_lvmogp_ssvi"
     )
 
