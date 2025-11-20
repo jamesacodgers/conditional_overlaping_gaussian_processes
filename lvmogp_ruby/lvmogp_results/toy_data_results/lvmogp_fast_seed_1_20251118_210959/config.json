@@ -1,0 +1,53 @@
+{
+  "device": "cuda",
+  "random_seed": 1,
+  "surface_type": "linear_relation",
+  "n_new_points": 20,
+  "n_new_funs": 3,
+  "n_observed_funs": 2,
+  "domain": [
+    0,
+    2
+  ],
+  "noise": 0.05,
+  "n_grid_points": 100,
+  "observed_dims": 1,
+  "latent_dims": 2,
+  "latent_dims_lvmogp": 2,
+  "max_points": 60,
+  "lengthscales_x": [
+    0.3,
+    0.3
+  ],
+  "lengthscales_h": [
+    0.4,
+    0.4
+  ],
+  "same_points": false,
+  "n_inducing_points": 8,
+  "encoder_hidden_dims": [
+    64,
+    32
+  ],
+  "H_var_init": 0.1,
+  "lik_variance_scale": 0.01,
+  "training_iterations": 50,
+  "batch_size": 100,
+  "local_lr": 0.0001,
+  "global_lr": 0.0001,
+  "init_lengthscales": 1.0,
+  "init_signal_variance": 1.0,
+  "P": 16,
+  "trainable_V": true,
+  "log_frequency": 25,
+  "checkpoint_frequency": 25,
+  "loss_save_frequency": 5,
+  "save_results": true,
+  "results_dir": "lvmogp_ruby/lvmogp_results/toy_data_results",
+  "experiment_name": "fast_toy_data_lvmogp_ssvi",
+  "plot_training": true,
+  "plot_predictions": true,
+  "plot_latent_space": true,
+  "save_final_plots": true,
+  "enable_missing_data": false
+}
