@@ -1,6 +1,9 @@
 """
 SSVI LVMOGP Toy Data Demonstration with Configuration and Results Management
 
+Uses function-based batching: batch_fn_size specifies the number of functions per batch,
+and all observations for each selected function are processed together.
+
 Usage examples:
     # Run with default fast config (50 iterations, quick testing)
     python lvmogp_ruby/toy_data_LVMOGP_SSVI.py
@@ -12,7 +15,7 @@ Usage examples:
     python lvmogp_ruby/toy_data_LVMOGP_SSVI.py --config lvmogp_ruby/configs/base_config.yaml --training-iterations 20000 --device cuda
     
     # Run with custom parameters (no config file, uses fast default + overrides)
-    python lvmogp_ruby/toy_data_LVMOGP_SSVI.py --training-iterations 1000 --batch-size 200 --random-seed 42
+    python lvmogp_ruby/toy_data_LVMOGP_SSVI.py --training-iterations 1000 --batch-fn-size 4 --random-seed 42
 """
 
 import sys
@@ -75,7 +78,7 @@ class LVMOGPConfig:
     
     # === Training Configuration ===
     training_iterations: int = 15000
-    batch_size: int = 324  # Will be capped at data size
+    batch_fn_size: int = 4  # Number of functions per batch (all observations for each function are used)
     
     # === Learning Rates ===
     local_lr: float = 1e-4   # Encoder parameters (0.0001)
@@ -134,7 +137,7 @@ class LVMOGPConfig:
         print(f"Data: {self.n_observed_funs + self.n_new_funs} functions total ({self.n_observed_funs} observed + {self.n_new_funs} new)")
         print(f"Model: {self.n_inducing_points} inducing points, latent_dim={self.latent_dims_lvmogp}")
         print(f"Encoder: {self.encoder_hidden_dims} hidden dims")
-        print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")
+        print(f"Training: {self.training_iterations} iter, batch_fn_size={self.batch_fn_size}")
         print(f"Learning rates: Local={self.local_lr}, Global={self.global_lr}")
         print(f"SSVI: P={self.P} samples")
         print(f"Results dir: {self.results_dir}/{self.experiment_name}")
@@ -164,7 +167,7 @@ class LVMOGPConfig:
             'H_var_init': self.H_var_init,
             'lik_variance_scale': self.lik_variance_scale,
             'training_iterations': self.training_iterations,
-            'batch_size': self.batch_size,
+            'batch_fn_size': self.batch_fn_size,
             'local_lr': self.local_lr,
             'global_lr': self.global_lr,
             'init_lengthscales': self.init_lengthscales,
@@ -384,12 +387,11 @@ def create_model(config: LVMOGPConfig, data_X, data_y, fun_nos, n_fun):
 
 def train_model(model, Y_torch, config: LVMOGPConfig, logger: LVMOGPResultsLogger = None, 
                 test_fun=None, n_points=None, n_fun=None):
-    """Train LVMOGP model"""
+    """Train LVMOGP model with function-based batching"""
     print("\n=== Training Model ===")
     
-    N = len(Y_torch)
-    batch_size = min(config.batch_size, N)
     device = torch.device(config.device)
+    batch_fn_size = min(config.batch_fn_size, n_fun)
     
     # Store checkpoint data in model for access during training
     if test_fun is not None and n_points is not None and n_fun is not None:
@@ -401,21 +403,22 @@ def train_model(model, Y_torch, config: LVMOGPConfig, logger: LVMOGPResultsLogge
     
     model.train()
     
-    print(f"Training on {config.device}: {config.training_iterations} iterations, batch_size={batch_size}")
+    print(f"Training on {config.device}: {config.training_iterations} iterations, batch_fn_size={batch_fn_size}")
+    print(f"  (Processing all observations for {batch_fn_size} functions per batch)")
     if logger:
         logger.log_training(f"=== Training Started ===")
-        logger.log_training(f"Iterations: {config.training_iterations}, Batch size: {batch_size}")
+        logger.log_training(f"Iterations: {config.training_iterations}, Batch fn size: {batch_fn_size}")
         logger.log_training(f"Device: {config.device}")
     
     start_time = time.time()
     
     for iteration in range(config.training_iterations):
-        # Random batch (mini-batch SGD for SSVI)
-        indices = torch.randperm(N, device=device)[:batch_size]
-        Y_batch = Y_torch[indices]
+        # Random batch of function IDs (function-based batching)
+        fn_ids_batch = torch.randperm(n_fun, device=device)[:batch_fn_size]
         
-        # Training step (returns loss = -ELBO)
-        loss = model.train_step(Y_batch, indices)
+        # Training step: pass full Y and function IDs
+        # Model internally gathers all observations for these functions
+        loss = model.train_step(Y_torch, fn_ids_batch)
         
         # Store loss periodically
         if (iteration + 1) % config.loss_save_frequency == 0 or iteration == 0:
@@ -648,7 +651,7 @@ def get_fast_config():
         
         # === Training Configuration ===
         training_iterations=50,  # Very fast
-        batch_size=100,
+        batch_fn_size=3,  # Process 3 functions per batch
         
         # === Learning Rates ===
         local_lr=1e-4,
@@ -857,8 +860,8 @@ def create_argument_parser():
     # Training configuration
     parser.add_argument('--training-iterations', type=int, default=None,
                         help='Number of training iterations (default: 15000)')
-    parser.add_argument('--batch-size', type=int, default=None,
-                        help='Batch size (default: 324)')
+    parser.add_argument('--batch-fn-size', type=int, default=None,
+                        help='Number of functions per batch (default: 4)')
     parser.add_argument('--local-lr', type=float, default=None,
                         help='Local learning rate (default: 1e-4)')
     parser.add_argument('--global-lr', type=float, default=None,

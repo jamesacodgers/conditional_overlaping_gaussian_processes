@@ -61,7 +61,7 @@ def update_config_parameter(config_text, param_name, new_value):
     
     return '\n'.join(updated_lines)
 
-def create_config_name(n_inducing, architecture, training_iterations, batch_size, 
+def create_config_name(n_inducing, architecture, training_iterations, batch_fn_size, 
                        local_lr, global_lr, init_lengthscales, init_signal_variance, 
                        P, random_seed):
     """Create a valid filename from parameter values"""
@@ -74,7 +74,7 @@ def create_config_name(n_inducing, architecture, training_iterations, batch_size
     # Sum of neurons in architecture (e.g., [128, 64] -> 192)
     arch_sum = sum(architecture)
     
-    return f"n_ind_{n_inducing}_arch_{arch_sum}_iter_{training_iterations}_b_{batch_size}_local_lr_{local_lr_str}_global_lr_{global_lr_str}_len_{len_str}_sig_{sig_str}_P_{P}_s_{random_seed}.yaml"
+    return f"n_ind_{n_inducing}_arch_{arch_sum}_iter_{training_iterations}_bfn_{batch_fn_size}_local_lr_{local_lr_str}_global_lr_{global_lr_str}_len_{len_str}_sig_{sig_str}_P_{P}_s_{random_seed}.yaml"
 
 def generate_config_grid():
     """Generate grid of configurations for toy data LVMOGP SSVI experiments"""
@@ -87,7 +87,7 @@ def generate_config_grid():
     
     # Training parameters
     training_iterations_values = [40000]
-    batch_size_values = [256, 332]
+    batch_fn_size_values = [4, 6]  # Number of functions per batch
     
     # Learning rates (matching base config style)
     local_lr_values = [1e-4, 1e-3]
@@ -108,7 +108,7 @@ def generate_config_grid():
     # n_inducing_points_values = [32]
     # encoder_hidden_dims_values = [[128, 64]]
     # training_iterations_values = [5000]
-    # batch_size_values = [324]
+    # batch_fn_size_values = [4]
     # local_lr_values = [1e-4]
     # global_lr_values = [1e-4]
     # init_lengthscales_values = [1.0]
@@ -120,7 +120,7 @@ def generate_config_grid():
     # n_inducing_points_values = [16, 32, 64]
     # encoder_hidden_dims_values = [[64, 32], [128, 64], [256, 128]]
     # training_iterations_values = [5000, 10000, 15000]
-    # batch_size_values = [100, 200, 324]
+    # batch_fn_size_values = [2, 4, 6]
     # local_lr_values = [1e-4, 5e-4, 1e-3]
     # global_lr_values = [1e-4, 5e-4, 1e-3]
     # init_lengthscales_values = [0.5, 1.0, 2.0]
@@ -151,7 +151,7 @@ def generate_config_grid():
         len(n_inducing_points_values) *
         len(encoder_hidden_dims_values) *
         len(training_iterations_values) *
-        len(batch_size_values) *
+        len(batch_fn_size_values) *
         len(local_lr_values) *
         len(global_lr_values) *
         len(init_lengthscales_values) *
@@ -164,7 +164,7 @@ def generate_config_grid():
     print(f"  n_inducing_points: {n_inducing_points_values} (n={len(n_inducing_points_values)})")
     print(f"  encoder_hidden_dims: {encoder_hidden_dims_values} (n={len(encoder_hidden_dims_values)})")
     print(f"  training_iterations: {training_iterations_values} (n={len(training_iterations_values)})")
-    print(f"  batch_size: {batch_size_values} (n={len(batch_size_values)})")
+    print(f"  batch_fn_size: {batch_fn_size_values} (n={len(batch_fn_size_values)})")
     print(f"  local_lr: {local_lr_values} (n={len(local_lr_values)})")
     print(f"  global_lr: {global_lr_values} (n={len(global_lr_values)})")
     print(f"  init_lengthscales: {init_lengthscales_values} (n={len(init_lengthscales_values)})")
@@ -181,7 +181,7 @@ def generate_config_grid():
         n_inducing_points_values,
         encoder_hidden_dims_values,
         training_iterations_values,
-        batch_size_values,
+        batch_fn_size_values,
         local_lr_values,
         global_lr_values,
         init_lengthscales_values,
@@ -194,7 +194,7 @@ def generate_config_grid():
     
     # Generate configurations
     count = 0
-    for (n_inducing, encoder_dims, training_iter, batch_size, 
+    for (n_inducing, encoder_dims, training_iter, batch_fn_size, 
          local_lr, global_lr, init_len, init_sig, P, random_seed) in param_combinations:
         
         # Create new config based on base text
@@ -204,7 +204,7 @@ def generate_config_grid():
         config_text = update_config_parameter(config_text, 'n_inducing_points', n_inducing)
         config_text = update_config_parameter(config_text, 'encoder_hidden_dims', encoder_dims)
         config_text = update_config_parameter(config_text, 'training_iterations', training_iter)
-        config_text = update_config_parameter(config_text, 'batch_size', batch_size)
+        config_text = update_config_parameter(config_text, 'batch_fn_size', batch_fn_size)
         config_text = update_config_parameter(config_text, 'local_lr', local_lr)
         config_text = update_config_parameter(config_text, 'global_lr', global_lr)
         config_text = update_config_parameter(config_text, 'init_lengthscales', init_len)
@@ -218,7 +218,7 @@ def generate_config_grid():
         
         # Create filename
         filename = create_config_name(
-            n_inducing, encoder_dims, training_iter, batch_size,
+            n_inducing, encoder_dims, training_iter, batch_fn_size,
             local_lr, global_lr, init_len, init_sig, P, random_seed
         )
         output_path = os.path.join(output_folder, filename)
@@ -246,7 +246,7 @@ def generate_config_grid():
             n_inducing_points_values[0], 
             encoder_hidden_dims_values[0],
             training_iterations_values[0],
-            batch_size_values[0],
+            batch_fn_size_values[0],
             local_lr_values[0],
             global_lr_values[0],
             init_lengthscales_values[0],
