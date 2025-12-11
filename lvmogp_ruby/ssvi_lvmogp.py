@@ -192,6 +192,9 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         self.H_prior_mean = H_prior_mean.to(device)
         self.H_prior_var = H_prior_var.to(device)
         
+        # Initialize current batch function IDs (used in get_kl_x_from)
+        self._current_fn_ids_batch = torch.arange(num_fns, device=device)
+        
         # Override parent's encoder to only output H parameters (not full X_tilde)
         # Parent encoder outputs 2*A where A=Q_total, but we only need 2*Q_h
         self.encoder = self._build_encoder_for_H(encoder_hidden_dims)
@@ -519,33 +522,52 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         """
         Override parent's KL divergence computation for LVMOGP.
         
+        Matches LVMOGP.py KL formula and parent class pattern:
+        - Compute KL for each P sample
+        - Average over P samples (like parent's .mean(dim=0))
+        - Sum over functions and dimensions
+        
         For LVMOGP:
         - X_data is fixed (no KL needed)
         - Only H has KL divergence: KL[q(H) || p(H)]
+        - KL is computed per function (not per observation)
+        - Uses stored fn_ids_batch to compute KL only for current batch functions
         
         Parameters:
         -----------
-        mu_x : [P, batch_size, Q_total]
-            X_tilde mean (includes both X_data and H)
-        Sigma_x : [P, batch_size, Q_total]
-            X_tilde variance (includes both X_data and H)
+        mu_x : [P, batch_obs_count, Q_total]
+            X_tilde mean (not used - we use stored H_data_mean directly)
+        Sigma_x : [P, batch_obs_count, Q_total]
+            X_tilde variance (not used - we use stored H_data_var directly)
         """
-        # Extract H portion (last Q_h dimensions) from X_tilde
-        H_mean = mu_x[..., self.Q_x:]  # [P, batch_size, Q_h]
-        H_var = Sigma_x[..., self.Q_x:]  # [P, batch_size, Q_h]
+        # Get function IDs for current batch (stored during train_step)
+        fn_ids_batch = self._current_fn_ids_batch
+        batch_fn_size = len(fn_ids_batch)
         
-        # Prior: N(0, 1) - same shape as H (on correct device)
-        prior = torch.distributions.Normal(
-            torch.zeros(self.Q_h, device=self.device, dtype=torch.float64), 
-            torch.ones(self.Q_h, device=self.device, dtype=torch.float64)
-        )
+        # Get H parameters for functions in batch (already updated by encoder)
+        # H_data_mean: [P, num_fns, Q_h], H_data_var: [P, num_fns, Q_h]
+        H_mean_batch = self.H_data_mean[:, fn_ids_batch, :]  # [P, batch_fn_size, Q_h]
+        H_var_batch = self.H_data_var_positive[:, fn_ids_batch, :]  # [P, batch_fn_size, Q_h]
         
-        # Variational: N(H_mean, sqrt(H_var)) with shape [P, batch_size, Q_h]
-        variational = torch.distributions.Normal(H_mean, torch.sqrt(H_var))
+        # Get prior for functions in batch
+        H_prior_mean_batch = self.H_prior_mean[fn_ids_batch, :]  # [batch_fn_size, Q_h]
+        H_prior_var_batch = self.H_prior_var[fn_ids_batch, :]  # [batch_fn_size, Q_h]
         
-        # Compute KL divergence following parent class pattern:
-        # KL for each sample, then average over P, then sum over batch_size * Q_h
-        KL = torch.distributions.kl_divergence(variational, prior).mean(dim=0).sum()
+        # Compute KL for each P sample (matching parent class pattern)
+        # KL[N(mu_q, var_q) || N(mu_p, var_p)] = 
+        #   0.5 * [log(var_p) - log(var_q) + var_q/var_p + (mu_q - mu_p)^2/var_p - 1]
+        KL_per_sample = 0.5 * (
+            torch.log(H_prior_var_batch) - torch.log(H_var_batch)
+            + H_var_batch / H_prior_var_batch
+            + (H_mean_batch - H_prior_mean_batch).pow(2) / H_prior_var_batch
+            - 1.0
+        )  # [P, batch_fn_size, Q_h]
+        
+        # Average over P samples first (like parent's .mean(dim=0)), then sum
+        KL = KL_per_sample.mean(dim=0).sum()
+        
+        # Scale by num_fns / batch_fn_size to account for function-based batching
+        KL = KL * (self.num_fns / batch_fn_size)
         
         return KL
     
@@ -587,6 +609,9 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         # Sample U if not provided
         if U_samples is None:
             U_samples = self.get_u_samples()  # Returns [P, M, C, Lx] directly
+        
+        # Store fn_ids_batch for use in get_kl_x_from
+        self._current_fn_ids_batch = fn_ids_batch
         
         # Gather all observations for functions in batch
         batch_indices = self.get_obs_indices_for_fns(fn_ids_batch)
