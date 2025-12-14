@@ -139,6 +139,109 @@ def load_mnist_data():
     return n, d, q, X, Y, labels
 
 
+def load_fashion_mnist_data():
+    """
+    Load FashionMNIST data using PyTorch's torchvision.
+    Returns data in the same format as load_mnist_data for consistency.
+    
+    Returns
+    -------
+    n : int
+        Total number of samples (70000)
+    d : int
+        Data dimensionality (784 = 28*28)
+    q : None
+        Not used (for compatibility with load_real_data interface)
+    X : None
+        Not used (for compatibility with load_real_data interface)
+    Y : torch.Tensor
+        Image data flattened to vectors (70000 x 784), dtype=float64
+    labels : np.ndarray
+        Class labels 0-9 (70000,), dtype=int64
+    """
+    # Download FashionMNIST dataset using torchvision
+    train_dataset = datasets.FashionMNIST(root='./data/FashionMNIST', train=True, download=True)
+    test_dataset = datasets.FashionMNIST(root='./data/FashionMNIST', train=False, download=True)
+    
+    # Extract data and labels
+    train_data = train_dataset.data.numpy()  # (60000, 28, 28)
+    train_labels = train_dataset.targets.numpy()  # (60000,)
+    test_data = test_dataset.data.numpy()  # (10000, 28, 28)
+    test_labels = test_dataset.targets.numpy()  # (10000,)
+    
+    # Combine train and test datasets
+    Y = np.vstack([train_data.reshape(len(train_data), -1), 
+                   test_data.reshape(len(test_data), -1)])  # (70000, 784)
+    labels = np.hstack([train_labels, test_labels])  # (70000,)
+    
+    # Convert Y to torch tensor (float64 for precision), keep labels as numpy
+    Y = torch.tensor(Y, dtype=torch.float64)
+    
+    # Match original load_real_data interface
+    n = len(Y)  # 70000
+    d = len(Y.T)  # 784 (28*28)
+    q = X = None
+    
+    print(f"FashionMNIST data loaded: {n} samples, {d} dimensions (28x28 images)")
+    
+    return n, d, q, X, Y, labels
+
+
+def load_image_dataset(dataset_name, train_only=False, test_only=False):
+    """
+    Unified function to load MNIST or FashionMNIST datasets.
+    
+    Parameters
+    ----------
+    dataset_name : str
+        Either 'MNIST' or 'FashionMNIST'
+    train_only : bool
+        If True, returns only training data
+    test_only : bool
+        If True, returns only test data
+        
+    Returns
+    -------
+    Y : torch.Tensor
+        Image data flattened to vectors (N x 784), dtype=float64
+    labels : np.ndarray
+        Class labels (N,), dtype=int64
+    """
+    if dataset_name == 'MNIST':
+        dataset_class = datasets.MNIST
+        root = './data/MNIST'
+    elif dataset_name == 'FashionMNIST':
+        dataset_class = datasets.FashionMNIST
+        root = './data/FashionMNIST'
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}. Supported: 'MNIST', 'FashionMNIST'")
+    
+    Y_list = []
+    labels_list = []
+    
+    if not test_only:
+        train_dataset = dataset_class(root=root, train=True, download=True)
+        train_data = train_dataset.data.numpy().reshape(len(train_dataset), -1)
+        train_labels = train_dataset.targets.numpy()
+        Y_list.append(train_data)
+        labels_list.append(train_labels)
+    
+    if not train_only:
+        test_dataset = dataset_class(root=root, train=False, download=True)
+        test_data = test_dataset.data.numpy().reshape(len(test_dataset), -1)
+        test_labels = test_dataset.targets.numpy()
+        Y_list.append(test_data)
+        labels_list.append(test_labels)
+    
+    Y = np.vstack(Y_list)
+    labels = np.hstack(labels_list)
+    Y = torch.tensor(Y, dtype=torch.float64)
+    
+    print(f"{dataset_name} data loaded: {len(Y)} samples, {Y.shape[1]} dimensions")
+    
+    return Y, labels
+
+
 def filter_mnist_by_digits(Y, labels, selected_digits=None, samples_per_digit=None):
     """
     Filter MNIST data by specific digits and optionally limit samples per digit.
