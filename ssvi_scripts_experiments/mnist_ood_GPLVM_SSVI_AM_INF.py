@@ -82,6 +82,11 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     id_dataset: str = "FashionMNIST"  # In-distribution dataset: "MNIST" or "FashionMNIST"
     ood_samples: int = 1000            # Number of OOD samples for evaluation
     
+    # FashionMNIST filtering (separate from mnist_digits in parent class)
+    # Labels 0-9: T-shirt, Trouser, Pullover, Dress, Coat, Sandal, Shirt, Sneaker, Bag, Ankle boot
+    fashion_mnist_classes: list = None  # List of classes to include (e.g., [1, 2]). None = all classes
+    fashion_samples_per_class: int = None  # Samples per class. None = use all
+    
     # OOD Evaluation configuration
     ood_score_types: list = None       # Will be set to ['nlpd', 'rmse', 'variance'] if None
     n_ood_eval_samples: int = 32       # Number of samples for OOD score computation
@@ -90,6 +95,22 @@ class OODSSVIConfig(OilFlowSSVIConfig):
         super().__post_init__()
         if self.ood_score_types is None:
             self.ood_score_types = ['nlpd', 'rmse', 'variance']
+    
+    def get_id_filter_params(self):
+        """Get filtering parameters for in-distribution dataset"""
+        if self.id_dataset == "MNIST":
+            return self.mnist_digits, self.samples_per_digit
+        else:  # FashionMNIST
+            return self.fashion_mnist_classes, self.fashion_samples_per_class
+    
+    def get_ood_filter_params(self):
+        """Get filtering parameters for out-of-distribution dataset"""
+        if self.id_dataset == "MNIST":
+            # OOD is FashionMNIST
+            return self.fashion_mnist_classes, self.fashion_samples_per_class
+        else:
+            # OOD is MNIST
+            return self.mnist_digits, self.samples_per_digit
     
     def get_ood_dataset(self):
         """Get the OOD dataset name based on ID dataset"""
@@ -116,15 +137,14 @@ def load_ood_data(config: OODSSVIConfig):
     # Normalize to [0, 1]
     Y = Y / 255.0
     
-    # Apply digit/class filtering if configured
+    # Apply class filtering based on which dataset is ID
+    # Uses mnist_digits for MNIST, fashion_mnist_classes for FashionMNIST
+    id_classes, id_samples_per_class = config.get_id_filter_params()
     Y, labels = filter_mnist_by_digits(
         Y, labels, 
-        selected_digits=config.mnist_digits,
-        samples_per_digit=config.samples_per_digit
+        selected_digits=id_classes,
+        samples_per_digit=id_samples_per_class
     )
-
-    Y = Y[:100]
-    labels = labels[:100]
 
     N = len(Y)
     
@@ -170,7 +190,17 @@ def load_ood_data(config: OODSSVIConfig):
     Y_ood, labels_ood = load_image_dataset(ood_dataset, test_only=True)
     Y_ood = Y_ood / 255.0  # Normalize to [0, 1]
     
-    # Sample OOD data
+    # Apply class filtering for OOD dataset
+    # Uses fashion_mnist_classes for FashionMNIST, mnist_digits for MNIST
+    ood_classes, ood_samples_per_class = config.get_ood_filter_params()
+    if ood_classes is not None or ood_samples_per_class is not None:
+        Y_ood, labels_ood = filter_mnist_by_digits(
+            Y_ood, labels_ood, 
+            selected_digits=ood_classes,
+            samples_per_digit=ood_samples_per_class
+        )
+    
+    # Sample OOD data (additional limit via ood_samples parameter)
     n_ood = min(config.ood_samples, len(Y_ood))
     ood_indices = np.random.choice(len(Y_ood), n_ood, replace=False)
     y_ood = Y_ood[ood_indices].to(config.device)
@@ -417,7 +447,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                 if config.save_training_plots:
                     plot_filename = f"training_results_iter_{i}.png"
                     try:
-                        from src.mnist_plot_helper import visualize_ssvi_results
+                        from src.mnist_ood_plot_helper import visualize_ssvi_results
                         visualize_ssvi_results(
                             model=model,
                             y_train=y_train,
@@ -428,7 +458,9 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                             save_filename=plot_filename,
                             show_plot=False,
                             is_checkpoint=True,
-                            train_indices=split_data['train_indices']
+                            train_indices=split_data['train_indices'],
+                            dataset_name=config.id_dataset,
+                            is_ood=False
                         )
                         print(f"    Checkpoint plot saved: {plot_filename}")
                     except Exception as e:
@@ -577,15 +609,21 @@ def get_fast_config():
         enable_missing_data=False,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
-        # === Data Filtering Configuration ===
-        mnist_digits=[1, 2],
-        samples_per_digit=100,
+        # === MNIST Filtering (used when id_dataset="MNIST") ===
+        # Labels 0-9 = Digits 0-9
+        mnist_digits=[1, 2],        # Digits to include
+        samples_per_digit=100,      # Samples per digit
+        # === FashionMNIST Filtering (used when id_dataset="FashionMNIST") ===
+        # Labels: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
+        #         5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
+        fashion_mnist_classes=[1, 2],    # Classes to include (Trouser, Pullover)
+        fashion_samples_per_class=100,   # Samples per class
         # === Random Seed Configuration ===
         random_seed=7,
         # === Test Size Configuration ===
         test_size=0.2,
         # === OOD Configuration ===
-        id_dataset="FashionMNIST",
+        id_dataset="FashionMNIST",   # ID dataset (OOD will be the other)
         ood_samples=200,
         n_ood_eval_samples=16
     )
@@ -651,8 +689,12 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     # Visualize results
     print(f"\nVisualizing results...")
     try:
-        from src.mnist_plot_helper import visualize_ssvi_results
-        visualize_ssvi_results(model, y_train, labels_train, losses, config, logger, show_plot=False, train_indices=split_data['train_indices'])
+        from src.mnist_ood_plot_helper import visualize_ssvi_results
+        visualize_ssvi_results(
+            model, y_train, labels_train, losses, config, logger, 
+            show_plot=False, train_indices=split_data['train_indices'],
+            dataset_name=config.id_dataset, is_ood=False
+        )
     except Exception as e:
         print(f"Warning: Could not create latent space visualization: {e}")
     

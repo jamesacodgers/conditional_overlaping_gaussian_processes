@@ -186,12 +186,18 @@ def compute_nlpd_scores(model, Y: torch.Tensor, n_samples: int = 32) -> np.ndarr
         else:
             f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2
         
-        # Compute per-sample log probability under Gaussian
+        # Compute per-sample log probability under Gaussian (SAME as ssvi_metrics.py line 276)
         # log p(y | x) = -0.5 * (log(2*pi*var) + (y - mean)^2 / var)
         log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (Y - f_mean)**2 / f_var
         
-        # Sum over dimensions to get per-sample log prob
-        log_prob_per_sample = log_prob.sum(dim=-1)  # (N,)
+        # Sum over M dimension (observation dimensions) - same as ssvi_metrics.py line 277
+        log_prob = log_prob.sum(dim=-1)  # [P, N] or [N] depending on whether P exists
+        
+
+        if log_prob.dim() == 2:
+            log_prob_per_sample = log_prob.mean(dim=0)  # [N] - average over P samples
+        else:
+            log_prob_per_sample = log_prob  # [N] - already 1D
         
         # NLPD is negative log probability
         nlpd_scores = -log_prob_per_sample.cpu().numpy()
@@ -279,12 +285,20 @@ def compute_latent_variance_scores(model, Y: torch.Tensor) -> np.ndarray:
     with torch.no_grad():
         U_samples = model.get_u_samples()
         
-        Y_clean = torch.where(torch.isnan(Y), torch.full_like(Y, -9.0), Y)
+        Y_clean = torch.where(torch.isnan(Y), torch.full_like(Y, -9.0, dtype=torch.float64), Y)
         mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y_clean, U_samples)
         
+        # sigma_x may have shape [P, N, latent_dim] or [N, latent_dim]
         # Sum variance across latent dimensions for each sample
-        var_scores = sigma_x.sum(dim=-1).cpu().numpy()
+        var_scores = sigma_x.sum(dim=-1)  # [P, N] or [N]
+        
+        # If there's a P dimension, average over it to get per-sample scores [N]
+        if var_scores.dim() == 2:
+            var_scores = var_scores.mean(dim=0)  # [N]
+        
+        var_scores = var_scores.cpu().numpy()
     
+    model.train()
     return var_scores
 
 
