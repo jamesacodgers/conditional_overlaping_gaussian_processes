@@ -89,7 +89,7 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     
     # OOD Evaluation configuration
     ood_score_types: list = None       # Will be set to ['nlpd', 'rmse', 'variance'] if None
-    n_ood_eval_samples: int = 32       # Number of samples for OOD score computation
+    # Note: OOD score computation uses model.P (inducing samples) automatically
     
     def __post_init__(self):
         super().__post_init__()
@@ -517,8 +517,7 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODSSVIConfig, log
                 model=model,
                 id_test_data=split_data['y_test'],
                 ood_data=split_data['y_ood'],
-                score_type=score_type,
-                n_samples=config.n_ood_eval_samples
+                score_type=score_type
             )
             
             print(f"  AUROC: {metrics.auroc:.4f}")
@@ -624,8 +623,7 @@ def get_fast_config():
         test_size=0.2,
         # === OOD Configuration ===
         id_dataset="FashionMNIST",   # ID dataset (OOD will be the other)
-        ood_samples=200,
-        n_ood_eval_samples=16
+        ood_samples=200
     )
 
 
