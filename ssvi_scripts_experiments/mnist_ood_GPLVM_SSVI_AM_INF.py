@@ -504,7 +504,16 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODSSVIConfig, log
     print(f"\n=== OOD Detection Evaluation ===")
     print(f"ID Dataset: {config.id_dataset}")
     print(f"OOD Dataset: {config.get_ood_dataset()}")
-    print(f"ID Test samples: {split_data['y_test'].shape[0]}")
+    
+    # Use original test data (without missing values) for OOD evaluation
+    # This ensures fair comparison with OOD data which has no missing values
+    if config.enable_missing_data and 'y_test_original' in split_data:
+        id_test_data = split_data['y_test_original']
+        print(f"Using original test data (no missing values) for OOD evaluation")
+    else:
+        id_test_data = split_data['y_test']
+    
+    print(f"ID Test samples: {id_test_data.shape[0]}")
     print(f"OOD samples: {split_data['y_ood'].shape[0]}")
     
     ood_results = {}
@@ -515,7 +524,7 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODSSVIConfig, log
         try:
             metrics, id_scores, ood_scores = evaluate_ood_detection(
                 model=model,
-                id_test_data=split_data['y_test'],
+                id_test_data=id_test_data,
                 ood_data=split_data['y_ood'],
                 score_type=score_type
             )
@@ -605,7 +614,7 @@ def get_fast_config():
         init_lengthscales=1.0,
         init_output_noise_scale=1.0,
         # === Missing Data Configuration ===
-        enable_missing_data=False,
+        enable_missing_data=True,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
         # === MNIST Filtering (used when id_dataset="MNIST") ===
@@ -857,7 +866,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
             n_images=10,
             n_samples=5,
             save_path=simple_viz_path,
-            show_plot=False
+            show_plot=False,
+            dataset_name=config.id_dataset
         )
         
         # Detailed visualization (with mean and uncertainty)
@@ -870,7 +880,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
             n_images=10,
             n_samples=5,
             save_path=detailed_viz_path,
-            show_plot=False
+            show_plot=False,
+            dataset_name=config.id_dataset
         )
         
         print("=" * 50)
