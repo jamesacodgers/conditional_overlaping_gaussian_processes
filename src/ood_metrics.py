@@ -350,3 +350,245 @@ def evaluate_ood_detection(model, id_test_data: torch.Tensor,
     
     return metrics, id_scores, ood_scores
 
+
+# ============================================================================
+# Original GP-LVM OOD Score Functions (BayesianGPLVM from gpytorch)
+# ============================================================================
+
+def compute_nlpd_scores_original_gplvm(model, Y: torch.Tensor, X_mean: torch.Tensor,
+                                        X_covar: torch.Tensor, model_name: str,
+                                        obs_noise: torch.Tensor, n_samples: int = 64) -> np.ndarray:
+    """
+    Compute per-sample NLPD scores for Original GP-LVM (BayesianGPLVM).
+    Aligned with compute_nlpd_nll_based but returns per-sample scores.
+    
+    Parameters
+    ----------
+    model : BayesianGPLVM
+        Trained Original GP-LVM model
+    Y : torch.Tensor
+        Observations (N x D)
+    X_mean : torch.Tensor
+        Latent means (N x latent_dim)
+    X_covar : torch.Tensor
+        Latent covariances - std for gauss, cov matrices for nn_gauss
+    model_name : str
+        Model type: 'gauss' or 'nn_gauss'
+    obs_noise : torch.Tensor
+        Observation noise from likelihood
+    n_samples : int
+        Number of Monte Carlo samples
+        
+    Returns
+    -------
+    nlpd_scores : np.ndarray
+        Per-sample NLPD scores (N,)
+    """
+    model.eval()
+    
+    with torch.no_grad():
+        N = len(Y)
+        
+        # Process X_covar to get standard deviations
+        if model_name == 'nn_gauss':
+            X_std = torch.stack([torch.sqrt(x.diag()) for x in X_covar])  # [N, latent_dim]
+        else:  # gauss model
+            X_std = X_covar  # Already standard deviations
+        
+        x_dist = torch.distributions.Normal(X_mean, X_std)
+        
+        # Collect per-sample log probs across Monte Carlo samples
+        all_log_probs = []
+        for _ in range(n_samples):
+            x_sample = x_dist.rsample()  # [N, latent_dim]
+            
+            # Get GP prediction
+            Y_star = model(x_sample)
+            f_mean = Y_star.loc  # [D, N] - GP output is transposed
+            f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, N]
+            
+            # Add observation noise
+            f_var_full = f_var + obs_noise  # [D, N]
+            
+            # Compute log probability: log N(Y | f_mean, f_var_full)
+            # Y is [N, D], f_mean is [D, N], so transpose Y to [D, N]
+            Y_T = Y.T  # [D, N]
+            log_prob = -0.5 * torch.log(2 * torch.pi * f_var_full) - 0.5 * (Y_T - f_mean) ** 2 / f_var_full
+            
+            # Sum over dimensions for each sample [N]
+            log_prob_sum = log_prob.sum(dim=0)
+            all_log_probs.append(log_prob_sum)
+        
+        # Stack and average over MC samples
+        all_log_probs = torch.stack(all_log_probs)  # [n_samples, N]
+        log_pred_density = all_log_probs.mean(dim=0)  # [N]
+        
+        # NLPD is negative log probability
+        nlpd_scores = -log_pred_density.cpu().numpy()
+    
+    model.train()
+    return nlpd_scores
+
+
+def compute_reconstruction_error_scores_original_gplvm(model, Y: torch.Tensor,
+                                                        X_mean: torch.Tensor,
+                                                        X_covar: torch.Tensor,
+                                                        model_name: str,
+                                                        n_samples: int = 64) -> np.ndarray:
+    """
+    Compute per-sample reconstruction error (RMSE) scores for Original GP-LVM.
+    
+    Parameters
+    ----------
+    model : BayesianGPLVM
+        Trained Original GP-LVM model
+    Y : torch.Tensor
+        Observations (N x D)
+    X_mean : torch.Tensor
+        Latent means (N x latent_dim)
+    X_covar : torch.Tensor
+        Latent covariances
+    model_name : str
+        Model type: 'gauss' or 'nn_gauss'
+    n_samples : int
+        Number of Monte Carlo samples
+        
+    Returns
+    -------
+    rmse_scores : np.ndarray
+        Per-sample RMSE scores (N,)
+    """
+    model.eval()
+    
+    with torch.no_grad():
+        # Process X_covar to get standard deviations
+        if model_name == 'nn_gauss':
+            X_std = torch.stack([torch.sqrt(x.diag()) for x in X_covar])
+        else:  # gauss model
+            X_std = X_covar
+        
+        x_dist = torch.distributions.Normal(X_mean, X_std)
+        
+        # Collect reconstructions
+        all_recons = []
+        for _ in range(n_samples):
+            x_sample = x_dist.rsample()
+            Y_star = model(x_sample)
+            y_pred = Y_star.loc.T  # [N, D] - transpose from [D, N]
+            all_recons.append(y_pred)
+        
+        # Average reconstructions
+        y_pred_mean = torch.stack(all_recons).mean(dim=0)  # [N, D]
+        
+        # Compute per-sample RMSE
+        sq_error = (Y - y_pred_mean) ** 2
+        rmse_scores = torch.sqrt(sq_error.sum(dim=-1)).cpu().numpy()  # [N]
+    
+    model.train()
+    return rmse_scores
+
+
+def compute_latent_variance_scores_original_gplvm(model, Y: torch.Tensor,
+                                                   X_covar: torch.Tensor,
+                                                   model_name: str) -> np.ndarray:
+    """
+    Compute latent variance scores for Original GP-LVM OOD detection.
+    
+    Parameters
+    ----------
+    model : BayesianGPLVM
+        Trained Original GP-LVM model
+    Y : torch.Tensor
+        Observations (N x D) - needed for nn_gauss encoder
+    X_covar : torch.Tensor
+        Latent covariances
+    model_name : str
+        Model type: 'gauss' or 'nn_gauss'
+        
+    Returns
+    -------
+    var_scores : np.ndarray
+        Per-sample variance scores (N,) - sum of latent variances
+    """
+    model.eval()
+    
+    with torch.no_grad():
+        if model_name == 'nn_gauss':
+            # For nn_gauss, X_covar contains covariance matrices
+            # Sum diagonal elements (variances) across latent dimensions
+            var_scores = torch.stack([x.diag().sum() for x in X_covar]).cpu().numpy()
+        else:  # gauss model
+            # X_covar is standard deviations, square to get variances
+            var_scores = (X_covar ** 2).sum(dim=-1).cpu().numpy()
+    
+    model.train()
+    return var_scores
+
+
+def evaluate_ood_detection_original_gplvm(model, id_test_data: torch.Tensor,
+                                           ood_data: torch.Tensor,
+                                           id_X_mean: torch.Tensor,
+                                           id_X_covar: torch.Tensor,
+                                           ood_X_mean: torch.Tensor,
+                                           ood_X_covar: torch.Tensor,
+                                           model_name: str,
+                                           obs_noise: torch.Tensor,
+                                           score_type: str = 'nlpd',
+                                           n_samples: int = 64) -> Tuple[OODMetrics, np.ndarray, np.ndarray]:
+    """
+    Evaluate OOD detection for Original GP-LVM.
+    
+    Parameters
+    ----------
+    model : BayesianGPLVM
+        Trained Original GP-LVM model
+    id_test_data : torch.Tensor
+        In-distribution test data (N_id x D)
+    ood_data : torch.Tensor
+        Out-of-distribution data (N_ood x D)
+    id_X_mean, id_X_covar : torch.Tensor
+        Latent representations for ID test data
+    ood_X_mean, ood_X_covar : torch.Tensor
+        Latent representations for OOD data
+    model_name : str
+        Model type: 'gauss' or 'nn_gauss'
+    obs_noise : torch.Tensor
+        Observation noise from likelihood
+    score_type : str
+        Type of OOD score: 'nlpd', 'rmse', or 'variance'
+    n_samples : int
+        Number of samples for score computation
+        
+    Returns
+    -------
+    metrics : OODMetrics
+        OOD detection metrics
+    id_scores : np.ndarray
+        Scores for in-distribution samples
+    ood_scores : np.ndarray
+        Scores for OOD samples
+    """
+    if score_type == 'nlpd':
+        id_scores = compute_nlpd_scores_original_gplvm(
+            model, id_test_data, id_X_mean, id_X_covar, model_name, obs_noise, n_samples)
+        ood_scores = compute_nlpd_scores_original_gplvm(
+            model, ood_data, ood_X_mean, ood_X_covar, model_name, obs_noise, n_samples)
+    elif score_type == 'rmse':
+        id_scores = compute_reconstruction_error_scores_original_gplvm(
+            model, id_test_data, id_X_mean, id_X_covar, model_name, n_samples)
+        ood_scores = compute_reconstruction_error_scores_original_gplvm(
+            model, ood_data, ood_X_mean, ood_X_covar, model_name, n_samples)
+    elif score_type == 'variance':
+        id_scores = compute_latent_variance_scores_original_gplvm(
+            model, id_test_data, id_X_covar, model_name)
+        ood_scores = compute_latent_variance_scores_original_gplvm(
+            model, ood_data, ood_X_covar, model_name)
+    else:
+        raise ValueError(f"Unknown score type: {score_type}. "
+                        f"Supported: 'nlpd', 'rmse', 'variance'")
+    
+    # Compute metrics
+    metrics = compute_all_ood_metrics(id_scores, ood_scores)
+    
+    return metrics, id_scores, ood_scores
+
