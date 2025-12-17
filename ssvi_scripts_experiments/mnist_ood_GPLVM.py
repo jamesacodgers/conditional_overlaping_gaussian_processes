@@ -464,7 +464,7 @@ def get_fast_config():
         init_lengthscales=2.0,
         init_output_noise_scale=2.0,
         # === Missing Data Configuration ===
-        enable_missing_data=True,
+        enable_missing_data=False,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
         # === MNIST Filtering (used when id_dataset="MNIST") ===
