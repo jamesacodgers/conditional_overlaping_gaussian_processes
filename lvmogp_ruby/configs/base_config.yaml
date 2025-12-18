@@ -29,7 +29,7 @@ lik_variance_scale: 0.01  # Multiplier for data variance to set likelihood noise
 
 # === Training Configuration ===
 training_iterations: 15000
-batch_size: 324  # Will be capped at data size
+batch_fn_size: 4  # Number of functions per batch (all observations for each function are used)
 
 # === Learning Rates ===
 local_lr: 0.0001  # Encoder parameters (1e-4)

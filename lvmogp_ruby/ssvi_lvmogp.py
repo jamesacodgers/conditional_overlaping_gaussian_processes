@@ -192,6 +192,9 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         self.H_prior_mean = H_prior_mean.to(device)
         self.H_prior_var = H_prior_var.to(device)
         
+        # Initialize current batch function IDs (used in get_kl_x_from)
+        self._current_fn_ids_batch = torch.arange(num_fns, device=device)
+        
         # Override parent's encoder to only output H parameters (not full X_tilde)
         # Parent encoder outputs 2*A where A=Q_total, but we only need 2*Q_h
         self.encoder = self._build_encoder_for_H(encoder_hidden_dims)
@@ -421,9 +424,32 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         return H_mean_batch, H_var_batch
     
-    def infer_H_for_batch(self, Y_batch, batch_indices, U_samples):
+    def get_obs_indices_for_fns(self, fn_ids_batch):
         """
-        Orchestrate Neural Processes encoding for all functions in batch.
+        Get observation indices for a batch of function IDs.
+        
+        Parameters:
+        -----------
+        fn_ids_batch : torch.Tensor [batch_fn_size]
+            Function IDs to gather observations for
+            
+        Returns:
+        --------
+        batch_indices : torch.Tensor [batch_obs_count]
+            Indices of all observations belonging to functions in fn_ids_batch
+        """
+        # Use torch.isin for efficient membership check
+        batch_mask = torch.isin(self.X_data_fn, fn_ids_batch)
+        batch_indices = torch.where(batch_mask)[0]
+        return batch_indices
+    
+    def infer_H_for_batch(self, Y_batch, batch_indices, fn_ids_batch, U_samples):
+        """
+        Orchestrate Neural Processes encoding for functions in batch.
+        
+        With function-based batching:
+        - fn_ids_batch specifies which functions to process
+        - ALL observations for each function are used
         
         For each function:
         1. Gather all observations for that function
@@ -434,30 +460,30 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         Parameters:
         -----------
-        Y_batch : [batch_size, M]
-            Batch of observations
-        batch_indices : [batch_size]
-            Indices of observations
+        Y_batch : [batch_obs_count, M]
+            Observations for all functions in batch
+        batch_indices : [batch_obs_count]
+            Indices of observations in full dataset
+        fn_ids_batch : torch.Tensor [batch_fn_size]
+            Function IDs being processed in this batch
         U_samples : [P, M, C, Lx]
             Samples from q(u)
             
         Returns:
         --------
-        X_tilde_mean : [P, batch_size, Q_total]
-        X_tilde_var : [P, batch_size, Q_total]
+        X_tilde_mean : [P, batch_obs_count, Q_total]
+        X_tilde_var : [P, batch_obs_count, Q_total]
         """
-        # Get function IDs and X_data for batch
-        X_data_fn_batch = self.X_data_fn[batch_indices]
-        X_batch = self.X_data[batch_indices]  # [batch_size, Q_x]
+        # Get X_data and function IDs for batch observations
+        X_batch = self.X_data[batch_indices]  # [batch_obs_count, Q_x]
+        X_data_fn_batch = self.X_data_fn[batch_indices]  # [batch_obs_count]
         
         # Initialize H mean and var for ALL functions from stored values
         H_mean_all = self.H_data_mean.clone()  # [P, num_fns, Q_h]
         H_var_all = self.H_data_var.clone()  # [P, num_fns, Q_h]
         
         # For each function in batch, apply Neural Processes encoding
-        unique_fns = torch.unique(X_data_fn_batch)
-        
-        for fn_id in unique_fns:
+        for fn_id in fn_ids_batch:
             # Get all observations for this function in batch
             fn_mask = (X_data_fn_batch == fn_id)
             Y_fn = Y_batch[fn_mask]  # [n_obs_fn, M]
@@ -496,51 +522,74 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         """
         Override parent's KL divergence computation for LVMOGP.
         
+        Matches LVMOGP.py KL formula and parent class pattern:
+        - Compute KL for each P sample
+        - Average over P samples (like parent's .mean(dim=0))
+        - Sum over functions and dimensions
+        
         For LVMOGP:
         - X_data is fixed (no KL needed)
         - Only H has KL divergence: KL[q(H) || p(H)]
+        - KL is computed per function (not per observation)
+        - Uses stored fn_ids_batch to compute KL only for current batch functions
         
         Parameters:
         -----------
-        mu_x : [P, batch_size, Q_total]
-            X_tilde mean (includes both X_data and H)
-        Sigma_x : [P, batch_size, Q_total]
-            X_tilde variance (includes both X_data and H)
+        mu_x : [P, batch_obs_count, Q_total]
+            X_tilde mean (not used - we use stored H_data_mean directly)
+        Sigma_x : [P, batch_obs_count, Q_total]
+            X_tilde variance (not used - we use stored H_data_var directly)
         """
-        # Extract H portion (last Q_h dimensions) from X_tilde
-        H_mean = mu_x[..., self.Q_x:]  # [P, batch_size, Q_h]
-        H_var = Sigma_x[..., self.Q_x:]  # [P, batch_size, Q_h]
+        # Get function IDs for current batch (stored during train_step)
+        fn_ids_batch = self._current_fn_ids_batch
+        batch_fn_size = len(fn_ids_batch)
         
-        # Prior: N(0, 1) - same shape as H (on correct device)
-        prior = torch.distributions.Normal(
-            torch.zeros(self.Q_h, device=self.device, dtype=torch.float64), 
-            torch.ones(self.Q_h, device=self.device, dtype=torch.float64)
-        )
+        # Get H parameters for functions in batch (already updated by encoder)
+        # H_data_mean: [P, num_fns, Q_h], H_data_var: [P, num_fns, Q_h]
+        H_mean_batch = self.H_data_mean[:, fn_ids_batch, :]  # [P, batch_fn_size, Q_h]
+        H_var_batch = self.H_data_var_positive[:, fn_ids_batch, :]  # [P, batch_fn_size, Q_h]
         
-        # Variational: N(H_mean, sqrt(H_var)) with shape [P, batch_size, Q_h]
-        variational = torch.distributions.Normal(H_mean, torch.sqrt(H_var))
+        # Get prior for functions in batch
+        H_prior_mean_batch = self.H_prior_mean[fn_ids_batch, :]  # [batch_fn_size, Q_h]
+        H_prior_var_batch = self.H_prior_var[fn_ids_batch, :]  # [batch_fn_size, Q_h]
         
-        # Compute KL divergence following parent class pattern:
-        # KL for each sample, then average over P, then sum over batch_size * Q_h
-        KL = torch.distributions.kl_divergence(variational, prior).mean(dim=0).sum()
+        # Compute KL for each P sample (matching parent class pattern)
+        # KL[N(mu_q, var_q) || N(mu_p, var_p)] = 
+        #   0.5 * [log(var_p) - log(var_q) + var_q/var_p + (mu_q - mu_p)^2/var_p - 1]
+        KL_per_sample = 0.5 * (
+            torch.log(H_prior_var_batch) - torch.log(H_var_batch)
+            + H_var_batch / H_prior_var_batch
+            + (H_mean_batch - H_prior_mean_batch).pow(2) / H_prior_var_batch
+            - 1.0
+        )  # [P, batch_fn_size, Q_h]
+        
+        # Average over P samples first (like parent's .mean(dim=0)), then sum
+        KL = KL_per_sample.mean(dim=0).sum()
+        
+        # Scale by num_fns / batch_fn_size to account for function-based batching
+        KL = KL * (self.num_fns / batch_fn_size)
         
         return KL
     
-    def train_step(self, Y_batch, batch_indices, U_samples=None):
+    def train_step(self, Y_full, fn_ids_batch, U_samples=None):
         """
-        Training step for LVMOGP following LVMOGP.py mathematical structure.
+        Training step for LVMOGP with function-based batching.
+        
+        Batch is defined by function IDs. All observations for each function
+        in the batch are processed together.
         
         Uses GPLVM_SSVI_AM_INF's computational machinery but with LVMOGP structure:
-        1. Infer H parameters from Y using encoder
-        2. Construct X_tilde = [X_data, H[fn_id]] via fill_Hs()
-        3. Compute ELBO using parent's ssvi_elbo with X_tilde
+        1. Gather all observations for functions in fn_ids_batch
+        2. Infer H parameters from Y using encoder
+        3. Construct X_tilde = [X_data, H[fn_id]] via fill_Hs()
+        4. Compute ELBO using parent's ssvi_elbo with X_tilde
         
         Parameters:
         -----------
-        Y_batch : [batch_size, M]
-            Batch of observations
-        batch_indices : [batch_size]
-            Indices of observations in batch
+        Y_full : [N, M]
+            Full observation tensor for all data
+        fn_ids_batch : torch.Tensor or list [batch_fn_size]
+            Function IDs to process in this batch
         U_samples : [P, M, C, Lx]
             Samples from q(u)
             
@@ -549,8 +598,9 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         loss : float
             Negative ELBO (loss value)
         """
-        # Convert to float64
-        Y_batch = Y_batch.to(dtype=torch.float64)
+        # Convert fn_ids_batch to tensor if needed
+        if not isinstance(fn_ids_batch, torch.Tensor):
+            fn_ids_batch = torch.tensor(fn_ids_batch, device=self.device, dtype=torch.long)
         
         # Zero gradients
         self.optimizer_local.zero_grad()
@@ -560,8 +610,17 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         if U_samples is None:
             U_samples = self.get_u_samples()  # Returns [P, M, C, Lx] directly
         
+        # Store fn_ids_batch for use in get_kl_x_from
+        self._current_fn_ids_batch = fn_ids_batch
+        
+        # Gather all observations for functions in batch
+        batch_indices = self.get_obs_indices_for_fns(fn_ids_batch)
+        Y_batch = Y_full[batch_indices].to(dtype=torch.float64)
+        
         # Amortized inference: infer H and construct X_tilde
-        X_tilde_mean, X_tilde_var = self.infer_H_for_batch(Y_batch, batch_indices, U_samples)
+        X_tilde_mean, X_tilde_var = self.infer_H_for_batch(
+            Y_batch, batch_indices, fn_ids_batch, U_samples
+        )
         
         # Handle missing data
         missing_mask = torch.isnan(Y_batch)
