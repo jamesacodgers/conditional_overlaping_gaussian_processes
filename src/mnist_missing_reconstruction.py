@@ -58,10 +58,11 @@ def visualize_mnist_missing_reconstruction(
     n_images: int = 10,
     n_samples: int = 5,
     save_path: Optional[str] = None,
-    show_plot: bool = False
+    show_plot: bool = False,
+    dataset_name: str = "MNIST"
 ):
     """
-    Visualize MNIST missing data reconstruction with original, masked, and reconstructed images.
+    Visualize MNIST/FashionMNIST missing data reconstruction with original, masked, and reconstructed images.
     
     Args:
         model: Trained SSVI GP-LVM model with missing data support
@@ -72,6 +73,7 @@ def visualize_mnist_missing_reconstruction(
         n_samples: Number of reconstruction samples per image (default: 5)
         save_path: Path to save the visualization (optional)
         show_plot: Whether to display the plot (default: False)
+        dataset_name: Name of the dataset for plot title (default: "MNIST")
     """
     model.eval()
     
@@ -158,7 +160,7 @@ def visualize_mnist_missing_reconstruction(
     
     # Add overall title
     missing_pct = (mask_batch.sum() / mask_batch.numel() * 100).item()
-    fig.suptitle(f'MNIST Missing Data Reconstruction ({missing_pct:.1f}% missing)', 
+    fig.suptitle(f'{dataset_name} Missing Data Reconstruction ({missing_pct:.1f}% missing)', 
                  fontsize=14, y=0.995)
     
     plt.tight_layout()
@@ -200,7 +202,8 @@ def visualize_mnist_missing_reconstruction_detailed(
     n_images: int = 10,
     n_samples: int = 5,
     save_path: Optional[str] = None,
-    show_plot: bool = False
+    show_plot: bool = False,
+    dataset_name: str = "MNIST"
 ):
     """
     Enhanced visualization with RMSE per image and uncertainty visualization.
@@ -214,6 +217,7 @@ def visualize_mnist_missing_reconstruction_detailed(
         n_samples: Number of reconstruction samples per image (default: 5)
         save_path: Path to save the visualization (optional)
         show_plot: Whether to display the plot (default: False)
+        dataset_name: Name of the dataset for plot title (default: "MNIST")
     """
     model.eval()
     
@@ -340,7 +344,7 @@ def visualize_mnist_missing_reconstruction_detailed(
     # Add overall title
     missing_pct = (mask_batch.sum() / mask_batch.numel() * 100).item()
     mean_rmse = np.mean(rmse_per_image) if rmse_per_image else 0.0
-    fig.suptitle(f'MNIST Missing Data Reconstruction ({missing_pct:.1f}% missing, Mean Missing RMSE: {mean_rmse:.4f})', 
+    fig.suptitle(f'{dataset_name} Missing Data Reconstruction ({missing_pct:.1f}% missing, Mean Missing RMSE: {mean_rmse:.4f})', 
                  fontsize=14, y=0.995)
     
     # Use subplots_adjust to leave space for colorbar and avoid tight_layout warning
