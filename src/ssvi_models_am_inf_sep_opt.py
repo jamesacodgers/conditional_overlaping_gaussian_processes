@@ -315,8 +315,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         kernel_train_outer_expectation = kernel_train_outer_expectation[..., 0, 0, :, :]  # [P, N, L, L] since C=1 for GP-LVM
 
         # Reshape U from [P, M, C, L] to [P, M, C*L]
-        Pn = U_samples.shape[0]
-        u_vec = U_samples.reshape(Pn, self.M, self.C * self.Lx)
+        u_vec = U_samples.reshape(self.P, self.M, self.C * self.Lx)
 
         Ma = (u_vec[:, :, :, None] * u_vec[:, :, None, :] - K_VV[None, :, :]) # [P, M, L, L]
         Ma = (K_VV_inv_matrix @ Ma @ K_VV_inv_matrix.transpose(-2, -1))

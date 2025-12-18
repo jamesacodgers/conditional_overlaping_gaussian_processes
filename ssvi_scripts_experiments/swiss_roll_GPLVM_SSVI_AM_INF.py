@@ -60,7 +60,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     print("Loading Swiss roll data...")
     
     # Generate Swiss roll data (consistent with swiss_roll_GPLVM.py)
-    n_samples = 1000
+    n_samples = 10000
     Y, X_true, labels = generate_swiss_roll_data(n_samples=n_samples, noise=0.1, random_state=config.random_seed)
     
     print(f"Generated Swiss Roll data: {Y.shape[0]} samples, {Y.shape[1]} dimensions")
