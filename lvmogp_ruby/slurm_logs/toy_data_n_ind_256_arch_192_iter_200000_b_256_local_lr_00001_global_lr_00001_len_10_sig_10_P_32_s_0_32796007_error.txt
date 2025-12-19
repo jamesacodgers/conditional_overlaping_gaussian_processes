@@ -1,0 +1,30 @@
+/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/lib64/python3.12/site-packages/torch/_compile.py:53: UserWarning: optimizer contains a parameter group with duplicate parameters; in future, this will cause an error; see github.com/pytorch/pytorch/issues/40967 for more information
+  return disable_fn(*args, **kwargs)
+Traceback (most recent call last):
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/toy_data_LVMOGP_SSVI.py", line 909, in <module>
+    main(config, config_name)
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/toy_data_LVMOGP_SSVI.py", line 712, in main
+    losses, iterations_list = train_model(model, Y_torch, config, logger, test_fun, n_points, n_fun)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/toy_data_LVMOGP_SSVI.py", line 418, in train_model
+    loss = model.train_step(Y_batch, indices)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/ssvi_lvmogp.py", line 588, in train_step
+    loss.backward()
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/lib64/python3.12/site-packages/torch/_tensor.py", line 638, in backward
+    return handle_torch_function(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/lib64/python3.12/site-packages/torch/overrides.py", line 1725, in handle_torch_function
+    result = mode.__torch_function__(public_api, types, args, kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/lib64/python3.12/site-packages/torch/utils/_device.py", line 103, in __torch_function__
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/lib64/python3.12/site-packages/torch/_tensor.py", line 647, in backward
+    torch.autograd.backward(
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/lib64/python3.12/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/ictstr01/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/lib64/python3.12/site-packages/torch/autograd/graph.py", line 829, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 12.00 GiB. GPU 0 has a total capacity of 79.18 GiB of which 1.91 GiB is free. Including non-PyTorch memory, this process has 77.26 GiB memory in use. Of the allocated memory 72.27 GiB is allocated by PyTorch, and 3.98 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)

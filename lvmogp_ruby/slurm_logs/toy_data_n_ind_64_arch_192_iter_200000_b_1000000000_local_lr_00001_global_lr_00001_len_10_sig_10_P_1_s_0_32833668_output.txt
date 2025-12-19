@@ -1,0 +1,138 @@
+==========================================
+Job started at: Sun Dec  7 09:12:34 AM CET 2025
+Running on node: gpusrv71.scidom.de
+Job ID: 32833668
+Job name: toy_data_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0
+Config: n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0.yaml
+GPUs allocated: 1
+==========================================
+
+Executing: python toy_data_LVMOGP_SSVI.py --config "/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2//n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0.yaml" --device cuda
+
+Loading configuration from: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2//n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0.yaml
+Results will be saved to config directory: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results
+Using configuration: n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0
+Configuration loaded and merged with command line arguments
+============================================================
+=== SSVI LVMOGP Configuration ===
+Device: cuda
+CUDA available: NVIDIA A100 80GB PCIe
+Random seed: 0
+Data: 12 functions total (2 observed + 10 new)
+Model: 64 inducing points, latent_dim=2
+Encoder: [128, 64] hidden dims
+Training: 200000 iter, batch=1000000000
+Learning rates: Local=0.0001, Global=0.0001
+SSVI: P=1 samples
+Results dir: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/toy_data_lvmogp_ssvi
+============================================================
+Results directory created: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417
+  Plots: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots
+  Checkpoints: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints
+  Training results: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/training_results
+Results will be saved to: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417
+Configuration saved to: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/config.json
+
+=== Generating Data ===
+Data generated: 320 total observations
+  Functions: 12 (2 observed + 10 new)
+  Input dimension: 1
+  Output dimension: 1
+
+=== Creating Model ===
+Model created on device: cuda
+  Encoder: Sequential(
+  (0): Linear(in_features=128, out_features=128, bias=True)
+  (1): ReLU()
+  (2): Linear(in_features=128, out_features=64, bias=True)
+  (3): ReLU()
+  (4): Linear(in_features=64, out_features=4, bias=True)
+)
+  Inducing points: torch.Size([64, 3])
+  Q_x (observed dims): 1, Q_h (latent dims): 2, Q_total: 3
+  Likelihood variance: 0.017272
+
+=== Training Model ===
+Training on cuda: 200000 iterations, batch_size=320
+Iteration 1/200000: Loss = 20877.8083, Time = 9.6s
+Iteration 500/200000: Loss = 15622.3157, Time = 31.2s
+Iteration 1000/200000: Loss = 12793.6751, Time = 52.7s
+Iteration 1500/200000: Loss = 10250.0221, Time = 74.2s
+Iteration 2000/200000: Loss = 7745.6998, Time = 95.7s
+Iteration 2500/200000: Loss = 7319.4900, Time = 117.3s
+  Saving checkpoint plots at iteration 2500...
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/predictions_iter_2500.png
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/latent_space_iter_2500.png
+Iteration 3000/200000: Loss = 8329.5324, Time = 140.1s
+Iteration 3500/200000: Loss = 7188.5966, Time = 161.6s
+Iteration 4000/200000: Loss = 9482.8862, Time = 183.1s
+Iteration 4500/200000: Loss = 5856.0459, Time = 204.5s
+Iteration 5000/200000: Loss = 6950.6788, Time = 225.9s
+  Saving checkpoint plots at iteration 5000...
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/predictions_iter_5000.png
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/latent_space_iter_5000.png
+Iteration 5500/200000: Loss = 4805.0765, Time = 248.8s
+Iteration 6000/200000: Loss = 4662.3480, Time = 270.1s
+Iteration 6500/200000: Loss = 4231.0993, Time = 291.4s
+Iteration 7000/200000: Loss = 4100.1438, Time = 313.4s
+Iteration 7500/200000: Loss = 4393.2164, Time = 334.7s
+  Saving checkpoint plots at iteration 7500...
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/predictions_iter_7500.png
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/latent_space_iter_7500.png
+Iteration 8000/200000: Loss = 2317.2475, Time = 357.4s
+Iteration 8500/200000: Loss = 2425.6858, Time = 378.7s
+Iteration 9000/200000: Loss = 2083.7882, Time = 400.0s
+Iteration 9500/200000: Loss = 1704.2755, Time = 421.3s
+Iteration 10000/200000: Loss = 1673.9154, Time = 442.6s
+  Saving checkpoint plots at iteration 10000...
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/predictions_iter_10000.png
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/latent_space_iter_10000.png
+Iteration 10500/200000: Loss = 1637.8152, Time = 465.5s
+Iteration 11000/200000: Loss = 2443.6623, Time = 486.9s
+Iteration 11500/200000: Loss = 2902.9537, Time = 508.3s
+Iteration 12000/200000: Loss = 1818.8806, Time = 529.7s
+Iteration 12500/200000: Loss = 1971.9409, Time = 551.1s
+  Saving checkpoint plots at iteration 12500...
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/predictions_iter_12500.png
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/latent_space_iter_12500.png
+Iteration 13000/200000: Loss = 1839.6852, Time = 573.9s
+Iteration 13500/200000: Loss = 1585.5031, Time = 595.4s
+Iteration 14000/200000: Loss = 3202.6137, Time = 617.0s
+Iteration 14500/200000: Loss = 2009.9743, Time = 638.4s
+Iteration 15000/200000: Loss = 1441.8363, Time = 659.7s
+  Saving checkpoint plots at iteration 15000...
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/predictions_iter_15000.png
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/latent_space_iter_15000.png
+Iteration 15500/200000: Loss = 1407.0251, Time = 682.7s
+Iteration 16000/200000: Loss = 1843.9045, Time = 704.1s
+Iteration 16500/200000: Loss = 1748.0776, Time = 725.5s
+Iteration 17000/200000: Loss = 1701.7637, Time = 747.0s
+Iteration 17500/200000: Loss = 1509.1591, Time = 768.4s
+  Saving checkpoint plots at iteration 17500...
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/predictions_iter_17500.png
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/latent_space_iter_17500.png
+Iteration 18000/200000: Loss = 1376.3016, Time = 791.2s
+Iteration 18500/200000: Loss = 1665.6772, Time = 812.7s
+Iteration 19000/200000: Loss = 1262.9299, Time = 834.2s
+Iteration 19500/200000: Loss = 2393.6867, Time = 855.7s
+Iteration 20000/200000: Loss = 1510.5297, Time = 877.2s
+  Saving checkpoint plots at iteration 20000...
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/predictions_iter_20000.png
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/latent_space_iter_20000.png
+Iteration 20500/200000: Loss = 2061.8295, Time = 899.9s
+Iteration 21000/200000: Loss = 1428.7743, Time = 921.4s
+Iteration 21500/200000: Loss = 1608.9233, Time = 943.0s
+Iteration 22000/200000: Loss = 2212.6900, Time = 964.6s
+Iteration 22500/200000: Loss = 1492.9079, Time = 986.0s
+  Saving checkpoint plots at iteration 22500...
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/predictions_iter_22500.png
+  Plot saved: /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/lvmogp_ruby/configs/full_batch_v2/toy_data_run_results/lvmogp_n_ind_64_arch_192_iter_200000_b_1000000000_local_lr_00001_global_lr_00001_len_10_sig_10_P_1_s_0_seed_0_20251207_091417/plots/checkpoints/latent_space_iter_22500.png
+Iteration 23000/200000: Loss = 1459.5901, Time = 1009.0s
+Iteration 23500/200000: Loss = 1413.8004, Time = 1030.5s
+Iteration 24000/200000: Loss = 1557.8439, Time = 1051.9s
+Iteration 24500/200000: Loss = 1234.6462, Time = 1073.3s
+
+==========================================
+Job finished at: Sun Dec  7 09:33:13 AM CET 2025
+Exit code: 1
+==========================================
