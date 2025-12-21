@@ -359,12 +359,52 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
     def Sigma_x(self): 
         return self.Sigma_x_train
     
+    @torch.no_grad()
+    def compute_full_elbo(self, y_full: torch.Tensor, missing_mask: torch.Tensor = None) -> float:
+        """
+        Compute ELBO on full dataset (for metrics and plots, not optimization).
+        
+        Args:
+            y_full: Full dataset [N, M]
+            missing_mask: Optional boolean mask for missing data [N, M]
+            
+        Returns:
+            Full dataset ELBO value (scalar)
+        """
+        # Sample U for ELBO computation
+        U_samples = self.get_u_samples()
+        
+        # Handle missing data preprocessing for encoder input
+        if self.enable_missing_data and missing_mask is not None:
+            # Replace NaN values with -9.0 for encoder input
+            y_clean = torch.where(torch.isnan(y_full), torch.full_like(y_full, -9.0, dtype=torch.float64), y_full)
+        else:
+            y_clean = y_full
+            missing_mask = None
+        
+        # Get latent parameters via amortized inference
+        mu_n, sigma_n = self.get_mu_sigma_x_train_samples(y_clean, U_samples)
+        
+        # Compute full dataset ELBO (batch_size == total_size for full dataset)
+        N = y_full.shape[0]
+        if self.enable_missing_data and missing_mask is not None:
+            full_mask = torch.isnan(y_full)
+            elbo = self.ssvi_elbo(y_clean, mu_n, sigma_n, U_samples, 
+                                  batch_size=N, total_size=N, missing_mask=full_mask)
+        else:
+            elbo = self.ssvi_elbo(y_clean, mu_n, sigma_n, U_samples,
+                                  batch_size=N, total_size=N, missing_mask=None)
+        
+        return elbo.item()
+    
 
 
 def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfig,
                         logger: SSVIResultsLogger = None, split_data=None, labels_train=None):
     """Training function for SSVI GP-LVM with optional logging and metrics"""
-    losses = []
+    losses = []  # Batch ELBO losses (for training monitoring)
+    full_elbo_losses = []  # Full dataset ELBO (for metrics and plots)
+    full_elbo_iterations = []  # Iterations at which full ELBO was computed
     
     print(f"Training {config.id_dataset} SSVI GP-LVM...")
     print(f"Iterations: {config.training_iterations}, Batch size: {config.batch_size}")
@@ -393,8 +433,21 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
             i % config.metrics_frequency == 0):
             
             print(f"  Computing metrics at iteration {i}...")
+            
+            # Compute full dataset ELBO (for metrics and plots)
+            if config.enable_missing_data:
+                full_elbo = model.compute_full_elbo(
+                    split_data['y_train'], 
+                    missing_mask=split_data['train_missing_mask']
+                )
+            else:
+                full_elbo = model.compute_full_elbo(split_data['y_train'])
+            
+            full_elbo_losses.append(full_elbo)
+            full_elbo_iterations.append(i)
+            print(f"    Full Dataset ELBO: {full_elbo:.4f} (batch ELBO: {loss:.4f})")
 
-                # Use full datasets for proper evaluation
+            # Use full datasets for proper evaluation
             # Compute metrics with missing data info if enabled
             if config.enable_missing_data:
                 metrics = metrics_computer.compute_full_metrics(
@@ -402,7 +455,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                     y_train=split_data['y_train'],
                     y_test=split_data['y_test'],
                     iteration=i,
-                    elbo_loss=loss,
+                    elbo_loss=full_elbo,  # Use full dataset ELBO
                     n_samples=32,  # Fixed number of samples for metrics computation
                     y_train_original=split_data['y_train_original'],
                     y_test_original=split_data['y_test_original'],
@@ -415,7 +468,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                     y_train=split_data['y_train'],
                     y_test=split_data['y_test'],
                     iteration=i,
-                    elbo_loss=loss,
+                    elbo_loss=full_elbo,  # Use full dataset ELBO
                     n_samples=32  # Fixed number of samples for metrics computation
                 )
             
@@ -448,11 +501,12 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                     plot_filename = f"training_results_iter_{i}.png"
                     try:
                         from src.mnist_ood_plot_helper import visualize_ssvi_results
+                        # Use full ELBO losses for checkpoint plots
                         visualize_ssvi_results(
                             model=model,
                             y_train=y_train,
                             labels_train=labels_train,
-                            losses=losses,
+                            losses=full_elbo_losses,  # Use full dataset ELBO for plots
                             config=config,
                             logger=logger,
                             save_filename=plot_filename,
@@ -486,15 +540,36 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                 logger.log_training(message)
     
     total_time = time.time() - start_time
-    final_message = f"Training completed! Final Loss: {losses[-1]:.4f}, Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)"
+    
+    # Compute final full dataset ELBO
+    if config.enable_missing_data and split_data is not None:
+        final_full_elbo = model.compute_full_elbo(
+            split_data['y_train'], 
+            missing_mask=split_data['train_missing_mask']
+        )
+    elif split_data is not None:
+        final_full_elbo = model.compute_full_elbo(split_data['y_train'])
+    else:
+        final_full_elbo = model.compute_full_elbo(y_train)
+    
+    full_elbo_losses.append(final_full_elbo)
+    full_elbo_iterations.append(config.training_iterations)
+    
+    final_message = f"Training completed! Final Full ELBO: {final_full_elbo:.4f} (batch ELBO: {losses[-1]:.4f}), Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)"
     print(f"Training completed!")
-    print(f"Final Loss: {losses[-1]:.4f}")
+    print(f"Final Full Dataset ELBO: {final_full_elbo:.4f}")
+    print(f"Final Batch ELBO: {losses[-1]:.4f}")
     print(f"Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)")
     # Log to file
     if logger:
         logger.log_training(final_message)
     
-    return losses, metrics_computer
+    # Return full ELBO losses for plots (with iterations for x-axis)
+    return {
+        'batch_losses': losses,
+        'full_elbo_losses': full_elbo_losses,
+        'full_elbo_iterations': full_elbo_iterations
+    }, metrics_computer
 
 
 # === OOD Evaluation Functions ===
@@ -691,14 +766,19 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     
     # Train model
     print(f"\nTraining model...")
-    losses, metrics_computer = train_oil_flow_ssvi(model, y_train, config, logger, split_data, labels_train)
+    training_result, metrics_computer = train_oil_flow_ssvi(model, y_train, config, logger, split_data, labels_train)
     
-    # Visualize results
+    # Extract losses from training result
+    batch_losses = training_result['batch_losses']
+    full_elbo_losses = training_result['full_elbo_losses']
+    full_elbo_iterations = training_result['full_elbo_iterations']
+    
+    # Visualize results (use full ELBO losses for plots)
     print(f"\nVisualizing results...")
     try:
         from src.mnist_ood_plot_helper import visualize_ssvi_results
         visualize_ssvi_results(
-            model, y_train, labels_train, losses, config, logger, 
+            model, y_train, labels_train, full_elbo_losses, config, logger, 
             show_plot=False, train_indices=split_data['train_indices'],
             dataset_name=config.id_dataset, is_ood=False
         )
@@ -714,13 +794,16 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         print("Computing final metrics on full datasets...")
         
         # Compute final metrics with missing data info if enabled
+        # Use final full ELBO for metrics (not batch ELBO)
+        final_full_elbo = full_elbo_losses[-1] if full_elbo_losses else 0.0
+        
         if config.enable_missing_data:
             final_metrics = metrics_computer.compute_full_metrics(
                 model=model,
                 y_train=split_data['y_train'],
                 y_test=split_data['y_test'],
                 iteration=config.training_iterations,
-                elbo_loss=losses[-1] if losses else 0.0,
+                elbo_loss=final_full_elbo,
                 n_samples=32,
                 y_train_original=split_data['y_train_original'],
                 y_test_original=split_data['y_test_original'],
@@ -733,7 +816,7 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
                 y_train=split_data['y_train'],
                 y_test=split_data['y_test'],
                 iteration=config.training_iterations,
-                elbo_loss=losses[-1] if losses else 0.0,
+                elbo_loss=final_full_elbo,
                 n_samples=32
             )
         
@@ -777,8 +860,11 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         if logger:
             print("Saving checkpoint metrics...")
             logger.save_checkpoint_metrics(metrics_computer, "ood_ssvi", config.random_seed)
-            print("Saving training losses...")
-            logger.save_training_losses(losses, "ood_ssvi", config.random_seed)
+            print("Saving training losses (full dataset ELBO)...")
+            # Save full ELBO losses (for metrics/plots)
+            logger.save_training_losses(full_elbo_losses, "ood_ssvi_full_elbo", config.random_seed)
+            # Also save batch losses for reference
+            logger.save_training_losses(batch_losses, "ood_ssvi_batch", config.random_seed)
 
     # === OOD Detection Evaluation ===
     print("\n" + "=" * 60)
@@ -839,7 +925,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
                 'test_missing_data_nlpd': summary.get('final_test_missing_nlpd', float('nan')),
                 'train_missing_data_rmse': summary.get('final_train_missing_rmse', float('nan')),
                 'test_missing_data_rmse': summary.get('final_test_missing_rmse', float('nan')),
-                'final_loss': losses[-1] if losses else 0.0,
+                'final_full_elbo': full_elbo_losses[-1] if full_elbo_losses else 0.0,
+                'final_batch_loss': batch_losses[-1] if batch_losses else 0.0,
                 'final_noise': float(final_noise)
             }
             
@@ -886,7 +973,7 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         
         print("=" * 50)
     
-    return model, losses, config, metrics_computer, final_metrics, ood_results
+    return model, training_result, config, metrics_computer, final_metrics, ood_results
 
 
 def create_ood_argument_parser():
