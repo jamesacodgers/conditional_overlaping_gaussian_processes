@@ -82,7 +82,7 @@ from src.missing_data_utils import preprocess_data_for_missing_training, rmse_mi
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
 from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset
-from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed, visualize_prior_samples_original_gplvm
 
 # Import OOD metrics
 from src.ood_metrics import (
@@ -1152,6 +1152,22 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     results_summary[model_name][f'ood_{score_type}_auroc'] = result['metrics']['auroc']
                     results_summary[model_name][f'ood_{score_type}_auprc'] = result['metrics']['auprc']
                     results_summary[model_name][f'ood_{score_type}_fpr80'] = result['metrics']['fpr_at_80_tpr']
+            
+            # Generate prior samples visualization
+            print(f"\n=== Prior Samples Visualization ({model_name}) ===")
+            plots_dir = os.path.join(logger.get_results_dir(), "plots")
+            os.makedirs(plots_dir, exist_ok=True)
+            prior_samples_path = os.path.join(plots_dir, f"prior_samples_{model_name}_{config.random_seed}.png")
+            visualize_prior_samples_original_gplvm(
+                model=model,
+                likelihood=likelihood,
+                n_images=8,
+                save_path=prior_samples_path,
+                show_plot=False,
+                dataset_name=config.id_dataset,
+                image_shape=(28, 28)
+            )
+            print("=" * 50)
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)

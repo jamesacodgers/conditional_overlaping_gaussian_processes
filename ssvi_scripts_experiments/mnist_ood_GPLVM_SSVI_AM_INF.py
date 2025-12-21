@@ -51,7 +51,7 @@ from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metri
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
-from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction, visualize_mnist_missing_reconstruction_detailed
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction, visualize_mnist_missing_reconstruction_detailed, visualize_prior_samples
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
@@ -972,6 +972,19 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         )
         
         print("=" * 50)
+    
+    # Generate prior samples visualization (works for both MNIST and FashionMNIST)
+    print("\n=== Prior Samples Visualization ===")
+    prior_samples_path = os.path.join(logger.plots_dir, f"prior_samples_{config.random_seed}.png")
+    visualize_prior_samples(
+        model=model,
+        n_images=8,
+        save_path=prior_samples_path,
+        show_plot=False,
+        dataset_name=config.id_dataset,
+        image_shape=(28, 28)  # MNIST/FashionMNIST image shape
+    )
+    print("=" * 50)
     
     return model, training_result, config, metrics_computer, final_metrics, ood_results
 
