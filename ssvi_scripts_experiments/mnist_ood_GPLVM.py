@@ -82,7 +82,7 @@ from src.missing_data_utils import preprocess_data_for_missing_training, rmse_mi
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
 from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset
-from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed, visualize_prior_samples_original_gplvm
 
 # Import OOD metrics
 from src.ood_metrics import (
@@ -300,15 +300,17 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
     # Get test and OOD data
     Y_test = split_data['y_test']
     y_ood = split_data['y_ood']
+    Y_train = split_data['y_train']
     
     print(f"ID Test samples: {Y_test.shape[0]}")
     print(f"OOD samples: {y_ood.shape[0]}")
     
-    # Get latent representations for test data
-    model.eval()
-    with torch.no_grad():
-        if model_name == 'nn_gauss':
-            # For nn_gauss, need to temporarily adjust jitter size for different batch sizes
+    # Get latent representations
+    if model_name == 'nn_gauss':
+        # For nn_gauss, use encoder directly (no optimization needed)
+        model.eval()
+        with torch.no_grad():
+            # Temporarily adjust jitter size for different batch sizes
             original_jitter = model.X.jitter
             latent_dim = config.latent_dim
             
@@ -341,24 +343,50 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
             
             # Restore original jitter
             model.X.jitter = original_jitter
-        else:  # gauss model - need to optimize latent variables for new data
-            # For test data, we already have optimized latent variables from training
-            # Get from the trained test model's X
-            if 'test_X_mean' in split_data and 'test_X_covar' in split_data:
-                test_X_mean = split_data['test_X_mean']
-                test_X_covar = split_data['test_X_covar']
-            else:
-                # Fallback: use model's training latent - this won't work well for OOD
-                print("  Warning: Using training latent for test - OOD detection may be inaccurate for gauss model")
+    
+    else:  # gauss model - need to optimize latent variables for new data
+        # For test data, we already have optimized latent variables from training
+        if 'test_X_mean' in split_data and 'test_X_covar' in split_data:
+            test_X_mean = split_data['test_X_mean']
+            test_X_covar = split_data['test_X_covar']
+        else:
+            # Fallback: use model's training latent - this won't work well for OOD
+            print("  Warning: Using training latent for test - OOD detection may be inaccurate for gauss model")
+            with torch.no_grad():
                 test_X_mean = model.X.q_mu.detach()[:len(Y_test)]
                 test_X_covar = torch.nn.functional.softplus(model.X.q_log_sigma).detach()[:len(Y_test)]
+        
+        # For OOD data, optimize new latent variables (same as test data optimization)
+        print("  Optimizing latent representations for OOD data (gauss model)...")
+        
+        # Create prior for OOD data using PCA initialization
+        mu_x_ood_pca, _, _ = torch.pca_lowrank(y_ood, config.latent_dim)
+        prior_x_ood = NormalPrior(mu_x_ood_pca, torch.ones_like(mu_x_ood_pca, dtype=torch.float64))
+        
+        try:
+            # Optimize latent variables for OOD data (same as test optimization)
+            losses_ood, X_ood = model.predict_latent(
+                Y_train, y_ood, 
+                config.learning_rate, 
+                likelihood, 
+                config.random_seed,
+                prior_x=prior_x_ood, 
+                ae=False, 
+                model_name='gauss',
+                pca=config.pca_init, 
+                steps=config.test_iterations
+            )
             
-            # For OOD data, we need to optimize new latent variables
-            # This is expensive, so we'll use PCA initialization as a proxy
-            print("  Computing latent representations for OOD data (gauss model)...")
-            mu_x_ood, _, _ = torch.pca_lowrank(y_ood, config.latent_dim)
-            ood_X_mean = mu_x_ood
-            # Use unit variance as a reasonable estimate for unseen data
+            # Extract optimized latent variables
+            ood_X_mean = X_ood.q_mu.detach()
+            ood_X_covar = torch.nn.functional.softplus(X_ood.q_log_sigma).detach()
+            
+            print(f"  OOD latent optimization completed. Final loss: {losses_ood[-1]:.4f}")
+            
+        except Exception as e:
+            print(f"  Warning: OOD latent optimization failed: {e}")
+            print("  Falling back to PCA initialization...")
+            ood_X_mean = mu_x_ood_pca
             ood_X_covar = torch.ones_like(ood_X_mean)
     
     obs_noise = likelihood.noise
@@ -1124,6 +1152,22 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     results_summary[model_name][f'ood_{score_type}_auroc'] = result['metrics']['auroc']
                     results_summary[model_name][f'ood_{score_type}_auprc'] = result['metrics']['auprc']
                     results_summary[model_name][f'ood_{score_type}_fpr80'] = result['metrics']['fpr_at_80_tpr']
+            
+            # Generate prior samples visualization
+            print(f"\n=== Prior Samples Visualization ({model_name}) ===")
+            plots_dir = os.path.join(logger.get_results_dir(), "plots")
+            os.makedirs(plots_dir, exist_ok=True)
+            prior_samples_path = os.path.join(plots_dir, f"prior_samples_{model_name}_{config.random_seed}.png")
+            visualize_prior_samples_original_gplvm(
+                model=model,
+                likelihood=likelihood,
+                n_images=8,
+                save_path=prior_samples_path,
+                show_plot=False,
+                dataset_name=config.id_dataset,
+                image_shape=(28, 28)
+            )
+            print("=" * 50)
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)
