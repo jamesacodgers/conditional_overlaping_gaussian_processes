@@ -669,7 +669,9 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         model.get_trainable_param_names()
     
         # Training loop
-        loss_list = []
+        loss_list = []  # Batch losses (negative ELBO)
+        full_loss_list = []  # Full dataset losses (negative ELBO)
+        full_loss_iterations = []  # Iterations at which full loss was computed
         noise_trace = []
         
         # Metrics tracking
@@ -679,7 +681,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         train_missing_rmse_list = []
         effective_dims_list = []
         metrics_iterations = []
-        metrics_losses = []
+        metrics_losses = []  # Will store full dataset losses
         
         iterator = trange(steps_per_model[model_name], leave=True)
         batch_size = config.batch_size
@@ -710,6 +712,24 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 try:
                     with torch.no_grad():
                         model.eval()
+                        
+                        # Compute full dataset loss (negative ELBO)
+                        if model_name in ['point', 'map', 'gauss']:
+                            full_sample = model.sample_latent_variable()
+                        else:
+                            if config.enable_missing_data:
+                                Y_train_for_encoder_full = Y_train.clone()
+                                Y_train_for_encoder_full[torch.isnan(Y_train_for_encoder_full)] = -999.0
+                                full_sample = model.sample_latent_variable(Y_train_for_encoder_full)
+                            else:
+                                full_sample = model.sample_latent_variable(Y_train)
+                        full_output = model(full_sample)
+                        full_elbo = elbo(full_output, Y_train.T).sum()
+                        full_loss = -full_elbo.item()  # Store as negative ELBO (loss)
+                        full_loss_list.append(full_loss)
+                        full_loss_iterations.append(i)
+                        print(f"  Full Dataset Loss: {full_loss:.4f} (batch loss: {loss.item():.4f})")
+                        
                         if config.enable_missing_data and model_name == 'nn_gauss':
                             Y_train_for_encoder = Y_train.clone()
                             Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
@@ -785,7 +805,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         train_missing_rmse_list.append(float(train_missing_rmse) if train_missing_rmse is not None else float('nan'))
                         effective_dims_list.append(effective_dims)
                         metrics_iterations.append(i)
-                        metrics_losses.append(float(loss.item()))
+                        metrics_losses.append(full_loss)  # Use full dataset loss instead of batch loss
                         
                         print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, Effective dims: {effective_dims}/{total_dims}")
                         
@@ -800,12 +820,34 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 try:
                     from src.mnist_ood_plot_helper import save_iteration_model, create_iteration_plot
                     save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
-                    create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False)
+                    # Use full_loss_list for checkpoint plots (consistent with SSVI)
+                    create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False)
                 except Exception as e:
                     print(f"  Warning: Could not create iteration plot at iteration {i}: {e}")
         model.store(loss_list, likelihood)
         
-        logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
+        # Compute final full dataset loss if not already computed at last iteration
+        if not full_loss_list or full_loss_iterations[-1] != steps_per_model[model_name] - 1:
+            with torch.no_grad():
+                model.eval()
+                if model_name in ['point', 'map', 'gauss']:
+                    full_sample = model.sample_latent_variable()
+                else:
+                    if config.enable_missing_data:
+                        Y_train_for_encoder_full = Y_train.clone()
+                        Y_train_for_encoder_full[torch.isnan(Y_train_for_encoder_full)] = -999.0
+                        full_sample = model.sample_latent_variable(Y_train_for_encoder_full)
+                    else:
+                        full_sample = model.sample_latent_variable(Y_train)
+                full_output = model(full_sample)
+                final_full_elbo = elbo(full_output, Y_train.T).sum()
+                final_full_loss = -final_full_elbo.item()
+                full_loss_list.append(final_full_loss)
+                full_loss_iterations.append(steps_per_model[model_name])
+                model.train()
+        
+        final_full_loss = full_loss_list[-1] if full_loss_list else loss_list[-1]
+        logger.log_training(f"Training completed for {model_name}. Final full loss: {final_full_loss:.4f} (batch loss: {loss_list[-1]:.4f})")
         
         # Save metrics progression plot
         if logger.get_results_dir() and train_rmse_list and train_nlpd_list:
@@ -847,7 +889,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         if logger.get_results_dir():
             try:
                 from src.mnist_ood_plot_helper import create_standardized_scattered_plot
-                create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type=config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), dataset_name=config.id_dataset, is_ood=False)
+                # Use full_loss_list for final plots (consistent with SSVI)
+                create_standardized_scattered_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type=config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), dataset_name=config.id_dataset, is_ood=False)
             except Exception as e:
                 print(f"Warning: Could not create standardized scattered plot: {e}")
                 print(f"Skipping plot creation.")
@@ -1076,7 +1119,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_missing_nlpd': test_missing_nlpd_value,
                 'train_missing_rmse': train_missing_rmse_value,
                 'test_missing_rmse': test_missing_rmse_value,
-                'final_loss': float(loss_list[-1]),
+                'final_batch_loss': float(loss_list[-1]),
+                'final_full_loss': float(full_loss_list[-1]) if full_loss_list else float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
             
