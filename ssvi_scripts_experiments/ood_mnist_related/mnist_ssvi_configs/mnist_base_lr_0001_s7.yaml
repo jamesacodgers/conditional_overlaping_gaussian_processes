@@ -49,24 +49,21 @@ random_seed: 7  # Random seed for reproducibility (matches original GP-LVM base 
 # Visualization Configuration
 save_training_plots: true
 
-# === MNIST Data Filtering Configuration ===
-# Used when id_dataset="MNIST" for ID, or for OOD when ID is FashionMNIST
-# Labels 0-9 = Digits 0-9
-# null = all 10 digits, with samples_per_digit each → 5000 total samples
-mnist_digits: null              # Digits to include, e.g., [1, 2]. null = all digits (0-9)
-samples_per_digit: 500          # Samples per digit
-
-# === FashionMNIST Data Filtering Configuration ===
-# Used when id_dataset="FashionMNIST" for ID, or for OOD when ID is MNIST
-# Labels: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
-#         5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
-# null = all 10 classes, with fashion_samples_per_class each → 5000 total samples
-fashion_mnist_classes: null     # Classes to include, e.g., [1, 2]. null = all classes
-fashion_samples_per_class: 500  # Samples per class
-
 # === OOD Detection Configuration ===
-id_dataset: "FashionMNIST"      # In-distribution dataset: "MNIST" or "FashionMNIST"
-ood_samples: 1000               # Number of OOD samples for evaluation
+# In-Distribution (ID) Dataset Configuration
+id_dataset: "FashionMNIST"      # ID dataset name: "MNIST" or "FashionMNIST"
+id_classes: null                # ID class indices (null = all classes)
+                                # FashionMNIST classes: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
+                                #                       5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
+id_samples_per_class: 500       # Samples per ID class (null = use all)
+
+# Out-of-Distribution (OOD) Dataset Configuration
+ood_dataset: "MNIST"             # OOD dataset name (must be explicitly specified)
+ood_classes: null               # OOD class indices (null = all classes)
+                                # MNIST classes: 0-9 = Digits 0-9
+ood_samples_per_class: 500     # Samples per OOD class (null = use all)
+
+# OOD Score Types
 ood_score_types:                # Score types to compute for OOD detection
   - nlpd
   - rmse

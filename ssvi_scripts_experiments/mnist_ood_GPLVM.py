@@ -4,9 +4,14 @@
 MNIST OOD Detection with Original GP-LVM (BayesianGPLVM)
 
 Extended from mnist_GPLVM.py to add OOD detection capability.
-Evaluates on dataset pairs:
-- FashionMNIST (in-distribution) vs MNIST (OOD)
-- MNIST (in-distribution) vs FashionMNIST (OOD)
+
+Supports two OOD modes:
+1. Cross-dataset OOD: ID and OOD from different datasets
+   - FashionMNIST (in-distribution) vs MNIST (OOD)
+   - MNIST (in-distribution) vs FashionMNIST (OOD)
+2. Same-dataset OOD (class-based): ID and OOD from same dataset, different classes
+   - Example: 8 FashionMNIST classes (ID) vs 2 held-out classes (OOD)
+   - Supports splits: (0,1), (2,3), (4,5), (6,7), (8,9) as held-out OOD classes
 
 OOD Metrics computed:
 - AUROC (Area Under ROC Curve)
@@ -17,11 +22,21 @@ OOD Metrics computed:
    models = ['gauss','nn_gauss']
 
 Usage examples:
-    # Run with default fast config
+    # Run with default fast config (cross-dataset: FashionMNIST as ID, MNIST as OOD)
     python ssvi_scripts_experiments/mnist_ood_GPLVM.py
     
-    # Run with MNIST as in-distribution
+    # Run with MNIST as in-distribution (cross-dataset: MNIST as ID, FashionMNIST as OOD)
     python ssvi_scripts_experiments/mnist_ood_GPLVM.py --id-dataset MNIST
+    
+    # Same-dataset OOD: 8 FashionMNIST classes as ID, classes 8,9 as OOD
+    python ssvi_scripts_experiments/mnist_ood_GPLVM.py \\
+        --id-dataset FashionMNIST --id-classes 0 1 2 3 4 5 6 7 \\
+        --ood-dataset FashionMNIST --ood-classes 8 9
+    
+    # Same-dataset OOD with convenience flag
+    python ssvi_scripts_experiments/mnist_ood_GPLVM.py \\
+        --id-dataset FashionMNIST --id-classes 0 1 2 3 4 5 6 7 \\
+        --same-dataset-ood --ood-classes 8 9
     
     # Run with base config
     python ssvi_scripts_experiments/mnist_ood_GPLVM.py --config ssvi_scripts_experiments/original_gp_lvm_configs/base_lr_0001_s7.yaml
@@ -97,18 +112,43 @@ plt.style.use('ggplot')
 # === OOD-Specific Configuration Extension ===
 @dataclass
 class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
-    """Extended configuration for OOD detection experiments with Original GP-LVM"""
-    # OOD Dataset configuration
-    id_dataset: str = "FashionMNIST"  # In-distribution dataset: "MNIST" or "FashionMNIST"
-    ood_samples: int = 1000            # Number of OOD samples for evaluation
+    """Extended configuration for OOD detection experiments with Original GP-LVM.
     
-    # FashionMNIST filtering (separate from mnist_digits in parent class)
-    # Labels 0-9: T-shirt, Trouser, Pullover, Dress, Coat, Sandal, Shirt, Sneaker, Bag, Ankle boot
-    fashion_mnist_classes: List[int] = None  # List of classes to include (e.g., [1, 2]). None = all classes
-    fashion_samples_per_class: int = None  # Samples per class. None = use all
+    Supports two OOD modes:
+    1. Cross-dataset OOD: ID and OOD from different datasets (MNIST vs FashionMNIST)
+    2. Same-dataset OOD: ID and OOD from same dataset but different classes
+       Example: 8 FashionMNIST classes as ID, 2 classes as OOD
+    
+    Configuration:
+    - id_dataset: Name of in-distribution dataset ("MNIST" or "FashionMNIST")
+    - id_classes: List of class indices for ID (None = all classes)
+    - id_samples_per_class: Samples per ID class (None = use all)
+    - ood_dataset: Name of OOD dataset (must be explicitly specified: "MNIST" or "FashionMNIST")
+    - ood_classes: List of class indices for OOD (None = all classes)
+    - ood_samples_per_class: Samples per OOD class (None = use all)
+    
+    Examples:
+    ---------
+    Cross-dataset OOD (FashionMNIST ID, MNIST OOD):
+        id_dataset="FashionMNIST", id_classes=[0,1,2,3,4,5,6,7,8,9],
+        ood_dataset="MNIST"
+    
+    Same-dataset OOD (8 FashionMNIST classes ID, 2 classes OOD):
+        id_dataset="FashionMNIST", id_classes=[0,1,2,3,4,5,6,7],
+        ood_dataset="FashionMNIST", ood_classes=[8,9]
+    """
+    # === In-Distribution (ID) Dataset Configuration ===
+    id_dataset: str = "FashionMNIST"      # ID dataset name: "MNIST" or "FashionMNIST"
+    id_classes: List[int] = None           # ID class indices (None = all classes)
+    id_samples_per_class: int = None       # Samples per ID class (None = use all)
+    
+    # === Out-of-Distribution (OOD) Dataset Configuration ===
+    ood_dataset: str = "MNIST"            # OOD dataset name (must be explicitly specified)
+    ood_classes: List[int] = None          # OOD class indices (None = all classes)
+    ood_samples_per_class: int = None      # Samples per OOD class (None = use all)
     
     # OOD Evaluation configuration
-    ood_score_types: List[str] = None       # Will be set to ['nlpd', 'rmse', 'variance'] if None
+    ood_score_types: List[str] = None      # Will be set to ['nlpd', 'rmse', 'variance'] if None
     
     def __post_init__(self):
         super().__post_init__()
@@ -117,31 +157,34 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
     
     def get_id_filter_params(self):
         """Get filtering parameters for in-distribution dataset"""
-        if self.id_dataset == "MNIST":
-            return self.mnist_digits, self.samples_per_digit
-        else:  # FashionMNIST
-            return self.fashion_mnist_classes, self.fashion_samples_per_class
+        return self.id_classes, self.id_samples_per_class
     
     def get_ood_filter_params(self):
         """Get filtering parameters for out-of-distribution dataset"""
-        if self.id_dataset == "MNIST":
-            # OOD is FashionMNIST
-            return self.fashion_mnist_classes, self.fashion_samples_per_class
-        else:
-            # OOD is MNIST
-            return self.mnist_digits, self.samples_per_digit
+        return self.ood_classes, self.ood_samples_per_class
     
     def get_ood_dataset(self):
-        """Get the OOD dataset name based on ID dataset"""
-        return "MNIST" if self.id_dataset == "FashionMNIST" else "FashionMNIST"
+        """Get the OOD dataset name (always explicitly specified)."""
+        return self.ood_dataset
+    
+    def is_same_dataset_ood(self):
+        """Check if ID and OOD are from the same dataset (class-based OOD)"""
+        return self.ood_dataset == self.id_dataset
     
     def print_config(self):
         """Print configuration summary including OOD settings"""
         super().print_config()
         print("=== OOD Detection Configuration ===")
         print(f"In-Distribution Dataset: {self.id_dataset}")
+        print(f"  ID Classes: {self.id_classes if self.id_classes else 'all'}")
+        print(f"  ID Samples/Class: {self.id_samples_per_class if self.id_samples_per_class else 'all'}")
         print(f"OOD Dataset: {self.get_ood_dataset()}")
-        print(f"OOD Samples: {self.ood_samples}")
+        print(f"  OOD Classes: {self.ood_classes if self.ood_classes else 'all'}")
+        print(f"  OOD Samples/Class: {self.ood_samples_per_class if self.ood_samples_per_class else 'all'}")
+        if self.is_same_dataset_ood():
+            print(f"  Mode: Same-dataset OOD (class-based)")
+        else:
+            print(f"  Mode: Cross-dataset OOD")
         print(f"OOD Score Types: {self.ood_score_types}")
         print("=" * 50)
 
@@ -201,7 +244,10 @@ class MNISTModel(BayesianGPLVM):
 def load_ood_data(config: OODOriginalGPLVMConfig):
     """Load and preprocess data with train/test split, plus OOD data.
     
-    Shared data loading function aligned with SSVI version.
+    Supports two OOD modes:
+    1. Cross-dataset OOD: ID and OOD from different datasets (e.g., FashionMNIST vs MNIST)
+    2. Same-dataset OOD: ID and OOD from same dataset but different classes
+       (e.g., 8 FashionMNIST classes as ID, 2 as OOD)
     """
     print(f"Loading {config.id_dataset} data as in-distribution...")
     
@@ -211,7 +257,7 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     # Normalize to [0, 1]
     Y = Y / 255.0
     
-    # Apply class filtering based on which dataset is ID
+    # Apply ID class filtering
     id_classes, id_samples_per_class = config.get_id_filter_params()
     Y, labels = filter_mnist_by_digits(
         Y, labels, 
@@ -222,6 +268,8 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     N = len(Y)
     
     print(f"Using {N} {config.id_dataset} samples for training/testing")
+    if id_classes is not None:
+        print(f"  ID classes: {id_classes}")
     
     # Ensure data is on CPU before converting to numpy for sklearn
     Y_cpu = Y.cpu() if Y.is_cuda else Y
@@ -252,11 +300,17 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     
     # === Load OOD data ===
     ood_dataset = config.get_ood_dataset()
-    print(f"\nLoading {ood_dataset} data as OOD...")
+    is_same_dataset = config.is_same_dataset_ood()
+    
+    if is_same_dataset:
+        print(f"\nLoading {ood_dataset} data as OOD (same-dataset, different classes)...")
+    else:
+        print(f"\nLoading {ood_dataset} data as OOD (cross-dataset)...")
+    
     Y_ood, labels_ood = load_image_dataset(ood_dataset, test_only=True)
     Y_ood = Y_ood / 255.0  # Normalize to [0, 1]
     
-    # Apply class filtering for OOD dataset
+    # Apply OOD class filtering
     ood_classes, ood_samples_per_class = config.get_ood_filter_params()
     if ood_classes is not None or ood_samples_per_class is not None:
         Y_ood, labels_ood = filter_mnist_by_digits(
@@ -265,11 +319,11 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
             samples_per_digit=ood_samples_per_class
         )
     
-    # Sample OOD data (additional limit via ood_samples parameter)
-    n_ood = min(config.ood_samples, len(Y_ood))
-    ood_indices = np.random.choice(len(Y_ood), n_ood, replace=False)
-    y_ood = Y_ood[ood_indices].to(config.device)
-    labels_ood = labels_ood[ood_indices]
+    if ood_classes is not None:
+        print(f"  OOD classes: {ood_classes}")
+    
+    # Use all OOD data (no additional sampling limit)
+    y_ood = Y_ood.to(config.device)
     
     print(f"OOD data shape: {y_ood.shape}")
 
@@ -476,7 +530,10 @@ def plot_ood_score_histograms(ood_results, config: OODOriginalGPLVMConfig,
 
 
 def get_fast_config():
-    """Fast configuration for OOD testing with Original GP-LVM"""
+    """Fast configuration for OOD testing with Original GP-LVM.
+    
+    Default: Cross-dataset OOD with FashionMNIST as ID, MNIST as OOD.
+    """
     return OODOriginalGPLVMConfig(
         device="cuda",
         training_steps={'gauss': 100, 'nn_gauss': 100},
@@ -495,15 +552,16 @@ def get_fast_config():
         enable_missing_data=False,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
-        # === MNIST Filtering (used when id_dataset="MNIST") ===
-        mnist_digits=[1, 2],
-        samples_per_digit=100,
-        # === FashionMNIST Filtering (used when id_dataset="FashionMNIST") ===
-        fashion_mnist_classes=[1, 2],
-        fashion_samples_per_class=100,
-        # === OOD Configuration ===
+        # === OOD Configuration (Cross-dataset mode) ===
+        # FashionMNIST classes: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
+        #                       5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
+        # MNIST classes: 0-9 = Digits 0-9
         id_dataset="FashionMNIST",
-        ood_samples=200
+        id_classes=[1, 2],           # Trouser, Pullover
+        id_samples_per_class=100,
+        ood_dataset="MNIST",         # Explicitly specify OOD dataset
+        ood_classes=[1, 2],          # Digits 1, 2
+        ood_samples_per_class=100
     )
 
 
@@ -669,7 +727,9 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         model.get_trainable_param_names()
     
         # Training loop
-        loss_list = []
+        loss_list = []  # Batch losses (negative ELBO)
+        full_loss_list = []  # Full dataset losses (negative ELBO)
+        full_loss_iterations = []  # Iterations at which full loss was computed
         noise_trace = []
         
         # Metrics tracking
@@ -679,7 +739,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         train_missing_rmse_list = []
         effective_dims_list = []
         metrics_iterations = []
-        metrics_losses = []
+        metrics_losses = []  # Will store full dataset losses
         
         iterator = trange(steps_per_model[model_name], leave=True)
         batch_size = config.batch_size
@@ -710,6 +770,24 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 try:
                     with torch.no_grad():
                         model.eval()
+                        
+                        # Compute full dataset loss (negative ELBO)
+                        if model_name in ['point', 'map', 'gauss']:
+                            full_sample = model.sample_latent_variable()
+                        else:
+                            if config.enable_missing_data:
+                                Y_train_for_encoder_full = Y_train.clone()
+                                Y_train_for_encoder_full[torch.isnan(Y_train_for_encoder_full)] = -999.0
+                                full_sample = model.sample_latent_variable(Y_train_for_encoder_full)
+                            else:
+                                full_sample = model.sample_latent_variable(Y_train)
+                        full_output = model(full_sample)
+                        full_elbo = elbo(full_output, Y_train.T).sum()
+                        full_loss = -full_elbo.item()  # Store as negative ELBO (loss)
+                        full_loss_list.append(full_loss)
+                        full_loss_iterations.append(i)
+                        print(f"  Full Dataset Loss: {full_loss:.4f} (batch loss: {loss.item():.4f})")
+                        
                         if config.enable_missing_data and model_name == 'nn_gauss':
                             Y_train_for_encoder = Y_train.clone()
                             Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
@@ -785,7 +863,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         train_missing_rmse_list.append(float(train_missing_rmse) if train_missing_rmse is not None else float('nan'))
                         effective_dims_list.append(effective_dims)
                         metrics_iterations.append(i)
-                        metrics_losses.append(float(loss.item()))
+                        metrics_losses.append(full_loss)  # Use full dataset loss instead of batch loss
                         
                         print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, Effective dims: {effective_dims}/{total_dims}")
                         
@@ -800,12 +878,34 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 try:
                     from src.mnist_ood_plot_helper import save_iteration_model, create_iteration_plot
                     save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
-                    create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False)
+                    # Use full_loss_list for checkpoint plots (consistent with SSVI)
+                    create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False)
                 except Exception as e:
                     print(f"  Warning: Could not create iteration plot at iteration {i}: {e}")
         model.store(loss_list, likelihood)
         
-        logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
+        # Compute final full dataset loss if not already computed at last iteration
+        if not full_loss_list or full_loss_iterations[-1] != steps_per_model[model_name] - 1:
+            with torch.no_grad():
+                model.eval()
+                if model_name in ['point', 'map', 'gauss']:
+                    full_sample = model.sample_latent_variable()
+                else:
+                    if config.enable_missing_data:
+                        Y_train_for_encoder_full = Y_train.clone()
+                        Y_train_for_encoder_full[torch.isnan(Y_train_for_encoder_full)] = -999.0
+                        full_sample = model.sample_latent_variable(Y_train_for_encoder_full)
+                    else:
+                        full_sample = model.sample_latent_variable(Y_train)
+                full_output = model(full_sample)
+                final_full_elbo = elbo(full_output, Y_train.T).sum()
+                final_full_loss = -final_full_elbo.item()
+                full_loss_list.append(final_full_loss)
+                full_loss_iterations.append(steps_per_model[model_name])
+                model.train()
+        
+        final_full_loss = full_loss_list[-1] if full_loss_list else loss_list[-1]
+        logger.log_training(f"Training completed for {model_name}. Final full loss: {final_full_loss:.4f} (batch loss: {loss_list[-1]:.4f})")
         
         # Save metrics progression plot
         if logger.get_results_dir() and train_rmse_list and train_nlpd_list:
@@ -847,7 +947,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         if logger.get_results_dir():
             try:
                 from src.mnist_ood_plot_helper import create_standardized_scattered_plot
-                create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type=config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), dataset_name=config.id_dataset, is_ood=False)
+                # Use full_loss_list for final plots (consistent with SSVI)
+                create_standardized_scattered_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type=config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), dataset_name=config.id_dataset, is_ood=False)
             except Exception as e:
                 print(f"Warning: Could not create standardized scattered plot: {e}")
                 print(f"Skipping plot creation.")
@@ -1076,7 +1177,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_missing_nlpd': test_missing_nlpd_value,
                 'train_missing_rmse': train_missing_rmse_value,
                 'test_missing_rmse': test_missing_rmse_value,
-                'final_loss': float(loss_list[-1]),
+                'final_batch_loss': float(loss_list[-1]),
+                'final_full_loss': float(full_loss_list[-1]) if full_loss_list else float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
             
@@ -1180,12 +1282,27 @@ def create_ood_argument_parser():
     """Create argument parser with OOD-specific options"""
     parser = create_argument_parser()
     
-    # Add OOD-specific arguments
+    # ID dataset configuration
     parser.add_argument('--id-dataset', type=str, default='FashionMNIST',
                        choices=['MNIST', 'FashionMNIST'],
                        help='In-distribution dataset (default: FashionMNIST)')
-    parser.add_argument('--ood-samples', type=int, default=1000,
-                       help='Number of OOD samples for evaluation')
+    parser.add_argument('--id-classes', type=int, nargs='+', default=None,
+                       help='ID class indices (e.g., --id-classes 0 1 2 3 4 5 6 7)')
+    parser.add_argument('--id-samples-per-class', type=int, default=None,
+                       help='Samples per ID class')
+    
+    # OOD dataset configuration
+    parser.add_argument('--ood-dataset', type=str, default='MNIST',
+                       choices=['MNIST', 'FashionMNIST'],
+                       help='OOD dataset (default: MNIST)')
+    parser.add_argument('--ood-classes', type=int, nargs='+', default=None,
+                       help='OOD class indices (e.g., --ood-classes 8 9)')
+    parser.add_argument('--ood-samples-per-class', type=int, default=None,
+                       help='Samples per OOD class')
+    
+    # Convenience: same-dataset OOD mode
+    parser.add_argument('--same-dataset-ood', action='store_true',
+                       help='Use same-dataset OOD mode (requires --ood-classes)')
     
     return parser
 
@@ -1237,8 +1354,19 @@ if __name__ == '__main__':
     # Apply OOD-specific overrides
     if hasattr(args, 'id_dataset') and args.id_dataset:
         config.id_dataset = args.id_dataset
-    if hasattr(args, 'ood_samples') and args.ood_samples:
-        config.ood_samples = args.ood_samples
+    if hasattr(args, 'id_classes') and args.id_classes is not None:
+        config.id_classes = args.id_classes
+    if hasattr(args, 'id_samples_per_class') and args.id_samples_per_class is not None:
+        config.id_samples_per_class = args.id_samples_per_class
+    if hasattr(args, 'ood_dataset') and args.ood_dataset is not None:
+        config.ood_dataset = args.ood_dataset
+    if hasattr(args, 'ood_classes') and args.ood_classes is not None:
+        config.ood_classes = args.ood_classes
+    if hasattr(args, 'ood_samples_per_class') and args.ood_samples_per_class is not None:
+        config.ood_samples_per_class = args.ood_samples_per_class
+    # Handle same-dataset OOD convenience flag
+    if hasattr(args, 'same_dataset_ood') and args.same_dataset_ood:
+        config.ood_dataset = config.id_dataset
     
     # Override results directory for OOD experiments when using fast config
     if config_name == "fast":

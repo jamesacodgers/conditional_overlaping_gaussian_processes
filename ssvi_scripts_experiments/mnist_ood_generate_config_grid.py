@@ -95,7 +95,7 @@ def update_nested_training_steps(config_text, new_value):
 
 def create_config_name(n_inducing, init_lengthscales, batch_size, random_seed, learning_rate,
                        n_training_steps, num_inducing_samples, architecture, 
-                       id_dataset, ood_samples, test_size, model_type="ssvi"):
+                       id_dataset, ood_dataset, test_size, model_type="ssvi"):
     """Create a valid filename from parameter values"""
     # Replace dots with nothing for valid filenames
     len_str = str(init_lengthscales).replace('.', '')
@@ -108,12 +108,14 @@ def create_config_name(n_inducing, init_lengthscales, batch_size, random_seed, l
 
     # ID dataset short name
     id_short = "fmnist" if id_dataset == "FashionMNIST" else "mnist"
+    # OOD dataset short name
+    ood_short = "fmnist" if ood_dataset == "FashionMNIST" else "mnist"
 
     if model_type == "ssvi":
-        return f"ood_{id_short}_n_ind_{n_inducing}_arch_{arch_sum}_len_{len_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}_P_{num_inducing_samples}_ood_{ood_samples}_test_{test_size_str}.yaml"
+        return f"ood_{id_short}_id_{ood_short}_ood_n_ind_{n_inducing}_arch_{arch_sum}_len_{len_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}_P_{num_inducing_samples}_test_{test_size_str}.yaml"
     else:
         # Original GP-LVM doesn't use P (num_inducing_samples)
-        return f"ood_{id_short}_n_ind_{n_inducing}_arch_{arch_sum}_len_{len_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}_ood_{ood_samples}_test_{test_size_str}.yaml"
+        return f"ood_{id_short}_id_{ood_short}_ood_n_ind_{n_inducing}_arch_{arch_sum}_len_{len_str}_b_{batch_size}_s_{random_seed}_lr_{lr_str}_n_steps_{n_steps_str}_test_{test_size_str}.yaml"
 
 
 def generate_config_grid():
@@ -143,29 +145,24 @@ def generate_config_grid():
     test_size_values = [0.1]
     
     # ========================================
-    # MNIST Data Filtering Configuration
-    # ========================================
-    # Used when id_dataset="MNIST" for ID, or for OOD when ID is FashionMNIST
-    # Labels 0-9 = Digits 0-9
-    # None = all 10 digits (uses all available with samples_per_digit each)
-    mnist_digits_values = [None]  # None = all digits [0,1,2,3,4,5,6,7,8,9]
-    samples_per_digit_values = [500]  # 500 per digit = 5000 total when None
-    
-    # ========================================
-    # FashionMNIST Data Filtering Configuration
-    # ========================================
-    # Used when id_dataset="FashionMNIST" for ID, or for OOD when ID is MNIST
-    # Labels: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
-    #         5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
-    # None = all 10 classes (uses all available with fashion_samples_per_class each)
-    fashion_mnist_classes_values = [None]  # None = all classes [0,1,2,3,4,5,6,7,8,9]
-    fashion_samples_per_class_values = [500]  # 500 per class = 5000 total when None
-    
-    # ========================================
     # OOD Detection Configuration
     # ========================================
     id_dataset_values = ["FashionMNIST"]  # Options: "MNIST", "FashionMNIST"
-    ood_samples_values = [1000]  # Number of OOD samples for evaluation
+    ood_dataset_values = ["MNIST"]  # Options: "MNIST", "FashionMNIST" (must be explicitly specified)
+    
+    # ========================================
+    # ID Dataset Filtering Configuration
+    # ========================================
+    # Applied to in-distribution dataset
+    id_classes_values = [None]  # None = all classes, or list like [0,1,2,3,4,5,6,7] for subset
+    id_samples_per_class_values = [500]  # Samples per ID class (None = use all)
+    
+    # ========================================
+    # OOD Dataset Filtering Configuration
+    # ========================================
+    # Applied to out-of-distribution dataset
+    ood_classes_values = [None]  # None = all classes, or list like [8,9] for subset
+    ood_samples_per_class_values = [500]  # Samples per OOD class (None = use all)
     
     # ========================================
     # Output Configuration
@@ -194,12 +191,12 @@ def generate_config_grid():
         num_inducing_samples_list,
         architecture_values,
         id_dataset_values,
-        ood_samples_values,
+        ood_dataset_values,
         test_size_values,
-        mnist_digits_values,
-        samples_per_digit_values,
-        fashion_mnist_classes_values,
-        fashion_samples_per_class_values
+        id_classes_values,
+        id_samples_per_class_values,
+        ood_classes_values,
+        ood_samples_per_class_values
     ))
 
     print(f"Generating {len(param_combinations)} configuration combinations...")
@@ -207,8 +204,8 @@ def generate_config_grid():
     # Generate SSVI OOD configurations
     ssvi_count = 0
     for (n_inducing, init_lengthscales, batch_size, random_seed, learning_rate, 
-         n_steps, num_inducing_samples, architecture, id_dataset, ood_samples, test_size,
-         mnist_digits, samples_per_digit, fashion_classes, fashion_samples) in param_combinations:
+         n_steps, num_inducing_samples, architecture, id_dataset, ood_dataset, test_size,
+         id_classes, id_samples_per_class, ood_classes, ood_samples_per_class) in param_combinations:
         
         # Create new config based on base text
         ssvi_config_text = ssvi_base_text
@@ -225,22 +222,18 @@ def generate_config_grid():
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'P', num_inducing_samples)
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'test_size', test_size)
         
-        # Update MNIST filtering (None = all digits)
-        ssvi_config_text = update_config_parameter(ssvi_config_text, 'mnist_digits', mnist_digits)
-        ssvi_config_text = update_config_parameter(ssvi_config_text, 'samples_per_digit', samples_per_digit)
-        
-        # Update FashionMNIST filtering (None = all classes)
-        ssvi_config_text = update_config_parameter(ssvi_config_text, 'fashion_mnist_classes', fashion_classes)
-        ssvi_config_text = update_config_parameter(ssvi_config_text, 'fashion_samples_per_class', fashion_samples)
-        
-        # Update OOD configuration
+        # Update OOD configuration with unified parameters
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'id_dataset', f'"{id_dataset}"')
-        ssvi_config_text = update_config_parameter(ssvi_config_text, 'ood_samples', ood_samples)
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'id_classes', id_classes)
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'id_samples_per_class', id_samples_per_class)
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'ood_dataset', f'"{ood_dataset}"')
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'ood_classes', ood_classes)
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'ood_samples_per_class', ood_samples_per_class)
 
         # Create filename
         filename = create_config_name(n_inducing, init_lengthscales, batch_size, random_seed,
                                       learning_rate, n_steps, num_inducing_samples, architecture,
-                                      id_dataset, ood_samples, test_size)
+                                      id_dataset, ood_dataset, test_size)
         output_path = os.path.join(ssvi_output_folder, filename)
 
         # Save configuration
@@ -253,8 +246,8 @@ def generate_config_grid():
     # Generate Original GP-LVM OOD configurations
     orig_count = 0
     for (n_inducing, init_lengthscales, batch_size, random_seed, learning_rate, 
-         n_steps, num_inducing_samples, architecture, id_dataset, ood_samples, test_size,
-         mnist_digits, samples_per_digit, fashion_classes, fashion_samples) in param_combinations:
+         n_steps, num_inducing_samples, architecture, id_dataset, ood_dataset, test_size,
+         id_classes, id_samples_per_class, ood_classes, ood_samples_per_class) in param_combinations:
         
         # Create new config based on base text
         orig_config_text = orig_base_text
@@ -269,22 +262,18 @@ def generate_config_grid():
         orig_config_text = update_nested_training_steps(orig_config_text, n_steps)
         orig_config_text = update_config_parameter(orig_config_text, 'test_size', test_size)
         
-        # Update MNIST filtering (None = all digits)
-        orig_config_text = update_config_parameter(orig_config_text, 'mnist_digits', mnist_digits)
-        orig_config_text = update_config_parameter(orig_config_text, 'samples_per_digit', samples_per_digit)
-        
-        # Update FashionMNIST filtering (None = all classes)
-        orig_config_text = update_config_parameter(orig_config_text, 'fashion_mnist_classes', fashion_classes)
-        orig_config_text = update_config_parameter(orig_config_text, 'fashion_samples_per_class', fashion_samples)
-        
-        # Update OOD configuration
+        # Update OOD configuration with unified parameters
         orig_config_text = update_config_parameter(orig_config_text, 'id_dataset', f'"{id_dataset}"')
-        orig_config_text = update_config_parameter(orig_config_text, 'ood_samples', ood_samples)
+        orig_config_text = update_config_parameter(orig_config_text, 'id_classes', id_classes)
+        orig_config_text = update_config_parameter(orig_config_text, 'id_samples_per_class', id_samples_per_class)
+        orig_config_text = update_config_parameter(orig_config_text, 'ood_dataset', f'"{ood_dataset}"')
+        orig_config_text = update_config_parameter(orig_config_text, 'ood_classes', ood_classes)
+        orig_config_text = update_config_parameter(orig_config_text, 'ood_samples_per_class', ood_samples_per_class)
 
         # Create filename
         filename = create_config_name(n_inducing, init_lengthscales, batch_size, random_seed,
                                       learning_rate, n_steps, num_inducing_samples, architecture,
-                                      id_dataset, ood_samples, test_size, model_type="orig")
+                                      id_dataset, ood_dataset, test_size, model_type="orig")
         output_path = os.path.join(orig_output_folder, filename)
 
         # Save configuration
@@ -308,15 +297,13 @@ def generate_config_grid():
     print(f"  n_training_steps: {n_training_steps}")
     print(f"  num_inducing_samples (P): {num_inducing_samples_list}")
     print(f"  test_size: {test_size_values}")
-    print(f"\nMNIST Filtering:")
-    print(f"  mnist_digits: {mnist_digits_values} (None = all 10 digits)")
-    print(f"  samples_per_digit: {samples_per_digit_values}")
-    print(f"\nFashionMNIST Filtering:")
-    print(f"  fashion_mnist_classes: {fashion_mnist_classes_values} (None = all 10 classes)")
-    print(f"  fashion_samples_per_class: {fashion_samples_per_class_values}")
     print(f"\nOOD Configuration:")
     print(f"  id_dataset: {id_dataset_values}")
-    print(f"  ood_samples: {ood_samples_values}")
+    print(f"  ood_dataset: {ood_dataset_values}")
+    print(f"  id_classes: {id_classes_values} (None = all classes)")
+    print(f"  id_samples_per_class: {id_samples_per_class_values}")
+    print(f"  ood_classes: {ood_classes_values} (None = all classes)")
+    print(f"  ood_samples_per_class: {ood_samples_per_class_values}")
 
 
 if __name__ == "__main__":
