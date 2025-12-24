@@ -3,9 +3,14 @@
 MNIST OOD Detection with SSVI GP-LVM with Amortized Inference
 
 Extended from mnist_GPLVM_SSVI_AM_INF.py to add OOD detection capability.
-Evaluates on dataset pairs:
-- FashionMNIST (in-distribution) vs MNIST (OOD)
-- MNIST (in-distribution) vs FashionMNIST (OOD)
+
+Supports two OOD modes:
+1. Cross-dataset OOD: ID and OOD from different datasets
+   - FashionMNIST (in-distribution) vs MNIST (OOD)
+   - MNIST (in-distribution) vs FashionMNIST (OOD)
+2. Same-dataset OOD (class-based): ID and OOD from same dataset, different classes
+   - Example: 8 FashionMNIST classes (ID) vs 2 held-out classes (OOD)
+   - Supports splits: (0,1), (2,3), (4,5), (6,7), (8,9) as held-out OOD classes
 
 OOD Metrics computed:
 - AUROC (Area Under ROC Curve)
@@ -13,24 +18,31 @@ OOD Metrics computed:
 - FPR@80 (False Positive Rate at 80% True Positive Rate)
 
 Usage examples:
-    # Run with default fast config (FashionMNIST as ID)
+    # Run with default fast config (cross-dataset: FashionMNIST as ID, MNIST as OOD)
     python ssvi_scripts_experiments/mnist_ood_GPLVM_SSVI_AM_INF.py
     
-    # Run with MNIST as in-distribution
+    # Run with MNIST as in-distribution (cross-dataset: MNIST as ID, FashionMNIST as OOD)
     python ssvi_scripts_experiments/mnist_ood_GPLVM_SSVI_AM_INF.py --id-dataset MNIST
+    
+    # Same-dataset OOD: 8 FashionMNIST classes as ID, classes 8,9 as OOD
+    python ssvi_scripts_experiments/mnist_ood_GPLVM_SSVI_AM_INF.py \\
+        --id-dataset FashionMNIST --id-classes 0 1 2 3 4 5 6 7 \\
+        --ood-dataset FashionMNIST --ood-classes 8 9
+    
+    # Same-dataset OOD with convenience flag
+    python ssvi_scripts_experiments/mnist_ood_GPLVM_SSVI_AM_INF.py \\
+        --id-dataset FashionMNIST --id-classes 0 1 2 3 4 5 6 7 \\
+        --same-dataset-ood --ood-classes 8 9
     
     # Run with base config
     python ssvi_scripts_experiments/mnist_ood_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml
-    
-    # Run with base config and overrides
-    python ssvi_scripts_experiments/mnist_ood_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml --training-iterations 100 --device cuda
 """
 
 import torch 
 import matplotlib.pyplot as plt
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, List
 import numpy as np
 import urllib.request
 import tarfile
@@ -77,18 +89,43 @@ from src.ood_metrics import (
 # === OOD-Specific Configuration Extension ===
 @dataclass
 class OODSSVIConfig(OilFlowSSVIConfig):
-    """Extended configuration for OOD detection experiments"""
-    # OOD Dataset configuration
-    id_dataset: str = "FashionMNIST"  # In-distribution dataset: "MNIST" or "FashionMNIST"
-    ood_samples: int = 1000            # Number of OOD samples for evaluation
+    """Extended configuration for OOD detection experiments.
     
-    # FashionMNIST filtering (separate from mnist_digits in parent class)
-    # Labels 0-9: T-shirt, Trouser, Pullover, Dress, Coat, Sandal, Shirt, Sneaker, Bag, Ankle boot
-    fashion_mnist_classes: list = None  # List of classes to include (e.g., [1, 2]). None = all classes
-    fashion_samples_per_class: int = None  # Samples per class. None = use all
+    Supports two OOD modes:
+    1. Cross-dataset OOD: ID and OOD from different datasets (MNIST vs FashionMNIST)
+    2. Same-dataset OOD: ID and OOD from same dataset but different classes
+       Example: 8 FashionMNIST classes as ID, 2 classes as OOD
+    
+    Configuration:
+    - id_dataset: Name of in-distribution dataset ("MNIST" or "FashionMNIST")
+    - id_classes: List of class indices for ID (None = all classes)
+    - id_samples_per_class: Samples per ID class (None = use all)
+    - ood_dataset: Name of OOD dataset (must be explicitly specified: "MNIST" or "FashionMNIST")
+    - ood_classes: List of class indices for OOD (None = all classes)
+    - ood_samples_per_class: Samples per OOD class (None = use all)
+    
+    Examples:
+    ---------
+    Cross-dataset OOD (FashionMNIST ID, MNIST OOD):
+        id_dataset="FashionMNIST", id_classes=[0,1,2,3,4,5,6,7,8,9],
+        ood_dataset="MNIST"
+    
+    Same-dataset OOD (8 FashionMNIST classes ID, 2 classes OOD):
+        id_dataset="FashionMNIST", id_classes=[0,1,2,3,4,5,6,7],
+        ood_dataset="FashionMNIST", ood_classes=[8,9]
+    """
+    # === In-Distribution (ID) Dataset Configuration ===
+    id_dataset: str = "FashionMNIST"      # ID dataset name: "MNIST" or "FashionMNIST"
+    id_classes: List[int] = None           # ID class indices (None = all classes)
+    id_samples_per_class: int = None       # Samples per ID class (None = use all)
+    
+    # === Out-of-Distribution (OOD) Dataset Configuration ===
+    ood_dataset: str = "MNIST"            # OOD dataset name (must be explicitly specified)
+    ood_classes: List[int] = None          # OOD class indices (None = all classes)
+    ood_samples_per_class: int = None      # Samples per OOD class (None = use all)
     
     # OOD Evaluation configuration
-    ood_score_types: list = None       # Will be set to ['nlpd', 'rmse', 'variance'] if None
+    ood_score_types: list = None           # Will be set to ['nlpd', 'rmse', 'variance'] if None
     # Note: OOD score computation uses model.P (inducing samples) automatically
     
     def __post_init__(self):
@@ -98,37 +135,46 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     
     def get_id_filter_params(self):
         """Get filtering parameters for in-distribution dataset"""
-        if self.id_dataset == "MNIST":
-            return self.mnist_digits, self.samples_per_digit
-        else:  # FashionMNIST
-            return self.fashion_mnist_classes, self.fashion_samples_per_class
+        return self.id_classes, self.id_samples_per_class
     
     def get_ood_filter_params(self):
         """Get filtering parameters for out-of-distribution dataset"""
-        if self.id_dataset == "MNIST":
-            # OOD is FashionMNIST
-            return self.fashion_mnist_classes, self.fashion_samples_per_class
-        else:
-            # OOD is MNIST
-            return self.mnist_digits, self.samples_per_digit
+        return self.ood_classes, self.ood_samples_per_class
     
     def get_ood_dataset(self):
-        """Get the OOD dataset name based on ID dataset"""
-        return "MNIST" if self.id_dataset == "FashionMNIST" else "FashionMNIST"
+        """Get the OOD dataset name (always explicitly specified)."""
+        return self.ood_dataset
+    
+    def is_same_dataset_ood(self):
+        """Check if ID and OOD are from the same dataset (class-based OOD)"""
+        return self.ood_dataset == self.id_dataset
     
     def print_config(self):
         """Print configuration summary including OOD settings"""
         super().print_config()
         print("=== OOD Detection Configuration ===")
         print(f"In-Distribution Dataset: {self.id_dataset}")
+        print(f"  ID Classes: {self.id_classes if self.id_classes else 'all'}")
+        print(f"  ID Samples/Class: {self.id_samples_per_class if self.id_samples_per_class else 'all'}")
         print(f"OOD Dataset: {self.get_ood_dataset()}")
-        print(f"OOD Samples: {self.ood_samples}")
+        print(f"  OOD Classes: {self.ood_classes if self.ood_classes else 'all'}")
+        print(f"  OOD Samples/Class: {self.ood_samples_per_class if self.ood_samples_per_class else 'all'}")
+        if self.is_same_dataset_ood():
+            print(f"  Mode: Same-dataset OOD (class-based)")
+        else:
+            print(f"  Mode: Cross-dataset OOD")
         print(f"OOD Score Types: {self.ood_score_types}")
         print("=" * 50)
 
 
 def load_ood_data(config: OODSSVIConfig):
-    """Load and preprocess data with optional train/test split, plus OOD data"""
+    """Load and preprocess data with optional train/test split, plus OOD data.
+    
+    Supports two OOD modes:
+    1. Cross-dataset OOD: ID and OOD from different datasets (e.g., FashionMNIST vs MNIST)
+    2. Same-dataset OOD: ID and OOD from same dataset but different classes
+       (e.g., 8 FashionMNIST classes as ID, 2 as OOD)
+    """
     print(f"Loading {config.id_dataset} data as in-distribution...")
     
     # Load in-distribution data using load_image_dataset
@@ -137,8 +183,7 @@ def load_ood_data(config: OODSSVIConfig):
     # Normalize to [0, 1]
     Y = Y / 255.0
     
-    # Apply class filtering based on which dataset is ID
-    # Uses mnist_digits for MNIST, fashion_mnist_classes for FashionMNIST
+    # Apply ID class filtering
     id_classes, id_samples_per_class = config.get_id_filter_params()
     Y, labels = filter_mnist_by_digits(
         Y, labels, 
@@ -149,6 +194,8 @@ def load_ood_data(config: OODSSVIConfig):
     N = len(Y)
     
     print(f"Using {N} {config.id_dataset} samples for training/testing")
+    if id_classes is not None:
+        print(f"  ID classes: {id_classes}")
     
     # Debug: print labels type and shape
     print(f"Labels type: {type(labels)}, Labels shape/length: {getattr(labels, 'shape', len(labels) if hasattr(labels, '__len__') else 'no length')}")
@@ -186,12 +233,17 @@ def load_ood_data(config: OODSSVIConfig):
 
     # === Load OOD data ===
     ood_dataset = config.get_ood_dataset()
-    print(f"\nLoading {ood_dataset} data as OOD...")
+    is_same_dataset = config.is_same_dataset_ood()
+    
+    if is_same_dataset:
+        print(f"\nLoading {ood_dataset} data as OOD (same-dataset, different classes)...")
+    else:
+        print(f"\nLoading {ood_dataset} data as OOD (cross-dataset)...")
+    
     Y_ood, labels_ood = load_image_dataset(ood_dataset, test_only=True)
     Y_ood = Y_ood / 255.0  # Normalize to [0, 1]
     
-    # Apply class filtering for OOD dataset
-    # Uses fashion_mnist_classes for FashionMNIST, mnist_digits for MNIST
+    # Apply OOD class filtering
     ood_classes, ood_samples_per_class = config.get_ood_filter_params()
     if ood_classes is not None or ood_samples_per_class is not None:
         Y_ood, labels_ood = filter_mnist_by_digits(
@@ -200,11 +252,11 @@ def load_ood_data(config: OODSSVIConfig):
             samples_per_digit=ood_samples_per_class
         )
     
-    # Sample OOD data (additional limit via ood_samples parameter)
-    n_ood = min(config.ood_samples, len(Y_ood))
-    ood_indices = np.random.choice(len(Y_ood), n_ood, replace=False)
-    y_ood = Y_ood[ood_indices].to(config.device)
-    labels_ood = labels_ood[ood_indices]
+    if ood_classes is not None:
+        print(f"  OOD classes: {ood_classes}")
+    
+    # Use all OOD data (no additional sampling limit)
+    y_ood = Y_ood.to(config.device)
     
     print(f"OOD data shape: {y_ood.shape}")
 
@@ -668,7 +720,10 @@ def plot_ood_score_histograms(ood_results, config: OODSSVIConfig, logger=None):
 # === Pre-defined Configurations ===
 
 def get_fast_config():
-    """Fast configuration for testing with OOD detection enabled"""
+    """Fast configuration for testing with OOD detection enabled.
+    
+    Default: Cross-dataset OOD with FashionMNIST as ID, MNIST as OOD.
+    """
     return OODSSVIConfig(
         training_iterations=100,
         batch_size=50,
@@ -694,22 +749,20 @@ def get_fast_config():
         enable_missing_data=True,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
-        # === MNIST Filtering (used when id_dataset="MNIST") ===
-        # Labels 0-9 = Digits 0-9
-        mnist_digits=[1, 2],        # Digits to include
-        samples_per_digit=100,      # Samples per digit
-        # === FashionMNIST Filtering (used when id_dataset="FashionMNIST") ===
-        # Labels: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
-        #         5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
-        fashion_mnist_classes=[1, 2],    # Classes to include (Trouser, Pullover)
-        fashion_samples_per_class=100,   # Samples per class
         # === Random Seed Configuration ===
         random_seed=7,
         # === Test Size Configuration ===
         test_size=0.2,
-        # === OOD Configuration ===
-        id_dataset="FashionMNIST",   # ID dataset (OOD will be the other)
-        ood_samples=200
+        # === OOD Configuration (Cross-dataset mode) ===
+        # FashionMNIST classes: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
+        #                       5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
+        # MNIST classes: 0-9 = Digits 0-9
+        id_dataset="FashionMNIST",
+        id_classes=[1, 2],           # Trouser, Pullover
+        id_samples_per_class=100,
+        ood_dataset="MNIST",         # Explicitly specify OOD dataset
+        ood_classes=[1, 2],          # Digits 1, 2
+        ood_samples_per_class=100
     )
 
 
@@ -996,12 +1049,27 @@ def create_ood_argument_parser():
     # Start with base parser
     parser = create_argument_parser()
     
-    # Add OOD-specific arguments
+    # ID dataset configuration
     parser.add_argument('--id-dataset', type=str, default='FashionMNIST',
                        choices=['MNIST', 'FashionMNIST'],
                        help='In-distribution dataset (default: FashionMNIST)')
-    parser.add_argument('--ood-samples', type=int, default=1000,
-                       help='Number of OOD samples for evaluation')
+    parser.add_argument('--id-classes', type=int, nargs='+', default=None,
+                       help='ID class indices (e.g., --id-classes 0 1 2 3 4 5 6 7)')
+    parser.add_argument('--id-samples-per-class', type=int, default=None,
+                       help='Samples per ID class')
+    
+    # OOD dataset configuration
+    parser.add_argument('--ood-dataset', type=str, default='MNIST',
+                       choices=['MNIST', 'FashionMNIST'],
+                       help='OOD dataset (default: MNIST)')
+    parser.add_argument('--ood-classes', type=int, nargs='+', default=None,
+                       help='OOD class indices (e.g., --ood-classes 8 9)')
+    parser.add_argument('--ood-samples-per-class', type=int, default=None,
+                       help='Samples per OOD class')
+    
+    # Convenience: same-dataset OOD mode
+    parser.add_argument('--same-dataset-ood', action='store_true',
+                       help='Use same-dataset OOD mode (requires --ood-classes)')
     
     return parser
 
@@ -1065,8 +1133,19 @@ if __name__ == "__main__":
     # Apply OOD-specific overrides
     if hasattr(args, 'id_dataset') and args.id_dataset:
         config.id_dataset = args.id_dataset
-    if hasattr(args, 'ood_samples') and args.ood_samples:
-        config.ood_samples = args.ood_samples
+    if hasattr(args, 'id_classes') and args.id_classes is not None:
+        config.id_classes = args.id_classes
+    if hasattr(args, 'id_samples_per_class') and args.id_samples_per_class is not None:
+        config.id_samples_per_class = args.id_samples_per_class
+    if hasattr(args, 'ood_dataset') and args.ood_dataset is not None:
+        config.ood_dataset = args.ood_dataset
+    if hasattr(args, 'ood_classes') and args.ood_classes is not None:
+        config.ood_classes = args.ood_classes
+    if hasattr(args, 'ood_samples_per_class') and args.ood_samples_per_class is not None:
+        config.ood_samples_per_class = args.ood_samples_per_class
+    # Handle same-dataset OOD convenience flag
+    if hasattr(args, 'same_dataset_ood') and args.same_dataset_ood:
+        config.ood_dataset = config.id_dataset
     
     # Override results directory for OOD experiments when using fast config
     if config_name == "fast":
