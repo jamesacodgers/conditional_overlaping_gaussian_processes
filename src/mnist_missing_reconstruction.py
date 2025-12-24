@@ -430,9 +430,19 @@ def visualize_prior_samples(
         # Add observation noise to get predictive variance
         pred_var = f_var + model.sigma2  # [P, n_images, M]
         
-        # Average over P samples (mean prediction and variance)
-        f_mean_avg = f_mean.mean(dim=0)  # [n_images, M]
-        pred_var_avg = pred_var.mean(dim=0)  # [n_images, M]
+        # Take one U sample per image (diagonal: i-th U sample for i-th image)
+        # This avoids averaging over P and gives proper samples from the generative model
+        P = f_mean.shape[0]
+        f_mean_samples = []
+        pred_var_samples = []
+        for i in range(n_images):
+            # Use i % P to cycle through U samples if n_images > P
+            p_idx = i % P
+            f_mean_samples.append(f_mean[p_idx, i, :])  # [M]
+            pred_var_samples.append(pred_var[p_idx, i, :])  # [M]
+        
+        f_mean_final = torch.stack(f_mean_samples, dim=0)  # [n_images, M]
+        pred_var_final = torch.stack(pred_var_samples, dim=0)  # [n_images, M]
     
     img_h, img_w = image_shape
     
@@ -445,13 +455,13 @@ def visualize_prior_samples(
     
     for i in range(n_images):
         # Top row: Mean reconstruction
-        img_mean = f_mean_avg[i].cpu().numpy().reshape(img_h, img_w)
+        img_mean = f_mean_final[i].cpu().numpy().reshape(img_h, img_w)
         img_mean = np.clip(img_mean, 0, 1)
         axes[0, i].imshow(img_mean, cmap='gray', vmin=0, vmax=1)
         axes[0, i].axis('off')
         
         # Bottom row: Variance (uncertainty)
-        img_var = pred_var_avg[i].cpu().numpy().reshape(img_h, img_w)
+        img_var = pred_var_final[i].cpu().numpy().reshape(img_h, img_w)
         im = axes[1, i].imshow(img_var, cmap='viridis')
         axes[1, i].axis('off')
     
@@ -481,7 +491,7 @@ def visualize_prior_samples(
     model.train()
     
     # Return generated images (mean) and variance for further analysis
-    return f_mean_avg, pred_var_avg
+    return f_mean_final, pred_var_final
 
 
 def visualize_prior_samples_original_gplvm(

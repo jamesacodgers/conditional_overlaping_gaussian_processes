@@ -434,7 +434,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
             
             print(f"  Computing metrics at iteration {i}...")
             
-            # Compute full dataset ELBO (for metrics and plots)
+            # Compute full dataset loss (negative ELBO, for metrics and plots)
             if config.enable_missing_data:
                 full_elbo = model.compute_full_elbo(
                     split_data['y_train'], 
@@ -443,9 +443,10 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
             else:
                 full_elbo = model.compute_full_elbo(split_data['y_train'])
             
-            full_elbo_losses.append(full_elbo)
+            # Store as negative ELBO (loss) for consistency with batch losses
+            full_elbo_losses.append(-full_elbo)
             full_elbo_iterations.append(i)
-            print(f"    Full Dataset ELBO: {full_elbo:.4f} (batch ELBO: {loss:.4f})")
+            print(f"    Full Dataset Loss: {-full_elbo:.4f} (batch loss: {loss:.4f})")
 
             # Use full datasets for proper evaluation
             # Compute metrics with missing data info if enabled
@@ -541,7 +542,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
     
     total_time = time.time() - start_time
     
-    # Compute final full dataset ELBO
+    # Compute final full dataset loss (negative ELBO)
     if config.enable_missing_data and split_data is not None:
         final_full_elbo = model.compute_full_elbo(
             split_data['y_train'], 
@@ -552,13 +553,14 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
     else:
         final_full_elbo = model.compute_full_elbo(y_train)
     
-    full_elbo_losses.append(final_full_elbo)
+    # Store as negative ELBO (loss) for consistency with batch losses
+    full_elbo_losses.append(-final_full_elbo)
     full_elbo_iterations.append(config.training_iterations)
     
-    final_message = f"Training completed! Final Full ELBO: {final_full_elbo:.4f} (batch ELBO: {losses[-1]:.4f}), Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)"
+    final_message = f"Training completed! Final Full Loss: {-final_full_elbo:.4f} (batch loss: {losses[-1]:.4f}), Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)"
     print(f"Training completed!")
-    print(f"Final Full Dataset ELBO: {final_full_elbo:.4f}")
-    print(f"Final Batch ELBO: {losses[-1]:.4f}")
+    print(f"Final Full Dataset Loss: {-final_full_elbo:.4f}")
+    print(f"Final Batch Loss: {losses[-1]:.4f}")
     print(f"Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)")
     # Log to file
     if logger:
@@ -860,9 +862,9 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         if logger:
             print("Saving checkpoint metrics...")
             logger.save_checkpoint_metrics(metrics_computer, "ood_ssvi", config.random_seed)
-            print("Saving training losses (full dataset ELBO)...")
-            # Save full ELBO losses (for metrics/plots)
-            logger.save_training_losses(full_elbo_losses, "ood_ssvi_full_elbo", config.random_seed)
+            print("Saving training losses (full dataset loss)...")
+            # Save full dataset losses (negative ELBO, for metrics/plots)
+            logger.save_training_losses(full_elbo_losses, "ood_ssvi_full_loss", config.random_seed)
             # Also save batch losses for reference
             logger.save_training_losses(batch_losses, "ood_ssvi_batch", config.random_seed)
 
@@ -925,7 +927,7 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
                 'test_missing_data_nlpd': summary.get('final_test_missing_nlpd', float('nan')),
                 'train_missing_data_rmse': summary.get('final_train_missing_rmse', float('nan')),
                 'test_missing_data_rmse': summary.get('final_test_missing_rmse', float('nan')),
-                'final_full_elbo': full_elbo_losses[-1] if full_elbo_losses else 0.0,
+                'final_full_loss': full_elbo_losses[-1] if full_elbo_losses else 0.0,
                 'final_batch_loss': batch_losses[-1] if batch_losses else 0.0,
                 'final_noise': float(final_noise)
             }
