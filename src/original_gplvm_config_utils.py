@@ -26,6 +26,38 @@ def get_config_name_from_path(config_path: str) -> str:
     
     return config_name
 
+def load_config_from_yaml(config_path: str) -> Dict[str, Any]:
+    """
+    Load configuration dictionary from YAML file.
+    
+    Args:
+        config_path: Path to YAML config file
+        
+    Returns:
+        Configuration dictionary
+    """
+    with open(config_path, 'r') as f:
+        config_dict = yaml.safe_load(f)
+    
+    # Convert nn_layers from list to tuple if needed (YAML doesn't support tuples natively)
+    if 'nn_layers' in config_dict and isinstance(config_dict['nn_layers'], list):
+        config_dict['nn_layers'] = tuple(config_dict['nn_layers'])
+    
+    return config_dict
+
+def dict_to_dataclass(config_dict: Dict[str, Any], config_class: type):
+    """
+    Convert configuration dictionary to dataclass instance.
+    
+    Args:
+        config_dict: Configuration dictionary
+        config_class: Dataclass class to instantiate
+        
+    Returns:
+        Instance of config_class
+    """
+    return config_class(**config_dict)
+
 def create_argument_parser():
     """Create argument parser for command line configuration"""
     parser = argparse.ArgumentParser(description='Original GP LVM Experiment')
