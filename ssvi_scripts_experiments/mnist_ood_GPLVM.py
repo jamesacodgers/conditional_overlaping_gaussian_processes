@@ -862,15 +862,16 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                             X_covar=X_train_covar,
                             model_name=model_name,
                             n_samples=32,
-                            enable_missing_data=config.enable_missing_data
+                            enable_missing_data=config.enable_missing_data,
+                            batch_size=config.batch_size
                         )
                         # Compute training NLPD
                         try:
                             obs_noise = likelihood.noise
-                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_train_covar, obs_noise, enable_missing_data=config.enable_missing_data)
+                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, X_train_covar, obs_noise, enable_missing_data=config.enable_missing_data, batch_size=config.batch_size)
                         except Exception as e:
                             print(f"  Warning: Could not get covariance for NLPD: {e}")
-                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, enable_missing_data=config.enable_missing_data)
+                            train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, enable_missing_data=config.enable_missing_data, batch_size=config.batch_size)
                         
                         # Compute missing data metrics if enabled
                         train_missing_nlpd = None
@@ -885,7 +886,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                                     X_mean=X_train_mean,
                                     X_std=X_train_covar,
                                     obs_noise=obs_noise,
-                                    n_samples=config.reconstruction_samples
+                                    n_samples=config.reconstruction_samples,
+                                    batch_size=config.batch_size
                                 )
                                 train_missing_rmse = compute_missing_data_rmse_with_sampling(
                                     model=model,
@@ -894,7 +896,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                                     X_mean=X_train_mean,
                                     X_covar=X_train_covar,
                                     model_name=model_name,
-                                    n_samples=config.reconstruction_samples
+                                    n_samples=config.reconstruction_samples,
+                                    batch_size=config.batch_size
                                 )
                                 print(f"  Train Missing Data NLPD at iter {i}: {train_missing_nlpd:.3f}")
                                 print(f"  Train Missing Data RMSE at iter {i}: {train_missing_rmse:.3f}")
@@ -1094,7 +1097,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     X_covar=X_train_covar,
                     model_name=model_name,
                     n_samples=32,
-                    enable_missing_data=config.enable_missing_data
+                    enable_missing_data=config.enable_missing_data,
+                    batch_size=config.batch_size
                 )
                 
                 mse_test = compute_rmse_with_sampling(
@@ -1104,7 +1108,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     X_covar=X_test_covar,
                     model_name=model_name,
                     n_samples=32,
-                    enable_missing_data=config.enable_missing_data
+                    enable_missing_data=config.enable_missing_data,
+                    batch_size=config.batch_size
                 )
                 
                 print(f'Train Reconstruction error {model_name} = ' + str(mse_train))
@@ -1117,8 +1122,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             # Compute NLPD
             obs_noise = likelihood.noise
             try:
-                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise, enable_missing_data=config.enable_missing_data)
-                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test if model_name == 'gauss' else loss_list, X_test_covar, obs_noise, enable_missing_data=config.enable_missing_data)
+                train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise, enable_missing_data=config.enable_missing_data, batch_size=config.batch_size)
+                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test if model_name == 'gauss' else loss_list, X_test_covar, obs_noise, enable_missing_data=config.enable_missing_data, batch_size=config.batch_size)
 
                 print(f'Train NLPD {model_name} = ' + str(train_nlpd))
                 print(f'Test NLPD {model_name} = ' + str(test_nlpd))
@@ -1143,7 +1148,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         X_mean=X_train_mean_device,
                         X_std=X_train_std,
                         obs_noise=obs_noise,
-                        n_samples=config.reconstruction_samples
+                        n_samples=config.reconstruction_samples,
+                        batch_size=config.batch_size
                     )
 
                     test_missing_nlpd = compute_missing_data_nlpd_gauss(
@@ -1153,7 +1159,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         X_mean=X_test_mean_device,
                         X_std=X_test_std,
                         obs_noise=obs_noise,
-                        n_samples=config.reconstruction_samples
+                        n_samples=config.reconstruction_samples,
+                        batch_size=config.batch_size
                     )
 
                     print(f'Train Missing Data NLPD {model_name} = ' + str(train_missing_nlpd))
@@ -1169,7 +1176,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         X_mean=X_train_mean_device,
                         X_covar=X_train_covar,
                         model_name=model_name,
-                        n_samples=config.reconstruction_samples
+                        n_samples=config.reconstruction_samples,
+                        batch_size=config.batch_size
                     )
 
                     test_missing_rmse = compute_missing_data_rmse_with_sampling(
@@ -1179,7 +1187,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         X_mean=X_test_mean_device,
                         X_covar=X_test_covar,
                         model_name=model_name,
-                        n_samples=config.reconstruction_samples
+                        n_samples=config.reconstruction_samples,
+                        batch_size=config.batch_size
                     )
 
                     print(f'Train Missing Data RMSE {model_name} = ' + str(train_missing_rmse))

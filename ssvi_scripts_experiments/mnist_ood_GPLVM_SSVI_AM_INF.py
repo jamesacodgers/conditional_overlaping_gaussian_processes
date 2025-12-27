@@ -484,7 +484,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
     metrics_computer = None
     if config.enable_metrics and split_data is not None:
         print(f"Metrics computation enabled (frequency: every {config.metrics_frequency} iterations)")
-        metrics_computer = SSVIMetricsComputer(device=config.device)
+        metrics_computer = SSVIMetricsComputer(device=config.device, metrics_batch_size=config.batch_size)
     
     start_time = time.time()
     
