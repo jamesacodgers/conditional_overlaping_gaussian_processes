@@ -67,9 +67,10 @@ class SSVIMetrics:
 class SSVIMetricsComputer:
     """Compute evaluation metrics for SSVI GP-LVM models"""
     
-    def __init__(self, device: str = "cpu"):
+    def __init__(self, device: str = "cpu", metrics_batch_size: int = 256):
         self.device = device
         self.metrics_history: List[SSVIMetrics] = []
+        self.metrics_batch_size = metrics_batch_size  # Batch size for metrics computation
     
     
     
@@ -78,7 +79,7 @@ class SSVIMetricsComputer:
                      y_true: torch.Tensor, 
                      n_samples: int = 10) -> float:
         """
-        Compute Root Mean Square Error for reconstruction
+        Compute Root Mean Square Error for reconstruction using mini-batching.
         
         Args:
             model: SSVI GP-LVM model
@@ -90,51 +91,65 @@ class SSVIMetricsComputer:
         """
         model.eval()
         with torch.no_grad():
-            # Sample U for both model types
+            # Sample U once for all batches
             U_samples = model.get_u_samples()
             
-            # Preprocess encoder input to handle missing data (consistent with training)
-            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -9.0, dtype=torch.float64), y_true)
+            N = y_true.shape[0]
+            batch_size = self.metrics_batch_size
             
-            # Get latent representations for this batch using SSVI encoder
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            # Accumulators for batch-wise computation
+            total_squared_error = 0.0
+            total_count = 0
             
-            # Use proper probabilistic sampling like in compute_nlpd
-            x_dist = torch.distributions.Normal(mu_x, sigma_x)
-            x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]
-            
-            # Reconstruct through GP mean prediction using proper GP method
-            y_recon = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [batch_size, M, C]
-            
-            if y_recon.shape[-1] == 1:
-                y_recon = y_recon[..., 0]  # [batch_size, M] for C=1 case
-            
-            # Average reconstructions over samples
-            y_pred = y_recon.mean(dim=0)  # [batch_size, D]
-            
-            # Compute RMSE - handle missing data if enabled
-            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                # Handle missing data: create mask for observed values
-                missing_mask = torch.isnan(y_true)
-                observed_mask = ~missing_mask
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = y_true[start_idx:end_idx]
                 
-                # Check if we have any observed data
-                if observed_mask.sum() == 0:
-                    # All data is missing - return NaN
-                    model.train()
-                    return float('nan')
+                # Preprocess encoder input to handle missing data (consistent with training)
+                y_encoder_input = torch.where(torch.isnan(y_batch), torch.full_like(y_batch, -9.0, dtype=torch.float64), y_batch)
                 
-                # Compute RMSE only on observed values
-                # Replace NaN values in y_batch with zeros for computation (they'll be masked out)
-                y_true_clean = torch.where(observed_mask, y_true, torch.zeros_like(y_true))
-                squared_errors = (y_true_clean - y_pred) ** 2
-                observed_squared_errors = squared_errors * observed_mask.float()
-                mse = observed_squared_errors.sum() / observed_mask.sum()
-            else:
-                # Standard RMSE computation for complete data
-                mse = torch.mean((y_true - y_pred) ** 2)
+                # Get latent representations for this batch using SSVI encoder
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                
+                # Use proper probabilistic sampling like in compute_nlpd
+                x_dist = torch.distributions.Normal(mu_x, sigma_x)
+                x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]
+                
+                # Reconstruct through GP mean prediction using proper GP method
+                y_recon = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [n_samples, batch_size, M, C]
+                
+                if y_recon.shape[-1] == 1:
+                    y_recon = y_recon[..., 0]  # [n_samples, batch_size, M] for C=1 case
+                
+                # Average reconstructions over samples
+                y_pred = y_recon.mean(dim=0)  # [batch_size, D]
+                
+                # Compute squared errors for this batch
+                if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                    # Handle missing data: create mask for observed values
+                    missing_mask_batch = torch.isnan(y_batch)
+                    observed_mask_batch = ~missing_mask_batch
+                    
+                    if observed_mask_batch.sum() > 0:
+                        # Compute squared errors only on observed values
+                        y_batch_clean = torch.where(observed_mask_batch, y_batch, torch.zeros_like(y_batch))
+                        squared_errors = (y_batch_clean - y_pred) ** 2
+                        observed_squared_errors = squared_errors * observed_mask_batch.float()
+                        total_squared_error += observed_squared_errors.sum().item()
+                        total_count += observed_mask_batch.sum().item()
+                else:
+                    # Standard computation for complete data
+                    squared_errors = (y_batch - y_pred) ** 2
+                    total_squared_error += squared_errors.sum().item()
+                    total_count += y_batch.numel()
             
-            rmse = torch.sqrt(mse).item()
+            # Compute final RMSE
+            if total_count == 0:
+                model.train()
+                return float('nan')
+            
+            mse = total_squared_error / total_count
+            rmse = np.sqrt(mse)
             
         model.train()
         return rmse
@@ -145,7 +160,7 @@ class SSVIMetricsComputer:
                      missing_mask: torch.Tensor,
                      n_samples: int = 10) -> float:
         """
-        Compute Root Mean Square Error specifically for missing data dimensions.
+        Compute Root Mean Square Error specifically for missing data dimensions using mini-batching.
         
         This does everything exactly the same as compute_rmse,
         but at the end computes RMSE only on missing values (reverse of observed mask).
@@ -167,38 +182,57 @@ class SSVIMetricsComputer:
                 model.train()
                 return float('nan')
             
-            # Sample U for both model types
+            # Sample U once for all batches
             U_samples = model.get_u_samples()
-
-            # Preprocess encoder input to handle missing data (consistent with training)
-            # Create masked data by setting missing dimensions to -9.0
-            y_encoder_input = y_original.clone()
-            y_encoder_input[missing_mask] = -9.0
-
-            # Get latent representations for this batch using SSVI encoder
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
-
-            # Use proper probabilistic sampling like in compute_nlpd
-            x_dist = torch.distributions.Normal(mu_x, sigma_x)
-            x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]
-
-            # Reconstruct through GP mean prediction using proper GP method
-            y_recon = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [batch_size, M, C]
-
-            if y_recon.shape[-1] == 1:
-                y_recon = y_recon[..., 0]  # [batch_size, M] for C=1 case
-
-            # Average reconstructions over samples
-            y_pred = y_recon.mean(dim=0)  # [batch_size, D]
-
-            # ONLY DIFFERENCE: Compute RMSE only on MISSING values (reverse of observed mask)
-            # Get the true values and predictions only for missing positions
-            y_true_missing = y_original[missing_mask]
-            y_pred_missing = y_pred[missing_mask]
             
-            # Compute MSE and then RMSE on missing values only
-            mse_missing = torch.mean((y_true_missing - y_pred_missing) ** 2)
-            rmse = torch.sqrt(mse_missing).item()
+            N = y_original.shape[0]
+            batch_size = self.metrics_batch_size
+            
+            # Accumulators for batch-wise computation
+            total_squared_error = 0.0
+            total_missing_count = 0
+            
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = y_original[start_idx:end_idx]
+                mask_batch = missing_mask[start_idx:end_idx]
+
+                # Preprocess encoder input to handle missing data (consistent with training)
+                # Create masked data by setting missing dimensions to -9.0
+                y_encoder_input = y_batch.clone()
+                y_encoder_input[mask_batch] = -9.0
+
+                # Get latent representations for this batch using SSVI encoder
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+
+                # Use proper probabilistic sampling like in compute_nlpd
+                x_dist = torch.distributions.Normal(mu_x, sigma_x)
+                x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]
+
+                # Reconstruct through GP mean prediction using proper GP method
+                y_recon = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [n_samples, batch_size, M, C]
+
+                if y_recon.shape[-1] == 1:
+                    y_recon = y_recon[..., 0]  # [n_samples, batch_size, M] for C=1 case
+
+                # Average reconstructions over samples
+                y_pred = y_recon.mean(dim=0)  # [batch_size, D]
+
+                # Compute squared errors only on MISSING values
+                y_true_missing = y_batch[mask_batch]
+                y_pred_missing = y_pred[mask_batch]
+                
+                squared_errors = (y_true_missing - y_pred_missing) ** 2
+                total_squared_error += squared_errors.sum().item()
+                total_missing_count += mask_batch.sum().item()
+            
+            # Compute final RMSE
+            if total_missing_count == 0:
+                model.train()
+                return float('nan')
+            
+            mse_missing = total_squared_error / total_missing_count
+            rmse = np.sqrt(mse_missing)
 
         model.train()
         return rmse
@@ -209,7 +243,7 @@ class SSVIMetricsComputer:
                      y_true: torch.Tensor, 
                      n_samples: int = 50) -> float:
         """
-        Compute Negative Log Predictive Density for uncertainty quantification
+        Compute Negative Log Predictive Density for uncertainty quantification using mini-batching.
         
         Args:
             model: SSVI GP-LVM model
@@ -221,66 +255,80 @@ class SSVIMetricsComputer:
         """
         model.eval()
         with torch.no_grad():
-            # Sample U for both model types
+            # Sample U once for all batches
             U_samples = model.get_u_samples()
             
-            # Preprocess encoder input to handle missing data (consistent with training)
-            y_encoder_input = torch.where(torch.isnan(y_true), torch.full_like(y_true, -9.0, dtype=torch.float64), y_true)
+            N = y_true.shape[0]
+            batch_size = self.metrics_batch_size
             
-            # Get latent representations for this batch using SSVI encoder
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            # Accumulators for batch-wise computation
+            total_log_prob = 0.0
+            total_count = 0
             
-            # Compute averaged latent variables once before the loop (optimization)
-            x_dist = torch.distributions.Normal(mu_x, sigma_x)
-            x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]            
-            
-            # Sample latent variables using pre-computed averages
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = y_true[start_idx:end_idx]
+                current_batch_size = end_idx - start_idx
+                
+                # Preprocess encoder input to handle missing data (consistent with training)
+                y_encoder_input = torch.where(torch.isnan(y_batch), torch.full_like(y_batch, -9.0, dtype=torch.float64), y_batch)
+                
+                # Get latent representations for this batch using SSVI encoder
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                
+                # Compute averaged latent variables once before the loop (optimization)
+                x_dist = torch.distributions.Normal(mu_x, sigma_x)
+                x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]            
+                
+                # Get GP predictive mean using GP method directly
+                f_mean = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [n_samples, batch_size, M, C]
+                
+                # Get proper GP predictive variance: GP covariance + observation noise
+                gp_cov = model.gp.get_gp_covariance_given_U(x_samples, U_samples)  # [n_samples, batch_size, M, C, C]
 
-            # Compute predictive distribution through GP using proper GP methods
-            
-            # Get GP predictive mean using GP method directly
-            f_mean = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [batch_size, M, C]
-            
-            # Get proper GP predictive variance: GP covariance + observation noise
-            gp_cov = model.gp.get_gp_covariance_given_U(x_samples, U_samples)  # [batch_size, M, C, C]
-
-            # For observed data (C=1 case), extract diagonal and add observation noise
-            if gp_cov.shape[-1] == 1:
-                f_var = gp_cov[..., 0, 0] + model.sigma2  # [batch_size, M]
-                f_mean = f_mean[..., 0]  # [batch_size, M] to match f_var
-            else:
-                # For multi-output case, use diagonal elements + observation noise
-                f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [batch_size, M, C]
-            
-            # Handle missing data if enabled
-            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                # Mask out missing values in log probability computation
-                missing_mask = torch.isnan(y_true)
-                observed_mask = ~missing_mask
+                # For observed data (C=1 case), extract diagonal and add observation noise
+                if gp_cov.shape[-1] == 1:
+                    f_var = gp_cov[..., 0, 0] + model.sigma2  # [n_samples, batch_size, M]
+                    f_mean = f_mean[..., 0]  # [n_samples, batch_size, M] to match f_var
+                else:
+                    # For multi-output case, use diagonal elements + observation noise
+                    f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [n_samples, batch_size, M, C]
                 
-                # Check if we have any observed data
-                if observed_mask.sum() == 0:
-                    # All data is missing - return NaN
-                    model.train()
-                    return float('nan')
-                
-                # Replace NaN values in y_true with zeros for computation (they'll be masked out)
-                y_true_clean = torch.where(observed_mask, y_true, torch.zeros_like(y_true))
-                
-                # Compute log probability under Gaussian
-                log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true_clean - f_mean)**2 / f_var
-                
-                log_prob =( log_prob*observed_mask.float()[None,:,:]).sum(dim=-1).mean()  
-            else:
-                # Standard computation for complete data
-                log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_true - f_mean)**2 / f_var
-                log_prob = log_prob.sum(dim=-1).mean()
+                # Handle missing data if enabled
+                if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                    # Mask out missing values in log probability computation
+                    missing_mask_batch = torch.isnan(y_batch)
+                    observed_mask_batch = ~missing_mask_batch
+                    
+                    if observed_mask_batch.sum() == 0:
+                        # Skip this batch if all data is missing
+                        continue
+                    
+                    # Replace NaN values in y_batch with zeros for computation (they'll be masked out)
+                    y_batch_clean = torch.where(observed_mask_batch, y_batch, torch.zeros_like(y_batch))
+                    
+                    # Compute log probability under Gaussian
+                    log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch_clean - f_mean)**2 / f_var
+                    
+                    # Sum over observed dimensions and average over samples
+                    log_prob_masked = (log_prob * observed_mask_batch.float()[None, :, :]).sum(dim=-1).mean(dim=0)  # [batch_size]
+                    total_log_prob += log_prob_masked.sum().item()
+                    total_count += current_batch_size
+                else:
+                    # Standard computation for complete data
+                    log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch - f_mean)**2 / f_var
+                    # Sum over dimensions and average over samples
+                    log_prob_batch = log_prob.sum(dim=-1).mean(dim=0)  # [batch_size]
+                    total_log_prob += log_prob_batch.sum().item()
+                    total_count += current_batch_size
             
-            # Average log probabilities (log of mixture)
-            # Use logsumexp for numerical stability
+            # Compute final NLPD
+            if total_count == 0:
+                model.train()
+                return float('nan')
             
-            # Negative log predictive density (average over batch)
-            nlpd = -log_prob.mean().item()
+            # Negative log predictive density (average over all samples)
+            nlpd = -total_log_prob / total_count
             
         model.train()
         return nlpd
@@ -292,7 +340,7 @@ class SSVIMetricsComputer:
                      missing_mask: torch.Tensor,
                      n_samples: int = 50) -> float:
         """
-        Compute Negative Log Predictive Density specifically for missing data dimensions.
+        Compute Negative Log Predictive Density specifically for missing data dimensions using mini-batching.
         
         This follows the same approach as nlpd_utils.compute_missing_data_nlpd_gauss:
         1. Use y_original (complete data) as encoder input
@@ -316,59 +364,64 @@ class SSVIMetricsComputer:
                 model.train()
                 return float('nan')
             
-            # Sample U for both model types
+            # Sample U once for all batches
             U_samples = model.get_u_samples()
             
-            # Preprocess encoder input to handle missing data (consistent with training)
-            # Create masked data by setting missing dimensions to -9.0
-            y_encoder_input = y_original.clone()
-            y_encoder_input[missing_mask] = -9.0
+            N = y_original.shape[0]
+            batch_size = self.metrics_batch_size
             
-            # Get latent representations for this batch using SSVI encoder
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            # Accumulators for batch-wise computation
+            total_log_prob = 0.0
+            total_count = 0
             
-            # Compute averaged latent variables once before the loop (optimization)
-            x_dist = torch.distributions.Normal(mu_x, sigma_x)
-            x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]            
-            
-            # Sample latent variables using pre-computed averages
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = y_original[start_idx:end_idx]
+                mask_batch = missing_mask[start_idx:end_idx]
+                current_batch_size = end_idx - start_idx
+                
+                # Preprocess encoder input to handle missing data (consistent with training)
+                # Create masked data by setting missing dimensions to -9.0
+                y_encoder_input = y_batch.clone()
+                y_encoder_input[mask_batch] = -9.0
+                
+                # Get latent representations for this batch using SSVI encoder
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                
+                # Compute averaged latent variables once before the loop (optimization)
+                x_dist = torch.distributions.Normal(mu_x, sigma_x)
+                x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]            
+                
+                # Get GP predictive mean using GP method directly
+                f_mean = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [n_samples, batch_size, M, C]
+                
+                # Get proper GP predictive variance: GP covariance + observation noise
+                gp_cov = model.gp.get_gp_covariance_given_U(x_samples, U_samples)  # [n_samples, batch_size, M, C, C]
 
-            # Compute predictive distribution through GP using proper GP methods
+                # For observed data (C=1 case), extract diagonal and add observation noise
+                if gp_cov.shape[-1] == 1:
+                    f_var = gp_cov[..., 0, 0] + model.sigma2  # [n_samples, batch_size, M]
+                    f_mean = f_mean[..., 0]  # [n_samples, batch_size, M] to match f_var
+                else:
+                    # For multi-output case, use diagonal elements + observation noise
+                    f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [n_samples, batch_size, M, C]
+                
+                # Compute log probability under Gaussian only for missing dimensions
+                log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_batch - f_mean)**2 / f_var
+                
+                # Apply missing data mask to only include missing dimensions
+                # Sum over missing dimensions and average over samples
+                log_prob_masked = (log_prob * mask_batch.float()[None, :, :]).sum(dim=-1).mean(dim=0)  # [batch_size]
+                total_log_prob += log_prob_masked.sum().item()
+                total_count += current_batch_size
             
-            # Get GP predictive mean using GP method directly
-            f_mean = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [batch_size, M, C]
+            # Compute final NLPD
+            if total_count == 0:
+                model.train()
+                return float('nan')
             
-            # Get proper GP predictive variance: GP covariance + observation noise
-            gp_cov = model.gp.get_gp_covariance_given_U(x_samples, U_samples)  # [batch_size, M, C, C]
-
-            # For observed data (C=1 case), extract diagonal and add observation noise
-            if gp_cov.shape[-1] == 1:
-                f_var = gp_cov[..., 0, 0] + model.sigma2  # [batch_size, M]
-                f_mean = f_mean[..., 0]  # [batch_size, M] to match f_var
-            else:
-                # For multi-output case, use diagonal elements + observation noise
-                f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2  # [batch_size, M, C]
-            
-            # Create y_for_nlpd: complete data with observed values set to NaN and masked out
-            y_for_nlpd = y_original.clone()
-            y_for_nlpd[~missing_mask] = float('nan')  # Set observed values to NaN
-            
-            # Compute log probability under Gaussian
-            # Replace NaN values with zeros for computation (they'll be masked out)
-            y_for_nlpd_clean = torch.where(torch.isfinite(y_for_nlpd), y_for_nlpd, torch.zeros_like(y_for_nlpd))
-            log_prob = -0.5 * torch.log(2 * torch.pi * f_var) - 0.5 * (y_for_nlpd_clean - f_mean)**2 / f_var
-            
-            # Apply missing data mask to only include missing dimensions
-            log_prob_masked = log_prob * missing_mask.float()[None,:,:]
-            
-            # Average log probabilities
-            log_prob = log_prob_masked.sum(dim=-1).mean()
-            
-            # Average log probabilities (log of mixture)
-            # Use logsumexp for numerical stability
-            
-            # Negative log predictive density (average over batch)
-            nlpd = -log_prob.mean().item()
+            # Negative log predictive density (average over all samples)
+            nlpd = -total_log_prob / total_count
             
         model.train()
         return nlpd
