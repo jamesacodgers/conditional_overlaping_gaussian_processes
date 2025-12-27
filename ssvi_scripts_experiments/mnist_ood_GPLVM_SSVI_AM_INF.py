@@ -414,7 +414,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
     @torch.no_grad()
     def compute_full_elbo(self, y_full: torch.Tensor, missing_mask: torch.Tensor = None) -> float:
         """
-        Compute ELBO on full dataset (for metrics and plots, not optimization).
+        Compute ELBO on full dataset using minibatches (for metrics and plots, not optimization).
+        Processes data in minibatches to reduce memory usage, using the same parameters as training.
         
         Args:
             y_full: Full dataset [N, M]
@@ -423,31 +424,49 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         Returns:
             Full dataset ELBO value (scalar)
         """
-        # Sample U for ELBO computation
+        # Sample U for ELBO computation (same U for all batches)
         U_samples = self.get_u_samples()
         
-        # Handle missing data preprocessing for encoder input
-        if self.enable_missing_data and missing_mask is not None:
-            # Replace NaN values with -9.0 for encoder input
-            y_clean = torch.where(torch.isnan(y_full), torch.full_like(y_full, -9.0, dtype=torch.float64), y_full)
-        else:
-            y_clean = y_full
-            missing_mask = None
-        
-        # Get latent parameters via amortized inference
-        mu_n, sigma_n = self.get_mu_sigma_x_train_samples(y_clean, U_samples)
-        
-        # Compute full dataset ELBO (batch_size == total_size for full dataset)
+        # Use same batch size as training
+        batch_size = self.config.batch_size
         N = y_full.shape[0]
-        if self.enable_missing_data and missing_mask is not None:
-            full_mask = torch.isnan(y_full)
-            elbo = self.ssvi_elbo(y_clean, mu_n, sigma_n, U_samples, 
-                                  batch_size=N, total_size=N, missing_mask=full_mask)
-        else:
-            elbo = self.ssvi_elbo(y_clean, mu_n, sigma_n, U_samples,
-                                  batch_size=N, total_size=N, missing_mask=None)
         
-        return elbo.item()
+        # Process data in minibatches and collect ELBOs (same as training loop)
+        batch_elbos = []
+        
+        for start_idx in range(0, N, batch_size):
+            end_idx = min(start_idx + batch_size, N)
+            y_batch = y_full[start_idx:end_idx]
+            
+            # Handle missing data preprocessing for encoder input (same as training)
+            if self.enable_missing_data and missing_mask is not None:
+                mask_batch = missing_mask[start_idx:end_idx]
+                y_batch_clean = torch.where(torch.isnan(y_batch), torch.full_like(y_batch, -9.0, dtype=torch.float64), y_batch)
+            else:
+                y_batch_clean = y_batch
+                mask_batch = None
+            
+            # Get latent parameters via amortized inference for this batch
+            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(y_batch_clean, U_samples)
+            
+            # Compute ELBO for this batch (EXACTLY same as in training: batch_size=config.batch_size, total_size=config.total_size)
+            if self.enable_missing_data and mask_batch is not None:
+                batch_elbo = self.ssvi_elbo(y_batch_clean, mu_n_batch, sigma_n_batch, U_samples,
+                                           batch_size=self.config.batch_size,
+                                           total_size=self.config.total_size,
+                                           missing_mask=mask_batch)
+            else:
+                batch_elbo = self.ssvi_elbo(y_batch_clean, mu_n_batch, sigma_n_batch, U_samples,
+                                           batch_size=self.config.batch_size,
+                                           total_size=self.config.total_size,
+                                           missing_mask=None)
+            
+            batch_elbos.append(batch_elbo)
+        
+        # Average the batch ELBOs (same approach as would be used in training)
+        mean_elbo = sum(batch_elbos) / len(batch_elbos)
+        
+        return mean_elbo.item()
     
 
 
