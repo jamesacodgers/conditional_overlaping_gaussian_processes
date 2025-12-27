@@ -342,6 +342,66 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     return Y_train, Y_test, lb_train, lb_test, split_data
 
 
+def compute_full_elbo_minibatched(model, Y_train, elbo, model_name, config):
+    """
+    Compute full dataset ELBO using minibatches (same as training, just average batches).
+    
+    This processes data in minibatches to reduce memory usage, using the exact same
+    computation as in the training loop, then averages the batch ELBOs.
+    
+    Args:
+        model: The GP-LVM model
+        Y_train: Full training data [N, M]
+        elbo: VariationalELBO object
+        model_name: Name of the model ('gauss', 'nn_gauss', etc.)
+        config: Configuration object with batch_size attribute
+        
+    Returns:
+        Full dataset ELBO (scalar float)
+    """
+    batch_size = config.batch_size
+    N = len(Y_train)
+    
+    batch_elbos = []
+    
+    # Sample once for the full dataset
+    if model_name in ['point', 'map', 'gauss']:
+        # For 'point', 'map', 'gauss': sample once from full latent
+        full_sample = model.sample_latent_variable()
+    else:  # nn_gauss
+        # For 'nn_gauss': encode full dataset once, then index for batches (same as training)
+        if config.enable_missing_data:
+            Y_train_for_encoder = Y_train.clone()
+            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+            full_sample = model.sample_latent_variable(Y_train_for_encoder)
+        else:
+            full_sample = model.sample_latent_variable(Y_train)
+    
+    # Process data in minibatches
+    for start_idx in range(0, N, batch_size):
+        end_idx = min(start_idx + batch_size, N)
+        batch_indices = torch.arange(start_idx, end_idx, dtype=torch.int64, device=config.device)
+        Y_batch = Y_train[batch_indices]
+        
+        # Index the full sample for this batch
+        sample_batch = full_sample[batch_indices]
+        
+        # Compute output for this batch
+        output_batch = model(sample_batch)
+        
+        # Compute ELBO for this batch
+        batch_elbo = elbo(output_batch, Y_batch.T).sum()
+        batch_elbos.append(batch_elbo)
+    
+    # Average the batch ELBOs
+    # Stack tensors and take mean to handle device placement correctly
+    if batch_elbos:
+        mean_elbo = torch.stack(batch_elbos).mean()
+        return mean_elbo.item()
+    else:
+        return 0.0
+
+
 # === OOD Evaluation Functions ===
 
 def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMConfig, 
@@ -771,19 +831,9 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     with torch.no_grad():
                         model.eval()
                         
-                        # Compute full dataset loss (negative ELBO)
-                        if model_name in ['point', 'map', 'gauss']:
-                            full_sample = model.sample_latent_variable()
-                        else:
-                            if config.enable_missing_data:
-                                Y_train_for_encoder_full = Y_train.clone()
-                                Y_train_for_encoder_full[torch.isnan(Y_train_for_encoder_full)] = -999.0
-                                full_sample = model.sample_latent_variable(Y_train_for_encoder_full)
-                            else:
-                                full_sample = model.sample_latent_variable(Y_train)
-                        full_output = model(full_sample)
-                        full_elbo = elbo(full_output, Y_train.T).sum()
-                        full_loss = -full_elbo.item()  # Store as negative ELBO (loss)
+                        # Compute full dataset loss (negative ELBO) using minibatches
+                        full_elbo = compute_full_elbo_minibatched(model, Y_train, elbo, model_name, config)
+                        full_loss = -full_elbo  # Store as negative ELBO (loss)
                         full_loss_list.append(full_loss)
                         full_loss_iterations.append(i)
                         print(f"  Full Dataset Loss: {full_loss:.4f} (batch loss: {loss.item():.4f})")
@@ -888,18 +938,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         if not full_loss_list or full_loss_iterations[-1] != steps_per_model[model_name] - 1:
             with torch.no_grad():
                 model.eval()
-                if model_name in ['point', 'map', 'gauss']:
-                    full_sample = model.sample_latent_variable()
-                else:
-                    if config.enable_missing_data:
-                        Y_train_for_encoder_full = Y_train.clone()
-                        Y_train_for_encoder_full[torch.isnan(Y_train_for_encoder_full)] = -999.0
-                        full_sample = model.sample_latent_variable(Y_train_for_encoder_full)
-                    else:
-                        full_sample = model.sample_latent_variable(Y_train)
-                full_output = model(full_sample)
-                final_full_elbo = elbo(full_output, Y_train.T).sum()
-                final_full_loss = -final_full_elbo.item()
+                final_full_elbo = compute_full_elbo_minibatched(model, Y_train, elbo, model_name, config)
+                final_full_loss = -final_full_elbo
                 full_loss_list.append(final_full_loss)
                 full_loss_iterations.append(steps_per_model[model_name])
                 model.train()
