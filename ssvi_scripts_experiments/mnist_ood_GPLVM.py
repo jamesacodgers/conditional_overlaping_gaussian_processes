@@ -843,11 +843,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                             Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
                             X_train_mean = model.get_X_mean(Y_train_for_encoder)
                             X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
-                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train_for_encoder, ae=ae,
-                                                                   model_name=model_name)
                         else:
                             X_train_mean = model.get_X_mean(Y_train)
-                            Y_train_recon, _ = model.reconstruct_y(X_train_mean, Y_train, ae=ae, model_name=model_name)
 
                             if model_name == "nn_gauss":
                                 X_train_covar = model.X.sigma(Y_train).detach()
@@ -1075,20 +1072,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             split_data['test_X_mean'] = X_test_mean_device
             split_data['test_X_covar'] = X_test_covar if model_name != 'point' else None
 
-            # Compute reconstructions with proper missing data handling
-            if config.enable_missing_data and model_name == 'nn_gauss':
-                Y_test_for_recon = Y_test.clone()
-                Y_test_for_recon[torch.isnan(Y_test_for_recon)] = -999.0
-                Y_train_for_recon = Y_train.clone()
-                Y_train_for_recon[torch.isnan(Y_train_for_recon)] = -999.0
-                
-                Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test_for_recon, ae=ae, model_name=model_name)
-                Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train_for_recon, ae=ae, model_name=model_name)
-            else:
-                Y_test_recon, Y_test_pred_covar = model.reconstruct_y(X_test_mean_device, Y_test, ae=ae, model_name=model_name)
-                Y_train_recon, Y_train_pred_covar = model.reconstruct_y(X_train_mean_device, Y_train, ae=ae, model_name=model_name)
-
-            # Compute the metrics
+            # Compute the metrics (using batched functions to avoid OOM)
             try:
                 mse_train = compute_rmse_with_sampling(
                     model=model,
