@@ -1,0 +1,74 @@
+# Base SSVI Configuration for OOD Detection GP-LVM
+# MNIST vs FashionMNIST Out-of-Distribution Detection
+
+# Device Configuration
+device: "cuda"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
+
+# Data Configuration
+data_url: "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"
+latent_dim: 10
+
+# Model Architecture
+n_inducing_points: 64
+encoder_hidden_dims: [128, 64, 32]
+
+# Training Configuration
+training_iterations: 60000
+batch_size: 64
+
+# Learning Rates
+local_lr: 0.003   # Encoder parameters
+global_lr: 0.003  # GP hyperparameters
+
+# GP Hyperparameters
+sigma2_s: null  # Signal variances (null = auto)
+init_lengthscales: 1.0  # Initial lengthscales value (1/beta) - default matches current standard
+init_output_noise_scale: 1.0  # Initial output noise scale (sigma2) - default matches current standard
+P: 1  # Number of samples for SSVI
+trainable_V: true
+
+# Visualization
+plot_training: true
+plot_latent_space: true
+plot_hyperparams: true
+
+# Checkpoint Configuration
+checkpoint_frequency: 4000  # Save models, plots, metrics, and log progress every N iterations
+
+# Advanced Logging
+enable_gradient_logging: true
+gradient_log_frequency: 50  # Log gradients every N iterations
+save_results: true  # Save results to folder
+results_dir: "ood_results/ssvi_results"  # OOD results directory
+
+# Metrics Configuration
+enable_metrics: true
+test_size: 0.1  # Fraction of data for testing
+random_seed: 0  # Random seed for reproducibility (matches original GP-LVM base config)
+
+# Visualization Configuration
+save_training_plots: true
+
+# === MNIST Data Filtering Configuration ===
+# Used when id_dataset="MNIST" for ID, or for OOD when ID is FashionMNIST
+# Labels 0-9 = Digits 0-9
+# null = all 10 digits, with samples_per_digit each → 5000 total samples
+mnist_digits: null              # Digits to include, e.g., [1, 2]. null = all digits (0-9)
+samples_per_digit: 500          # Samples per digit
+
+# === FashionMNIST Data Filtering Configuration ===
+# Used when id_dataset="FashionMNIST" for ID, or for OOD when ID is MNIST
+# Labels: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
+#         5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
+# null = all 10 classes, with fashion_samples_per_class each → 5000 total samples
+fashion_mnist_classes: null     # Classes to include, e.g., [1, 2]. null = all classes
+fashion_samples_per_class: 500  # Samples per class
+
+# === OOD Detection Configuration ===
+id_dataset: "FashionMNIST"      # In-distribution dataset: "MNIST" or "FashionMNIST"
+ood_samples: 1000               # Number of OOD samples for evaluation
+ood_score_types:                # Score types to compute for OOD detection
+  - nlpd
+  - rmse
+  - variance
+# Note: OOD score computation uses P (inducing samples) automatically

@@ -1,0 +1,69 @@
+=== OOD Detection SSVI GP-LVM Training Session ===
+ID Dataset: FashionMNIST, OOD Dataset: MNIST
+Model: 16 inducing points, latent_dim=10
+Training: 60000 iter, batch=16
+Learning rates: Local=0.003, Global=0.003
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': 0.471889311865707, 'test_rmse': 0.4701341034361372, 'train_nlpd': 1032.9797043096248, 'test_nlpd': 1033.0813067057145, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -1192.583153788317}
+Iteration 0/60000: Loss=1174.4509, Time=36.1s
+Metrics at iteration 100: {'iteration': 100, 'train_rmse': 0.6420865069302492, 'test_rmse': 0.6290529188243147, 'train_nlpd': 857.3675681179058, 'test_nlpd': 856.402238066324, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -902.4107614998629}
+Iteration 100/60000: Loss=905.1400, Time=68.2s
+Metrics at iteration 200: {'iteration': 200, 'train_rmse': 0.4844625737936477, 'test_rmse': 0.497529282073776, 'train_nlpd': 673.0594345031463, 'test_nlpd': 672.3820194754524, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -715.1465958506002}
+Iteration 200/60000: Loss=710.0230, Time=100.5s
+Metrics at iteration 300: {'iteration': 300, 'train_rmse': 0.3975631691523062, 'test_rmse': 0.40504771064093587, 'train_nlpd': 513.9980916477036, 'test_nlpd': 517.1748029478092, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -595.4602712775016}
+Iteration 300/60000: Loss=567.2065, Time=132.5s
+Metrics at iteration 400: {'iteration': 400, 'train_rmse': 0.34556334410418676, 'test_rmse': 0.3477437753721881, 'train_nlpd': 397.88396181983904, 'test_nlpd': 390.54145508725884, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -428.58436609938576}
+Iteration 400/60000: Loss=432.9371, Time=164.5s
+Metrics at iteration 500: {'iteration': 500, 'train_rmse': 0.31943810611453555, 'test_rmse': 0.3183915274940216, 'train_nlpd': 298.77328970182685, 'test_nlpd': 294.7551421548286, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -345.4130212789325}
+Iteration 500/60000: Loss=353.2176, Time=197.1s
+Metrics at iteration 600: {'iteration': 600, 'train_rmse': 0.3112206709009744, 'test_rmse': 0.3125512591692468, 'train_nlpd': 250.26253825460546, 'test_nlpd': 242.91651510767608, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -282.3121084282636}
+Iteration 600/60000: Loss=272.8197, Time=229.3s
+Metrics at iteration 700: {'iteration': 700, 'train_rmse': 0.3014504783249949, 'test_rmse': 0.3003260381046721, 'train_nlpd': 196.5004421593658, 'test_nlpd': 192.88745082672082, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -236.79576491201212}
+Iteration 700/60000: Loss=272.4762, Time=261.3s
+Metrics at iteration 800: {'iteration': 800, 'train_rmse': 0.30119447706141617, 'test_rmse': 0.29004822439758726, 'train_nlpd': 159.2083288044661, 'test_nlpd': 157.39888926545618, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -214.1815523308737}
+Iteration 800/60000: Loss=237.0470, Time=293.5s
+Metrics at iteration 900: {'iteration': 900, 'train_rmse': 0.2831186768323159, 'test_rmse': 0.2926468957330565, 'train_nlpd': 127.20284437939597, 'test_nlpd': 153.6608643860026, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -194.37592613985208}
+Iteration 900/60000: Loss=163.3065, Time=325.6s
+Metrics at iteration 1000: {'iteration': 1000, 'train_rmse': 0.27516394612930906, 'test_rmse': 0.27352100047344263, 'train_nlpd': 108.93507186163964, 'test_nlpd': 101.0697119196198, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -166.38696351949395}
+Iteration 1000/60000: Loss=158.7046, Time=364.2s
+Metrics at iteration 1100: {'iteration': 1100, 'train_rmse': 0.290318488732266, 'test_rmse': 0.275754575770128, 'train_nlpd': 111.95280468896019, 'test_nlpd': 100.66896919982402, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -179.80356034326468}
+Iteration 1100/60000: Loss=86.6883, Time=397.7s
+Metrics at iteration 1200: {'iteration': 1200, 'train_rmse': 0.2625729785106826, 'test_rmse': 0.26174731422641534, 'train_nlpd': 69.7454530800398, 'test_nlpd': 67.5691791345025, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -122.2278873956493}
+Iteration 1200/60000: Loss=211.4688, Time=429.8s
+Metrics at iteration 1300: {'iteration': 1300, 'train_rmse': 0.26025226716901356, 'test_rmse': 0.2657243341730424, 'train_nlpd': 60.12984438812589, 'test_nlpd': 58.937684748595366, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -143.40458060099724}
+Iteration 1300/60000: Loss=170.2529, Time=461.8s
+Metrics at iteration 1400: {'iteration': 1400, 'train_rmse': 0.2590744438847798, 'test_rmse': 0.25511926882183295, 'train_nlpd': 61.37861467084275, 'test_nlpd': 57.309917744905526, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -95.10462629967932}
+Iteration 1400/60000: Loss=144.3368, Time=493.7s
+Metrics at iteration 1500: {'iteration': 1500, 'train_rmse': 0.28218030733322635, 'test_rmse': 0.25930424473781105, 'train_nlpd': 51.969832925454256, 'test_nlpd': 41.05327341597657, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -118.0625403159991}
+Iteration 1500/60000: Loss=103.8038, Time=525.7s
+Metrics at iteration 1600: {'iteration': 1600, 'train_rmse': 0.25871315694671176, 'test_rmse': 0.25358139517153666, 'train_nlpd': 60.09177856841731, 'test_nlpd': 43.27541943200027, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -91.11400264723326}
+Iteration 1600/60000: Loss=81.4633, Time=557.7s
+Metrics at iteration 1700: {'iteration': 1700, 'train_rmse': 0.25292423958890187, 'test_rmse': 0.25200883913150957, 'train_nlpd': 37.117464687757504, 'test_nlpd': 56.39277658835227, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -81.11116208426176}
+Iteration 1700/60000: Loss=50.0582, Time=590.0s
+Metrics at iteration 1800: {'iteration': 1800, 'train_rmse': 0.27712960410031123, 'test_rmse': 0.263273039021251, 'train_nlpd': 50.981158407029376, 'test_nlpd': 79.21423396602913, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -146.69846927040322}
+Iteration 1800/60000: Loss=56.2994, Time=622.4s
+Metrics at iteration 1900: {'iteration': 1900, 'train_rmse': 0.2547309820299212, 'test_rmse': 0.25766775016872895, 'train_nlpd': 34.02323697334259, 'test_nlpd': 48.31365146394173, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -97.32519312106803}
+Iteration 1900/60000: Loss=53.9731, Time=654.7s
+Metrics at iteration 2000: {'iteration': 2000, 'train_rmse': 0.25214951052162754, 'test_rmse': 0.2506478849413759, 'train_nlpd': 45.94518095718908, 'test_nlpd': 32.1468100872574, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -76.95197284381506}
+Iteration 2000/60000: Loss=70.8490, Time=691.5s
+Metrics at iteration 2100: {'iteration': 2100, 'train_rmse': 0.25170719057317853, 'test_rmse': 0.250594671044768, 'train_nlpd': 31.69244431047735, 'test_nlpd': 33.953364660870356, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -89.52446317385476}
+Iteration 2100/60000: Loss=93.8491, Time=723.9s
+Metrics at iteration 2200: {'iteration': 2200, 'train_rmse': 0.25751384537728594, 'test_rmse': 0.25093178528336074, 'train_nlpd': 32.239348106129725, 'test_nlpd': 30.593454142267742, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -72.85503452636878}
+Iteration 2200/60000: Loss=73.0517, Time=755.8s
+Metrics at iteration 2300: {'iteration': 2300, 'train_rmse': 0.2511920290822289, 'test_rmse': 0.2505190221349392, 'train_nlpd': 32.37110186574634, 'test_nlpd': 29.84445193499643, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -73.51297188862942}
+Iteration 2300/60000: Loss=-38.5043, Time=788.2s
+Metrics at iteration 2400: {'iteration': 2400, 'train_rmse': 0.2664667773287904, 'test_rmse': 0.2718971118655458, 'train_nlpd': 35.77799616345674, 'test_nlpd': 31.555086574662205, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -87.53471126861143}
+Iteration 2400/60000: Loss=119.2975, Time=820.5s
+Metrics at iteration 2500: {'iteration': 2500, 'train_rmse': 0.2529302789965698, 'test_rmse': 0.27209428315632334, 'train_nlpd': 67.42704121885481, 'test_nlpd': 35.14701605065297, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -79.60790794492236}
+Iteration 2500/60000: Loss=62.8836, Time=852.8s
+Metrics at iteration 2600: {'iteration': 2600, 'train_rmse': 0.2514045063359598, 'test_rmse': 0.2536796063144031, 'train_nlpd': 28.567204144390974, 'test_nlpd': 28.666643892265707, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -75.32979240464086}
+Iteration 2600/60000: Loss=111.7147, Time=885.2s
+Metrics at iteration 2700: {'iteration': 2700, 'train_rmse': 0.25009623960849914, 'test_rmse': 0.25118155657695695, 'train_nlpd': 25.9192837541118, 'test_nlpd': 24.192681432643507, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -76.50924630864765}
+Iteration 2700/60000: Loss=75.7482, Time=917.6s
+Metrics at iteration 2800: {'iteration': 2800, 'train_rmse': 0.24969154237439836, 'test_rmse': 0.2464707360088347, 'train_nlpd': 27.341921884954676, 'test_nlpd': 19.296556985321963, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -64.25216799193744}
+Iteration 2800/60000: Loss=7.1443, Time=949.9s
+Metrics at iteration 2900: {'iteration': 2900, 'train_rmse': 0.24646948924363463, 'test_rmse': 0.24219262627661436, 'train_nlpd': -0.2120724182925147, 'test_nlpd': -9.134914054602202, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -49.52470961799449}
+Iteration 2900/60000: Loss=63.1457, Time=981.9s
+Metrics at iteration 3000: {'iteration': 3000, 'train_rmse': 0.23094550063251273, 'test_rmse': 0.23121142454197444, 'train_nlpd': -8.02051143388352, 'test_nlpd': -30.791892793085303, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -27.711717906765745}
+Iteration 3000/60000: Loss=98.3595, Time=1014.3s
+Metrics at iteration 3100: {'iteration': 3100, 'train_rmse': 0.22789952627930346, 'test_rmse': 0.2273644381481785, 'train_nlpd': -32.012728916771614, 'test_nlpd': -48.96118925947523, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 13.29363263585033}
+Iteration 3100/60000: Loss=27.7742, Time=1046.2s
