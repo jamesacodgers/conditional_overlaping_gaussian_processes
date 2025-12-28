@@ -858,7 +858,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                             X_mean=X_train_mean,
                             X_covar=X_train_covar,
                             model_name=model_name,
-                            n_samples=8,
+                            n_samples=4,
                             enable_missing_data=config.enable_missing_data,
                             batch_size=config.batch_size
                         )

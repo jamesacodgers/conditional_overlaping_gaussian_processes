@@ -35,7 +35,7 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
 
         if model_name in ('gauss', 'nn_gauss'):
             try:
-                n_samples = 8  # Reduced for faster metrics computation
+                n_samples = 4  # Reduced for faster metrics computation
                 
                 # Accumulators for batch-wise computation
                 total_log_prob = 0.0
