@@ -405,7 +405,9 @@ def compute_nlpd_scores_original_gplvm(model, Y: torch.Tensor, X_mean: torch.Ten
             # Get GP prediction
             Y_star = model(x_sample)
             f_mean = Y_star.loc  # [D, N] - GP output is transposed
-            f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, N]
+            # Use .variance (diagonal) instead of .covariance_matrix to avoid OOM
+            # .covariance_matrix allocates [D, N, N] which is ~100GB for MNIST
+            f_var = Y_star.variance  # [D, N]
             
             # Add observation noise
             f_var_full = f_var + obs_noise  # [D, N]

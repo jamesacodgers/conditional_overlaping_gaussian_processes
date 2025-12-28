@@ -299,12 +299,11 @@ def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros",
         
         # Extract predictive mean and variance
         # Y_pred.loc has shape [M, G] (transposed)
-        # Y_pred.covariance_matrix has shape [M] list of [G, G] matrices
         f_mean = Y_pred.loc.T  # [G, M] - transpose to match our convention
         
-        # Extract diagonal variances from covariance matrices
-        # Y_pred.covariance_matrix is a batch of covariance matrices
-        f_var = torch.stack([torch.diag(Y_pred.covariance_matrix[m]) for m in range(M)]).T  # [G, M]
+        # Use .variance (diagonal) instead of .covariance_matrix to avoid OOM
+        # .covariance_matrix allocates [M, G, G] which can be huge for large G
+        f_var = Y_pred.variance.T  # [G, M]
         
         # Add observation noise to get full predictive variance
         obs_noise = model.likelihood.noise.item()

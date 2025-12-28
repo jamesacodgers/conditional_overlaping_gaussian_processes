@@ -66,9 +66,9 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
                         # Get GP prediction: Y_star = GP(x_sample)
                         Y_star = model(x_sample)
 
-                        # Extract predictive mean and variance
+                        # Extract predictive mean and variance - use .variance to avoid [D, B, B] allocation
                         f_mean = Y_star.loc  # [D, batch_size] - GP output is transposed
-                        f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, batch_size]
+                        f_var = Y_star.variance  # [D, batch_size] - diagonal only, no full covariance
 
                         # Add observation noise to get full predictive variance
                         if obs_noise is not None:
@@ -187,7 +187,9 @@ def compute_missing_data_nlpd_gauss(model, Y_original, missing_mask, X_mean, X_s
                 
                 # Extract predictive mean and variance
                 f_mean = Y_star.loc  # [D, batch_size] - GP output is transposed
-                f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, batch_size]
+                # Use .variance (diagonal) instead of .covariance_matrix to avoid OOM
+                # .covariance_matrix allocates [D, batch, batch] which is ~100GB for MNIST
+                f_var = Y_star.variance  # [D, batch_size]
                 
                 # Add observation noise to get full predictive variance
                 f_var_full = f_var + obs_noise  # [D, batch_size]

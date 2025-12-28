@@ -150,14 +150,17 @@ class BayesianGPLVM(ApproximateGP):
                 y_pred = self(self.X.mu(Y))
 
             y_pred_mean = y_pred.loc.detach()
-            y_pred_covar = y_pred.covariance_matrix.detach()
-            return y_pred_mean, y_pred_covar
+            # Use variance (diagonal) instead of full covariance_matrix to avoid OOM
+            # covariance_matrix would allocate [D, N, N] which is ~100GB for MNIST
+            y_pred_var = y_pred.variance.detach()
+            return y_pred_mean, y_pred_var
     
         else:
             # Just decode from the X that is passed
             # Returns a batch of multivariate-normals 
             y_pred = self(X)
-            return y_pred.loc, y_pred.covariance_matrix
+            # Use variance (diagonal) instead of full covariance_matrix to avoid OOM
+            return y_pred.loc, y_pred.variance
 
     def get_trainable_param_names(self):
         

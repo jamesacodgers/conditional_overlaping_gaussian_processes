@@ -542,10 +542,9 @@ def visualize_prior_samples_original_gplvm(
         # gp_dist.loc has shape [data_dim, n_images], transpose to [n_images, data_dim]
         f_mean = gp_dist.loc.T  # [n_images, data_dim]
         
-        # Get variance by extracting diagonal from each covariance matrix
-        # gp_dist.covariance_matrix has shape [data_dim, n_images, n_images]
-        # Extract diagonal from each [n_images, n_images] matrix -> [data_dim, n_images]
-        f_var = torch.stack([torch.diag(x) for x in gp_dist.covariance_matrix]).T  # [n_images, data_dim]
+        # Use .variance (diagonal) instead of .covariance_matrix to avoid OOM
+        # .covariance_matrix allocates [data_dim, n_images, n_images] which is huge
+        f_var = gp_dist.variance.T  # [n_images, data_dim]
         
         # Add observation noise to get predictive variance
         obs_noise = likelihood.noise

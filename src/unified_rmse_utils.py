@@ -74,8 +74,9 @@ def compute_rmse_with_sampling(model,
                         y_recon, _ = model.reconstruct_y(x_sample, y_for_recon, ae=True, model_name=model_name)
                     else:
                         y_recon, _ = model.reconstruct_y(x_sample, y_batch, ae=True, model_name=model_name)
-                else:  # gauss model
-                    y_recon, _ = model.reconstruct_y(x_sample, y_batch, ae=False, model_name=model_name)
+                else:  # gauss model - call model directly to avoid covariance_matrix materialization
+                    y_pred = model(x_sample)
+                    y_recon = y_pred.loc  # [D, batch_size] - just the mean, no covariance
                 
                 reconstructions.append(y_recon)
             
