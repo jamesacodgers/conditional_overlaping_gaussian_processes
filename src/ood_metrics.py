@@ -357,10 +357,12 @@ def evaluate_ood_detection(model, id_test_data: torch.Tensor,
 
 def compute_nlpd_scores_original_gplvm(model, Y: torch.Tensor, X_mean: torch.Tensor,
                                         X_covar: torch.Tensor, model_name: str,
-                                        obs_noise: torch.Tensor, n_samples: int = 64) -> np.ndarray:
+                                        obs_noise: torch.Tensor, n_samples: int = 4,
+                                        batch_size: int = 128) -> np.ndarray:
     """
     Compute per-sample NLPD scores for Original GP-LVM (BayesianGPLVM).
     Aligned with compute_nlpd_nll_based but returns per-sample scores.
+    Uses batched computation to avoid OOM.
     
     Parameters
     ----------
@@ -378,6 +380,8 @@ def compute_nlpd_scores_original_gplvm(model, Y: torch.Tensor, X_mean: torch.Ten
         Observation noise from likelihood
     n_samples : int
         Number of Monte Carlo samples
+    batch_size : int
+        Batch size for memory-efficient computation
         
     Returns
     -------
@@ -388,43 +392,59 @@ def compute_nlpd_scores_original_gplvm(model, Y: torch.Tensor, X_mean: torch.Ten
     
     with torch.no_grad():
         N = len(Y)
+        all_nlpd_scores = []
         
-        # Process X_covar to get standard deviations
-        if model_name == 'nn_gauss':
-            X_std = torch.stack([torch.sqrt(x.diag()) for x in X_covar])  # [N, latent_dim]
-        else:  # gauss model
-            X_std = X_covar  # Already standard deviations
-        
-        x_dist = torch.distributions.Normal(X_mean, X_std)
-        
-        # Collect per-sample log probs across Monte Carlo samples
-        all_log_probs = []
-        for _ in range(n_samples):
-            x_sample = x_dist.rsample()  # [N, latent_dim]
+        # Process in batches to avoid OOM
+        for start_idx in range(0, N, batch_size):
+            end_idx = min(start_idx + batch_size, N)
             
-            # Get GP prediction
-            Y_star = model(x_sample)
-            f_mean = Y_star.loc  # [D, N] - GP output is transposed
-            f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, N]
+            # Get batch data
+            Y_batch = Y[start_idx:end_idx]
+            X_mean_batch = X_mean[start_idx:end_idx]
             
-            # Add observation noise
-            f_var_full = f_var + obs_noise  # [D, N]
+            # Process X_covar to get standard deviations for this batch
+            if model_name == 'nn_gauss':
+                X_covar_batch = X_covar[start_idx:end_idx]
+                X_std_batch = torch.stack([torch.sqrt(x.diag()) for x in X_covar_batch])
+            else:  # gauss model
+                X_std_batch = X_covar[start_idx:end_idx]
             
-            # Compute log probability: log N(Y | f_mean, f_var_full)
-            # Y is [N, D], f_mean is [D, N], so transpose Y to [D, N]
-            Y_T = Y.T  # [D, N]
-            log_prob = -0.5 * torch.log(2 * torch.pi * f_var_full) - 0.5 * (Y_T - f_mean) ** 2 / f_var_full
+            x_dist = torch.distributions.Normal(X_mean_batch, X_std_batch)
             
-            # Sum over dimensions for each sample [N]
-            log_prob_sum = log_prob.sum(dim=0)
-            all_log_probs.append(log_prob_sum)
+            # Collect per-sample log probs across Monte Carlo samples
+            batch_log_probs = []
+            for _ in range(n_samples):
+                x_sample = x_dist.rsample()  # [batch_size, latent_dim]
+                
+                # Get GP prediction
+                Y_star = model(x_sample)
+                f_mean = Y_star.loc  # [D, batch_size] - GP output is transposed
+                
+                # Extract diagonal of covariance matrix for each output dimension
+                f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, batch_size]
+                
+                # Add observation noise
+                f_var_full = f_var + obs_noise  # [D, batch_size]
+                
+                # Compute log probability: log N(Y | f_mean, f_var_full)
+                # Y_batch is [batch_size, D], f_mean is [D, batch_size], so transpose Y
+                Y_T = Y_batch.T  # [D, batch_size]
+                log_prob = -0.5 * torch.log(2 * torch.pi * f_var_full) - 0.5 * (Y_T - f_mean) ** 2 / f_var_full
+                
+                # Sum over dimensions for each sample [batch_size]
+                log_prob_sum = log_prob.sum(dim=0)
+                batch_log_probs.append(log_prob_sum)
+            
+            # Stack and average over MC samples for this batch
+            batch_log_probs = torch.stack(batch_log_probs)  # [n_samples, batch_size]
+            log_pred_density = batch_log_probs.mean(dim=0)  # [batch_size]
+            
+            # NLPD is negative log probability
+            batch_nlpd = -log_pred_density.cpu().numpy()
+            all_nlpd_scores.append(batch_nlpd)
         
-        # Stack and average over MC samples
-        all_log_probs = torch.stack(all_log_probs)  # [n_samples, N]
-        log_pred_density = all_log_probs.mean(dim=0)  # [N]
-        
-        # NLPD is negative log probability
-        nlpd_scores = -log_pred_density.cpu().numpy()
+        # Concatenate all batch results
+        nlpd_scores = np.concatenate(all_nlpd_scores)
     
     model.train()
     return nlpd_scores
@@ -434,9 +454,11 @@ def compute_reconstruction_error_scores_original_gplvm(model, Y: torch.Tensor,
                                                         X_mean: torch.Tensor,
                                                         X_covar: torch.Tensor,
                                                         model_name: str,
-                                                        n_samples: int = 64) -> np.ndarray:
+                                                        n_samples: int = 4,
+                                                        batch_size: int = 128) -> np.ndarray:
     """
     Compute per-sample reconstruction error (RMSE) scores for Original GP-LVM.
+    Uses batched computation to avoid OOM.
     
     Parameters
     ----------
@@ -452,6 +474,8 @@ def compute_reconstruction_error_scores_original_gplvm(model, Y: torch.Tensor,
         Model type: 'gauss' or 'nn_gauss'
     n_samples : int
         Number of Monte Carlo samples
+    batch_size : int
+        Batch size for memory-efficient computation
         
     Returns
     -------
@@ -461,28 +485,44 @@ def compute_reconstruction_error_scores_original_gplvm(model, Y: torch.Tensor,
     model.eval()
     
     with torch.no_grad():
-        # Process X_covar to get standard deviations
-        if model_name == 'nn_gauss':
-            X_std = torch.stack([torch.sqrt(x.diag()) for x in X_covar])
-        else:  # gauss model
-            X_std = X_covar
+        N = len(Y)
+        all_rmse_scores = []
         
-        x_dist = torch.distributions.Normal(X_mean, X_std)
+        # Process in batches to avoid OOM
+        for start_idx in range(0, N, batch_size):
+            end_idx = min(start_idx + batch_size, N)
+            
+            # Get batch data
+            Y_batch = Y[start_idx:end_idx]
+            X_mean_batch = X_mean[start_idx:end_idx]
+            
+            # Process X_covar to get standard deviations for this batch
+            if model_name == 'nn_gauss':
+                X_covar_batch = X_covar[start_idx:end_idx]
+                X_std_batch = torch.stack([torch.sqrt(x.diag()) for x in X_covar_batch])
+            else:  # gauss model
+                X_std_batch = X_covar[start_idx:end_idx]
+            
+            x_dist = torch.distributions.Normal(X_mean_batch, X_std_batch)
+            
+            # Collect reconstructions for this batch
+            batch_recons = []
+            for _ in range(n_samples):
+                x_sample = x_dist.rsample()
+                Y_star = model(x_sample)
+                y_pred = Y_star.loc.T  # [batch_size, D] - transpose from [D, batch_size]
+                batch_recons.append(y_pred)
+            
+            # Average reconstructions
+            y_pred_mean = torch.stack(batch_recons).mean(dim=0)  # [batch_size, D]
+            
+            # Compute per-sample RMSE for this batch
+            sq_error = (Y_batch - y_pred_mean) ** 2
+            batch_rmse = torch.sqrt(sq_error.sum(dim=-1)).cpu().numpy()  # [batch_size]
+            all_rmse_scores.append(batch_rmse)
         
-        # Collect reconstructions
-        all_recons = []
-        for _ in range(n_samples):
-            x_sample = x_dist.rsample()
-            Y_star = model(x_sample)
-            y_pred = Y_star.loc.T  # [N, D] - transpose from [D, N]
-            all_recons.append(y_pred)
-        
-        # Average reconstructions
-        y_pred_mean = torch.stack(all_recons).mean(dim=0)  # [N, D]
-        
-        # Compute per-sample RMSE
-        sq_error = (Y - y_pred_mean) ** 2
-        rmse_scores = torch.sqrt(sq_error.sum(dim=-1)).cpu().numpy()  # [N]
+        # Concatenate all batch results
+        rmse_scores = np.concatenate(all_rmse_scores)
     
     model.train()
     return rmse_scores
@@ -534,7 +574,7 @@ def evaluate_ood_detection_original_gplvm(model, id_test_data: torch.Tensor,
                                            model_name: str,
                                            obs_noise: torch.Tensor,
                                            score_type: str = 'nlpd',
-                                           n_samples: int = 64) -> Tuple[OODMetrics, np.ndarray, np.ndarray]:
+                                           n_samples: int = 4) -> Tuple[OODMetrics, np.ndarray, np.ndarray]:
     """
     Evaluate OOD detection for Original GP-LVM.
     
