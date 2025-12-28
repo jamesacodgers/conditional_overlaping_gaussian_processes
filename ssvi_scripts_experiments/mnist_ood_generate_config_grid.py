@@ -126,12 +126,12 @@ def generate_config_grid():
     # ========================================
     
     # Model Architecture
-    n_inducing_values = [64]
+    n_inducing_values = [32]
     architecture_values = [[128, 64, 32]]  # encoder_hidden_dims
     
     # GP Hyperparameters
     init_lengthscales_values = [1.0]
-    num_inducing_samples_list = [64]  # P samples for SSVI
+    num_inducing_samples_list = [8]  # P samples for SSVI
     
     # Training Configuration
     batch_size_values = [128]
