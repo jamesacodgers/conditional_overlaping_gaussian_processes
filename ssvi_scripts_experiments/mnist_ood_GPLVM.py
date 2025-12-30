@@ -698,6 +698,12 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
     
     # Run models and store results
     models = config.models
+    
+    # Skip gauss model when missing data is disabled (only run nn_gauss)
+    if not config.enable_missing_data:
+        models = [m for m in models if m != 'gauss']
+        print(f"Missing data disabled: skipping 'gauss' model, running only: {models}")
+    
     steps_per_model = config.training_steps
     
     model_dict = {}

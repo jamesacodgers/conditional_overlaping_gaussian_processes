@@ -869,7 +869,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         
         # Compute final metrics with missing data info if enabled
         # Use final full ELBO for metrics (not batch ELBO)
-        final_full_elbo = full_elbo_losses[-1] if full_elbo_losses else 0.0
+        # Note: full_elbo_losses stores -elbo (loss), so negate to get ELBO
+        final_full_elbo = -full_elbo_losses[-1] if full_elbo_losses else 0.0
         
         if config.enable_missing_data:
             final_metrics = metrics_computer.compute_full_metrics(
