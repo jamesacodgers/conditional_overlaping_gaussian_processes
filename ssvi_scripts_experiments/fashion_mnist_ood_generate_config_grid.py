@@ -135,7 +135,7 @@ def generate_config_grid():
     
     # Training Configuration
     batch_size_values = [32]
-    learning_rate_values = [0.001]
+    learning_rate_values = [0.0005]
     n_training_steps = [200_000]
     
     # Random Seeds
@@ -170,7 +170,7 @@ def generate_config_grid():
     # ========================================
     # Output Configuration
     # ========================================
-    output_folder_name = "ood_experiment_v10"
+    output_folder_name = "fashion_mnist_ood_experiment_v1"
     ssvi_output_folder = f"ood_mnist_related/{output_folder_name}_ssvi"
     orig_output_folder = f"ood_mnist_related/{output_folder_name}_orig_gplvm"
     
