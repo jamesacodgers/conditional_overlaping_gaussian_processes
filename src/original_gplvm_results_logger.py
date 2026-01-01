@@ -43,7 +43,7 @@ class OriginalGPLVMResultsLogger:
     
     def _config_to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary for logging"""
-        return {
+        config_dict = {
             'device': self.config.device,
             'dataset': self.config.dataset,
             'models': self.config.models,
@@ -73,6 +73,24 @@ class OriginalGPLVMResultsLogger:
             'variational_strategy': self.config.variational_strategy,
             'learn_inducing_locations': self.config.learn_inducing_locations
         }
+        
+        # Add OOD-specific fields if present
+        if hasattr(self.config, 'id_dataset'):
+            config_dict['id_dataset'] = self.config.id_dataset
+        if hasattr(self.config, 'id_classes'):
+            config_dict['id_classes'] = self.config.id_classes
+        if hasattr(self.config, 'id_samples_per_class'):
+            config_dict['id_samples_per_class'] = self.config.id_samples_per_class
+        if hasattr(self.config, 'ood_dataset'):
+            config_dict['ood_dataset'] = self.config.ood_dataset
+        if hasattr(self.config, 'ood_classes'):
+            config_dict['ood_classes'] = self.config.ood_classes
+        if hasattr(self.config, 'ood_samples_per_class'):
+            config_dict['ood_samples_per_class'] = self.config.ood_samples_per_class
+        if hasattr(self.config, 'ood_score_types'):
+            config_dict['ood_score_types'] = self.config.ood_score_types
+        
+        return config_dict
     
     def save_config(self):
         """Save configuration to JSON file"""
