@@ -1070,18 +1070,18 @@ def create_ood_argument_parser():
     parser = create_argument_parser()
     
     # ID dataset configuration
-    parser.add_argument('--id-dataset', type=str, default='FashionMNIST',
+    parser.add_argument('--id-dataset', type=str, default=None,
                        choices=['MNIST', 'FashionMNIST'],
-                       help='In-distribution dataset (default: FashionMNIST)')
+                       help='In-distribution dataset (default from config: FashionMNIST)')
     parser.add_argument('--id-classes', type=int, nargs='+', default=None,
                        help='ID class indices (e.g., --id-classes 0 1 2 3 4 5 6 7)')
     parser.add_argument('--id-samples-per-class', type=int, default=None,
                        help='Samples per ID class')
     
     # OOD dataset configuration
-    parser.add_argument('--ood-dataset', type=str, default='MNIST',
+    parser.add_argument('--ood-dataset', type=str, default=None,
                        choices=['MNIST', 'FashionMNIST'],
-                       help='OOD dataset (default: MNIST)')
+                       help='OOD dataset (default from config: MNIST)')
     parser.add_argument('--ood-classes', type=int, nargs='+', default=None,
                        help='OOD class indices (e.g., --ood-classes 8 9)')
     parser.add_argument('--ood-samples-per-class', type=int, default=None,
@@ -1150,8 +1150,8 @@ if __name__ == "__main__":
     if hasattr(args, 'no_save') and args.no_save:
         config.save_results = False
     
-    # Apply OOD-specific overrides
-    if hasattr(args, 'id_dataset') and args.id_dataset:
+    # Apply OOD-specific overrides (only if explicitly provided on command line)
+    if hasattr(args, 'id_dataset') and args.id_dataset is not None:
         config.id_dataset = args.id_dataset
     if hasattr(args, 'id_classes') and args.id_classes is not None:
         config.id_classes = args.id_classes
