@@ -134,12 +134,12 @@ def generate_config_grid():
     num_inducing_samples_list = [8]  # P samples for SSVI
     
     # Training Configuration
-    batch_size_values = [128]
+    batch_size_values = [32]
     learning_rate_values = [0.001]
-    n_training_steps = [60000]
+    n_training_steps = [200_000]
     
     # Random Seeds
-    random_seed_values = [0, 1, 2, 3, 4]
+    random_seed_values = [0]
     
     # Data Split
     test_size_values = [0.1]
@@ -167,7 +167,7 @@ def generate_config_grid():
     # ========================================
     # Output Configuration
     # ========================================
-    output_folder_name = "ood_experiment_v1"
+    output_folder_name = "ood_experiment_v10"
     ssvi_output_folder = f"ood_mnist_related/{output_folder_name}_ssvi"
     orig_output_folder = f"ood_mnist_related/{output_folder_name}_orig_gplvm"
     
