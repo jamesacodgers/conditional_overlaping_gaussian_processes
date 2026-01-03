@@ -407,6 +407,11 @@ def create_iteration_plot(model, losses, labels_train, config, results_dir, mode
         'MNIST' or 'FashionMNIST' - used for legend labels
     is_ood : bool
         Whether this is OOD data - used for legend labels
+        
+    Returns
+    -------
+    str
+        plot_filename - filename of saved plot
     """
     plot_filename = f"mnist_{model_name}_iter_{iteration}_seed_{random_seed}.png"
 

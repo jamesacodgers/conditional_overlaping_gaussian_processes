@@ -64,6 +64,8 @@ from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
 from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction, visualize_mnist_missing_reconstruction_detailed, visualize_prior_samples, visualize_prior_samples_averaged
+from src.knn_clustering_metrics import compute_knn_accuracies_ssvi
+from src.knn_progression_plot import plot_knn_metrics_progression_ssvi
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
@@ -487,6 +489,10 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
         print(f"Metrics computation enabled (frequency: every {config.metrics_frequency} iterations)")
         metrics_computer = SSVIMetricsComputer(device=config.device, metrics_batch_size=config.batch_size)
     
+    # Initialize k-NN metrics tracking
+    knn_metrics_history = []
+    knn_metrics_iterations = []
+    
     start_time = time.time()
     
     for i in range(config.training_iterations):
@@ -555,10 +561,26 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                 print(f"    Test Missing Data RMSE: {metrics.test_missing_rmse:.4f}")
             print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
             print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
+            
+            # Compute k-NN clustering quality metrics
+            print(f"    Computing k-NN clustering metrics...")
+            knn_results = compute_knn_accuracies_ssvi(
+                model=model,
+                y_train=split_data['y_train'],
+                labels_train=labels_train,
+                k_values=[1, 3, 7, 12]
+            )
+            print(f"      k=1: {knn_results['knn_1']:.4f}")
+            print(f"      k=3: {knn_results['knn_3']:.4f}")
+            print(f"      k=7: {knn_results['knn_7']:.4f}")
+            print(f"      k=12: {knn_results['knn_12']:.4f}")
+            knn_metrics_history.append(knn_results)
+            knn_metrics_iterations.append(i)
                 
                 # Log metrics
             if logger:
                 logger.log_training(f"Metrics at iteration {i}: {metrics.to_dict()}")
+                logger.log_training(f"k-NN metrics at iteration {i}: {knn_results}")
                             
         # Checkpoint saving (models and plots together)
         if (logger and i > 0 and i % config.checkpoint_frequency == 0):
@@ -671,7 +693,9 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
     return {
         'batch_losses': losses,
         'full_elbo_losses': full_elbo_losses,
-        'full_elbo_iterations': full_elbo_iterations
+        'full_elbo_iterations': full_elbo_iterations,
+        'knn_metrics_history': knn_metrics_history,
+        'knn_metrics_iterations': knn_metrics_iterations
     }, metrics_computer
 
 
@@ -889,6 +913,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     batch_losses = training_result['batch_losses']
     full_elbo_losses = training_result['full_elbo_losses']
     full_elbo_iterations = training_result['full_elbo_iterations']
+    knn_metrics_history = training_result.get('knn_metrics_history', [])
+    knn_metrics_iterations = training_result.get('knn_metrics_iterations', [])
     
     # Visualize results (use full ELBO losses for plots)
     print(f"\nVisualizing results...")
@@ -983,6 +1009,36 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
             logger.save_training_losses(full_elbo_losses, "ood_ssvi_full_loss", config.random_seed)
             # Also save batch losses for reference
             logger.save_training_losses(batch_losses, "ood_ssvi_batch", config.random_seed)
+        
+        # Save k-NN metrics and create progression plot
+        if knn_metrics_history and knn_metrics_iterations and logger:
+            print("Saving k-NN clustering metrics...")
+            # Save k-NN metrics to JSON file
+            knn_checkpoint_data = {
+                'model_name': 'ood_ssvi',
+                'seed': config.random_seed,
+                'total_iterations': config.training_iterations,
+                'checkpoints': []
+            }
+            
+            for iteration, knn_metrics in zip(knn_metrics_iterations, knn_metrics_history):
+                knn_checkpoint_data['checkpoints'].append({
+                    'iteration': iteration,
+                    **knn_metrics  # Include all k-NN metrics (train_knn_1, test_knn_1, etc.)
+                })
+            
+            knn_checkpoint_file = os.path.join(logger.training_results_dir, f"ood_ssvi_{config.random_seed}_knn_metrics.json")
+            with open(knn_checkpoint_file, 'w') as f:
+                json.dump(knn_checkpoint_data, f, indent=2)
+            logger.log_training(f"k-NN metrics saved: training_results/{os.path.basename(knn_checkpoint_file)}")
+            
+            print("Generating k-NN metrics progression plot...")
+            plot_knn_metrics_progression_ssvi(
+                knn_metrics_history, 
+                knn_metrics_iterations,
+                logger.results_dir, 
+                config.random_seed
+            )
 
     # === OOD Detection Evaluation ===
     print("\n" + "=" * 60)
@@ -1054,6 +1110,13 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
                     experiment_summary['ood_ssvi'][f'ood_{score_type}_auroc'] = result['metrics']['auroc']
                     experiment_summary['ood_ssvi'][f'ood_{score_type}_auprc'] = result['metrics']['auprc']
                     experiment_summary['ood_ssvi'][f'ood_{score_type}_fpr80'] = result['metrics']['fpr_at_80_tpr']
+            
+            # Add k-NN clustering quality metrics if available
+            if knn_metrics_history:
+                # Use final k-NN results from history
+                final_knn_results = knn_metrics_history[-1]
+                for key, value in final_knn_results.items():
+                    experiment_summary['ood_ssvi'][f'knn_{key}'] = value
         
         logger.save_experiment_summary(experiment_summary)
     
