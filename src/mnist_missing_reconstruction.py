@@ -370,31 +370,31 @@ def visualize_mnist_missing_reconstruction_detailed(
 
 def visualize_prior_samples(
     model,
-    n_images: int = 8,
+    n_images: int = 24,
     save_path: Optional[str] = None,
     show_plot: bool = False,
     dataset_name: str = "MNIST",
     image_shape: tuple = (28, 28)
 ):
     """
-    Visualize samples from the GP-LVM prior.
+    Visualize samples from the GP-LVM prior (mean images only).
     
     This function samples images by:
     1. Sampling latent points from the prior p(x) = N(0, I)
     2. Sampling U from the variational posterior q(U)
-    3. Getting GP predictive distribution f(x) | U
-    4. Visualizing mean (top row) and variance (bottom row)
+    3. Getting GP predictive mean f(x) | U
+    4. Visualizing images in a grid
     
     Args:
         model: Trained SSVI GP-LVM model
-        n_images: Number of prior samples to generate (default: 8)
+        n_images: Number of prior samples to generate (default: 24)
         save_path: Path to save the visualization (optional)
         show_plot: Whether to display the plot (default: False)
         dataset_name: Name of the dataset for plot title (default: "MNIST")
         image_shape: Shape of the output image (default: (28, 28) for MNIST)
     
     Returns:
-        generated_images: Tensor of generated images [n_images, D]
+        f_mean_final: Tensor of generated mean images [n_images, M]
     """
     model.eval()
     
@@ -416,66 +416,53 @@ def visualize_prior_samples(
         # Get GP predictive mean: [P, n_images, M, C]
         f_mean = model.gp.get_gp_expectation_given_U(x_prior_expanded, U_samples)
         
-        # Get GP predictive covariance: [P, n_images, M, C, C]
-        f_cov = model.gp.get_gp_covariance_given_U(x_prior_expanded, U_samples)
-        
-        # For C=1 case (standard GP-LVM for images), extract variance
+        # For C=1 case (standard GP-LVM for images), extract mean
         if f_mean.shape[-1] == 1:
             f_mean = f_mean[..., 0]  # [P, n_images, M]
-            f_var = f_cov[..., 0, 0]  # [P, n_images, M]
-        else:
-            # Multi-output case: use diagonal
-            f_var = torch.diagonal(f_cov, dim1=-2, dim2=-1)  # [P, n_images, M, C]
-        
-        # Add observation noise to get predictive variance
-        pred_var = f_var + model.sigma2  # [P, n_images, M]
         
         # Take one U sample per image (diagonal: i-th U sample for i-th image)
         # This avoids averaging over P and gives proper samples from the generative model
         P = f_mean.shape[0]
         f_mean_samples = []
-        pred_var_samples = []
         for i in range(n_images):
             # Use i % P to cycle through U samples if n_images > P
             p_idx = i % P
             f_mean_samples.append(f_mean[p_idx, i, :])  # [M]
-            pred_var_samples.append(pred_var[p_idx, i, :])  # [M]
         
         f_mean_final = torch.stack(f_mean_samples, dim=0)  # [n_images, M]
-        pred_var_final = torch.stack(pred_var_samples, dim=0)  # [n_images, M]
     
     img_h, img_w = image_shape
     
-    # Create visualization: 2 rows (mean, variance) x n_images columns
-    fig, axes = plt.subplots(2, n_images, figsize=(n_images * 1.8, 4))
+    # Create grid layout
+    n_cols = min(8, n_images)
+    n_rows = (n_images + n_cols - 1) // n_cols
     
-    # Handle edge case of single image
-    if n_images == 1:
-        axes = axes.reshape(2, 1)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 1.5, n_rows * 1.5))
+    
+    # Handle edge cases
+    if n_rows == 1 and n_cols == 1:
+        axes = np.array([[axes]])
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)
+    elif n_cols == 1:
+        axes = axes.reshape(-1, 1)
     
     for i in range(n_images):
-        # Top row: Mean reconstruction
+        row = i // n_cols
+        col = i % n_cols
         img_mean = f_mean_final[i].cpu().numpy().reshape(img_h, img_w)
         img_mean = np.clip(img_mean, 0, 1)
-        axes[0, i].imshow(img_mean, cmap='gray', vmin=0, vmax=1)
-        axes[0, i].axis('off')
-        
-        # Bottom row: Variance (uncertainty)
-        img_var = pred_var_final[i].cpu().numpy().reshape(img_h, img_w)
-        im = axes[1, i].imshow(img_var, cmap='viridis')
-        axes[1, i].axis('off')
+        axes[row, col].imshow(img_mean, cmap='gray', vmin=0, vmax=1)
+        axes[row, col].axis('off')
     
-    # Add row labels on the left
-    fig.text(0.02, 0.72, 'Mean', fontsize=12, rotation=90, va='center', ha='center')
-    fig.text(0.02, 0.28, 'Variance', fontsize=12, rotation=90, va='center', ha='center')
+    # Hide unused subplots
+    for i in range(n_images, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        axes[row, col].axis('off')
     
-    # Add colorbar for variance on the right
-    cbar_ax = fig.add_axes([0.92, 0.12, 0.02, 0.35])  # [left, bottom, width, height]
-    cbar = fig.colorbar(im, cax=cbar_ax)
-    cbar.set_label('Variance', fontsize=10)
-    
-    fig.suptitle(f'{dataset_name} Prior Samples', fontsize=14, y=0.98)
-    plt.subplots_adjust(left=0.06, right=0.90, top=0.92, bottom=0.05, wspace=0.1, hspace=0.15)
+    fig.suptitle(f'{dataset_name} Prior Samples', fontsize=14)
+    plt.tight_layout()
     
     # Save if path provided
     if save_path:
@@ -490,8 +477,8 @@ def visualize_prior_samples(
     
     model.train()
     
-    # Return generated images (mean) and variance for further analysis
-    return f_mean_final, pred_var_final
+    # Return generated images (mean) for further analysis
+    return f_mean_final
 
 
 def visualize_prior_samples_averaged(
@@ -618,31 +605,31 @@ def visualize_prior_samples_averaged(
 def visualize_prior_samples_original_gplvm(
     model,
     likelihood,
-    n_images: int = 8,
+    n_images: int = 24,
     save_path: Optional[str] = None,
     show_plot: bool = False,
     dataset_name: str = "MNIST",
     image_shape: tuple = (28, 28)
 ):
     """
-    Visualize samples from the Original GP-LVM prior.
+    Visualize samples from the Original GP-LVM prior (mean images only).
     
     This function samples images by:
     1. Sampling latent points from the prior p(x) = N(0, I)
-    2. Passing through the GP to get predictive distribution
-    3. Visualizing mean (top row) and variance (bottom row)
+    2. Passing through the GP to get predictive mean
+    3. Visualizing images in a grid
     
     Args:
         model: Trained Original GP-LVM model (BayesianGPLVM)
         likelihood: The Gaussian likelihood from the model
-        n_images: Number of prior samples to generate (default: 8)
+        n_images: Number of prior samples to generate (default: 24)
         save_path: Path to save the visualization (optional)
         show_plot: Whether to display the plot (default: False)
         dataset_name: Name of the dataset for plot title (default: "MNIST")
         image_shape: Shape of the output image (default: (28, 28) for MNIST)
     
     Returns:
-        Tuple of (mean_images, variance_images) tensors
+        f_mean: Tensor of generated mean images [n_images, data_dim]
     """
     model.eval()
     likelihood.eval()
@@ -659,51 +646,42 @@ def visualize_prior_samples_original_gplvm(
         # model(x) returns MultivariateNormal with shape [data_dim, n_images]
         gp_dist = model(x_prior)
         
-        # Extract mean and variance (same approach as nlpd_utils.py)
+        # Extract mean (same approach as nlpd_utils.py)
         # gp_dist.loc has shape [data_dim, n_images], transpose to [n_images, data_dim]
         f_mean = gp_dist.loc.T  # [n_images, data_dim]
-        
-        # Get variance by extracting diagonal from each covariance matrix
-        # gp_dist.covariance_matrix has shape [data_dim, n_images, n_images]
-        # Extract diagonal from each [n_images, n_images] matrix -> [data_dim, n_images]
-        f_var = torch.stack([torch.diag(x) for x in gp_dist.covariance_matrix]).T  # [n_images, data_dim]
-        
-        # Add observation noise to get predictive variance
-        obs_noise = likelihood.noise
-        pred_var = f_var + obs_noise  # [n_images, data_dim]
     
     img_h, img_w = image_shape
     
-    # Create visualization: 2 rows (mean, variance) x n_images columns
-    fig, axes = plt.subplots(2, n_images, figsize=(n_images * 1.8, 4))
+    # Create grid layout
+    n_cols = min(8, n_images)
+    n_rows = (n_images + n_cols - 1) // n_cols
     
-    # Handle edge case of single image
-    if n_images == 1:
-        axes = axes.reshape(2, 1)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 1.5, n_rows * 1.5))
+    
+    # Handle edge cases
+    if n_rows == 1 and n_cols == 1:
+        axes = np.array([[axes]])
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)
+    elif n_cols == 1:
+        axes = axes.reshape(-1, 1)
     
     for i in range(n_images):
-        # Top row: Mean reconstruction
+        row = i // n_cols
+        col = i % n_cols
         img_mean = f_mean[i].cpu().numpy().reshape(img_h, img_w)
         img_mean = np.clip(img_mean, 0, 1)
-        axes[0, i].imshow(img_mean, cmap='gray', vmin=0, vmax=1)
-        axes[0, i].axis('off')
-        
-        # Bottom row: Variance (uncertainty)
-        img_var = pred_var[i].cpu().numpy().reshape(img_h, img_w)
-        im = axes[1, i].imshow(img_var, cmap='viridis')
-        axes[1, i].axis('off')
+        axes[row, col].imshow(img_mean, cmap='gray', vmin=0, vmax=1)
+        axes[row, col].axis('off')
     
-    # Add row labels on the left
-    fig.text(0.02, 0.72, 'Mean', fontsize=12, rotation=90, va='center', ha='center')
-    fig.text(0.02, 0.28, 'Variance', fontsize=12, rotation=90, va='center', ha='center')
+    # Hide unused subplots
+    for i in range(n_images, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        axes[row, col].axis('off')
     
-    # Add colorbar for variance on the right
-    cbar_ax = fig.add_axes([0.92, 0.12, 0.02, 0.35])  # [left, bottom, width, height]
-    cbar = fig.colorbar(im, cax=cbar_ax)
-    cbar.set_label('Variance', fontsize=10)
-    
-    fig.suptitle(f'{dataset_name} Prior Samples (Original GP-LVM)', fontsize=14, y=0.98)
-    plt.subplots_adjust(left=0.06, right=0.90, top=0.92, bottom=0.05, wspace=0.1, hspace=0.15)
+    fig.suptitle(f'{dataset_name} Prior Samples (Original GP-LVM)', fontsize=14)
+    plt.tight_layout()
     
     # Save if path provided
     if save_path:
@@ -718,8 +696,8 @@ def visualize_prior_samples_original_gplvm(
     
     model.train()
     
-    # Return generated images (mean) and variance for further analysis
-    return f_mean, pred_var
+    # Return generated images (mean) for further analysis
+    return f_mean
 
 
 def visualize_prior_samples_original_gplvm_averaged(

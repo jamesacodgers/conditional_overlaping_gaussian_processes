@@ -600,7 +600,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                         prior_samples_path = os.path.join(plots_checkpoints_dir, f"prior_samples_iter_{i}_{config.random_seed}.png")
                         visualize_prior_samples(
                             model=model,
-                            n_images=8,
+                            n_images=24,
                             save_path=prior_samples_path,
                             show_plot=False,
                             dataset_name=config.id_dataset,
@@ -1082,7 +1082,7 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     prior_samples_path = os.path.join(logger.plots_dir, f"prior_samples_{config.random_seed}.png")
     visualize_prior_samples(
         model=model,
-        n_images=8,
+        n_images=24,
         save_path=prior_samples_path,
         show_plot=False,
         dataset_name=config.id_dataset,

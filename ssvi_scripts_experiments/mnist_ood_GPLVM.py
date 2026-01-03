@@ -948,7 +948,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     visualize_prior_samples_original_gplvm(
                         model=model,
                         likelihood=likelihood,
-                        n_images=8,
+                        n_images=24,
                         save_path=prior_samples_path,
                         show_plot=False,
                         dataset_name=config.id_dataset,
@@ -1334,7 +1334,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             visualize_prior_samples_original_gplvm(
                 model=model,
                 likelihood=likelihood,
-                n_images=8,
+                n_images=24,
                 save_path=prior_samples_path,
                 show_plot=False,
                 dataset_name=config.id_dataset,
