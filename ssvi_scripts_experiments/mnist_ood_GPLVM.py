@@ -149,6 +149,7 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
     
     # OOD Evaluation configuration
     ood_score_types: List[str] = None      # Will be set to ['nlpd', 'rmse', 'variance'] if None
+    ood_n_samples: int = None              # Number of samples for OOD evaluation (None = use default 4)
     
     def __post_init__(self):
         super().__post_init__()
@@ -186,6 +187,7 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
         else:
             print(f"  Mode: Cross-dataset OOD")
         print(f"OOD Score Types: {self.ood_score_types}")
+        print(f"OOD N Samples: {self.ood_n_samples if self.ood_n_samples else 'default (4)'}")
         print("=" * 50)
 
 
@@ -505,6 +507,10 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
     
     obs_noise = likelihood.noise
     
+    # Determine number of samples for OOD evaluation
+    n_samples = config.ood_n_samples if config.ood_n_samples is not None else 4
+    print(f"Using n_samples={n_samples} for OOD evaluation")
+    
     ood_results = {}
     
     for score_type in config.ood_score_types:
@@ -521,7 +527,8 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
                 ood_X_covar=ood_X_covar,
                 model_name=model_name,
                 obs_noise=obs_noise,
-                score_type=score_type
+                score_type=score_type,
+                n_samples=n_samples
             )
             
             print(f"  AUROC: {metrics.auroc:.4f}")
@@ -621,7 +628,9 @@ def get_fast_config():
         id_samples_per_class=100,
         ood_dataset="MNIST",         # Explicitly specify OOD dataset
         ood_classes=[1, 2],          # Digits 1, 2
-        ood_samples_per_class=100
+        ood_samples_per_class=100,
+        # === OOD Evaluation Configuration ===
+        ood_n_samples=16             # Number of samples for OOD evaluation
     )
 
 
@@ -1388,6 +1397,10 @@ def create_ood_argument_parser():
     parser.add_argument('--same-dataset-ood', action='store_true',
                        help='Use same-dataset OOD mode (requires --ood-classes)')
     
+    # OOD evaluation configuration
+    parser.add_argument('--ood-n-samples', type=int, default=None,
+                       help='Number of samples for OOD evaluation (default: 4)')
+    
     return parser
 
 
@@ -1451,6 +1464,8 @@ if __name__ == '__main__':
     # Handle same-dataset OOD convenience flag
     if hasattr(args, 'same_dataset_ood') and args.same_dataset_ood:
         config.ood_dataset = config.id_dataset
+    if hasattr(args, 'ood_n_samples') and args.ood_n_samples is not None:
+        config.ood_n_samples = args.ood_n_samples
     
     # Override results directory for OOD experiments when using fast config
     if config_name == "fast":

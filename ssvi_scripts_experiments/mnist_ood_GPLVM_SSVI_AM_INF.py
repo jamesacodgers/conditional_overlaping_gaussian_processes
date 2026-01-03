@@ -126,7 +126,7 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     
     # OOD Evaluation configuration
     ood_score_types: list = None           # Will be set to ['nlpd', 'rmse', 'variance'] if None
-    # Note: OOD score computation uses model.P (inducing samples) automatically
+    ood_n_samples: int = None               # Number of P samples for OOD evaluation (None = use model.P)
     
     def __post_init__(self):
         super().__post_init__()
@@ -164,6 +164,7 @@ class OODSSVIConfig(OilFlowSSVIConfig):
         else:
             print(f"  Mode: Cross-dataset OOD")
         print(f"OOD Score Types: {self.ood_score_types}")
+        print(f"OOD N Samples: {self.ood_n_samples if self.ood_n_samples else 'same as training P'}")
         print("=" * 50)
 
 
@@ -693,6 +694,14 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODSSVIConfig, log
     print(f"ID Test samples: {id_test_data.shape[0]}")
     print(f"OOD samples: {split_data['y_ood'].shape[0]}")
     
+    # Temporarily change model.P if ood_n_samples is specified
+    original_P = model.P
+    if config.ood_n_samples is not None:
+        model.P = config.ood_n_samples
+        print(f"Using P={config.ood_n_samples} samples for OOD evaluation (training P={original_P})")
+    else:
+        print(f"Using P={model.P} samples for OOD evaluation (same as training)")
+    
     ood_results = {}
     
     for score_type in config.ood_score_types:
@@ -727,6 +736,9 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODSSVIConfig, log
         except Exception as e:
             print(f"  Warning: Failed to compute {score_type} scores: {e}")
             ood_results[score_type] = {'error': str(e)}
+    
+    # Restore original P value
+    model.P = original_P
     
     return ood_results
 
@@ -810,7 +822,9 @@ def get_fast_config():
         id_samples_per_class=100,
         ood_dataset="MNIST",         # Explicitly specify OOD dataset
         ood_classes=[1, 2],          # Digits 1, 2
-        ood_samples_per_class=100
+        ood_samples_per_class=100,
+        # === OOD Evaluation Configuration ===
+        ood_n_samples=16             # Number of samples for OOD evaluation
     )
 
 
@@ -1131,6 +1145,10 @@ def create_ood_argument_parser():
     parser.add_argument('--same-dataset-ood', action='store_true',
                        help='Use same-dataset OOD mode (requires --ood-classes)')
     
+    # OOD evaluation configuration
+    parser.add_argument('--ood-n-samples', type=int, default=None,
+                       help='Number of samples for OOD evaluation (default: same as training P)')
+    
     return parser
 
 
@@ -1206,6 +1224,8 @@ if __name__ == "__main__":
     # Handle same-dataset OOD convenience flag
     if hasattr(args, 'same_dataset_ood') and args.same_dataset_ood:
         config.ood_dataset = config.id_dataset
+    if hasattr(args, 'ood_n_samples') and args.ood_n_samples is not None:
+        config.ood_n_samples = args.ood_n_samples
     
     # Override results directory for OOD experiments when using fast config
     if config_name == "fast":
