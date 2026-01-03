@@ -97,7 +97,7 @@ from src.missing_data_utils import preprocess_data_for_missing_training, rmse_mi
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
 from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset
-from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed, visualize_prior_samples_original_gplvm
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed, visualize_prior_samples_original_gplvm, visualize_prior_samples_original_gplvm_averaged
 
 # Import OOD metrics
 from src.ood_metrics import (
@@ -1304,6 +1304,19 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 likelihood=likelihood,
                 n_images=8,
                 save_path=prior_samples_path,
+                show_plot=False,
+                dataset_name=config.id_dataset,
+                image_shape=(28, 28)
+            )
+            
+            # Generate prior samples visualization averaged over multiple GP samples
+            prior_samples_avg_path = os.path.join(plots_dir, f"prior_samples_averaged_{model_name}_{config.random_seed}.png")
+            visualize_prior_samples_original_gplvm_averaged(
+                model=model,
+                likelihood=likelihood,
+                n_images=8,
+                n_samples=8,
+                save_path=prior_samples_avg_path,
                 show_plot=False,
                 dataset_name=config.id_dataset,
                 image_shape=(28, 28)
