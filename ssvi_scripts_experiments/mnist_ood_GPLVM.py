@@ -938,6 +938,38 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False)
                 except Exception as e:
                     print(f"  Warning: Could not create iteration plot at iteration {i}: {e}")
+                
+                # Save prior samples plots at checkpoint
+                try:
+                    plots_checkpoints_dir = os.path.join(logger.get_results_dir(), "plots", "checkpoints")
+                    os.makedirs(plots_checkpoints_dir, exist_ok=True)
+                    
+                    prior_samples_path = os.path.join(plots_checkpoints_dir, f"prior_samples_{model_name}_iter_{i}_{config.random_seed}.png")
+                    visualize_prior_samples_original_gplvm(
+                        model=model,
+                        likelihood=likelihood,
+                        n_images=8,
+                        save_path=prior_samples_path,
+                        show_plot=False,
+                        dataset_name=config.id_dataset,
+                        image_shape=(28, 28)
+                    )
+                    print(f"    Prior samples checkpoint saved: prior_samples_{model_name}_iter_{i}_{config.random_seed}.png")
+                    
+                    prior_samples_avg_path = os.path.join(plots_checkpoints_dir, f"prior_samples_averaged_{model_name}_iter_{i}_{config.random_seed}.png")
+                    visualize_prior_samples_original_gplvm_averaged(
+                        model=model,
+                        likelihood=likelihood,
+                        n_images=8,
+                        n_samples=8,
+                        save_path=prior_samples_avg_path,
+                        show_plot=False,
+                        dataset_name=config.id_dataset,
+                        image_shape=(28, 28)
+                    )
+                    print(f"    Prior samples averaged checkpoint saved: prior_samples_averaged_{model_name}_iter_{i}_{config.random_seed}.png")
+                except Exception as e:
+                    print(f"  Warning: Could not create prior samples checkpoint at iteration {i}: {e}")
         model.store(loss_list, likelihood)
         
         # Compute final full dataset loss if not already computed at last iteration

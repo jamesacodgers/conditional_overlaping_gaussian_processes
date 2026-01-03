@@ -591,6 +591,35 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                         print(f"    Checkpoint plot saved: {plot_filename}")
                     except Exception as e:
                         print(f"    Warning: Could not create checkpoint visualization at iteration {i}: {e}")
+                    
+                    # Save prior samples plots at checkpoint
+                    try:
+                        plots_checkpoints_dir = os.path.join(logger.plots_dir, "checkpoints")
+                        os.makedirs(plots_checkpoints_dir, exist_ok=True)
+                        
+                        prior_samples_path = os.path.join(plots_checkpoints_dir, f"prior_samples_iter_{i}_{config.random_seed}.png")
+                        visualize_prior_samples(
+                            model=model,
+                            n_images=8,
+                            save_path=prior_samples_path,
+                            show_plot=False,
+                            dataset_name=config.id_dataset,
+                            image_shape=(28, 28)
+                        )
+                        print(f"    Prior samples checkpoint saved: prior_samples_iter_{i}_{config.random_seed}.png")
+                        
+                        prior_samples_avg_path = os.path.join(plots_checkpoints_dir, f"prior_samples_averaged_iter_{i}_{config.random_seed}.png")
+                        visualize_prior_samples_averaged(
+                            model=model,
+                            n_images=8,
+                            save_path=prior_samples_avg_path,
+                            show_plot=False,
+                            dataset_name=config.id_dataset,
+                            image_shape=(28, 28)
+                        )
+                        print(f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png")
+                    except Exception as e:
+                        print(f"    Warning: Could not create prior samples checkpoint at iteration {i}: {e}")
                 
             except Exception as e:
                 print(f"    Warning: Error saving checkpoint at iteration {i}: {e}")
@@ -752,7 +781,7 @@ def get_fast_config():
         global_lr=1e-2,
         P=16,
         log_frequency=50,
-        checkpoint_frequency=100,
+        checkpoint_frequency=50,
         enable_gradient_logging=True,
         gradient_log_frequency=25,
         enable_metrics=True,
