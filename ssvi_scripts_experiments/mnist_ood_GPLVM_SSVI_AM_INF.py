@@ -63,7 +63,9 @@ from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metri
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
-from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction, visualize_mnist_missing_reconstruction_detailed, visualize_prior_samples
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction, visualize_mnist_missing_reconstruction_detailed, visualize_prior_samples, visualize_prior_samples_averaged
+from src.knn_clustering_metrics import compute_knn_accuracies_ssvi
+from src.knn_progression_plot import plot_knn_metrics_progression_ssvi
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
@@ -126,7 +128,7 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     
     # OOD Evaluation configuration
     ood_score_types: list = None           # Will be set to ['nlpd', 'rmse', 'variance'] if None
-    # Note: OOD score computation uses model.P (inducing samples) automatically
+    ood_n_samples: int = None               # Number of P samples for OOD evaluation (None = use model.P)
     
     def __post_init__(self):
         super().__post_init__()
@@ -164,6 +166,7 @@ class OODSSVIConfig(OilFlowSSVIConfig):
         else:
             print(f"  Mode: Cross-dataset OOD")
         print(f"OOD Score Types: {self.ood_score_types}")
+        print(f"OOD N Samples: {self.ood_n_samples if self.ood_n_samples else 'same as training P'}")
         print("=" * 50)
 
 
@@ -486,6 +489,10 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
         print(f"Metrics computation enabled (frequency: every {config.metrics_frequency} iterations)")
         metrics_computer = SSVIMetricsComputer(device=config.device, metrics_batch_size=config.batch_size)
     
+    # Initialize k-NN metrics tracking
+    knn_metrics_history = []
+    knn_metrics_iterations = []
+    
     start_time = time.time()
     
     for i in range(config.training_iterations):
@@ -554,10 +561,26 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                 print(f"    Test Missing Data RMSE: {metrics.test_missing_rmse:.4f}")
             print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
             print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
+            
+            # Compute k-NN clustering quality metrics
+            print(f"    Computing k-NN clustering metrics...")
+            knn_results = compute_knn_accuracies_ssvi(
+                model=model,
+                y_train=split_data['y_train'],
+                labels_train=labels_train,
+                k_values=[1, 3, 7, 12]
+            )
+            print(f"      k=1: {knn_results['knn_1']:.4f}")
+            print(f"      k=3: {knn_results['knn_3']:.4f}")
+            print(f"      k=7: {knn_results['knn_7']:.4f}")
+            print(f"      k=12: {knn_results['knn_12']:.4f}")
+            knn_metrics_history.append(knn_results)
+            knn_metrics_iterations.append(i)
                 
                 # Log metrics
             if logger:
                 logger.log_training(f"Metrics at iteration {i}: {metrics.to_dict()}")
+                logger.log_training(f"k-NN metrics at iteration {i}: {knn_results}")
                             
         # Checkpoint saving (models and plots together)
         if (logger and i > 0 and i % config.checkpoint_frequency == 0):
@@ -591,6 +614,35 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                         print(f"    Checkpoint plot saved: {plot_filename}")
                     except Exception as e:
                         print(f"    Warning: Could not create checkpoint visualization at iteration {i}: {e}")
+                    
+                    # Save prior samples plots at checkpoint
+                    try:
+                        plots_checkpoints_dir = os.path.join(logger.plots_dir, "checkpoints")
+                        os.makedirs(plots_checkpoints_dir, exist_ok=True)
+                        
+                        prior_samples_path = os.path.join(plots_checkpoints_dir, f"prior_samples_iter_{i}_{config.random_seed}.png")
+                        visualize_prior_samples(
+                            model=model,
+                            n_images=24,
+                            save_path=prior_samples_path,
+                            show_plot=False,
+                            dataset_name=config.id_dataset,
+                            image_shape=(28, 28)
+                        )
+                        print(f"    Prior samples checkpoint saved: prior_samples_iter_{i}_{config.random_seed}.png")
+                        
+                        prior_samples_avg_path = os.path.join(plots_checkpoints_dir, f"prior_samples_averaged_iter_{i}_{config.random_seed}.png")
+                        visualize_prior_samples_averaged(
+                            model=model,
+                            n_images=8,
+                            save_path=prior_samples_avg_path,
+                            show_plot=False,
+                            dataset_name=config.id_dataset,
+                            image_shape=(28, 28)
+                        )
+                        print(f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png")
+                    except Exception as e:
+                        print(f"    Warning: Could not create prior samples checkpoint at iteration {i}: {e}")
                 
             except Exception as e:
                 print(f"    Warning: Error saving checkpoint at iteration {i}: {e}")
@@ -641,7 +693,9 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
     return {
         'batch_losses': losses,
         'full_elbo_losses': full_elbo_losses,
-        'full_elbo_iterations': full_elbo_iterations
+        'full_elbo_iterations': full_elbo_iterations,
+        'knn_metrics_history': knn_metrics_history,
+        'knn_metrics_iterations': knn_metrics_iterations
     }, metrics_computer
 
 
@@ -663,6 +717,14 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODSSVIConfig, log
     
     print(f"ID Test samples: {id_test_data.shape[0]}")
     print(f"OOD samples: {split_data['y_ood'].shape[0]}")
+    
+    # Temporarily change model.P if ood_n_samples is specified
+    original_P = model.P
+    if config.ood_n_samples is not None:
+        model.P = config.ood_n_samples
+        print(f"Using P={config.ood_n_samples} samples for OOD evaluation (training P={original_P})")
+    else:
+        print(f"Using P={model.P} samples for OOD evaluation (same as training)")
     
     ood_results = {}
     
@@ -698,6 +760,9 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODSSVIConfig, log
         except Exception as e:
             print(f"  Warning: Failed to compute {score_type} scores: {e}")
             ood_results[score_type] = {'error': str(e)}
+    
+    # Restore original P value
+    model.P = original_P
     
     return ood_results
 
@@ -752,7 +817,7 @@ def get_fast_config():
         global_lr=1e-2,
         P=16,
         log_frequency=50,
-        checkpoint_frequency=100,
+        checkpoint_frequency=50,
         enable_gradient_logging=True,
         gradient_log_frequency=25,
         enable_metrics=True,
@@ -781,7 +846,9 @@ def get_fast_config():
         id_samples_per_class=100,
         ood_dataset="MNIST",         # Explicitly specify OOD dataset
         ood_classes=[1, 2],          # Digits 1, 2
-        ood_samples_per_class=100
+        ood_samples_per_class=100,
+        # === OOD Evaluation Configuration ===
+        ood_n_samples=16             # Number of samples for OOD evaluation
     )
 
 
@@ -846,6 +913,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     batch_losses = training_result['batch_losses']
     full_elbo_losses = training_result['full_elbo_losses']
     full_elbo_iterations = training_result['full_elbo_iterations']
+    knn_metrics_history = training_result.get('knn_metrics_history', [])
+    knn_metrics_iterations = training_result.get('knn_metrics_iterations', [])
     
     # Visualize results (use full ELBO losses for plots)
     print(f"\nVisualizing results...")
@@ -940,6 +1009,36 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
             logger.save_training_losses(full_elbo_losses, "ood_ssvi_full_loss", config.random_seed)
             # Also save batch losses for reference
             logger.save_training_losses(batch_losses, "ood_ssvi_batch", config.random_seed)
+        
+        # Save k-NN metrics and create progression plot
+        if knn_metrics_history and knn_metrics_iterations and logger:
+            print("Saving k-NN clustering metrics...")
+            # Save k-NN metrics to JSON file
+            knn_checkpoint_data = {
+                'model_name': 'ood_ssvi',
+                'seed': config.random_seed,
+                'total_iterations': config.training_iterations,
+                'checkpoints': []
+            }
+            
+            for iteration, knn_metrics in zip(knn_metrics_iterations, knn_metrics_history):
+                knn_checkpoint_data['checkpoints'].append({
+                    'iteration': iteration,
+                    **knn_metrics  # Include all k-NN metrics (train_knn_1, test_knn_1, etc.)
+                })
+            
+            knn_checkpoint_file = os.path.join(logger.training_results_dir, f"ood_ssvi_{config.random_seed}_knn_metrics.json")
+            with open(knn_checkpoint_file, 'w') as f:
+                json.dump(knn_checkpoint_data, f, indent=2)
+            logger.log_training(f"k-NN metrics saved: training_results/{os.path.basename(knn_checkpoint_file)}")
+            
+            print("Generating k-NN metrics progression plot...")
+            plot_knn_metrics_progression_ssvi(
+                knn_metrics_history, 
+                knn_metrics_iterations,
+                logger.results_dir, 
+                config.random_seed
+            )
 
     # === OOD Detection Evaluation ===
     print("\n" + "=" * 60)
@@ -1011,6 +1110,13 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
                     experiment_summary['ood_ssvi'][f'ood_{score_type}_auroc'] = result['metrics']['auroc']
                     experiment_summary['ood_ssvi'][f'ood_{score_type}_auprc'] = result['metrics']['auprc']
                     experiment_summary['ood_ssvi'][f'ood_{score_type}_fpr80'] = result['metrics']['fpr_at_80_tpr']
+            
+            # Add k-NN clustering quality metrics if available
+            if knn_metrics_history:
+                # Use final k-NN results from history
+                final_knn_results = knn_metrics_history[-1]
+                for key, value in final_knn_results.items():
+                    experiment_summary['ood_ssvi'][f'knn_{key}'] = value
         
         logger.save_experiment_summary(experiment_summary)
     
@@ -1053,8 +1159,19 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     prior_samples_path = os.path.join(logger.plots_dir, f"prior_samples_{config.random_seed}.png")
     visualize_prior_samples(
         model=model,
-        n_images=8,
+        n_images=24,
         save_path=prior_samples_path,
+        show_plot=False,
+        dataset_name=config.id_dataset,
+        image_shape=(28, 28)  # MNIST/FashionMNIST image shape
+    )
+    
+    # Generate prior samples visualization averaged over P (alternative view)
+    prior_samples_avg_path = os.path.join(logger.plots_dir, f"prior_samples_averaged_{config.random_seed}.png")
+    visualize_prior_samples_averaged(
+        model=model,
+        n_images=8,
+        save_path=prior_samples_avg_path,
         show_plot=False,
         dataset_name=config.id_dataset,
         image_shape=(28, 28)  # MNIST/FashionMNIST image shape
@@ -1090,6 +1207,10 @@ def create_ood_argument_parser():
     # Convenience: same-dataset OOD mode
     parser.add_argument('--same-dataset-ood', action='store_true',
                        help='Use same-dataset OOD mode (requires --ood-classes)')
+    
+    # OOD evaluation configuration
+    parser.add_argument('--ood-n-samples', type=int, default=None,
+                       help='Number of samples for OOD evaluation (default: same as training P)')
     
     return parser
 
@@ -1166,6 +1287,8 @@ if __name__ == "__main__":
     # Handle same-dataset OOD convenience flag
     if hasattr(args, 'same_dataset_ood') and args.same_dataset_ood:
         config.ood_dataset = config.id_dataset
+    if hasattr(args, 'ood_n_samples') and args.ood_n_samples is not None:
+        config.ood_n_samples = args.ood_n_samples
     
     # Override results directory for OOD experiments when using fast config
     if config_name == "fast":

@@ -97,7 +97,9 @@ from src.missing_data_utils import preprocess_data_for_missing_training, rmse_mi
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
 from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset
-from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed, visualize_prior_samples_original_gplvm
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed, visualize_prior_samples_original_gplvm, visualize_prior_samples_original_gplvm_averaged
+from src.knn_clustering_metrics import compute_knn_accuracies_original_gplvm
+from src.knn_progression_plot import plot_knn_metrics_progression
 
 # Import OOD metrics
 from src.ood_metrics import (
@@ -149,6 +151,7 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
     
     # OOD Evaluation configuration
     ood_score_types: List[str] = None      # Will be set to ['nlpd', 'rmse', 'variance'] if None
+    ood_n_samples: int = None              # Number of samples for OOD evaluation (None = use default 4)
     
     def __post_init__(self):
         super().__post_init__()
@@ -186,6 +189,7 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
         else:
             print(f"  Mode: Cross-dataset OOD")
         print(f"OOD Score Types: {self.ood_score_types}")
+        print(f"OOD N Samples: {self.ood_n_samples if self.ood_n_samples else 'default (4)'}")
         print("=" * 50)
 
 
@@ -505,6 +509,10 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
     
     obs_noise = likelihood.noise
     
+    # Determine number of samples for OOD evaluation
+    n_samples = config.ood_n_samples if config.ood_n_samples is not None else 4
+    print(f"Using n_samples={n_samples} for OOD evaluation")
+    
     ood_results = {}
     
     for score_type in config.ood_score_types:
@@ -521,7 +529,8 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
                 ood_X_covar=ood_X_covar,
                 model_name=model_name,
                 obs_noise=obs_noise,
-                score_type=score_type
+                score_type=score_type,
+                n_samples=n_samples
             )
             
             print(f"  AUROC: {metrics.auroc:.4f}")
@@ -621,7 +630,9 @@ def get_fast_config():
         id_samples_per_class=100,
         ood_dataset="MNIST",         # Explicitly specify OOD dataset
         ood_classes=[1, 2],          # Digits 1, 2
-        ood_samples_per_class=100
+        ood_samples_per_class=100,
+        # === OOD Evaluation Configuration ===
+        ood_n_samples=16             # Number of samples for OOD evaluation
     )
 
 
@@ -807,6 +818,9 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         metrics_iterations = []
         metrics_losses = []  # Will store full dataset losses
         
+        # k-NN metrics tracking
+        knn_metrics_history = []
+        
         iterator = trange(steps_per_model[model_name], leave=True)
         batch_size = config.batch_size
         for i in iterator: 
@@ -921,6 +935,21 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         metrics_iterations.append(i)
                         metrics_losses.append(full_loss)  # Use full dataset loss instead of batch loss
                         
+                        # Compute k-NN clustering quality metrics
+                        print(f"  Computing k-NN clustering metrics...")
+                        knn_results = compute_knn_accuracies_original_gplvm(
+                            model=model,
+                            y_train=Y_train,
+                            labels_train=lb_train,
+                            model_name=model_name,
+                            k_values=[1, 3, 7, 12]
+                        )
+                        print(f"    k=1: {knn_results['knn_1']:.4f}")
+                        print(f"    k=3: {knn_results['knn_3']:.4f}")
+                        print(f"    k=7: {knn_results['knn_7']:.4f}")
+                        print(f"    k=12: {knn_results['knn_12']:.4f}")
+                        knn_metrics_history.append(knn_results)
+                        
                         print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, Effective dims: {effective_dims}/{total_dims}")
                         
                 except Exception as e:
@@ -935,9 +964,41 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     from src.mnist_ood_plot_helper import save_iteration_model, create_iteration_plot
                     save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
                     # Use full_loss_list for checkpoint plots (consistent with SSVI)
-                    create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False)
+                    plot_filename = create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False)
                 except Exception as e:
                     print(f"  Warning: Could not create iteration plot at iteration {i}: {e}")
+                
+                # Save prior samples plots at checkpoint
+                try:
+                    plots_checkpoints_dir = os.path.join(logger.get_results_dir(), "plots", "checkpoints")
+                    os.makedirs(plots_checkpoints_dir, exist_ok=True)
+                    
+                    prior_samples_path = os.path.join(plots_checkpoints_dir, f"prior_samples_{model_name}_iter_{i}_{config.random_seed}.png")
+                    visualize_prior_samples_original_gplvm(
+                        model=model,
+                        likelihood=likelihood,
+                        n_images=24,
+                        save_path=prior_samples_path,
+                        show_plot=False,
+                        dataset_name=config.id_dataset,
+                        image_shape=(28, 28)
+                    )
+                    print(f"    Prior samples checkpoint saved: prior_samples_{model_name}_iter_{i}_{config.random_seed}.png")
+                    
+                    prior_samples_avg_path = os.path.join(plots_checkpoints_dir, f"prior_samples_averaged_{model_name}_iter_{i}_{config.random_seed}.png")
+                    visualize_prior_samples_original_gplvm_averaged(
+                        model=model,
+                        likelihood=likelihood,
+                        n_images=8,
+                        n_samples=8,
+                        save_path=prior_samples_avg_path,
+                        show_plot=False,
+                        dataset_name=config.id_dataset,
+                        image_shape=(28, 28)
+                    )
+                    print(f"    Prior samples averaged checkpoint saved: prior_samples_averaged_{model_name}_iter_{i}_{config.random_seed}.png")
+                except Exception as e:
+                    print(f"  Warning: Could not create prior samples checkpoint at iteration {i}: {e}")
         model.store(loss_list, likelihood)
         
         # Compute final full dataset loss if not already computed at last iteration
@@ -968,6 +1029,45 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             if config.enable_missing_data and train_missing_rmse_list:
                 plot_missing_rmse_metrics_progression(train_missing_rmse_list, metrics_iterations, 
                                                     logger.get_results_dir(), model_name, config.random_seed)
+            
+            # Save k-NN metrics and create progression plot
+            if knn_metrics_history and metrics_iterations:
+                print(f"Saving k-NN clustering metrics for {model_name}...")
+                # Save k-NN metrics to JSON file
+                knn_checkpoint_data = {
+                    'model_name': model_name,
+                    'seed': config.random_seed,
+                    'total_iterations': steps_per_model[model_name],
+                    'checkpoints': []
+                }
+                
+                for iteration, knn_metrics in zip(metrics_iterations, knn_metrics_history):
+                    knn_checkpoint_data['checkpoints'].append({
+                        'iteration': iteration,
+                        **knn_metrics  # Include all k-NN metrics (train_knn_1, test_knn_1, etc.)
+                    })
+                
+                training_results_dir = os.path.join(logger.get_results_dir(), 'training_results')
+                os.makedirs(training_results_dir, exist_ok=True)
+                knn_checkpoint_file = os.path.join(training_results_dir, f"{model_name}_{config.random_seed}_knn_metrics.json")
+                with open(knn_checkpoint_file, 'w') as f:
+                    json.dump(knn_checkpoint_data, f, indent=2)
+                logger.log_training(f"k-NN metrics saved: training_results/{os.path.basename(knn_checkpoint_file)}")
+                
+                print(f"Generating k-NN metrics progression plot for {model_name}...")
+                # Extract metrics for plotting
+                knn_k1 = [m['knn_1'] for m in knn_metrics_history]
+                knn_k3 = [m['knn_3'] for m in knn_metrics_history]
+                knn_k7 = [m['knn_7'] for m in knn_metrics_history]
+                knn_k12 = [m['knn_12'] for m in knn_metrics_history]
+                
+                plot_knn_metrics_progression(
+                    knn_k1, knn_k3, knn_k7, knn_k12,
+                    metrics_iterations,
+                    logger.get_results_dir(),
+                    model_name,
+                    config.random_seed
+                )
             
         # Save models & training info
         print(model.covar_module.base_kernel.lengthscale.detach().cpu().numpy())
@@ -1294,6 +1394,13 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     results_summary[model_name][f'ood_{score_type}_auprc'] = result['metrics']['auprc']
                     results_summary[model_name][f'ood_{score_type}_fpr80'] = result['metrics']['fpr_at_80_tpr']
             
+            # Add k-NN clustering quality metrics if available
+            if knn_metrics_history:
+                # Use final k-NN results from history
+                final_knn_results = knn_metrics_history[-1]
+                for key, value in final_knn_results.items():
+                    results_summary[model_name][f'knn_{key}'] = value
+            
             # Generate prior samples visualization
             print(f"\n=== Prior Samples Visualization ({model_name}) ===")
             plots_dir = os.path.join(logger.get_results_dir(), "plots")
@@ -1302,8 +1409,21 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             visualize_prior_samples_original_gplvm(
                 model=model,
                 likelihood=likelihood,
-                n_images=8,
+                n_images=24,
                 save_path=prior_samples_path,
+                show_plot=False,
+                dataset_name=config.id_dataset,
+                image_shape=(28, 28)
+            )
+            
+            # Generate prior samples visualization averaged over multiple GP samples
+            prior_samples_avg_path = os.path.join(plots_dir, f"prior_samples_averaged_{model_name}_{config.random_seed}.png")
+            visualize_prior_samples_original_gplvm_averaged(
+                model=model,
+                likelihood=likelihood,
+                n_images=8,
+                n_samples=8,
+                save_path=prior_samples_avg_path,
                 show_plot=False,
                 dataset_name=config.id_dataset,
                 image_shape=(28, 28)
@@ -1342,6 +1462,10 @@ def create_ood_argument_parser():
     # Convenience: same-dataset OOD mode
     parser.add_argument('--same-dataset-ood', action='store_true',
                        help='Use same-dataset OOD mode (requires --ood-classes)')
+    
+    # OOD evaluation configuration
+    parser.add_argument('--ood-n-samples', type=int, default=None,
+                       help='Number of samples for OOD evaluation (default: 4)')
     
     return parser
 
@@ -1406,6 +1530,8 @@ if __name__ == '__main__':
     # Handle same-dataset OOD convenience flag
     if hasattr(args, 'same_dataset_ood') and args.same_dataset_ood:
         config.ood_dataset = config.id_dataset
+    if hasattr(args, 'ood_n_samples') and args.ood_n_samples is not None:
+        config.ood_n_samples = args.ood_n_samples
     
     # Override results directory for OOD experiments when using fast config
     if config_name == "fast":
