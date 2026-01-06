@@ -890,7 +890,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     )
     
     print(f"Model initialized:")
-    print(f"  Encoder: {model.encoder}")
+    print(f"  Mu Encoder: {model.mu_encoder}")
+    print(f"  Sigma Encoder: {model.sigma_encoder}")
     print(f"  Inducing points: {model.gp.Vx.shape}")
     print(f"  Latent variables: {model.mu_x.shape}")
     

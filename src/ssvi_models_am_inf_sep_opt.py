@@ -29,13 +29,15 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                         trainable_V=trainable_V)
         
 
-        # Amortized inference encoder network
+        # Amortized inference encoder networks (separate for mean and variance, like Original GP-LVM)
         # Input: y_n (observation) + u_samples (P samples from global U distribution)
-        # Output: mu_n (Q) + log_sigma_n (Q) = 2*Q total
-        self.encoder = self._build_encoder(encoder_hidden_dims, 2 * self.A)
+        # Output: mu_n (A) from mu_encoder, log_sigma_n (A) from sigma_encoder
+        self.mu_encoder = self._build_encoder(encoder_hidden_dims, self.A)
+        self.sigma_encoder = self._build_encoder(encoder_hidden_dims, self.A)
         
-        # Move encoder to device
-        self.encoder = self.encoder.to(device)
+        # Move encoders to device
+        self.mu_encoder = self.mu_encoder.to(device)
+        self.sigma_encoder = self.sigma_encoder.to(device)
         
         # Missing data capability
         self.enable_missing_data = enable_missing_data
@@ -60,15 +62,15 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             ])
             prev_dim = hidden_dim
         
-        # Output layer: mu_n (Q) + log_sigma_n (Q)
+        # Output layer: outputs output_dim dimensions (A for mu_encoder or A for sigma_encoder)
         layers.append(nn.Linear(prev_dim, output_dim))
         
         return nn.Sequential(*layers)
 
     def _setup_optimizers(self, local_lr, global_lr):
         """Setup separate optimizers for different learning rates"""
-        # Local parameters (amortized inference encoder)
-        local_params = list(self.encoder.parameters())
+        # Local parameters (amortized inference encoders - both mu and sigma)
+        local_params = list(self.mu_encoder.parameters()) + list(self.sigma_encoder.parameters())
         self.optimizer_local = torch.optim.AdamW(local_params, lr=local_lr, weight_decay=1e-4)
         
         # Global parameters (GP hyperparameters, inducing points, and U distribution)
@@ -108,12 +110,9 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
 
         encoder_input = torch.cat([y_n, u_samples], dim=-1) # [P, batch_size, M + M*Lx]
         
-        # Encode to local parameters
-        encoder_output = self.encoder(encoder_input)
-        
-        # Split output into mu_n and log_sigma_n
-        mu_n = encoder_output[:, :, :self.A]
-        log_Sigma_n = encoder_output[:, :, self.A:]
+        # Encode to local parameters using separate networks (like Original GP-LVM)
+        mu_n = self.mu_encoder(encoder_input)  # [P, batch_size, A]
+        log_Sigma_n = self.sigma_encoder(encoder_input)  # [P, batch_size, A]
         
         Sigma_n = torch.nn.functional.softplus(log_Sigma_n)
         
@@ -241,10 +240,14 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             info['raw_chol_grad_norm'] = self.gp._raw_chol.grad.norm().item()
             info['raw_chol_param_norm'] = self.gp._raw_chol.norm().item()
         
-        # Encoder gradients
+        # Encoder gradients (both mu and sigma encoders)
         encoder_grad_norms = []
         encoder_param_norms = []
-        for name, param in self.encoder.named_parameters():
+        for name, param in self.mu_encoder.named_parameters():
+            if param.grad is not None:
+                encoder_grad_norms.append(param.grad.norm().item())
+                encoder_param_norms.append(param.norm().item())
+        for name, param in self.sigma_encoder.named_parameters():
             if param.grad is not None:
                 encoder_grad_norms.append(param.grad.norm().item())
                 encoder_param_norms.append(param.norm().item())
