@@ -942,7 +942,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                             y_train=Y_train,
                             labels_train=lb_train,
                             model_name=model_name,
-                            k_values=[1, 3, 7, 12]
+                            k_values=[1, 3, 7, 12],
+                            batch_size=config.batch_size
                         )
                         print(f"    k=1: {knn_results['knn_1']:.4f}")
                         print(f"    k=3: {knn_results['knn_3']:.4f}")

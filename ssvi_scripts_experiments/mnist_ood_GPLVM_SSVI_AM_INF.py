@@ -568,7 +568,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                 model=model,
                 y_train=split_data['y_train'],
                 labels_train=labels_train,
-                k_values=[1, 3, 7, 12]
+                k_values=[1, 3, 7, 12],
+                batch_size=config.batch_size
             )
             print(f"      k=1: {knn_results['knn_1']:.4f}")
             print(f"      k=3: {knn_results['knn_3']:.4f}")

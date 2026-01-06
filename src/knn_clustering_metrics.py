@@ -105,7 +105,7 @@ def compute_knn_accuracies(latent_representations, labels, k_values=[1, 3, 7, 12
     return results
 
 
-def compute_knn_accuracies_ssvi(model, y_train, labels_train, k_values=[1, 3, 7, 12]):
+def compute_knn_accuracies_ssvi(model, y_train, labels_train, k_values=[1, 3, 7, 12], batch_size=128):
     """
     Compute k-NN accuracies specifically for SSVI models.
     
@@ -125,6 +125,8 @@ def compute_knn_accuracies_ssvi(model, y_train, labels_train, k_values=[1, 3, 7,
         Class labels of shape [N]
     k_values : list of int
         List of k values to evaluate (default: [1, 3, 7, 12])
+    batch_size : int
+        Batch size for processing data (default: 128, to reduce memory usage)
         
     Returns
     -------
@@ -132,36 +134,46 @@ def compute_knn_accuracies_ssvi(model, y_train, labels_train, k_values=[1, 3, 7,
         Dictionary with k-NN accuracies for each k value
     """
     with torch.no_grad():
-        # Get latent variables using amortized inference
+        # Sample U once (shared across all batches)
         U = model.get_u_samples()
         
-        # Handle missing data if enabled
-        if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-            y_encoder_input = torch.where(
-                torch.isnan(y_train), 
-                torch.full_like(y_train, -9.0, dtype=torch.float64), 
-                y_train
-            )
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)
-        else:
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)
+        # Process data in minibatches to reduce memory usage
+        N = y_train.shape[0]
+        latent_batches = []
         
-        # Sample from distribution (aligned with plotting)
-        # Use all P samples and average to get robust representation
-        sampled_latents = []
-        for p in range(model.P):
-            # Sample from Normal(mu_x[p], sigma_x[p]) for each P
-            latent_sample = torch.distributions.Normal(mu_x[p], sigma_x[p]).sample()
-            sampled_latents.append(latent_sample)
+        for start_idx in range(0, N, batch_size):
+            end_idx = min(start_idx + batch_size, N)
+            y_batch = y_train[start_idx:end_idx]
+            
+            # Handle missing data if enabled
+            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                y_batch_clean = torch.where(
+                    torch.isnan(y_batch),
+                    torch.full_like(y_batch, -9.0, dtype=torch.float64),
+                    y_batch
+                )
+                mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch_clean, U)
+            else:
+                mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch, U)
+            
+            # Sample from distribution and average for this batch
+            sampled_latents_batch = []
+            for p in range(model.P):
+                latent_sample = torch.distributions.Normal(mu_x_batch[p], sigma_x_batch[p]).sample()
+                sampled_latents_batch.append(latent_sample)
+            
+            # Average across P samples: [P, batch_size, latent_dim] -> [batch_size, latent_dim]
+            latent_batch = torch.stack(sampled_latents_batch).mean(dim=0)
+            latent_batches.append(latent_batch)
         
-        # Average across P samples: [P, N, latent_dim] -> [N, latent_dim]
-        latent = torch.stack(sampled_latents).mean(dim=0)
+        # Concatenate all batches: [N, latent_dim]
+        latent = torch.cat(latent_batches, dim=0)
     
     return compute_knn_accuracies(latent, labels_train, k_values)
 
 
 def compute_knn_accuracies_original_gplvm(model, y_train, labels_train, 
-                                           model_name='gauss', k_values=[1, 3, 7, 12]):
+                                           model_name='gauss', k_values=[1, 3, 7, 12], batch_size=128):
     """
     Compute k-NN accuracies specifically for original GP-LVM models.
     
@@ -183,6 +195,8 @@ def compute_knn_accuracies_original_gplvm(model, y_train, labels_train,
         Model type: 'gauss' or 'nn_gauss'
     k_values : list of int
         List of k values to evaluate (default: [1, 3, 7, 12])
+    batch_size : int
+        Batch size for processing data (default: 128, to reduce memory usage)
         
     Returns
     -------
@@ -193,7 +207,7 @@ def compute_knn_accuracies_original_gplvm(model, y_train, labels_train,
         model_name_class = model.X.__class__.__name__
         
         if model_name_class == 'VariationalLatentVariable':  # 'gauss' model
-            # Variational GP-LVM (gauss)
+            # Variational GP-LVM (gauss) - latent already computed, no batching needed
             mu_x = model.X.q_mu.detach()
             sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
             
@@ -209,29 +223,39 @@ def compute_knn_accuracies_original_gplvm(model, y_train, labels_train,
             latent = torch.stack(sampled_latents).mean(dim=0)
             
         elif model_name_class == 'NNEncoder':  # 'nn_gauss' model
-            # Handle missing data for nn_gauss
-            if torch.isnan(y_train).any():
-                y_train_clean = y_train.clone()
-                y_train_clean[torch.isnan(y_train_clean)] = -999.0
-                mu_x = model.X.mu(y_train_clean).detach()
-                sigma_covariances = model.X.sigma(y_train_clean).detach()
-            else:
-                mu_x = model.X.mu(y_train).detach()
-                sigma_covariances = model.X.sigma(y_train).detach()
+            # Process data in minibatches to reduce memory usage
+            N = y_train.shape[0]
+            latent_batches = []
             
-            # Extract standard deviations from covariance matrices (match plotting)
-            sigma_x = torch.stack([torch.sqrt(cov.diag()) for cov in sigma_covariances])
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = y_train[start_idx:end_idx]
+                
+                # Handle missing data
+                if torch.isnan(y_batch).any():
+                    y_batch_clean = y_batch.clone()
+                    y_batch_clean[torch.isnan(y_batch_clean)] = -999.0
+                    mu_x_batch = model.X.mu(y_batch_clean).detach()
+                    sigma_covariances_batch = model.X.sigma(y_batch_clean).detach()
+                else:
+                    mu_x_batch = model.X.mu(y_batch).detach()
+                    sigma_covariances_batch = model.X.sigma(y_batch).detach()
+                
+                # Extract standard deviations
+                sigma_x_batch = torch.stack([torch.sqrt(cov.diag()) for cov in sigma_covariances_batch])
+                
+                # Sample and average for this batch
+                n_samples = 16
+                sampled_latents_batch = []
+                for _ in range(n_samples):
+                    latent_sample = torch.distributions.Normal(mu_x_batch, sigma_x_batch).sample()
+                    sampled_latents_batch.append(latent_sample)
+                
+                latent_batch = torch.stack(sampled_latents_batch).mean(dim=0)
+                latent_batches.append(latent_batch)
             
-            # Sample from distribution (aligned with plotting)
-            # Take 16 samples and average to get robust representation
-            n_samples = 16
-            sampled_latents = []
-            for _ in range(n_samples):
-                latent_sample = torch.distributions.Normal(mu_x, sigma_x).sample()
-                sampled_latents.append(latent_sample)
-            
-            # Average across samples: [n_samples, N, latent_dim] -> [N, latent_dim]
-            latent = torch.stack(sampled_latents).mean(dim=0)
+            # Concatenate all batches
+            latent = torch.cat(latent_batches, dim=0)
         else:
             raise ValueError(f"Unknown model class: {model_name_class}")
     
