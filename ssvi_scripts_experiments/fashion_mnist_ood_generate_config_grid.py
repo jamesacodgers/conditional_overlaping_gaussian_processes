@@ -135,7 +135,7 @@ def generate_config_grid():
     
     # Training Configuration
     batch_size_values = [32]
-    learning_rate_values = [0.001]
+    learning_rate_values = [0.0005]
     n_training_steps = [200_000]
     
     # Random Seeds
@@ -149,6 +149,9 @@ def generate_config_grid():
     # ========================================
     id_dataset_values = ["FashionMNIST"]  # Options: "MNIST", "FashionMNIST"
     ood_dataset_values = ["MNIST"]  # Options: "MNIST", "FashionMNIST" (must be explicitly specified)
+    
+    # OOD Evaluation Configuration
+    ood_n_samples_values = [16]  # Number of samples for OOD evaluation
     
     # ========================================
     # ID Dataset Filtering Configuration
@@ -167,7 +170,7 @@ def generate_config_grid():
     # ========================================
     # Output Configuration
     # ========================================
-    output_folder_name = "ood_experiment_v10"
+    output_folder_name = "fashion_mnist_ood_experiment_v1"
     ssvi_output_folder = f"ood_mnist_related/{output_folder_name}_ssvi"
     orig_output_folder = f"ood_mnist_related/{output_folder_name}_orig_gplvm"
     
@@ -196,7 +199,8 @@ def generate_config_grid():
         id_classes_values,
         id_samples_per_class_values,
         ood_classes_values,
-        ood_samples_per_class_values
+        ood_samples_per_class_values,
+        ood_n_samples_values
     ))
 
     print(f"Generating {len(param_combinations)} configuration combinations...")
@@ -205,7 +209,8 @@ def generate_config_grid():
     ssvi_count = 0
     for (n_inducing, init_lengthscales, batch_size, random_seed, learning_rate, 
          n_steps, num_inducing_samples, architecture, id_dataset, ood_dataset, test_size,
-         id_classes, id_samples_per_class, ood_classes, ood_samples_per_class) in param_combinations:
+         id_classes, id_samples_per_class, ood_classes, ood_samples_per_class,
+         ood_n_samples) in param_combinations:
         
         # Create new config based on base text
         ssvi_config_text = ssvi_base_text
@@ -229,6 +234,7 @@ def generate_config_grid():
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'ood_dataset', f'"{ood_dataset}"')
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'ood_classes', ood_classes)
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'ood_samples_per_class', ood_samples_per_class)
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'ood_n_samples', ood_n_samples)
 
         # Create filename
         filename = create_config_name(n_inducing, init_lengthscales, batch_size, random_seed,
@@ -247,7 +253,8 @@ def generate_config_grid():
     orig_count = 0
     for (n_inducing, init_lengthscales, batch_size, random_seed, learning_rate, 
          n_steps, num_inducing_samples, architecture, id_dataset, ood_dataset, test_size,
-         id_classes, id_samples_per_class, ood_classes, ood_samples_per_class) in param_combinations:
+         id_classes, id_samples_per_class, ood_classes, ood_samples_per_class,
+         ood_n_samples) in param_combinations:
         
         # Create new config based on base text
         orig_config_text = orig_base_text
@@ -269,6 +276,7 @@ def generate_config_grid():
         orig_config_text = update_config_parameter(orig_config_text, 'ood_dataset', f'"{ood_dataset}"')
         orig_config_text = update_config_parameter(orig_config_text, 'ood_classes', ood_classes)
         orig_config_text = update_config_parameter(orig_config_text, 'ood_samples_per_class', ood_samples_per_class)
+        orig_config_text = update_config_parameter(orig_config_text, 'ood_n_samples', ood_n_samples)
 
         # Create filename
         filename = create_config_name(n_inducing, init_lengthscales, batch_size, random_seed,
@@ -304,6 +312,7 @@ def generate_config_grid():
     print(f"  id_samples_per_class: {id_samples_per_class_values}")
     print(f"  ood_classes: {ood_classes_values} (None = all classes)")
     print(f"  ood_samples_per_class: {ood_samples_per_class_values}")
+    print(f"  ood_n_samples: {ood_n_samples_values}")
 
 
 if __name__ == "__main__":

@@ -83,4 +83,6 @@ ood_score_types:                # Score types to compute for OOD detection
   - nlpd
   - rmse
   - variance
-# Note: OOD score computation uses model's internal sampling
+
+# OOD Evaluation Configuration
+ood_n_samples: 16               # Number of samples for OOD evaluation (null = default 4)

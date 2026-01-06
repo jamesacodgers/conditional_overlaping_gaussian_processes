@@ -94,7 +94,7 @@ class OilFlowSSVIConfig:
 
     # === Metrics Configuration ===
     enable_metrics: bool = True            # Compute evaluation metrics
-    metrics_frequency: int = 100           # Compute metrics every N iterations
+    metrics_frequency: int = 4000           # Compute metrics every N iterations
     test_size: float = 0.1                 # Fraction of data for testing
     
     # === Visualization Configuration ===

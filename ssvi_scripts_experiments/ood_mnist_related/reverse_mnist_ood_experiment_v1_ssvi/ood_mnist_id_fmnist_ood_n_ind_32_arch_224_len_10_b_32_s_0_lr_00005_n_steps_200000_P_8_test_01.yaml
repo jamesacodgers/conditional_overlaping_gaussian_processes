@@ -1,0 +1,71 @@
+# Base SSVI Configuration for OOD Detection GP-LVM
+# MNIST vs FashionMNIST Out-of-Distribution Detection
+
+# Device Configuration
+device: "cuda"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
+
+# Data Configuration
+data_url: "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"
+latent_dim: 10
+
+# Model Architecture
+n_inducing_points: 32
+encoder_hidden_dims: [128, 64, 32]
+
+# Training Configuration
+training_iterations: 200000
+batch_size: 32
+
+# Learning Rates
+local_lr: 0.0005   # Encoder parameters
+global_lr: 0.0005  # GP hyperparameters
+
+# GP Hyperparameters
+sigma2_s: null  # Signal variances (null = auto)
+init_lengthscales: 1.0  # Initial lengthscales value (1/beta) - default matches current standard
+init_output_noise_scale: 1.0  # Initial output noise scale (sigma2) - default matches current standard
+P: 8  # Number of samples for SSVI
+trainable_V: true
+
+# Visualization
+plot_training: true
+plot_latent_space: true
+plot_hyperparams: true
+
+# Checkpoint Configuration
+checkpoint_frequency: 4000  # Save models, plots, metrics, and log progress every N iterations
+
+# Advanced Logging
+enable_gradient_logging: true
+gradient_log_frequency: 50  # Log gradients every N iterations
+save_results: true  # Save results to folder
+results_dir: "ood_results/ssvi_results"  # OOD results directory
+
+# Metrics Configuration
+enable_metrics: true
+test_size: 0.1  # Fraction of data for testing
+random_seed: 0  # Random seed for reproducibility (matches original GP-LVM base config)
+
+# Visualization Configuration
+save_training_plots: true
+
+# === OOD Detection Configuration ===
+# In-Distribution (ID) Dataset Configuration
+id_dataset: "MNIST"      # ID dataset name: "MNIST" or "FashionMNIST"
+id_classes: null                # ID class indices (null = all classes)
+                                # FashionMNIST classes: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
+                                #                       5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
+id_samples_per_class: 500       # Samples per ID class (null = use all)
+
+# Out-of-Distribution (OOD) Dataset Configuration
+ood_dataset: "FashionMNIST"             # OOD dataset name (must be explicitly specified)
+ood_classes: null               # OOD class indices (null = all classes)
+                                # MNIST classes: 0-9 = Digits 0-9
+ood_samples_per_class: 500     # Samples per OOD class (null = use all)
+
+# OOD Score Types
+ood_score_types:                # Score types to compute for OOD detection
+  - nlpd
+  - rmse
+  - variance
+# Note: OOD score computation uses P (inducing samples) automatically
