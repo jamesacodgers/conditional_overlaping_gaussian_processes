@@ -131,10 +131,10 @@ def generate_config_grid():
     
     # GP Hyperparameters
     init_lengthscales_values = [1.0]
-    num_inducing_samples_list = [1, 2, 4]  # P samples for SSVI
+    num_inducing_samples_list = [4]  # P samples for SSVI
     
     # Training Configuration
-    batch_size_values = [8, 16, 32]
+    batch_size_values = [32]
     learning_rate_values = [0.0003]
     n_training_steps = [100_000]
     
@@ -155,19 +155,19 @@ def generate_config_grid():
     # ========================================
     # Applied to in-distribution dataset
     id_classes_values = [None]  # None = all classes, or list like [0,1,2,3,4,5,6,7] for subset
-    id_samples_per_class_values = [500]  # Samples per ID class (None = use all)
+    id_samples_per_class_values = [None] # was [500] # Samples per ID class (None = use all)
     
     # ========================================
     # OOD Dataset Filtering Configuration
     # ========================================
     # Applied to out-of-distribution dataset
     ood_classes_values = [None]  # None = all classes, or list like [8,9] for subset
-    ood_samples_per_class_values = [500]  # Samples per OOD class (None = use all)
+    ood_samples_per_class_values = [None] # was [500]  # Samples per OOD class (None = use all)
     
     # ========================================
     # Output Configuration
     # ========================================
-    output_folder_name = "reverse_mnist_ood_experiment_v9"
+    output_folder_name = "reverse_mnist_ood_experiment_v10"
     ssvi_output_folder = f"ood_mnist_related/{output_folder_name}_ssvi"
     orig_output_folder = f"ood_mnist_related/{output_folder_name}_orig_gplvm"
     
