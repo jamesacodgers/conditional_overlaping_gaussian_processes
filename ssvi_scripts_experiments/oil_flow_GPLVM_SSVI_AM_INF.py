@@ -153,7 +153,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     from utils.data import load_real_data
     
     # Download data if needed (same as Original GP-LVM)
-    download_oilflow_data_if_needed()
+    # download_oilflow_data_if_needed()
     
     # Load data using the same function as Original GP-LVM
     N, d, q, X, Y, labels = load_real_data('oilflow')
