@@ -288,9 +288,20 @@ def load_ood_data(config: OODSSVIConfig):
     
     # Transform all data using the scaler fitted on training data
     print(f"Transforming train/test/OOD data...")
+    print(f"  Before transform - Train shape: {y_train.shape}, Test shape: {y_test.shape}, OOD shape: {y_ood.shape}")
+    print(f"  Scaler mean shape: {scaler.mean.shape}, std shape: {scaler.std.shape}")
+    print(f"  Before transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}, OOD mean: {y_ood.mean().item():.6f}")
+    print(f"  Before transform - Train std: {y_train.std().item():.6f}, Test std: {y_test.std().item():.6f}, OOD std: {y_ood.std().item():.6f}")
+    
     y_train = scaler.transform(y_train)
     y_test = scaler.transform(y_test)
     y_ood = scaler.transform(y_ood)
+    
+    # Debug: Show statistics after transform
+    print(f"  After transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}, OOD mean: {y_ood.mean().item():.6f}")
+    print(f"  After transform - Train std: {y_train.std().item():.6f}, Test std: {y_test.std().item():.6f}, OOD std: {y_ood.std().item():.6f}")
+    print(f"  After transform - Train min: {y_train.min().item():.6f}, Test min: {y_test.min().item():.6f}, OOD min: {y_ood.min().item():.6f}")
+    print(f"  After transform - Train max: {y_train.max().item():.6f}, Test max: {y_test.max().item():.6f}, OOD max: {y_ood.max().item():.6f}")
     
     print(f"Standardization completed.")
     print("=" * 50)

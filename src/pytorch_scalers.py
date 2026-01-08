@@ -15,24 +15,30 @@ class StandardScalerPytorch:
     
     def fit(self, X):
         """Fit the scaler to the data"""
-        self.mean = torch.nanmean(X, dim=0)
+        self.mean = torch.nanmean(X, dim=0).to(self.device)
         # Compute std ignoring NaN values
         X_clean = X[~torch.isnan(X)].reshape(X.shape) if torch.isnan(X).any() else X
         self.std = torch.std(X_clean, dim=0, unbiased=False)
         # Avoid division by zero
-        self.std = torch.clamp(self.std, min=1e-8)
+        self.std = torch.clamp(self.std, min=1e-2)
     
     def transform(self, X):
         """Transform the data"""
         if self.mean is None or self.std is None:
             raise ValueError("Scaler must be fitted before transform")
-        return (X - self.mean) / self.std
+        # Ensure mean and std are on the same device as X
+        mean = self.mean.to(X.device)
+        std = self.std.to(X.device)
+        return (X - mean) / std
     
     def inverse_transform(self, X):
         """Inverse transform the data"""
         if self.mean is None or self.std is None:
             raise ValueError("Scaler must be fitted before inverse_transform")
-        return X * self.std + self.mean
+        # Ensure mean and std are on the same device as X
+        mean = self.mean.to(X.device)
+        std = self.std.to(X.device)
+        return X * std + mean
     
     def fit_transform(self, X):
         """Fit and transform the data"""
@@ -86,13 +92,19 @@ class MinMaxScalerPytorch:
         """Transform the data"""
         if self.min is None or self.max is None:
             raise ValueError("Scaler must be fitted before transform")
-        return (X - self.min) / (self.max - self.min)
+        # Ensure min and max are on the same device as X
+        min_val = self.min.to(X.device)
+        max_val = self.max.to(X.device)
+        return (X - min_val) / (max_val - min_val)
     
     def inverse_transform(self, X):
         """Inverse transform the data"""
         if self.min is None or self.max is None:
             raise ValueError("Scaler must be fitted before inverse_transform")
-        return X * (self.max - self.min) + self.min
+        # Ensure min and max are on the same device as X
+        min_val = self.min.to(X.device)
+        max_val = self.max.to(X.device)
+        return X * (max_val - min_val) + min_val
     
     def fit_transform(self, X):
         """Fit and transform the data"""
