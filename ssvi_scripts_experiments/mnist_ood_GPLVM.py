@@ -107,6 +107,7 @@ from src.ood_metrics import (
     compute_all_ood_metrics,
     OODMetrics
 )
+from src.pytorch_scalers import StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 plt.style.use('ggplot')
 
@@ -153,6 +154,9 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
     ood_score_types: List[str] = None      # Will be set to ['nlpd', 'rmse', 'variance'] if None
     ood_n_samples: int = None              # Number of samples for OOD evaluation (None = use default 4)
     
+    # === Data Standardization Configuration ===
+    standardization: str = "standard"      # "standard" (mean=0, std=1), "minmax" ([0,1]), or "none" (no transform)
+    
     def __post_init__(self):
         super().__post_init__()
         if self.ood_score_types is None:
@@ -190,6 +194,7 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
             print(f"  Mode: Cross-dataset OOD")
         print(f"OOD Score Types: {self.ood_score_types}")
         print(f"OOD N Samples: {self.ood_n_samples if self.ood_n_samples else 'default (4)'}")
+        print(f"Data Standardization: {self.standardization}")
         print("=" * 50)
 
 
@@ -331,6 +336,33 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     
     print(f"OOD data shape: {y_ood.shape}")
 
+    # === Data Standardization ===
+    # Fit scaler on training data only (before missing data preprocessing)
+    print(f"\n=== Data Standardization ===")
+    print(f"Standardization method: {config.standardization}")
+    
+    if config.standardization == "standard":
+        scaler = StandardScalerPytorch(device=config.device)
+    elif config.standardization == "minmax":
+        scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "none":
+        scaler = NoTransform(device=config.device)
+    else:
+        raise ValueError(f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', or 'none'")
+    
+    # Fit scaler on training data only (critical: don't mix test data)
+    print(f"Fitting scaler on training data only ({Y_train.shape[0]} samples)...")
+    scaler.fit(Y_train)
+    
+    # Transform all data using the scaler fitted on training data
+    print(f"Transforming train/test/OOD data...")
+    Y_train = scaler.transform(Y_train)
+    Y_test = scaler.transform(Y_test)
+    y_ood = scaler.transform(y_ood)
+    
+    print(f"Standardization completed.")
+    print("=" * 50)
+
     split_data = {
         'y_train': Y_train,
         'y_test': Y_test,
@@ -340,7 +372,9 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
         'test_indices': test_indices,
         # OOD data
         'y_ood': y_ood,
-        'labels_ood': labels_ood
+        'labels_ood': labels_ood,
+        # Scaler for inverse transforms (needed for visualization)
+        'scaler': scaler
     }
     
     return Y_train, Y_test, lb_train, lb_test, split_data
@@ -674,7 +708,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
     if config.enable_missing_data:
         print(f"\n=== Missing Data Preprocessing ===")
         
-        # Store original data for evaluation
+        # Store original data for evaluation (already standardized at this point)
         Y_train_original = Y_train.clone()
         Y_test_original = Y_test.clone()
         
@@ -982,7 +1016,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         save_path=prior_samples_path,
                         show_plot=False,
                         dataset_name=config.id_dataset,
-                        image_shape=(28, 28)
+                        image_shape=(28, 28),
+                        scaler=split_data.get('scaler')
                     )
                     print(f"    Prior samples checkpoint saved: prior_samples_{model_name}_iter_{i}_{config.random_seed}.png")
                     
@@ -995,7 +1030,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         save_path=prior_samples_avg_path,
                         show_plot=False,
                         dataset_name=config.id_dataset,
-                        image_shape=(28, 28)
+                        image_shape=(28, 28),
+                        scaler=split_data.get('scaler')
                     )
                     print(f"    Prior samples averaged checkpoint saved: prior_samples_averaged_{model_name}_iter_{i}_{config.random_seed}.png")
                 except Exception as e:
@@ -1345,7 +1381,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     n_images=10,
                     n_samples=5,
                     save_path=simple_viz_path,
-                    show_plot=False
+                    show_plot=False,
+                    scaler=split_data.get('scaler')
                 )
                 
                 detailed_viz_path = os.path.join(plots_dir, f"missing_data_reconstruction_gauss_detailed_{config.random_seed}.png")
@@ -1359,7 +1396,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     n_images=10,
                     n_samples=5,
                     save_path=detailed_viz_path,
-                    show_plot=False
+                    show_plot=False,
+                    scaler=split_data.get('scaler')
                 )
                 
                 print("=" * 50)
@@ -1414,7 +1452,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 save_path=prior_samples_path,
                 show_plot=False,
                 dataset_name=config.id_dataset,
-                image_shape=(28, 28)
+                image_shape=(28, 28),
+                scaler=split_data.get('scaler')
             )
             
             # Generate prior samples visualization averaged over multiple GP samples
@@ -1427,7 +1466,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 save_path=prior_samples_avg_path,
                 show_plot=False,
                 dataset_name=config.id_dataset,
-                image_shape=(28, 28)
+                image_shape=(28, 28),
+                scaler=split_data.get('scaler')
             )
             print("=" * 50)
     

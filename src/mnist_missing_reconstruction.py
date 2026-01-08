@@ -59,7 +59,8 @@ def visualize_mnist_missing_reconstruction(
     n_samples: int = 5,
     save_path: Optional[str] = None,
     show_plot: bool = False,
-    dataset_name: str = "MNIST"
+    dataset_name: str = "MNIST",
+    scaler=None
 ):
     """
     Visualize MNIST/FashionMNIST missing data reconstruction with original, masked, and reconstructed images.
@@ -118,6 +119,12 @@ def visualize_mnist_missing_reconstruction(
         # Stack reconstructions [n_samples, n_images, D]
         reconstructions = torch.stack(reconstructions, dim=0)
     
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        # Inverse transform y_original and reconstructions to original scale
+        y_orig_batch = scaler.inverse_transform(y_orig_batch)
+        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(reconstructions.shape)
+    
     # Compute image dimensions (assume square images)
     img_dim = int(np.sqrt(y_batch.shape[1]))
     
@@ -142,6 +149,9 @@ def visualize_mnist_missing_reconstruction(
         img_masked = y_batch[i].clone()
         # Set missing values to 0 for visualization
         img_masked[mask_batch[i]] = 0.0
+        # Inverse transform if scaler provided
+        if scaler is not None:
+            img_masked = scaler.inverse_transform(img_masked.unsqueeze(0)).squeeze(0)
         img_masked = img_masked.cpu().numpy().reshape(img_dim, img_dim)
         axes[i, 1].imshow(img_masked, cmap='gray', vmin=0, vmax=1)
         axes[i, 1].axis('off')
@@ -203,7 +213,8 @@ def visualize_mnist_missing_reconstruction_detailed(
     n_samples: int = 5,
     save_path: Optional[str] = None,
     show_plot: bool = False,
-    dataset_name: str = "MNIST"
+    dataset_name: str = "MNIST",
+    scaler=None
 ):
     """
     Enhanced visualization with RMSE per image and uncertainty visualization.
@@ -266,6 +277,16 @@ def visualize_mnist_missing_reconstruction_detailed(
         y_recon_mean = reconstructions.mean(dim=0)  # [n_images, D]
         y_recon_std = reconstructions.std(dim=0)    # [n_images, D]
     
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        # Inverse transform y_original, reconstructions, mean, and std to original scale
+        y_orig_batch = scaler.inverse_transform(y_orig_batch)
+        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(reconstructions.shape)
+        y_recon_mean = scaler.inverse_transform(y_recon_mean)
+        # For std, we need to scale by the scaler's std (variance scales as std^2)
+        if hasattr(scaler, 'std'):
+            y_recon_std = y_recon_std * scaler.std
+    
     # Compute image dimensions (assume square images)
     img_dim = int(np.sqrt(y_batch.shape[1]))
     
@@ -294,6 +315,9 @@ def visualize_mnist_missing_reconstruction_detailed(
         img_masked = y_batch[i].clone()
         # Set missing values to 0.5 (gray) for better visualization
         img_masked[mask_batch[i]] = 0.5
+        # Inverse transform if scaler provided
+        if scaler is not None:
+            img_masked = scaler.inverse_transform(img_masked.unsqueeze(0)).squeeze(0)
         img_masked = img_masked.cpu().numpy().reshape(img_dim, img_dim)
         axes[i, 1].imshow(img_masked, cmap='gray', vmin=0, vmax=1)
         axes[i, 1].axis('off')
@@ -374,7 +398,8 @@ def visualize_prior_samples(
     save_path: Optional[str] = None,
     show_plot: bool = False,
     dataset_name: str = "MNIST",
-    image_shape: tuple = (28, 28)
+    image_shape: tuple = (28, 28),
+    scaler=None
 ):
     """
     Visualize samples from the GP-LVM prior (mean images only).
@@ -430,6 +455,10 @@ def visualize_prior_samples(
             f_mean_samples.append(f_mean[p_idx, i, :])  # [M]
         
         f_mean_final = torch.stack(f_mean_samples, dim=0)  # [n_images, M]
+    
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        f_mean_final = scaler.inverse_transform(f_mean_final)
     
     img_h, img_w = image_shape
     
@@ -487,7 +516,8 @@ def visualize_prior_samples_averaged(
     save_path: Optional[str] = None,
     show_plot: bool = False,
     dataset_name: str = "MNIST",
-    image_shape: tuple = (28, 28)
+    image_shape: tuple = (28, 28),
+    scaler=None
 ):
     """
     Visualize samples from the GP-LVM prior, averaging over P U samples.
@@ -552,6 +582,13 @@ def visualize_prior_samples_averaged(
         f_mean_avg = f_mean.mean(dim=0)  # [n_images, M]
         pred_var_avg = pred_var.mean(dim=0)  # [n_images, M]
     
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        f_mean_avg = scaler.inverse_transform(f_mean_avg)
+        # For variance, scale by scaler.std^2 (variance scales as std^2)
+        if hasattr(scaler, 'std'):
+            pred_var_avg = pred_var_avg * (scaler.std ** 2)
+    
     img_h, img_w = image_shape
     
     # Create visualization: 2 rows (mean, variance) x n_images columns
@@ -609,7 +646,8 @@ def visualize_prior_samples_original_gplvm(
     save_path: Optional[str] = None,
     show_plot: bool = False,
     dataset_name: str = "MNIST",
-    image_shape: tuple = (28, 28)
+    image_shape: tuple = (28, 28),
+    scaler=None
 ):
     """
     Visualize samples from the Original GP-LVM prior (mean images only).
@@ -649,6 +687,10 @@ def visualize_prior_samples_original_gplvm(
         # Extract mean (same approach as nlpd_utils.py)
         # gp_dist.loc has shape [data_dim, n_images], transpose to [n_images, data_dim]
         f_mean = gp_dist.loc.T  # [n_images, data_dim]
+    
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        f_mean = scaler.inverse_transform(f_mean)
     
     img_h, img_w = image_shape
     
@@ -708,7 +750,8 @@ def visualize_prior_samples_original_gplvm_averaged(
     save_path: Optional[str] = None,
     show_plot: bool = False,
     dataset_name: str = "MNIST",
-    image_shape: tuple = (28, 28)
+    image_shape: tuple = (28, 28),
+    scaler=None
 ):
     """
     Visualize samples from the Original GP-LVM prior, averaging over multiple GP samples.
@@ -774,6 +817,13 @@ def visualize_prior_samples_original_gplvm_averaged(
         obs_noise = likelihood.noise
         pred_var_avg = f_var_avg + obs_noise  # [n_images, data_dim]
     
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        f_mean_avg = scaler.inverse_transform(f_mean_avg)
+        # For variance, scale by scaler.std^2 (variance scales as std^2)
+        if hasattr(scaler, 'std'):
+            pred_var_avg = pred_var_avg * (scaler.std ** 2)
+    
     img_h, img_w = image_shape
     
     # Create visualization: 2 rows (mean, variance) x n_images columns
@@ -834,7 +884,8 @@ def visualize_mnist_missing_reconstruction_gauss(
     n_images: int = 10,
     n_samples: int = 5,
     save_path: Optional[str] = None,
-    show_plot: bool = False
+    show_plot: bool = False,
+    scaler=None
 ):
     """
     Visualize MNIST missing data reconstruction for Original GP-LVM (gauss) model.
@@ -881,6 +932,12 @@ def visualize_mnist_missing_reconstruction_gauss(
         # Stack reconstructions [n_samples, n_images, D]
         reconstructions = torch.stack(reconstructions, dim=0)
     
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        # Inverse transform y_original and reconstructions to original scale
+        y_orig_batch = scaler.inverse_transform(y_orig_batch)
+        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(reconstructions.shape)
+    
     # Compute image dimensions (assume square images)
     img_dim = int(np.sqrt(y_batch.shape[1]))
     
@@ -905,6 +962,9 @@ def visualize_mnist_missing_reconstruction_gauss(
         img_masked = y_batch[i].clone()
         # Set missing values to 0 for visualization
         img_masked[mask_batch[i]] = 0.0
+        # Inverse transform if scaler provided
+        if scaler is not None:
+            img_masked = scaler.inverse_transform(img_masked.unsqueeze(0)).squeeze(0)
         img_masked = img_masked.cpu().numpy().reshape(img_dim, img_dim)
         axes[i, 1].imshow(img_masked, cmap='gray', vmin=0, vmax=1)
         axes[i, 1].axis('off')
@@ -967,7 +1027,8 @@ def visualize_mnist_missing_reconstruction_gauss_detailed(
     n_images: int = 10,
     n_samples: int = 5,
     save_path: Optional[str] = None,
-    show_plot: bool = False
+    show_plot: bool = False,
+    scaler=None
 ):
     """
     Enhanced visualization for Original GP-LVM (gauss) model with RMSE per image and uncertainty visualization.
@@ -1018,6 +1079,16 @@ def visualize_mnist_missing_reconstruction_gauss_detailed(
         y_recon_mean = reconstructions.mean(dim=0)  # [n_images, D]
         y_recon_std = reconstructions.std(dim=0)    # [n_images, D]
     
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        # Inverse transform y_original, reconstructions, mean, and std to original scale
+        y_orig_batch = scaler.inverse_transform(y_orig_batch)
+        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(reconstructions.shape)
+        y_recon_mean = scaler.inverse_transform(y_recon_mean)
+        # For std, we need to scale by the scaler's std (variance scales as std^2)
+        if hasattr(scaler, 'std'):
+            y_recon_std = y_recon_std * scaler.std
+    
     # Compute image dimensions (assume square images)
     img_dim = int(np.sqrt(y_batch.shape[1]))
     
@@ -1046,6 +1117,9 @@ def visualize_mnist_missing_reconstruction_gauss_detailed(
         img_masked = y_batch[i].clone()
         # Set missing values to 0.5 (gray) for better visualization
         img_masked[mask_batch[i]] = 0.5
+        # Inverse transform if scaler provided
+        if scaler is not None:
+            img_masked = scaler.inverse_transform(img_masked.unsqueeze(0)).squeeze(0)
         img_masked = img_masked.cpu().numpy().reshape(img_dim, img_dim)
         axes[i, 1].imshow(img_masked, cmap='gray', vmin=0, vmax=1)
         axes[i, 1].axis('off')

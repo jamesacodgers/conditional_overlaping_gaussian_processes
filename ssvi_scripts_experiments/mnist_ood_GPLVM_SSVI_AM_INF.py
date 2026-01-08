@@ -84,6 +84,7 @@ from src.ood_metrics import (
     compute_all_ood_metrics,
     OODMetrics
 )
+from src.pytorch_scalers import StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 # Device will be set in main() from config
 
@@ -130,6 +131,9 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     ood_score_types: list = None           # Will be set to ['nlpd', 'rmse', 'variance'] if None
     ood_n_samples: int = None               # Number of P samples for OOD evaluation (None = use model.P)
     
+    # === Data Standardization Configuration ===
+    standardization: str = "standard"      # "standard" (mean=0, std=1), "minmax" ([0,1]), or "none" (no transform)
+    
     def __post_init__(self):
         super().__post_init__()
         if self.ood_score_types is None:
@@ -167,6 +171,7 @@ class OODSSVIConfig(OilFlowSSVIConfig):
             print(f"  Mode: Cross-dataset OOD")
         print(f"OOD Score Types: {self.ood_score_types}")
         print(f"OOD N Samples: {self.ood_n_samples if self.ood_n_samples else 'same as training P'}")
+        print(f"Data Standardization: {self.standardization}")
         print("=" * 50)
 
 
@@ -263,6 +268,33 @@ def load_ood_data(config: OODSSVIConfig):
     
     print(f"OOD data shape: {y_ood.shape}")
 
+    # === Data Standardization ===
+    # Fit scaler on training data only (before missing data preprocessing)
+    print(f"\n=== Data Standardization ===")
+    print(f"Standardization method: {config.standardization}")
+    
+    if config.standardization == "standard":
+        scaler = StandardScalerPytorch(device=config.device)
+    elif config.standardization == "minmax":
+        scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "none":
+        scaler = NoTransform(device=config.device)
+    else:
+        raise ValueError(f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', or 'none'")
+    
+    # Fit scaler on training data only (critical: don't mix test data)
+    print(f"Fitting scaler on training data only ({y_train.shape[0]} samples)...")
+    scaler.fit(y_train)
+    
+    # Transform all data using the scaler fitted on training data
+    print(f"Transforming train/test/OOD data...")
+    y_train = scaler.transform(y_train)
+    y_test = scaler.transform(y_test)
+    y_ood = scaler.transform(y_ood)
+    
+    print(f"Standardization completed.")
+    print("=" * 50)
+
     # Use training data for model initialization
     y = y_train
     labels = labels_train
@@ -275,7 +307,9 @@ def load_ood_data(config: OODSSVIConfig):
         'test_indices': test_indices_tensor,
         # OOD data
         'y_ood': y_ood,
-        'labels_ood': labels_ood
+        'labels_ood': labels_ood,
+        # Scaler for inverse transforms (needed for visualization)
+        'scaler': scaler
     }
     
     # Initialize inducing points and latent variables (following original)
@@ -628,7 +662,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                             save_path=prior_samples_path,
                             show_plot=False,
                             dataset_name=config.id_dataset,
-                            image_shape=(28, 28)
+                            image_shape=(28, 28),
+                            scaler=split_data.get('scaler')
                         )
                         print(f"    Prior samples checkpoint saved: prior_samples_iter_{i}_{config.random_seed}.png")
                         
@@ -639,7 +674,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                             save_path=prior_samples_avg_path,
                             show_plot=False,
                             dataset_name=config.id_dataset,
-                            image_shape=(28, 28)
+                            image_shape=(28, 28),
+                            scaler=split_data.get('scaler')
                         )
                         print(f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png")
                     except Exception as e:
@@ -831,7 +867,7 @@ def get_fast_config():
         init_lengthscales=1.0,
         init_output_noise_scale=1.0,
         # === Missing Data Configuration ===
-        enable_missing_data=True,
+        enable_missing_data=False,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
         # === Random Seed Configuration ===
@@ -1137,7 +1173,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
             n_samples=5,
             save_path=simple_viz_path,
             show_plot=False,
-            dataset_name=config.id_dataset
+            dataset_name=config.id_dataset,
+            scaler=split_data.get('scaler')
         )
         
         # Detailed visualization (with mean and uncertainty)
@@ -1151,7 +1188,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
             n_samples=5,
             save_path=detailed_viz_path,
             show_plot=False,
-            dataset_name=config.id_dataset
+            dataset_name=config.id_dataset,
+            scaler=split_data.get('scaler')
         )
         
         print("=" * 50)
@@ -1165,7 +1203,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         save_path=prior_samples_path,
         show_plot=False,
         dataset_name=config.id_dataset,
-        image_shape=(28, 28)  # MNIST/FashionMNIST image shape
+        image_shape=(28, 28),  # MNIST/FashionMNIST image shape
+        scaler=split_data.get('scaler')
     )
     
     # Generate prior samples visualization averaged over P (alternative view)
@@ -1176,7 +1215,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         save_path=prior_samples_avg_path,
         show_plot=False,
         dataset_name=config.id_dataset,
-        image_shape=(28, 28)  # MNIST/FashionMNIST image shape
+        image_shape=(28, 28),  # MNIST/FashionMNIST image shape
+        scaler=split_data.get('scaler')
     )
     print("=" * 50)
     
