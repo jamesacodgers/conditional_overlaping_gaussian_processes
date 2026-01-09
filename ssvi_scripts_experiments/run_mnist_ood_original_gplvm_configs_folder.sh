@@ -161,7 +161,7 @@ run_config() {
     
     # Build command (now running from ssvi_scripts_experiments directory)
     # Adjust the Python path as needed for your environment
-    local cmd="python mnist_ood_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
+    local cmd="/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/bin/python mnist_ood_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
     
     # Only add device parameter if explicitly specified
     if [[ -n "$DEVICE" ]]; then

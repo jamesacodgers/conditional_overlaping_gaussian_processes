@@ -474,7 +474,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     )
     
     print(f"Model initialized:")
-    print(f"  Encoder: {model.encoder}")
+    print(f"  Encoder: {model.mu_encoder}")
     print(f"  Inducing points: {model.gp.Vx.shape}")
     print(f"  Latent variables: {model.mu_x.shape}")
     

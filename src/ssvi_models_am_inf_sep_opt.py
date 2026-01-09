@@ -116,7 +116,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         mu_n = self.mu_encoder(encoder_input)  # [P, batch_size, A]
         log_Sigma_n = self.sigma_encoder(encoder_input)  # [P, batch_size, A]
         
-        Sigma_n = torch.nn.functional.softplus(log_Sigma_n)
+        Sigma_n = torch.nn.functional.softplus(log_Sigma_n) + 1e-6  # Add small epsilon to ensure positive
         
         return mu_n, Sigma_n
 

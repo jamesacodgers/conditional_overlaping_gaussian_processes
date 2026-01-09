@@ -132,11 +132,11 @@ def generate_config_grid():
     # For SSVI: encoder_hidden_dims
     # For Original GP-LVM: nn_layers
     # Both use the same architecture options
-    architecture_values = [[128, 64]]  # Can add more options like [[256, 128, 64], [64, 32]]
+    architecture_values = [[1024,512,256]]  # Can add more options like [[256, 128, 64], [64, 32]]
 
     # Missing data parameters
-    enable_missing_data_values = [False]
-    missing_data_ratio_values = [0.0]
+    enable_missing_data_values = [True]
+    missing_data_ratio_values = [0.5]
     # enable_missing_data_values = [True]
     # missing_data_ratio_values = [0.25, 0.5, 0.75, 0.9]
     
