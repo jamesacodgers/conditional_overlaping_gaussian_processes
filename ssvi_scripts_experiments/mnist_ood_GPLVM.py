@@ -657,8 +657,8 @@ def get_fast_config():
         random_seed=7,
         test_iterations=100,
         test_size=0.2,
-        checkpoint_frequency=50,
-        metrics_frequency=50,
+        checkpoint_frequency=4000,
+        metrics_frequency=4000,
         # === GP Hyperparameters ===
         init_lengthscales=2.0,
         init_output_noise_scale=2.0,
