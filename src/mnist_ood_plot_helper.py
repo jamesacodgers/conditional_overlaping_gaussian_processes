@@ -579,18 +579,39 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
             dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
-            # Get latent variables using new explicit training method
+            
+            # Get latent variables using batched processing to reduce memory usage
+            batch_size = getattr(config, 'batch_size', 128)  # Use config batch_size if available, otherwise default to 128
             epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
 
-            U = model.get_u_samples(epsilon)  # [P, M, C, Lx]
-
-            # Handle missing data if enabled
-            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                # Preprocess encoder input to handle missing data (replace NaN with -9.0)
-                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0, dtype=torch.float64), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
-            else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+            U = model.get_u_samples(epsilon)  # [P, M, C, Lx] - Sample U once (shared across all batches)
+            
+            # Process data in minibatches
+            N = y_train.shape[0]
+            mu_x_batches = []
+            sigma_x_batches = []
+            
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = y_train[start_idx:end_idx]
+                
+                # Handle missing data if enabled
+                if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                    y_batch_clean = torch.where(
+                        torch.isnan(y_batch),
+                        torch.full_like(y_batch, -9.0, dtype=torch.float64),
+                        y_batch
+                    )
+                    mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch_clean, U)
+                else:
+                    mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch, U)
+                
+                mu_x_batches.append(mu_x_batch)
+                sigma_x_batches.append(sigma_x_batch)
+            
+            # Concatenate all batches along the N dimension: [P, batch_size, A] -> [P, N, A]
+            mu_x = torch.cat(mu_x_batches, dim=1)
+            sigma_x = torch.cat(sigma_x_batches, dim=1)
 
             # Keep as torch tensors for sampling, convert to numpy after sampling
             mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
