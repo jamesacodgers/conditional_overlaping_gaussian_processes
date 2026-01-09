@@ -1,0 +1,24 @@
+=== OOD Detection SSVI GP-LVM Training Session ===
+ID Dataset: MNIST, OOD Dataset: FashionMNIST
+Model: 64 inducing points, latent_dim=10
+Training: 200 iter, batch=32
+Learning rates: Local=0.0003, Global=0.0003
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': np.float64(0.9041209784282317), 'test_rmse': np.float64(0.9694265338458782), 'train_nlpd': 1154.5893728070635, 'test_nlpd': 1180.3223066922678, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -1424.0199531354688}
+k-NN metrics at iteration 0: {'knn_1': 1.0, 'knn_3': 0.4266666666666667, 'knn_7': 0.32155555555555554, 'knn_12': 0.2742222222222222}
+Iteration 0/200: Loss=1433.0369, Time=6.3s
+Iteration 100/200: Loss=1367.4106, Time=12.9s
+Training completed! Final Full Loss: 1335.0843 (batch loss: 1848.9206), Total time: 19.4s (10.3 iter/s)
+Plot saved: plots/training_results.png
+Plot saved: plots/1d_histogram_most_important_dim.png
+Final comprehensive metrics computed: {'iteration': 200, 'train_rmse': np.float64(0.9394961020661617), 'test_rmse': np.float64(1.008126175376835), 'train_nlpd': 1192.6701210501717, 'test_nlpd': 1214.2271374257273, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -1335.0842785486066}
+Plot saved: plots/metrics_progression.png
+Plot saved: plots/final_metrics_summary.png
+Checkpoint metrics saved: training_results/ood_ssvi_0_checkpoint_metrics.json
+Training losses saved: training_results/ood_ssvi_full_loss_0_losses.json
+Training losses saved: training_results/ood_ssvi_batch_0_losses.json
+k-NN metrics saved: training_results/ood_ssvi_0_knn_metrics.json
+OOD NLPD: AUROC=0.9988, AUPRC=0.9999, FPR@80=0.0020
+OOD RMSE: AUROC=0.9990, AUPRC=0.9999, FPR@80=0.0000
+OOD VARIANCE: AUROC=0.9474, AUPRC=0.9948, FPR@80=0.0100
+Model saved: pre_trained_models/ood_ssvi_0.pkl
+Experiment summary saved: experiment_summary.json

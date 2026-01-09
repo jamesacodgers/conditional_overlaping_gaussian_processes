@@ -163,13 +163,14 @@ def compute_nlpd_scores(model, Y: torch.Tensor, n_samples: int = 32) -> np.ndarr
     
     with torch.no_grad():
         # Get U samples (same as ssvi_metrics.compute_nlpd)
-        U_samples = model.get_u_samples()
+        epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
+        U_samples = model.get_u_samples(epsilon)
         
         # Preprocess encoder input to handle missing data
         Y_clean = torch.where(torch.isnan(Y), torch.full_like(Y, -9.0, dtype=torch.float64), Y)
         
         # Get latent representations using SSVI encoder
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y_clean, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y_clean, epsilon)
         
         # Sample latent variables
         x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -233,13 +234,14 @@ def compute_reconstruction_error_scores(model, Y: torch.Tensor,
         # === EXACTLY as in ssvi_metrics.compute_rmse ===
         
         # Sample U for both model types
-        U_samples = model.get_u_samples()
+        epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
+        U_samples = model.get_u_samples(epsilon)
         
         # Preprocess encoder input to handle missing data (consistent with training)
         y_encoder_input = torch.where(torch.isnan(Y), torch.full_like(Y, -9.0, dtype=torch.float64), Y)
         
         # Get latent representations for this batch using SSVI encoder
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
         
         # Use proper probabilistic sampling like in compute_nlpd
         x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -283,10 +285,11 @@ def compute_latent_variance_scores(model, Y: torch.Tensor) -> np.ndarray:
     model.eval()
     
     with torch.no_grad():
-        U_samples = model.get_u_samples()
+        epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
+        U_samples = model.get_u_samples(epsilon)
         
         Y_clean = torch.where(torch.isnan(Y), torch.full_like(Y, -9.0, dtype=torch.float64), Y)
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y_clean, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y_clean, epsilon)
         
         # sigma_x may have shape [P, N, latent_dim] or [N, latent_dim]
         # Sum variance across latent dimensions for each sample
