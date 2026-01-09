@@ -92,7 +92,8 @@ class SSVIMetricsComputer:
         model.eval()
         with torch.no_grad():
             # Sample U once for all batches
-            U_samples = model.get_u_samples()
+            epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
+            U_samples = model.get_u_samples(epsilon)
             
             N = y_true.shape[0]
             batch_size = self.metrics_batch_size
@@ -109,7 +110,7 @@ class SSVIMetricsComputer:
                 y_encoder_input = torch.where(torch.isnan(y_batch), torch.full_like(y_batch, -9.0, dtype=torch.float64), y_batch)
                 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
                 
                 # Use proper probabilistic sampling like in compute_nlpd
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -181,9 +182,9 @@ class SSVIMetricsComputer:
                 # No missing data - return NaN
                 model.train()
                 return float('nan')
-            
+            epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
             # Sample U once for all batches
-            U_samples = model.get_u_samples()
+            U_samples = model.get_u_samples(epsilon)
             
             N = y_original.shape[0]
             batch_size = self.metrics_batch_size
@@ -203,7 +204,7 @@ class SSVIMetricsComputer:
                 y_encoder_input[mask_batch] = -9.0
 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
 
                 # Use proper probabilistic sampling like in compute_nlpd
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -256,7 +257,8 @@ class SSVIMetricsComputer:
         model.eval()
         with torch.no_grad():
             # Sample U once for all batches
-            U_samples = model.get_u_samples()
+            epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
+            U_samples = model.get_u_samples(epsilon)
             
             N = y_true.shape[0]
             batch_size = self.metrics_batch_size
@@ -274,7 +276,7 @@ class SSVIMetricsComputer:
                 y_encoder_input = torch.where(torch.isnan(y_batch), torch.full_like(y_batch, -9.0, dtype=torch.float64), y_batch)
                 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
                 
                 # Compute averaged latent variables once before the loop (optimization)
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -365,7 +367,8 @@ class SSVIMetricsComputer:
                 return float('nan')
             
             # Sample U once for all batches
-            U_samples = model.get_u_samples()
+            epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
+            U_samples = model.get_u_samples(epsilon)
             
             N = y_original.shape[0]
             batch_size = self.metrics_batch_size
@@ -386,7 +389,7 @@ class SSVIMetricsComputer:
                 y_encoder_input[mask_batch] = -9.0
                 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
                 
                 # Compute averaged latent variables once before the loop (optimization)
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)

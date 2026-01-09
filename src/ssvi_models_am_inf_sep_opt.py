@@ -120,7 +120,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         return mu_n, Sigma_n
 
-    def get_mu_sigma_x_train_samples(self, Y_train_batch, U_samples=None):
+    def get_mu_sigma_x_train_samples(self, Y_train_batch, epsilon):
         """
         Get latent variable samples for training data using amortized inference
         
@@ -132,12 +132,12 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             (mu_x, sigma_x): Training latent variable samples (P, batch_size, D)
         """
         
-        mu_x, sigma_x = self.encode_local_params(Y_train_batch, U_samples)
+        mu_x, sigma_x = self.encode_local_params(Y_train_batch, epsilon)
         return mu_x, sigma_x
     
-    def get_mu_sigma_x_test_samples(self, Y_test_batch, U_samples=None):
+    def get_mu_sigma_x_test_samples(self, Y_test_batch, epsilon):
         # For SSVI, test and train use the same amortized inference
-        mu_x, sigma_x = self.encode_local_params(Y_test_batch, U_samples)
+        mu_x, sigma_x = self.encode_local_params(Y_test_batch, epsilon)
         return mu_x, sigma_x
     
     

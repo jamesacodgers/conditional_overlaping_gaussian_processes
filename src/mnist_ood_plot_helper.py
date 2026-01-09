@@ -489,7 +489,9 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
             # Get latent variables using new explicit training method
-            U = model.get_u_samples()  # [P, M, C, Lx]
+            epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
+
+            U = model.get_u_samples(epsilon)  # [P, M, C, Lx]
 
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:

@@ -1,0 +1,80 @@
+=== OOD Detection SSVI GP-LVM Training Session ===
+ID Dataset: MNIST, OOD Dataset: FashionMNIST
+Model: 64 inducing points, latent_dim=10
+Training: 20000 iter, batch=32
+Learning rates: Local=0.001, Global=0.001
+=== OOD Detection SSVI GP-LVM Training Session ===
+ID Dataset: MNIST, OOD Dataset: FashionMNIST
+Model: 64 inducing points, latent_dim=10
+Training: 20000 iter, batch=32
+Learning rates: Local=0.001, Global=0.001
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': 0.0, 'test_rmse': 0.0, 'train_nlpd': 0.0, 'test_nlpd': 0.0, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 0, 'total_latent_dims': 0, 'elbo_loss': -1423.6988250904449}
+k-NN metrics at iteration 0: {'knn_1': 1.0, 'knn_3': 0.43022222222222223, 'knn_7': 0.3224444444444444, 'knn_12': 0.2588888888888889}
+Iteration 0/20000: Loss=1386.0945, Time=6.4s
+Iteration 100/20000: Loss=1243.4272, Time=15.6s
+Iteration 200/20000: Loss=1171.1006, Time=24.8s
+Iteration 300/20000: Loss=1141.3179, Time=34.0s
+Iteration 400/20000: Loss=1093.0575, Time=43.2s
+Iteration 500/20000: Loss=1037.7930, Time=52.4s
+Iteration 600/20000: Loss=1106.3878, Time=61.6s
+Iteration 700/20000: Loss=1053.0254, Time=70.7s
+Iteration 800/20000: Loss=1021.3183, Time=79.9s
+Iteration 900/20000: Loss=1030.3337, Time=89.1s
+Iteration 1000/20000: Loss=985.2509, Time=98.3s
+Iteration 1100/20000: Loss=1011.5936, Time=107.5s
+Iteration 1200/20000: Loss=952.9786, Time=116.7s
+Iteration 1300/20000: Loss=1241.9514, Time=125.9s
+Iteration 1400/20000: Loss=1100.0741, Time=135.0s
+Iteration 1500/20000: Loss=1021.9042, Time=144.2s
+Iteration 1600/20000: Loss=1056.6858, Time=153.4s
+Iteration 1700/20000: Loss=1009.5404, Time=162.6s
+Iteration 1800/20000: Loss=1050.9943, Time=172.0s
+Iteration 1900/20000: Loss=1047.7282, Time=181.2s
+Iteration 2000/20000: Loss=989.6855, Time=190.4s
+Iteration 2100/20000: Loss=970.2530, Time=199.6s
+Iteration 2200/20000: Loss=1049.2639, Time=208.8s
+Iteration 2300/20000: Loss=906.4538, Time=217.9s
+Iteration 2400/20000: Loss=951.5398, Time=227.1s
+Iteration 2500/20000: Loss=983.2335, Time=236.3s
+Iteration 2600/20000: Loss=920.2351, Time=245.5s
+Iteration 2700/20000: Loss=933.4694, Time=254.7s
+Iteration 2800/20000: Loss=1111.8827, Time=263.9s
+Iteration 2900/20000: Loss=1135.8664, Time=273.1s
+Iteration 3000/20000: Loss=975.4148, Time=282.3s
+Iteration 3100/20000: Loss=989.8882, Time=291.5s
+Iteration 3200/20000: Loss=992.3010, Time=300.9s
+Iteration 3300/20000: Loss=980.7534, Time=310.6s
+Iteration 3400/20000: Loss=1035.5048, Time=319.8s
+Iteration 3500/20000: Loss=1244.6666, Time=328.9s
+Iteration 3600/20000: Loss=1403.5035, Time=338.1s
+Iteration 3700/20000: Loss=930.1384, Time=347.3s
+Iteration 3800/20000: Loss=910.5122, Time=356.5s
+Iteration 3900/20000: Loss=927.2327, Time=365.6s
+Metrics at iteration 4000: {'iteration': 4000, 'train_rmse': 0.0, 'test_rmse': 0.0, 'train_nlpd': 0.0, 'test_nlpd': 0.0, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 0, 'total_latent_dims': 0, 'elbo_loss': -990.6445443790931}
+k-NN metrics at iteration 4000: {'knn_1': 1.0, 'knn_3': 0.7377777777777778, 'knn_7': 0.6762222222222222, 'knn_12': 0.6482222222222223}
+Checkpoint model saved: pre_trained_models/checkpoints/ood_ssvi_iter_4000_seed_0.pkl
+Iteration 4000/20000: Loss=960.6374, Time=384.4s
+Iteration 4100/20000: Loss=877.1918, Time=393.2s
+Iteration 4200/20000: Loss=960.1075, Time=402.1s
+Iteration 4300/20000: Loss=1098.5669, Time=411.0s
+Iteration 4400/20000: Loss=952.0713, Time=419.9s
+Iteration 4500/20000: Loss=845.7264, Time=428.9s
+Iteration 4600/20000: Loss=905.0751, Time=437.8s
+Iteration 4700/20000: Loss=946.7391, Time=446.7s
+Iteration 4800/20000: Loss=848.4606, Time=455.6s
+Iteration 4900/20000: Loss=1026.3732, Time=464.6s
+Iteration 5000/20000: Loss=1119.1033, Time=473.6s
+Iteration 5100/20000: Loss=880.9248, Time=482.6s
+Iteration 5200/20000: Loss=919.5484, Time=491.5s
+Iteration 5300/20000: Loss=886.6518, Time=500.5s
+Iteration 5400/20000: Loss=937.4037, Time=509.5s
+Iteration 5500/20000: Loss=1074.4032, Time=518.5s
+Iteration 5600/20000: Loss=944.4576, Time=527.4s
+Iteration 5700/20000: Loss=1144.1961, Time=536.4s
+Iteration 5800/20000: Loss=877.4856, Time=545.4s
+Iteration 5900/20000: Loss=760.7951, Time=554.4s
+Iteration 6000/20000: Loss=911.3879, Time=563.4s
+Iteration 6100/20000: Loss=908.8130, Time=572.4s
+Iteration 6200/20000: Loss=911.2277, Time=581.4s
+Iteration 6300/20000: Loss=823.8930, Time=590.3s
+Iteration 6400/20000: Loss=869.8382, Time=599.3s
