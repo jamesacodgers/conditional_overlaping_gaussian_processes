@@ -187,6 +187,8 @@ def compute_nlpd_scores(model, Y: torch.Tensor, n_samples: int = 32) -> np.ndarr
         # Process in batches (consistent with ssvi_metrics pattern)
         # Use a reasonable batch size to avoid OOM
         batch_size = 256
+        # Get latent representations using SSVI encoder
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y_clean, epsilon)
         
         for start_idx in range(0, N, batch_size):
             end_idx = min(start_idx + batch_size, N)
@@ -302,6 +304,8 @@ def compute_reconstruction_error_scores(model, Y: torch.Tensor,
         # Process in batches (consistent with ssvi_metrics pattern)
         # Use a reasonable batch size to avoid OOM
         batch_size = 256
+        # Get latent representations for this batch using SSVI encoder
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
         
         for start_idx in range(0, N, batch_size):
             end_idx = min(start_idx + batch_size, N)
