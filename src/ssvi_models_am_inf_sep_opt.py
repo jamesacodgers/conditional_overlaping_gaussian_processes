@@ -108,6 +108,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         u_samples = u_samples.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
         u_samples = u_samples.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
 
+
+
         encoder_input = torch.cat([y_n, u_samples], dim=-1) # [P, batch_size, M + M*Lx]
         
         # Encode to local parameters using separate networks (like Original GP-LVM)

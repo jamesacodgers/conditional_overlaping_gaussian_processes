@@ -127,7 +127,7 @@ def generate_config_grid():
     
     # Model Architecture
     n_inducing_values = [64]
-    architecture_values = [[1024,512,256]]  # encoder_hidden_dims
+    architecture_values = [[2056,1024,512,256], [2056,1024,512,256,128]]  # encoder_hidden_dims
     
     # GP Hyperparameters
     init_lengthscales_values = [1.0]
@@ -155,14 +155,14 @@ def generate_config_grid():
     # ========================================
     # Applied to in-distribution dataset
     id_classes_values = [None]  # None = all classes, or list like [0,1,2,3,4,5,6,7] for subset
-    id_samples_per_class_values = [500]  # Samples per ID class (None = use all)
+    id_samples_per_class_values = [500] # was [500] # Samples per ID class (None = use all)
     
     # ========================================
     # OOD Dataset Filtering Configuration
     # ========================================
     # Applied to out-of-distribution dataset
     ood_classes_values = [None]  # None = all classes, or list like [8,9] for subset
-    ood_samples_per_class_values = [500]  # Samples per OOD class (None = use all)
+    ood_samples_per_class_values = [500] # was [500]  # Samples per OOD class (None = use all)
     
     # ========================================
     # Output Configuration
