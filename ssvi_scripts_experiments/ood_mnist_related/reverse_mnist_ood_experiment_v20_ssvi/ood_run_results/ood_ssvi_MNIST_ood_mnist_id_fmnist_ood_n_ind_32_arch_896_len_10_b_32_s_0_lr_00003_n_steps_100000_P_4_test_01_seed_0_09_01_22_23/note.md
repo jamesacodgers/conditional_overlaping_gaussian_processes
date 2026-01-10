@@ -1,0 +1,1 @@
+This was done with just mean centering, the other one had variance scaling as well. 

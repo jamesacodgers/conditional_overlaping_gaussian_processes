@@ -127,7 +127,7 @@ def generate_config_grid():
     
     # Model Architecture
     n_inducing_values = [64]
-    architecture_values = [[256,128,64]]  # encoder_hidden_dims
+    architecture_values = [[1024,512,256]]  # encoder_hidden_dims
     
     # GP Hyperparameters
     init_lengthscales_values = [1.0]
@@ -136,7 +136,7 @@ def generate_config_grid():
     # Training Configuration
     batch_size_values = [32]
     learning_rate_values = [0.0003]
-    n_training_steps = [20_000]
+    n_training_steps = [100_000]
     
     # Random Seeds
     random_seed_values = [0]
@@ -167,7 +167,7 @@ def generate_config_grid():
     # ========================================
     # Output Configuration
     # ========================================
-    output_folder_name = "reverse_mnist_ood_experiment_v18"
+    output_folder_name = "reverse_mnist_ood_experiment_v24"
     ssvi_output_folder = f"ood_mnist_related/{output_folder_name}_ssvi"
     orig_output_folder = f"ood_mnist_related/{output_folder_name}_orig_gplvm"
     
