@@ -101,7 +101,7 @@ def matplotlib_to_plotly_color(matplotlib_color):
 
 def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed,
                                        Y_train, model_type="original", custom_filename=None, train_indices=None,
-                                       dataset_name="MNIST", is_ood=False):
+                                       dataset_name="MNIST", is_ood=False, full_loss_iterations: list = None, batch_losses: list = None):
     """
     Create standardized scattered plots that match the SSVI plotting exactly.
 
@@ -110,6 +110,12 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     
     Parameters
     ----------
+    losses : list
+        Full ELBO losses (negative ELBO values)
+    full_loss_iterations : list, optional
+        Iteration numbers corresponding to losses. If provided, used for x-axis of full ELBO plot.
+    batch_losses : list, optional
+        Batch ELBO losses (one per training iteration). If provided, creates a plot showing batch ELBO progression.
     dataset_name : str
         'MNIST' or 'FashionMNIST' - used for legend labels
     is_ood : bool
@@ -125,23 +131,41 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         # Use consistent color mapping across SSVI and original GP LVM
         colors, color_map = get_consistent_mnist_colors(labels_train)
 
-        # Create figure with same layout as SSVI (3 subplots)
-        n_plots = 3
+        # Determine which plots to show
+        plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
+        n_plots = 1 + (1 if plot_batch_elbo else 0) + 1 + 1  # Full ELBO, Batch ELBO (optional), Latent space, Hyperparams
         fig_width = 4 * n_plots
         fig = plt.figure(figsize=(fig_width, 4))
 
         plot_idx = 1
 
-        # Plot 1: Training curve (exactly like SSVI)
+        # Plot 1: Full ELBO Training curve (always shown)
         plt.subplot(1, n_plots, plot_idx)
-        plt.plot(losses, 'b-', alpha=0.7)
+        if full_loss_iterations is not None and len(full_loss_iterations) == len(losses):
+            # Use iteration numbers on x-axis
+            plt.plot(full_loss_iterations, losses, 'b-', alpha=0.7)
+        else:
+            # Fallback: use indices if iterations not provided
+            plt.plot(losses, 'b-', alpha=0.7)
         plt.xlabel('Iteration')
         plt.ylabel('Loss')
-        plt.title('ELBO Training Curve')
+        plt.title('ELBO Training Curve (Full ELBO)')
         plt.grid(True, alpha=0.3)
         plot_idx += 1
 
-        # Plot 2: Latent space visualization (exactly like SSVI)
+        # Plot 2: Batch ELBO progression (if batch_losses provided) - second position
+        if plot_batch_elbo:
+            plt.subplot(1, n_plots, plot_idx)
+            # Batch losses are computed at every iteration, so x-axis is just iteration indices
+            batch_iterations = list(range(len(batch_losses)))
+            plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
+            plt.xlabel('Iteration')
+            plt.ylabel('Loss')
+            plt.title('Batch ELBO Progression')
+            plt.grid(True, alpha=0.3)
+            plot_idx += 1
+
+        # Plot 3: Latent space visualization (exactly like SSVI)
         plt.subplot(1, n_plots, plot_idx)
 
         # Find the two most informative dimensions (copy original approach exactly)
@@ -235,7 +259,7 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         plt.legend(handles=legend_handles, loc='best', fontsize='small')
         plot_idx += 1
 
-        # Plot 3: Hyperparameters (lengthscales) - consistent with SSVI
+        # Plot 4: Hyperparameters (lengthscales) - consistent with SSVI
         plt.subplot(1, n_plots, plot_idx)
         # For mathematical consistency with SSVI version:
         # SSVI: K = exp(-0.5 * d^2 / init_lengthscales)
@@ -434,12 +458,19 @@ def save_iteration_model(model, model_name, iteration, random_seed, results_dir)
 
 
 def create_iteration_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, iteration,
-                          model_type="original", train_indices=None, dataset_name="MNIST", is_ood=False):
+                          model_type="original", train_indices=None, dataset_name="MNIST", is_ood=False,
+                          full_loss_iterations: list = None, batch_losses: list = None):
     """
     Create iteration-based plot saved to plots/checkpoints folder
     
     Parameters
     ----------
+    losses : list
+        Full ELBO losses (negative ELBO values)
+    full_loss_iterations : list, optional
+        Iteration numbers corresponding to losses. If provided, used for x-axis of full ELBO plot.
+    batch_losses : list, optional
+        Batch ELBO losses (one per training iteration). If provided, creates a plot showing batch ELBO progression.
     dataset_name : str
         'MNIST' or 'FashionMNIST' - used for legend labels
     is_ood : bool
@@ -461,7 +492,8 @@ def create_iteration_plot(model, losses, labels_train, config, results_dir, mode
         model, losses, labels_train, config, plots_checkpoints_dir,
         model_name, random_seed, Y_train, model_type=model_type,
         custom_filename=plot_filename, train_indices=train_indices,
-        dataset_name=dataset_name, is_ood=is_ood
+        dataset_name=dataset_name, is_ood=is_ood,
+        full_loss_iterations=full_loss_iterations, batch_losses=batch_losses
     )
 
     return plot_filename
@@ -470,12 +502,19 @@ def create_iteration_plot(model, losses, labels_train, config, results_dir, mode
 def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger: SSVIResultsLogger,
                            save_filename: str = "training_results.png", show_plot: bool = True,
                            n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False,
-                           train_indices: torch.Tensor = None, dataset_name: str = "MNIST", is_ood: bool = False):
+                           train_indices: torch.Tensor = None, dataset_name: str = "MNIST", is_ood: bool = False,
+                           full_elbo_iterations: list = None, batch_losses: list = None):
     """
     Visualize SSVI training results and latent space
     
     Parameters
     ----------
+    losses : list
+        Full ELBO losses (negative ELBO values)
+    full_elbo_iterations : list, optional
+        Iteration numbers corresponding to full_elbo_losses. If provided, used for x-axis of full ELBO plot.
+    batch_losses : list, optional
+        Batch ELBO losses (one per training iteration). If provided, creates a 4th plot showing batch ELBO progression.
     dataset_name : str
         'MNIST' or 'FashionMNIST' - used for legend labels
     is_ood : bool
@@ -496,22 +535,40 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         # Determine which plots to show
         plot_latent_space = hasattr(config, 'plot_latent_space') and config.plot_latent_space
         plot_hyperparams = hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
-        n_plots = 1 + (1 if plot_latent_space else 0) + (1 if plot_hyperparams else 0)
+        plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
+        n_plots = 1 + (1 if plot_latent_space else 0) + (1 if plot_hyperparams else 0) + (1 if plot_batch_elbo else 0)
         fig_width = 4 * n_plots
         fig = plt.figure(figsize=(fig_width, 4))
 
         plot_idx = 1
 
-        # Plot 1: Training curve (always shown)
+        # Plot 1: Full ELBO Training curve (always shown)
         plt.subplot(1, n_plots, plot_idx)
-        plt.plot(losses, 'b-', alpha=0.7)
+        if full_elbo_iterations is not None and len(full_elbo_iterations) == len(losses):
+            # Use iteration numbers on x-axis
+            plt.plot(full_elbo_iterations, losses, 'b-', alpha=0.7)
+        else:
+            # Fallback: use indices if iterations not provided
+            plt.plot(losses, 'b-', alpha=0.7)
         plt.xlabel('Iteration')
         plt.ylabel('Loss')
-        plt.title('SSVI Training Curve')
+        plt.title('SSVI Training Curve (Full ELBO)')
         plt.grid(True, alpha=0.3)
         plot_idx += 1
 
-        # Plot 2: Latent space visualization
+        # Plot 2: Batch ELBO progression (if batch_losses provided) - second position
+        if plot_batch_elbo:
+            plt.subplot(1, n_plots, plot_idx)
+            # Batch losses are computed at every iteration, so x-axis is just iteration indices
+            batch_iterations = list(range(len(batch_losses)))
+            plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
+            plt.xlabel('Iteration')
+            plt.ylabel('Loss')
+            plt.title('Batch ELBO Progression')
+            plt.grid(True, alpha=0.3)
+            plot_idx += 1
+
+        # Plot 3: Latent space visualization
         if plot_latent_space:
             plt.subplot(1, n_plots, plot_idx)
 
@@ -558,7 +615,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             plt.legend(handles=legend_handles, loc='best', fontsize='small')
             plot_idx += 1
 
-        # Plot 3: Hyperparameters (lengthscales)
+        # Plot 4: Hyperparameters (lengthscales)
         if plot_hyperparams:
             plt.subplot(1, n_plots, plot_idx)
             lengthscales = (1 / model.gp.beta.flatten()).cpu()
@@ -568,6 +625,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             plt.ylabel('Lengthscale')
             plt.title('GP Lengthscales')
             plt.grid(True, alpha=0.3)
+            plot_idx += 1
 
         plt.tight_layout()
 
