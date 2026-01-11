@@ -554,7 +554,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
 
 def plot_metrics_history(metrics_computer, 
                         logger: SSVIResultsLogger = None,
-                        show_plot: bool = True) -> plt.Figure:
+                        show_plot: bool = True,
+                        batch_losses: list = None) -> plt.Figure:
     """
     Plot metrics progression over training iterations
     
@@ -562,6 +563,7 @@ def plot_metrics_history(metrics_computer,
         metrics_computer: SSVIMetricsComputer with metrics history
         logger: Optional logger for saving plots
         show_plot: Whether to display the plot
+        batch_losses: Optional list of batch ELBO losses (one per iteration) for additional plot
         
     Returns:
         matplotlib Figure object
@@ -579,8 +581,19 @@ def plot_metrics_history(metrics_computer,
     elbo_loss = [m.elbo_loss for m in metrics_computer.metrics_history]
     effective_dims = [m.effective_latent_dims for m in metrics_computer.metrics_history]
     
-    # Create subplots
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
+    # Determine if we need to add batch ELBO plot
+    plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
+    
+    # Create subplots: 3x2 if batch ELBO (5 plots), otherwise 2x2 (4 plots)
+    if plot_batch_elbo:
+        fig, axes = plt.subplots(3, 2, figsize=(12, 12))
+        ax1, ax2 = axes[0, 0], axes[0, 1]
+        ax3, ax4 = axes[1, 0], axes[1, 1]
+        ax5 = axes[2, 0]
+        # Hide the last subplot (bottom right)
+        axes[2, 1].axis('off')
+    else:
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
     
     # Plot 1: RMSE comparison (train vs test)
     ax1.plot(iterations, train_rmse, 'b-', label='Train RMSE', linewidth=2)
@@ -600,11 +613,13 @@ def plot_metrics_history(metrics_computer,
     ax2.legend()
     ax2.grid(True, alpha=0.3)
     
-    # Plot 3: ELBO Loss progression
-    ax3.plot(iterations, elbo_loss, 'g-', linewidth=2)
+    # Plot 3: Full ELBO Loss progression (negate to be consistent with training results plot)
+    # elbo_loss stores positive ELBO, but training results plot shows negative ELBO as "Loss"
+    elbo_loss_negated = [-x for x in elbo_loss]
+    ax3.plot(iterations, elbo_loss_negated, 'g-', linewidth=2)
     ax3.set_xlabel('Iteration')
-    ax3.set_ylabel('ELBO Loss')
-    ax3.set_title('Training Loss (ELBO)')
+    ax3.set_ylabel('Loss')
+    ax3.set_title('Training Loss (Full ELBO)')
     ax3.grid(True, alpha=0.3)
     
     # Plot 4: Effective latent dimensions
@@ -613,6 +628,15 @@ def plot_metrics_history(metrics_computer,
     ax4.set_ylabel('Effective Dimensions')
     ax4.set_title('Model Complexity (Effective Latent Dims)')
     ax4.grid(True, alpha=0.3)
+    
+    # Plot 5: Batch ELBO progression (if provided)
+    if plot_batch_elbo:
+        batch_iterations = list(range(len(batch_losses)))
+        ax5.plot(batch_iterations, batch_losses, 'orange', linewidth=2)
+        ax5.set_xlabel('Iteration')
+        ax5.set_ylabel('Loss')
+        ax5.set_title('Batch ELBO Progression')
+        ax5.grid(True, alpha=0.3)
     
     plt.tight_layout()
     

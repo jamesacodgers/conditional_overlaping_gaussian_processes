@@ -1010,7 +1010,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     from src.mnist_ood_plot_helper import save_iteration_model, create_iteration_plot
                     save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
                     # Use full_loss_list for checkpoint plots (consistent with SSVI)
-                    plot_filename = create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False)
+                    plot_filename = create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False, full_loss_iterations=full_loss_iterations, batch_losses=loss_list)
                 except Exception as e:
                     print(f"  Warning: Could not create iteration plot at iteration {i}: {e}")
                 
@@ -1065,7 +1065,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         # Save metrics progression plot
         if logger.get_results_dir() and train_rmse_list and train_nlpd_list:
             plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, 
-                                   metrics_losses, effective_dims_list, logger.get_results_dir(), model_name, config.random_seed)
+                                   metrics_losses, effective_dims_list, logger.get_results_dir(), model_name, config.random_seed, batch_losses=loss_list)
             
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
                                          metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list, train_missing_rmse_list)
@@ -1142,7 +1142,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             try:
                 from src.mnist_ood_plot_helper import create_standardized_scattered_plot
                 # Use full_loss_list for final plots (consistent with SSVI)
-                create_standardized_scattered_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type=config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), dataset_name=config.id_dataset, is_ood=False)
+                create_standardized_scattered_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type=config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), dataset_name=config.id_dataset, is_ood=False, full_loss_iterations=full_loss_iterations, batch_losses=loss_list)
             except Exception as e:
                 print(f"Warning: Could not create standardized scattered plot: {e}")
                 print(f"Skipping plot creation.")

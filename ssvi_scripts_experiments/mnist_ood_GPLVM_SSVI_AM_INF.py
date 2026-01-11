@@ -655,7 +655,9 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
                             is_checkpoint=True,
                             train_indices=split_data['train_indices'],
                             dataset_name=config.id_dataset,
-                            is_ood=False
+                            is_ood=False,
+                            full_elbo_iterations=full_elbo_iterations,
+                            batch_losses=losses  # Batch losses up to current iteration
                         )
                         print(f"    Checkpoint plot saved: {plot_filename}")
                     except Exception as e:
@@ -972,7 +974,9 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         visualize_ssvi_results(
             model, y_train, labels_train, full_elbo_losses, config, logger, 
             show_plot=False, train_indices=split_data['train_indices'],
-            dataset_name=config.id_dataset, is_ood=False
+            dataset_name=config.id_dataset, is_ood=False,
+            full_elbo_iterations=full_elbo_iterations,
+            batch_losses=batch_losses
         )
     except Exception as e:
         print(f"Warning: Could not create latent space visualization: {e}")
@@ -1037,7 +1041,7 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         
         # Generate metrics plots
         print("Generating metrics progression plots...")
-        plot_metrics_history(metrics_computer, logger, show_plot=False)
+        plot_metrics_history(metrics_computer, logger, show_plot=False, batch_losses=batch_losses)
         
         print("Generating final metrics summary plots...")
         plot_final_metrics_summary(metrics_computer, model, logger, show_plot=False)
