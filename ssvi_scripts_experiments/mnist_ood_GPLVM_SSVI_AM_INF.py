@@ -611,8 +611,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
             print(f"    Computing k-NN clustering metrics...")
             knn_results = compute_knn_accuracies_ssvi(
                 model=model,
-                y_train=split_data['y_train'],
-                labels_train=labels_train,
+                y_train=split_data['y_test'],
+                labels_train=split_data['labels_test'],
                 k_values=[1, 3, 7, 12],
                 batch_size=config.batch_size
             )

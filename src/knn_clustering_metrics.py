@@ -88,17 +88,32 @@ def compute_knn_accuracies(latent_representations, labels, k_values=[1, 3, 7, 12
     
     # Compute accuracy for each k value
     for k in k_values:
-        # Make sure k is not larger than number of samples
+        # Make sure k is not larger than number of samples (excluding self)
         k_effective = min(k, len(X_all) - 1)
         if k_effective < k:
             print(f"  Warning: k={k} reduced to k={k_effective} (not enough samples)")
         
         # Fit k-NN classifier on all data
-        knn = KNeighborsClassifier(n_neighbors=k_effective)
+        # Always use k+1 neighbors to allow excluding self-neighbor
+        n_neighbors_for_fit = k_effective + 1
+        knn = KNeighborsClassifier(n_neighbors=n_neighbors_for_fit)
         knn.fit(X_all, y_all)
         
-        # Evaluate on all data
-        y_pred = knn.predict(X_all)
+        # Evaluate on all data, excluding self-neighbor for all k values
+        # Get k+1 neighbors (index 0 is always self, distance=0)
+        distances, indices = knn.kneighbors(X_all, n_neighbors=n_neighbors_for_fit)
+        # Use neighbors 1 through k_effective (excluding index 0 which is self)
+        neighbor_indices = indices[:, 1:k_effective+1]  # Shape: [N, k_effective]
+        
+        # Predict using majority vote of k neighbors (excluding self)
+        y_pred = []
+        for i in range(len(X_all)):
+            neighbor_labels = y_all[neighbor_indices[i]]
+            # Count labels and take the most common (majority vote)
+            unique_labels, counts = np.unique(neighbor_labels, return_counts=True)
+            y_pred.append(unique_labels[np.argmax(counts)])
+        y_pred = np.array(y_pred)
+        
         acc = accuracy_score(y_all, y_pred)
         results[f'knn_{k}'] = float(acc)
     
