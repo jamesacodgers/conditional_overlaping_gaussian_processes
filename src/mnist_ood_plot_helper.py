@@ -170,11 +170,48 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             else:
                 Y_train_for_plotting = Y_train_device
 
-            mu_x_result = model.X.mu(Y_train_for_plotting)
-            sigma_covariances = model.X.sigma(Y_train_for_plotting)
-            mu_x = mu_x_result.detach().cpu().numpy()
-            # Apply sqrt to convert covariance matrices to standard deviations (matching original code)
-            sigma_x = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_covariances.detach()])
+            # Process data in minibatches to reduce memory usage
+            batch_size = getattr(config, 'batch_size', 128)  # Use config batch_size if available, otherwise default to 128
+            N = Y_train_for_plotting.shape[0]
+            mu_x_batches = []
+            sigma_x_batches = []
+            
+            # Store original jitter to restore later (same pattern as test prediction)
+            original_jitter = model.X.jitter
+            latent_dim = model.X.latent_dim
+            device = original_jitter.device
+            dtype = original_jitter.dtype
+            
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = Y_train_for_plotting[start_idx:end_idx]
+                batch_size_actual = end_idx - start_idx
+                
+                # Create jitter for batch (same pattern as test prediction)
+                batch_jitter = torch.eye(latent_dim, dtype=dtype, device=device).unsqueeze(0) * 1e-5
+                model.X.jitter = torch.cat([batch_jitter for _ in range(batch_size_actual)], axis=0)
+                
+                mu_x_batch = model.X.mu(y_batch)
+                sigma_covariances_batch = model.X.sigma(y_batch)
+                
+                # Extract standard deviations from covariance matrices (same as original code)
+                # sigma_covariances_batch is [batch_size, latent_dim, latent_dim]
+                # Extract diagonal for each covariance matrix and take sqrt
+                sigma_x_batch = torch.stack([torch.sqrt(cov.diag()) for cov in sigma_covariances_batch])
+                
+                mu_x_batches.append(mu_x_batch.detach().cpu())
+                sigma_x_batches.append(sigma_x_batch.detach().cpu())
+            
+            # Restore original jitter
+            model.X.jitter = original_jitter
+            
+            # Concatenate all batches
+            mu_x_result = torch.cat(mu_x_batches, dim=0)
+            sigma_x_all = torch.cat(sigma_x_batches, dim=0)
+            
+            # Convert to numpy (matching original code format)
+            mu_x = mu_x_result.numpy()
+            sigma_x = sigma_x_all.numpy()
 
         # Plot mu_x directly (no sampling) - exactly like SSVI
         mu_x_torch = torch.from_numpy(mu_x).to(dtype=torch.float64)
