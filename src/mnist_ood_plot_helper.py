@@ -170,11 +170,48 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
             else:
                 Y_train_for_plotting = Y_train_device
 
-            mu_x_result = model.X.mu(Y_train_for_plotting)
-            sigma_covariances = model.X.sigma(Y_train_for_plotting)
-            mu_x = mu_x_result.detach().cpu().numpy()
-            # Apply sqrt to convert covariance matrices to standard deviations (matching original code)
-            sigma_x = np.array([torch.sqrt(x.diag()).cpu().numpy() for x in sigma_covariances.detach()])
+            # Process data in minibatches to reduce memory usage
+            batch_size = getattr(config, 'batch_size', 128)  # Use config batch_size if available, otherwise default to 128
+            N = Y_train_for_plotting.shape[0]
+            mu_x_batches = []
+            sigma_x_batches = []
+            
+            # Store original jitter to restore later (same pattern as test prediction)
+            original_jitter = model.X.jitter
+            latent_dim = model.X.latent_dim
+            device = original_jitter.device
+            dtype = original_jitter.dtype
+            
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = Y_train_for_plotting[start_idx:end_idx]
+                batch_size_actual = end_idx - start_idx
+                
+                # Create jitter for batch (same pattern as test prediction)
+                batch_jitter = torch.eye(latent_dim, dtype=dtype, device=device).unsqueeze(0) * 1e-5
+                model.X.jitter = torch.cat([batch_jitter for _ in range(batch_size_actual)], axis=0)
+                
+                mu_x_batch = model.X.mu(y_batch)
+                sigma_covariances_batch = model.X.sigma(y_batch)
+                
+                # Extract standard deviations from covariance matrices (same as original code)
+                # sigma_covariances_batch is [batch_size, latent_dim, latent_dim]
+                # Extract diagonal for each covariance matrix and take sqrt
+                sigma_x_batch = torch.stack([torch.sqrt(cov.diag()) for cov in sigma_covariances_batch])
+                
+                mu_x_batches.append(mu_x_batch.detach().cpu())
+                sigma_x_batches.append(sigma_x_batch.detach().cpu())
+            
+            # Restore original jitter
+            model.X.jitter = original_jitter
+            
+            # Concatenate all batches
+            mu_x_result = torch.cat(mu_x_batches, dim=0)
+            sigma_x_all = torch.cat(sigma_x_batches, dim=0)
+            
+            # Convert to numpy (matching original code format)
+            mu_x = mu_x_result.numpy()
+            sigma_x = sigma_x_all.numpy()
 
         # Plot mu_x directly (no sampling) - exactly like SSVI
         mu_x_torch = torch.from_numpy(mu_x).to(dtype=torch.float64)
@@ -456,29 +493,26 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         # Use consistent color mapping across SSVI and original GP LVM
         colors, color_map = get_consistent_mnist_colors(labels_train)
 
-        plot_flags = [
-            hasattr(config, 'plot_training') and config.plot_training,
-            hasattr(config, 'plot_latent_space') and config.plot_latent_space,
-            hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
-        ]
-        n_plots = sum(plot_flags)
+        # Determine which plots to show
+        plot_latent_space = hasattr(config, 'plot_latent_space') and config.plot_latent_space
+        plot_hyperparams = hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
+        n_plots = 1 + (1 if plot_latent_space else 0) + (1 if plot_hyperparams else 0)
         fig_width = 4 * n_plots
         fig = plt.figure(figsize=(fig_width, 4))
 
         plot_idx = 1
 
-        # Plot 1: Training curve
-        if plot_flags[0]:
-            plt.subplot(1, n_plots, plot_idx)
-            plt.plot(losses, 'b-', alpha=0.7)
-            plt.xlabel('Iteration')
-            plt.ylabel('Loss')
-            plt.title('SSVI Training Curve')
-            plt.grid(True, alpha=0.3)
-            plot_idx += 1
+        # Plot 1: Training curve (always shown)
+        plt.subplot(1, n_plots, plot_idx)
+        plt.plot(losses, 'b-', alpha=0.7)
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.title('SSVI Training Curve')
+        plt.grid(True, alpha=0.3)
+        plot_idx += 1
 
         # Plot 2: Latent space visualization
-        if plot_flags[1]:
+        if plot_latent_space:
             plt.subplot(1, n_plots, plot_idx)
 
             # Find the most informative dimensions (largest lengthscales = smallest beta)
@@ -488,16 +522,37 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
             dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
-            # Get latent variables using new explicit training method
-            U = model.get_u_samples()  # [P, M, C, Lx]
-
-            # Handle missing data if enabled
-            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                # Preprocess encoder input to handle missing data (replace NaN with -9.0)
-                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0, dtype=torch.float64), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
-            else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+            
+            # Get latent variables using batched processing to reduce memory usage
+            batch_size = getattr(config, 'batch_size', 128)  # Use config batch_size if available, otherwise default to 128
+            U = model.get_u_samples()  # [P, M, C, Lx] - Sample U once (shared across all batches)
+            
+            # Process data in minibatches
+            N = y_train.shape[0]
+            mu_x_batches = []
+            sigma_x_batches = []
+            
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = y_train[start_idx:end_idx]
+                
+                # Handle missing data if enabled
+                if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                    y_batch_clean = torch.where(
+                        torch.isnan(y_batch),
+                        torch.full_like(y_batch, -9.0, dtype=torch.float64),
+                        y_batch
+                    )
+                    mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch_clean, U)
+                else:
+                    mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch, U)
+                
+                mu_x_batches.append(mu_x_batch)
+                sigma_x_batches.append(sigma_x_batch)
+            
+            # Concatenate all batches along the N dimension: [P, batch_size, A] -> [P, N, A]
+            mu_x = torch.cat(mu_x_batches, dim=1)
+            sigma_x = torch.cat(sigma_x_batches, dim=1)
 
             # Keep as torch tensors for sampling, convert to numpy after sampling
             mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
@@ -523,7 +578,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             plot_idx += 1
 
         # Plot 3: Hyperparameters (lengthscales)
-        if plot_flags[2]:
+        if plot_hyperparams:
             plt.subplot(1, n_plots, plot_idx)
             lengthscales = (1 / model.gp.beta.flatten()).cpu()
             plt.bar(range(len(lengthscales)), lengthscales,
@@ -543,35 +598,14 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             plt.close(fig)  # Close figure to free memory
 
         # Additional plots: 1D histogram and 3D scatter plot
-        print("Creating additional plots: 1D histogram and 3D scatter plot...")
+        if plot_latent_space:
+            print("Creating additional plots: 1D histogram and 3D scatter plot...")
 
-        # Ensure labels_train is on CPU for numpy operations
-        labels_train_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
+            # Ensure labels_train is on CPU for numpy operations
+            labels_train_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
 
-        # Check if we can reuse existing computations from latent space plot
-        if plot_flags[1] and 'mu_x_cpu' in locals() and 'sigma_x_cpu' in locals():
-            # Reuse existing computations from latent space plot
-            # We already have mu_x_cpu, sigma_x_cpu, and lengthscales_cpu from the latent space plot
-            # Just need to compute top_3_dims for the 3D plot
+            # We already have mu_x_cpu, sigma_x_cpu, lengthscales_cpu, dim1, dim2, dim3, and top_3_dims from the latent space plot
             lengthscales = lengthscales_cpu  # Use existing lengthscales
-        else:
-            # Need to compute the data (latent space plot wasn't computed)
-            # Find the most important dimensions (largest lengthscales = smallest beta)
-            lengthscales = (1 / model.gp.beta.flatten()).cpu()  # Move to CPU
-
-            # Get latent variables
-            U = model.get_u_samples()  # [P, M, C, Lx]
-
-            # Handle missing data if enabled
-            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0, dtype=torch.float64), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
-            else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
-
-            # Move to CPU for plotting
-            mu_x_cpu = mu_x.cpu()
-            sigma_x_cpu = sigma_x.cpu()
 
         # Use dimensions already computed in latent space plot section
         most_important_dim = dim1  # Use the first (most important) dimension for 1D histogram

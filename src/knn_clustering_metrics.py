@@ -227,9 +227,20 @@ def compute_knn_accuracies_original_gplvm(model, y_train, labels_train,
             N = y_train.shape[0]
             latent_batches = []
             
+            # Store original jitter to restore later (same pattern as test prediction)
+            original_jitter = model.X.jitter
+            latent_dim = model.X.latent_dim
+            device = original_jitter.device
+            dtype = original_jitter.dtype
+            
             for start_idx in range(0, N, batch_size):
                 end_idx = min(start_idx + batch_size, N)
                 y_batch = y_train[start_idx:end_idx]
+                batch_size_actual = end_idx - start_idx
+                
+                # Create jitter for batch (same pattern as test prediction)
+                batch_jitter = torch.eye(latent_dim, dtype=dtype, device=device).unsqueeze(0) * 1e-5
+                model.X.jitter = torch.cat([batch_jitter for _ in range(batch_size_actual)], axis=0)
                 
                 # Handle missing data
                 if torch.isnan(y_batch).any():
@@ -253,6 +264,9 @@ def compute_knn_accuracies_original_gplvm(model, y_train, labels_train,
                 
                 latent_batch = torch.stack(sampled_latents_batch).mean(dim=0)
                 latent_batches.append(latent_batch)
+            
+            # Restore original jitter
+            model.X.jitter = original_jitter
             
             # Concatenate all batches
             latent = torch.cat(latent_batches, dim=0)
