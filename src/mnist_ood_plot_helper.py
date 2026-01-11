@@ -456,29 +456,26 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         # Use consistent color mapping across SSVI and original GP LVM
         colors, color_map = get_consistent_mnist_colors(labels_train)
 
-        plot_flags = [
-            hasattr(config, 'plot_training') and config.plot_training,
-            hasattr(config, 'plot_latent_space') and config.plot_latent_space,
-            hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
-        ]
-        n_plots = sum(plot_flags)
+        # Determine which plots to show
+        plot_latent_space = hasattr(config, 'plot_latent_space') and config.plot_latent_space
+        plot_hyperparams = hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
+        n_plots = 1 + (1 if plot_latent_space else 0) + (1 if plot_hyperparams else 0)
         fig_width = 4 * n_plots
         fig = plt.figure(figsize=(fig_width, 4))
 
         plot_idx = 1
 
-        # Plot 1: Training curve
-        if plot_flags[0]:
-            plt.subplot(1, n_plots, plot_idx)
-            plt.plot(losses, 'b-', alpha=0.7)
-            plt.xlabel('Iteration')
-            plt.ylabel('Loss')
-            plt.title('SSVI Training Curve')
-            plt.grid(True, alpha=0.3)
-            plot_idx += 1
+        # Plot 1: Training curve (always shown)
+        plt.subplot(1, n_plots, plot_idx)
+        plt.plot(losses, 'b-', alpha=0.7)
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.title('SSVI Training Curve')
+        plt.grid(True, alpha=0.3)
+        plot_idx += 1
 
         # Plot 2: Latent space visualization
-        if plot_flags[1]:
+        if plot_latent_space:
             plt.subplot(1, n_plots, plot_idx)
 
             # Find the most informative dimensions (largest lengthscales = smallest beta)
@@ -525,7 +522,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             plot_idx += 1
 
         # Plot 3: Hyperparameters (lengthscales)
-        if plot_flags[2]:
+        if plot_hyperparams:
             plt.subplot(1, n_plots, plot_idx)
             lengthscales = (1 / model.gp.beta.flatten()).cpu()
             plt.bar(range(len(lengthscales)), lengthscales,
@@ -545,35 +542,14 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             plt.close(fig)  # Close figure to free memory
 
         # Additional plots: 1D histogram and 3D scatter plot
-        print("Creating additional plots: 1D histogram and 3D scatter plot...")
+        if plot_latent_space:
+            print("Creating additional plots: 1D histogram and 3D scatter plot...")
 
-        # Ensure labels_train is on CPU for numpy operations
-        labels_train_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
+            # Ensure labels_train is on CPU for numpy operations
+            labels_train_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
 
-        # Check if we can reuse existing computations from latent space plot
-        if plot_flags[1] and 'mu_x_cpu' in locals() and 'sigma_x_cpu' in locals():
-            # Reuse existing computations from latent space plot
-            # We already have mu_x_cpu, sigma_x_cpu, and lengthscales_cpu from the latent space plot
-            # Just need to compute top_3_dims for the 3D plot
+            # We already have mu_x_cpu, sigma_x_cpu, lengthscales_cpu, dim1, dim2, dim3, and top_3_dims from the latent space plot
             lengthscales = lengthscales_cpu  # Use existing lengthscales
-        else:
-            # Need to compute the data (latent space plot wasn't computed)
-            # Find the most important dimensions (largest lengthscales = smallest beta)
-            lengthscales = (1 / model.gp.beta.flatten()).cpu()  # Move to CPU
-
-            # Get latent variables
-            U = model.get_u_samples()  # [P, M, C, Lx]
-
-            # Handle missing data if enabled
-            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0, dtype=torch.float64), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
-            else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
-
-            # Move to CPU for plotting
-            mu_x_cpu = mu_x.cpu()
-            sigma_x_cpu = sigma_x.cpu()
 
         # Use dimensions already computed in latent space plot section
         most_important_dim = dim1  # Use the first (most important) dimension for 1D histogram
