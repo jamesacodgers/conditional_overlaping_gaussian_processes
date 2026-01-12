@@ -423,7 +423,7 @@ def compute_full_elbo_minibatched(model, Y_train, elbo, model_name, config):
         # For 'nn_gauss': encode full dataset once, then index for batches (same as training)
         if config.enable_missing_data:
             Y_train_for_encoder = Y_train.clone()
-            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
             full_sample = model.sample_latent_variable(Y_train_for_encoder)
         else:
             full_sample = model.sample_latent_variable(Y_train)
@@ -486,7 +486,7 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
             # For nn_gauss with missing data, clean the input
             if config.enable_missing_data:
                 Y_test_clean = Y_test.clone()
-                Y_test_clean[torch.isnan(Y_test_clean)] = -999.0
+                Y_test_clean[torch.isnan(Y_test_clean)] = -9.0
                 test_X_mean = model.X.mu(Y_test_clean)
                 test_X_covar = model.X.sigma(Y_test_clean)
             else:
@@ -499,7 +499,7 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
             
             if config.enable_missing_data:
                 y_ood_clean = y_ood.clone()
-                y_ood_clean[torch.isnan(y_ood_clean)] = -999.0
+                y_ood_clean[torch.isnan(y_ood_clean)] = -9.0
                 ood_X_mean = model.X.mu(y_ood_clean)
                 ood_X_covar = model.X.sigma(y_ood_clean)
             else:
@@ -665,7 +665,7 @@ def get_fast_config():
         init_lengthscales=2.0,
         init_output_noise_scale=2.0,
         # === Missing Data Configuration ===
-        enable_missing_data=False,
+        enable_missing_data=True,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
         # === OOD Configuration (Cross-dataset mode) ===
@@ -758,9 +758,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
     models = config.models
     
     # Skip gauss model when missing data is disabled (only run nn_gauss)
-    if not config.enable_missing_data:
-        models = [m for m in models if m != 'gauss']
-        print(f"Missing data disabled: skipping 'gauss' model, running only: {models}")
+    models = [m for m in models if m != 'gauss']
+    print(f"Skipping 'gauss' model, running only: {models}")
     
     steps_per_model = config.training_steps
     
@@ -879,7 +878,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             else:
                 if config.enable_missing_data:
                     Y_train_for_encoder = Y_train.clone()
-                    Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+                    Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
                     sample = model.sample_latent_variable(Y_train_for_encoder)
                 else:
                     sample = model.sample_latent_variable(Y_train)
@@ -907,7 +906,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         
                         if config.enable_missing_data and model_name == 'nn_gauss':
                             Y_train_for_encoder = Y_train.clone()
-                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
                             X_train_mean = model.get_X_mean(Y_train_for_encoder)
                             X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
                         else:
@@ -1127,7 +1126,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         # Get training latent variables
         if config.enable_missing_data and model_name == 'nn_gauss':
             Y_train_for_encoder = Y_train.clone()
-            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
             X_train_mean = model.get_X_mean(Y_train_for_encoder)
             X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
         else:
@@ -1170,7 +1169,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     
                     if config.enable_missing_data:
                         Y_train_for_encoder = Y_train.clone()
-                        Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+                        Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
                         X_test_mean, X_test_covar = model.predict_latent(Y_train_for_encoder, 
                                                                           Y_test, 
                                                                           optimizer.defaults['lr'], 

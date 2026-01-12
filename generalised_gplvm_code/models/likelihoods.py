@@ -10,7 +10,7 @@ class GaussianLikelihoodWithMissingObs(GaussianLikelihood):
     @staticmethod
     def _get_masked_obs(x):
         missing_idx = x.isnan()
-        x_masked = x.masked_fill(missing_idx, -999.)
+        x_masked = x.masked_fill(missing_idx, -9.0)
         return missing_idx, x_masked
 
     def expected_log_prob(self, target, input, *params, **kwargs):
