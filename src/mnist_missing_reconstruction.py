@@ -583,8 +583,9 @@ def visualize_prior_samples_averaged(
         pred_var = f_var + model.sigma2  # [P, n_images, M]
         
         # Average over P samples (mean prediction and variance)
+        # For variance: use law of total variance = variance of means + mean of variances
         f_mean_avg = f_mean.mean(dim=0)  # [n_images, M]
-        pred_var_avg = pred_var.mean(dim=0)  # [n_images, M]
+        pred_var_avg = f_mean.var(dim=0) + pred_var.mean(dim=0)  # [n_images, M]
     
     # Inverse transform for visualization if scaler provided
     if scaler is not None:
@@ -814,12 +815,14 @@ def visualize_prior_samples_original_gplvm_averaged(
         f_mean_stacked = torch.stack(f_mean_samples, dim=0)  # [n_samples, n_images, data_dim]
         f_var_stacked = torch.stack(f_var_samples, dim=0)    # [n_samples, n_images, data_dim]
         
-        f_mean_avg = f_mean_stacked.mean(dim=0)  # [n_images, data_dim]
-        f_var_avg = f_var_stacked.mean(dim=0)    # [n_images, data_dim]
-        
-        # Add observation noise to get predictive variance
+        # Add observation noise to each sample's variance first
         obs_noise = likelihood.noise
-        pred_var_avg = f_var_avg + obs_noise  # [n_images, data_dim]
+        pred_var_stacked = f_var_stacked + obs_noise  # [n_samples, n_images, data_dim]
+        
+        # Average over samples (mean prediction and variance)
+        # For variance: use law of total variance = variance of means + mean of variances
+        f_mean_avg = f_mean_stacked.mean(dim=0)  # [n_images, data_dim]
+        pred_var_avg = f_mean_stacked.var(dim=0) + pred_var_stacked.mean(dim=0)  # [n_images, data_dim]
     
     # Inverse transform for visualization if scaler provided
     if scaler is not None:
