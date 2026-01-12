@@ -880,7 +880,7 @@ def get_fast_config():
         init_lengthscales=1.0,
         init_output_noise_scale=1.0,
         # === Missing Data Configuration ===
-        enable_missing_data=False,
+        enable_missing_data=True,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
         # === Random Seed Configuration ===
