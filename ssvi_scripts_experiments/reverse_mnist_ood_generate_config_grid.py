@@ -144,6 +144,10 @@ def generate_config_grid():
     # Data Split
     test_size_values = [0.1]
     
+    # Missing Data Configuration
+    enable_missing_data_values = [False]  # Enable missing data reconstruction capability
+    missing_data_ratio_values = [0.3]  # Fraction of dimensions to artificially mask (for testing)
+    
     # ========================================
     # OOD Detection Configuration
     # ========================================
@@ -193,6 +197,8 @@ def generate_config_grid():
         id_dataset_values,
         ood_dataset_values,
         test_size_values,
+        enable_missing_data_values,
+        missing_data_ratio_values,
         id_classes_values,
         id_samples_per_class_values,
         ood_classes_values,
@@ -205,7 +211,8 @@ def generate_config_grid():
     ssvi_count = 0
     for (n_inducing, init_lengthscales, batch_size, random_seed, learning_rate, 
          n_steps, num_inducing_samples, architecture, id_dataset, ood_dataset, test_size,
-         id_classes, id_samples_per_class, ood_classes, ood_samples_per_class) in param_combinations:
+         enable_missing_data, missing_data_ratio, id_classes, id_samples_per_class, 
+         ood_classes, ood_samples_per_class) in param_combinations:
         
         # Create new config based on base text
         ssvi_config_text = ssvi_base_text
@@ -221,6 +228,9 @@ def generate_config_grid():
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'training_iterations', n_steps)
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'P', num_inducing_samples)
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'test_size', test_size)
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'enable_missing_data',
+                                                   str(enable_missing_data).lower())
+        ssvi_config_text = update_config_parameter(ssvi_config_text, 'missing_data_ratio', missing_data_ratio)
         
         # Update OOD configuration with unified parameters
         ssvi_config_text = update_config_parameter(ssvi_config_text, 'id_dataset', f'"{id_dataset}"')
@@ -247,7 +257,8 @@ def generate_config_grid():
     orig_count = 0
     for (n_inducing, init_lengthscales, batch_size, random_seed, learning_rate, 
          n_steps, num_inducing_samples, architecture, id_dataset, ood_dataset, test_size,
-         id_classes, id_samples_per_class, ood_classes, ood_samples_per_class) in param_combinations:
+         enable_missing_data, missing_data_ratio, id_classes, id_samples_per_class, 
+         ood_classes, ood_samples_per_class) in param_combinations:
         
         # Create new config based on base text
         orig_config_text = orig_base_text
@@ -261,6 +272,9 @@ def generate_config_grid():
         orig_config_text = update_config_parameter(orig_config_text, 'learning_rate', learning_rate)
         orig_config_text = update_nested_training_steps(orig_config_text, n_steps)
         orig_config_text = update_config_parameter(orig_config_text, 'test_size', test_size)
+        orig_config_text = update_config_parameter(orig_config_text, 'enable_missing_data',
+                                                   str(enable_missing_data).lower())
+        orig_config_text = update_config_parameter(orig_config_text, 'missing_data_ratio', missing_data_ratio)
         
         # Update OOD configuration with unified parameters
         orig_config_text = update_config_parameter(orig_config_text, 'id_dataset', f'"{id_dataset}"')
