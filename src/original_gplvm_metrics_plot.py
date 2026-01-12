@@ -155,7 +155,7 @@ def plot_missing_rmse_metrics_progression(train_missing_rmse_list, metrics_itera
 
 
 def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, metrics_losses, 
-                           effective_dims_list, results_dir, model_name, random_seed):
+                           effective_dims_list, results_dir, model_name, random_seed, batch_losses: list = None):
     """
     Plot metrics progression over training iterations (train metrics only)
     Exactly matches SSVI plot structure and styling
@@ -164,18 +164,35 @@ def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iteration
         train_rmse_list: List of training RMSE values
         train_nlpd_list: List of training NLPD values  
         metrics_iterations: List of iteration numbers when metrics were computed
-        metrics_losses: List of losses at the same iterations as metrics
+        metrics_losses: List of losses at the same iterations as metrics (full ELBO losses)
         effective_dims_list: List of effective dimensions at the same iterations
         results_dir: Directory to save the plot
         model_name: Name of the model
         random_seed: Random seed for filename
+        batch_losses: Optional list of batch ELBO losses (one per iteration) for additional plot
     """
     if not train_rmse_list or not train_nlpd_list:
         print("No metrics data available for progression plot")
         return
     
-    # Create subplots (exactly like SSVI)
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
+    # Determine if we need to add batch ELBO plot
+    plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
+    
+    # Create subplots: 3x2 if batch ELBO (5 plots), otherwise 2x2 (4 plots)
+    if plot_batch_elbo:
+        fig, axes = plt.subplots(3, 2, figsize=(12, 12))
+        ax1 = axes[0, 0]  # RMSE
+        ax_batch = axes[0, 1]  # Batch ELBO (second position)
+        ax_nlpd = axes[1, 0]  # NLPD
+        ax_full_elbo = axes[1, 1]  # Full ELBO
+        ax_eff_dims = axes[2, 0]  # Effective dims
+        # Hide the last subplot (bottom right)
+        axes[2, 1].axis('off')
+    else:
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
+        ax_nlpd = ax2
+        ax_full_elbo = ax3
+        ax_eff_dims = ax4
     
     # Plot 1: RMSE comparison (train only - exactly like SSVI but only train line)
     ax1.plot(metrics_iterations, train_rmse_list, 'b-', label='Train RMSE', linewidth=2)
@@ -185,33 +202,42 @@ def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iteration
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
-    # Plot 2: NLPD comparison (train only - exactly like SSVI but only train line)
-    ax2.plot(metrics_iterations, train_nlpd_list, 'b-', label='Train NLPD', linewidth=2)
-    ax2.set_xlabel('Iteration')
-    ax2.set_ylabel('NLPD')
-    ax2.set_title('Predictive Density (NLPD)')  # Exact same title as SSVI
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
+    # Plot 2: Batch ELBO progression (if provided) - second position
+    if plot_batch_elbo:
+        batch_iterations = list(range(len(batch_losses)))
+        ax_batch.plot(batch_iterations, batch_losses, 'orange', linewidth=2)
+        ax_batch.set_xlabel('Iteration')
+        ax_batch.set_ylabel('Loss')
+        ax_batch.set_title('Batch ELBO Progression')
+        ax_batch.grid(True, alpha=0.3)
     
-    # Plot 3: ELBO Loss progression (exactly like SSVI)
-    ax3.plot(metrics_iterations, metrics_losses, 'g-', linewidth=2)
-    ax3.set_xlabel('Iteration')
-    ax3.set_ylabel('ELBO Loss')
-    ax3.set_title('Training Loss (ELBO)')  # Exact same title as SSVI
-    ax3.grid(True, alpha=0.3)
+    # Plot 3: NLPD comparison (train only - exactly like SSVI but only train line)
+    ax_nlpd.plot(metrics_iterations, train_nlpd_list, 'b-', label='Train NLPD', linewidth=2)
+    ax_nlpd.set_xlabel('Iteration')
+    ax_nlpd.set_ylabel('NLPD')
+    ax_nlpd.set_title('Predictive Density (NLPD)')  # Exact same title as SSVI
+    ax_nlpd.legend()
+    ax_nlpd.grid(True, alpha=0.3)
     
-    # Plot 4: Effective latent dimensions (exactly like SSVI)
+    # Plot 4: Full ELBO Loss progression (exactly like SSVI)
+    ax_full_elbo.plot(metrics_iterations, metrics_losses, 'g-', linewidth=2)
+    ax_full_elbo.set_xlabel('Iteration')
+    ax_full_elbo.set_ylabel('Loss')
+    ax_full_elbo.set_title('Training Loss (Full ELBO)')  # Exact same title as SSVI
+    ax_full_elbo.grid(True, alpha=0.3)
+    
+    # Plot 5: Effective latent dimensions (exactly like SSVI)
     if effective_dims_list:
-        ax4.plot(metrics_iterations, effective_dims_list, 'purple', linewidth=2)
-        ax4.set_xlabel('Iteration')
-        ax4.set_ylabel('Effective Dimensions')
-        ax4.set_title('Model Complexity (Effective Latent Dims)')
-        ax4.grid(True, alpha=0.3)
+        ax_eff_dims.plot(metrics_iterations, effective_dims_list, 'purple', linewidth=2)
+        ax_eff_dims.set_xlabel('Iteration')
+        ax_eff_dims.set_ylabel('Effective Dimensions')
+        ax_eff_dims.set_title('Model Complexity (Effective Latent Dims)')
+        ax_eff_dims.grid(True, alpha=0.3)
     else:
-        ax4.text(0.5, 0.5, 'No effective dimensions data', 
+        ax_eff_dims.text(0.5, 0.5, 'No effective dimensions data', 
                 horizontalalignment='center', verticalalignment='center',
-                transform=ax4.transAxes, fontsize=12)
-        ax4.set_title('Model Complexity (Effective Latent Dims)')
+                transform=ax_eff_dims.transAxes, fontsize=12)
+        ax_eff_dims.set_title('Model Complexity (Effective Latent Dims)')
     
     plt.tight_layout()
     

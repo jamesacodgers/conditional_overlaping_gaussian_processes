@@ -59,14 +59,8 @@ sys.path.insert(0, project_root)
 sys.path.insert(0, os.path.join(project_root, "generalised_gplvm_code"))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import (
-    SSVIResultsLogger,
-    visualize_ssvi_results,
-    plot_metrics_history,
-    plot_final_metrics_summary,
-    plot_missing_nlpd_metrics_progression,
-    plot_missing_rmse_metrics_progression,
-)
+
+from src.ssvi_utils import SSVIResultsLogger, plot_metrics_history, plot_final_metrics_summary, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
@@ -733,8 +727,8 @@ def train_oil_flow_ssvi(
             print(f"    Computing k-NN clustering metrics...")
             knn_results = compute_knn_accuracies_ssvi(
                 model=model,
-                y_train=split_data["y_train"],
-                labels_train=labels_train,
+                y_train=split_data['y_test'],
+                labels_train=split_data['labels_test'],
                 k_values=[1, 3, 7, 12],
                 batch_size=config.batch_size,
             )
@@ -779,6 +773,8 @@ def train_oil_flow_ssvi(
                             train_indices=split_data["train_indices"],
                             dataset_name=config.id_dataset,
                             is_ood=False,
+                            full_elbo_iterations=full_elbo_iterations,
+                            batch_losses=losses  # Batch losses up to current iteration
                         )
                         print(f"    Checkpoint plot saved: {plot_filename}")
                     except Exception as e:
@@ -1246,8 +1242,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
 
         # Generate metrics plots
         print("Generating metrics progression plots...")
-        plot_metrics_history(metrics_computer, logger, show_plot=False)
-
+        plot_metrics_history(metrics_computer, logger, show_plot=False, batch_losses=batch_losses)
+        
         print("Generating final metrics summary plots...")
         plot_final_metrics_summary(metrics_computer, model, logger, show_plot=False)
 
