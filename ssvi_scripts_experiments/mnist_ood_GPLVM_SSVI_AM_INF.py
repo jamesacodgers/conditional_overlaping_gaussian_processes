@@ -70,12 +70,7 @@ from src.ssvi_utils import (
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
-from src.mnist_missing_reconstruction import (
-    visualize_mnist_missing_reconstruction,
-    visualize_mnist_missing_reconstruction_detailed,
-    visualize_prior_samples,
-    visualize_prior_samples_averaged,
-)
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction, visualize_mnist_missing_reconstruction_detailed, visualize_prior_samples, visualize_prior_samples_averaged, visualize_test_image_predictions
 from src.knn_clustering_metrics import compute_knn_accuracies_ssvi
 from src.knn_progression_plot import plot_knn_metrics_progression_ssvi
 from src.ssvi_config_utils import (
@@ -812,9 +807,21 @@ def train_oil_flow_ssvi(
                             image_shape=(28, 28),
                             scaler=split_data.get("scaler"),
                         )
-                        print(
-                            f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png"
+                        print(f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png")
+                        
+                        test_image_predictions_checkpoint_path = os.path.join(plots_checkpoints_dir, f"test_image_predictions_iter_{i}_{config.random_seed}.png")
+                        visualize_test_image_predictions(
+                            model=model,
+                            y_train=split_data['y_test'],
+                            config=config,
+                            n_images=24,
+                            save_path=test_image_predictions_checkpoint_path,
+                            show_plot=False,
+                            dataset_name=config.id_dataset,
+                            image_shape=(28, 28),
+                            scaler=split_data.get('scaler')
                         )
+                        print(f"    Test image predictions checkpoint saved: test_image_predictions_iter_{i}_{config.random_seed}.png")
                     except Exception as e:
                         print(
                             f"    Warning: Could not create prior samples checkpoint at iteration {i}: {e}"
@@ -1470,6 +1477,38 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         dataset_name=config.id_dataset,
         image_shape=(28, 28),  # MNIST/FashionMNIST image shape
         scaler=split_data.get("scaler"),
+    )
+    print("=" * 50)
+    
+    # Generate test image predictions visualization
+    print("\n=== Test Image Predictions Visualization ===")
+    test_image_predictions_path = os.path.join(logger.plots_dir, f"test_image_predictions_{config.random_seed}.png")
+    visualize_test_image_predictions(
+        model=model,
+        y_train=split_data['y_test'],
+        config=config,
+        n_images=24,
+        save_path=test_image_predictions_path,
+        show_plot=False,
+        dataset_name=config.id_dataset,
+        image_shape=(28, 28),  # MNIST/FashionMNIST image shape
+        scaler=split_data.get('scaler')
+    )
+    print("=" * 50)
+    
+    # Generate test image predictions visualization
+    print("\n=== Test Image Predictions Visualization ===")
+    test_image_predictions_path = os.path.join(logger.plots_dir, f"test_image_predictions_{config.random_seed}.png")
+    visualize_test_image_predictions(
+        model=model,
+        y_train=split_data['y_test'],
+        config=config,
+        n_images=24,
+        save_path=test_image_predictions_path,
+        show_plot=False,
+        dataset_name=config.id_dataset,
+        image_shape=(28, 28),  # MNIST/FashionMNIST image shape
+        scaler=split_data.get('scaler')
     )
     print("=" * 50)
 
