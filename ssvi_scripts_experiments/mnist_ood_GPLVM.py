@@ -97,7 +97,7 @@ from src.missing_data_utils import preprocess_data_for_missing_training, rmse_mi
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
 from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset
-from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed, visualize_prior_samples_original_gplvm, visualize_prior_samples_original_gplvm_averaged
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed, visualize_prior_samples_original_gplvm, visualize_prior_samples_original_gplvm_averaged, visualize_test_image_predictions_original_gplvm
 from src.knn_clustering_metrics import compute_knn_accuracies_original_gplvm
 from src.knn_progression_plot import plot_knn_metrics_progression
 
@@ -421,7 +421,7 @@ def compute_full_elbo_minibatched(model, Y_train, elbo, model_name, config):
         # For 'nn_gauss': encode full dataset once, then index for batches (same as training)
         if config.enable_missing_data:
             Y_train_for_encoder = Y_train.clone()
-            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
             full_sample = model.sample_latent_variable(Y_train_for_encoder)
         else:
             full_sample = model.sample_latent_variable(Y_train)
@@ -484,7 +484,7 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
             # For nn_gauss with missing data, clean the input
             if config.enable_missing_data:
                 Y_test_clean = Y_test.clone()
-                Y_test_clean[torch.isnan(Y_test_clean)] = -999.0
+                Y_test_clean[torch.isnan(Y_test_clean)] = -9.0
                 test_X_mean = model.X.mu(Y_test_clean)
                 test_X_covar = model.X.sigma(Y_test_clean)
             else:
@@ -497,7 +497,7 @@ def evaluate_ood_detection_metrics(model, split_data, config: OODOriginalGPLVMCo
             
             if config.enable_missing_data:
                 y_ood_clean = y_ood.clone()
-                y_ood_clean[torch.isnan(y_ood_clean)] = -999.0
+                y_ood_clean[torch.isnan(y_ood_clean)] = -9.0
                 ood_X_mean = model.X.mu(y_ood_clean)
                 ood_X_covar = model.X.sigma(y_ood_clean)
             else:
@@ -657,13 +657,13 @@ def get_fast_config():
         random_seed=7,
         test_iterations=100,
         test_size=0.2,
-        checkpoint_frequency=4000,
-        metrics_frequency=4000,
+        checkpoint_frequency=50,
+        metrics_frequency=50,
         # === GP Hyperparameters ===
         init_lengthscales=2.0,
         init_output_noise_scale=2.0,
         # === Missing Data Configuration ===
-        enable_missing_data=False,
+        enable_missing_data=True,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
         # === OOD Configuration (Cross-dataset mode) ===
@@ -756,9 +756,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
     models = config.models
     
     # Skip gauss model when missing data is disabled (only run nn_gauss)
-    if not config.enable_missing_data:
-        models = [m for m in models if m != 'gauss']
-        print(f"Missing data disabled: skipping 'gauss' model, running only: {models}")
+    models = [m for m in models if m != 'gauss']
+    print(f"Skipping 'gauss' model, running only: {models}")
     
     steps_per_model = config.training_steps
     
@@ -877,7 +876,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             else:
                 if config.enable_missing_data:
                     Y_train_for_encoder = Y_train.clone()
-                    Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+                    Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
                     sample = model.sample_latent_variable(Y_train_for_encoder)
                 else:
                     sample = model.sample_latent_variable(Y_train)
@@ -905,7 +904,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         
                         if config.enable_missing_data and model_name == 'nn_gauss':
                             Y_train_for_encoder = Y_train.clone()
-                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+                            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
                             X_train_mean = model.get_X_mean(Y_train_for_encoder)
                             X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
                         else:
@@ -1045,6 +1044,22 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         scaler=split_data.get('scaler')
                     )
                     print(f"    Prior samples averaged checkpoint saved: prior_samples_averaged_{model_name}_iter_{i}_{config.random_seed}.png")
+                    
+                    test_image_predictions_checkpoint_path = os.path.join(plots_checkpoints_dir, f"test_image_predictions_{model_name}_iter_{i}_{config.random_seed}.png")
+                    visualize_test_image_predictions_original_gplvm(
+                        model=model,
+                        likelihood=likelihood,
+                        y_test=split_data['y_test'],
+                        config=config,
+                        model_name=model_name,
+                        n_images=24,
+                        save_path=test_image_predictions_checkpoint_path,
+                        show_plot=False,
+                        dataset_name=config.id_dataset,
+                        image_shape=(28, 28),
+                        scaler=split_data.get('scaler')
+                    )
+                    print(f"    Test image predictions checkpoint saved: test_image_predictions_{model_name}_iter_{i}_{config.random_seed}.png")
                 except Exception as e:
                     print(f"  Warning: Could not create prior samples checkpoint at iteration {i}: {e}")
         model.store(loss_list, likelihood)
@@ -1125,7 +1140,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         # Get training latent variables
         if config.enable_missing_data and model_name == 'nn_gauss':
             Y_train_for_encoder = Y_train.clone()
-            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+            Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
             X_train_mean = model.get_X_mean(Y_train_for_encoder)
             X_train_covar = model.X.sigma(Y_train_for_encoder).detach()
         else:
@@ -1168,7 +1183,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     
                     if config.enable_missing_data:
                         Y_train_for_encoder = Y_train.clone()
-                        Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -999.0
+                        Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
                         X_test_mean, X_test_covar = model.predict_latent(Y_train_for_encoder, 
                                                                           Y_test, 
                                                                           optimizer.defaults['lr'], 
@@ -1475,6 +1490,23 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 n_images=8,
                 n_samples=8,
                 save_path=prior_samples_avg_path,
+                show_plot=False,
+                dataset_name=config.id_dataset,
+                image_shape=(28, 28),
+                scaler=split_data.get('scaler')
+            )
+            
+            # Generate test image predictions visualization
+            print(f"\n=== Test Image Predictions Visualization ({model_name}) ===")
+            test_image_predictions_path = os.path.join(plots_dir, f"test_image_predictions_{model_name}_{config.random_seed}.png")
+            visualize_test_image_predictions_original_gplvm(
+                model=model,
+                likelihood=likelihood,
+                y_test=split_data['y_test'],
+                config=config,
+                model_name=model_name,
+                n_images=24,
+                save_path=test_image_predictions_path,
                 show_plot=False,
                 dataset_name=config.id_dataset,
                 image_shape=(28, 28),

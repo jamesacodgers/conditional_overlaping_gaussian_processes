@@ -1,4 +1,4 @@
-# %%
+# %% 
 """
 MNIST OOD Detection with SSVI GP-LVM with Amortized Inference
 
@@ -38,7 +38,7 @@ Usage examples:
     python ssvi_scripts_experiments/mnist_ood_GPLVM_SSVI_AM_INF.py --config ssvi_scripts_experiments/ssvi_configs/ssvi_base_config.yaml
 """
 
-import torch
+import torch 
 import matplotlib.pyplot as plt
 
 from dataclasses import dataclass
@@ -64,12 +64,7 @@ from src.ssvi_utils import SSVIResultsLogger, plot_metrics_history, plot_final_m
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
-from src.mnist_missing_reconstruction import (
-    visualize_mnist_missing_reconstruction,
-    visualize_mnist_missing_reconstruction_detailed,
-    visualize_prior_samples,
-    visualize_prior_samples_averaged,
-)
+from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction, visualize_mnist_missing_reconstruction_detailed, visualize_prior_samples, visualize_prior_samples_averaged, visualize_test_image_predictions
 from src.knn_clustering_metrics import compute_knn_accuracies_ssvi
 from src.knn_progression_plot import plot_knn_metrics_progression_ssvi
 from src.ssvi_config_utils import (
@@ -98,12 +93,12 @@ from src.pytorch_scalers import StandardScalerPytorch, MinMaxScalerPytorch, NoTr
 @dataclass
 class OODSSVIConfig(OilFlowSSVIConfig):
     """Extended configuration for OOD detection experiments.
-
+    
     Supports two OOD modes:
     1. Cross-dataset OOD: ID and OOD from different datasets (MNIST vs FashionMNIST)
     2. Same-dataset OOD: ID and OOD from same dataset but different classes
        Example: 8 FashionMNIST classes as ID, 2 classes as OOD
-
+    
     Configuration:
     - id_dataset: Name of in-distribution dataset ("MNIST" or "FashionMNIST")
     - id_classes: List of class indices for ID (None = all classes)
@@ -111,34 +106,32 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     - ood_dataset: Name of OOD dataset (must be explicitly specified: "MNIST" or "FashionMNIST")
     - ood_classes: List of class indices for OOD (None = all classes)
     - ood_samples_per_class: Samples per OOD class (None = use all)
-
+    
     Examples:
     ---------
     Cross-dataset OOD (FashionMNIST ID, MNIST OOD):
         id_dataset="FashionMNIST", id_classes=[0,1,2,3,4,5,6,7,8,9],
         ood_dataset="MNIST"
-
+    
     Same-dataset OOD (8 FashionMNIST classes ID, 2 classes OOD):
         id_dataset="FashionMNIST", id_classes=[0,1,2,3,4,5,6,7],
         ood_dataset="FashionMNIST", ood_classes=[8,9]
     """
 
     # === In-Distribution (ID) Dataset Configuration ===
-    id_dataset: str = "FashionMNIST"  # ID dataset name: "MNIST" or "FashionMNIST"
-    id_classes: List[int] = None  # ID class indices (None = all classes)
-    id_samples_per_class: int = None  # Samples per ID class (None = use all)
-
+    id_dataset: str = "FashionMNIST"      # ID dataset name: "MNIST" or "FashionMNIST"
+    id_classes: List[int] = None           # ID class indices (None = all classes)
+    id_samples_per_class: int = None       # Samples per ID class (None = use all)
+    
     # === Out-of-Distribution (OOD) Dataset Configuration ===
-    ood_dataset: str = "MNIST"  # OOD dataset name (must be explicitly specified)
-    ood_classes: List[int] = None  # OOD class indices (None = all classes)
-    ood_samples_per_class: int = None  # Samples per OOD class (None = use all)
-
+    ood_dataset: str = "MNIST"            # OOD dataset name (must be explicitly specified)
+    ood_classes: List[int] = None          # OOD class indices (None = all classes)
+    ood_samples_per_class: int = None      # Samples per OOD class (None = use all)
+    
     # OOD Evaluation configuration
-    ood_score_types: list = None  # Will be set to ['nlpd', 'rmse', 'variance'] if None
-    ood_n_samples: int = (
-        None  # Number of P samples for OOD evaluation (None = use model.P)
-    )
-
+    ood_score_types: list = None           # Will be set to ['nlpd', 'rmse', 'variance'] if None
+    ood_n_samples: int = None               # Number of P samples for OOD evaluation (None = use model.P)
+    
     # === Data Standardization Configuration ===
     standardization: str = (
         "standard"  # "standard" (mean=0, std=1), "minmax" ([0,1]), or "none" (no transform)
@@ -152,19 +145,19 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     def get_id_filter_params(self):
         """Get filtering parameters for in-distribution dataset"""
         return self.id_classes, self.id_samples_per_class
-
+    
     def get_ood_filter_params(self):
         """Get filtering parameters for out-of-distribution dataset"""
         return self.ood_classes, self.ood_samples_per_class
-
+    
     def get_ood_dataset(self):
         """Get the OOD dataset name (always explicitly specified)."""
         return self.ood_dataset
-
+    
     def is_same_dataset_ood(self):
         """Check if ID and OOD are from the same dataset (class-based OOD)"""
         return self.ood_dataset == self.id_dataset
-
+    
     def print_config(self):
         """Print configuration summary including OOD settings"""
         super().print_config()
@@ -822,6 +815,20 @@ def train_oil_flow_ssvi(
                         print(
                             f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png"
                         )
+
+                        test_image_predictions_checkpoint_path = os.path.join(plots_checkpoints_dir, f"test_image_predictions_iter_{i}_{config.random_seed}.png")
+                        visualize_test_image_predictions(
+                            model=model,
+                            y_train=split_data['y_test'],
+                            config=config,
+                            n_images=24,
+                            save_path=test_image_predictions_checkpoint_path,
+                            show_plot=False,
+                            dataset_name=config.id_dataset,
+                            image_shape=(28, 28),
+                            scaler=split_data.get('scaler')
+                        )
+                        print(f"    Test image predictions checkpoint saved: test_image_predictions_iter_{i}_{config.random_seed}.png")
                     except Exception as e:
                         print(
                             f"    Warning: Could not create prior samples checkpoint at iteration {i}: {e}"
@@ -1046,7 +1053,7 @@ def get_fast_config():
         init_lengthscales=1.0,
         init_output_noise_scale=1.0,
         # === Missing Data Configuration ===
-        enable_missing_data=False,
+        enable_missing_data=True,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
         # === Random Seed Configuration ===
@@ -1477,6 +1484,22 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         dataset_name=config.id_dataset,
         image_shape=(28, 28),  # MNIST/FashionMNIST image shape
         scaler=split_data.get("scaler"),
+    )
+    print("=" * 50)
+
+    # Generate test image predictions visualization
+    print("\n=== Test Image Predictions Visualization ===")
+    test_image_predictions_path = os.path.join(logger.plots_dir, f"test_image_predictions_{config.random_seed}.png")
+    visualize_test_image_predictions(
+        model=model,
+        y_train=split_data['y_test'],
+        config=config,
+        n_images=24,
+        save_path=test_image_predictions_path,
+        show_plot=False,
+        dataset_name=config.id_dataset,
+        image_shape=(28, 28),  # MNIST/FashionMNIST image shape
+        scaler=split_data.get('scaler')
     )
     print("=" * 50)
 
