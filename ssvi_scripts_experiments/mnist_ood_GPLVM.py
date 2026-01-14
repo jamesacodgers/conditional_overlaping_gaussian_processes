@@ -939,15 +939,21 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         # Compute missing data metrics if enabled
                         train_missing_nlpd = None
                         train_missing_rmse = None
-                        if config.enable_missing_data and model_name == 'gauss':
+                        if config.enable_missing_data and model_name in ['gauss', 'nn_gauss']:
                             try:
                                 obs_noise = likelihood.noise
+                                # Extract standard deviations from X_covar (handles both gauss and nn_gauss)
+                                if model_name == 'nn_gauss':
+                                    X_train_std = torch.stack([torch.sqrt(x.diag()) for x in X_train_covar])
+                                else:  # gauss model
+                                    X_train_std = X_train_covar
+                                
                                 train_missing_nlpd = compute_missing_data_nlpd_gauss(
                                     model=model,
                                     Y_original=Y_train_original,
                                     missing_mask=train_missing_mask,
                                     X_mean=X_train_mean,
-                                    X_std=X_train_covar,
+                                    X_std=X_train_std,
                                     obs_noise=obs_noise,
                                     n_samples=config.reconstruction_samples,
                                     batch_size=config.batch_size
@@ -1175,6 +1181,9 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 likelihood.eval()
                 if hasattr(model.X, 'eval'):
                     model.X.eval()
+
+            Y_test_for_encoder = Y_test.clone()
+            Y_test_for_encoder[torch.isnan(Y_test_for_encoder)] = -9.0
             
             if ae is True:
                 if model_name != 'iaf':
@@ -1187,7 +1196,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         Y_train_for_encoder = Y_train.clone()
                         Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
                         X_test_mean, X_test_covar = model.predict_latent(Y_train_for_encoder, 
-                                                                          Y_test, 
+                                                                          Y_test_for_encoder,
                                                                           optimizer.defaults['lr'], 
                                                                           likelihood, 
                                                                           config.random_seed,
@@ -1197,7 +1206,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                                                                           pca=pca)
                     else:
                         X_test_mean, X_test_covar = model.predict_latent(Y_train, 
-                                                                          Y_test, 
+                                                                          Y_test_for_encoder,
                                                                           optimizer.defaults['lr'], 
                                                                           likelihood, 
                                                                           config.random_seed,
@@ -1210,7 +1219,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         model.X.jitter = original_jitter
                 else:
                     X_test_mean, X_flow_samples = model.predict_latent(Y_train, 
-                                                                        Y_test, 
+                                                                        Y_test_for_encoder,
                                                                         optimizer.defaults['lr'], 
                                                                         likelihood, 
                                                                         prior_x = prior_x,
@@ -1220,7 +1229,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             
             else: # either point, map or gauss
                 try:
-                    losses_test,  X_test = model.predict_latent(Y_train, Y_test, optimizer.defaults['lr'], 
+                    losses_test,  X_test = model.predict_latent(Y_train, Y_test_for_encoder, optimizer.defaults['lr'],
                                               likelihood, config.random_seed, prior_x=prior_x_test, ae=ae, 
                                               model_name=model_name,pca=pca, steps=config.test_iterations)
                 except Exception as e:
@@ -1278,7 +1287,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             obs_noise = likelihood.noise
             try:
                 train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean_device, model_name, loss_list, X_train_covar, obs_noise, enable_missing_data=config.enable_missing_data, batch_size=config.batch_size)
-                test_nlpd = compute_nlpd_nll_based(model, Y_test, X_test_mean_device, model_name, losses_test if model_name == 'gauss' else loss_list, X_test_covar, obs_noise, enable_missing_data=config.enable_missing_data, batch_size=config.batch_size)
+                test_nlpd = compute_nlpd_nll_based(model, Y_test_for_encoder, X_test_mean_device, model_name, losses_test if model_name == 'gauss' else loss_list, X_test_covar, obs_noise, enable_missing_data=config.enable_missing_data, batch_size=config.batch_size)
 
                 print(f'Train NLPD {model_name} = ' + str(train_nlpd))
                 print(f'Test NLPD {model_name} = ' + str(test_nlpd))
@@ -1291,10 +1300,15 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 results_summary[model_name] = {}
 
             # Missing Data metrics
-            if config.enable_missing_data and model_name == 'gauss':
+            if config.enable_missing_data and model_name in ['gauss', 'nn_gauss']:
                 try:
-                    X_train_std = X_train_covar
-                    X_test_std = X_test_covar
+                    # Extract standard deviations from X_covar (handles both gauss and nn_gauss)
+                    if model_name == 'nn_gauss':
+                        X_train_std = torch.stack([torch.sqrt(x.diag()) for x in X_train_covar])
+                        X_test_std = torch.stack([torch.sqrt(x.diag()) for x in X_test_covar])
+                    else:  # gauss model
+                        X_train_std = X_train_covar
+                        X_test_std = X_test_covar
 
                     train_missing_nlpd = compute_missing_data_nlpd_gauss(
                         model=model,

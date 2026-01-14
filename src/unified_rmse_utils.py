@@ -70,7 +70,7 @@ def compute_rmse_with_sampling(model,
                 if model_name == 'nn_gauss':
                     if enable_missing_data:
                         y_for_recon = y_batch.clone()
-                        y_for_recon[torch.isnan(y_for_recon)] = -999.0
+                        y_for_recon[torch.isnan(y_for_recon)] = -9.0
                         y_recon, _ = model.reconstruct_y(x_sample, y_for_recon, ae=True, model_name=model_name)
                     else:
                         y_recon, _ = model.reconstruct_y(x_sample, y_batch, ae=True, model_name=model_name)
