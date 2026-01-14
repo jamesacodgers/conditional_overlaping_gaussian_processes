@@ -1,0 +1,1 @@
+This test was with a less aggressive initial prior regularisation init=20

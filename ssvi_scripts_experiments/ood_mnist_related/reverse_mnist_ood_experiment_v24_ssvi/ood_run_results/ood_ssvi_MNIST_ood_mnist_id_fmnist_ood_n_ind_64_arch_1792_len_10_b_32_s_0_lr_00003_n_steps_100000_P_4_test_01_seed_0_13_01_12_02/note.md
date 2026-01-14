@@ -1,0 +1,1 @@
+Trying training NN slower than GP. 

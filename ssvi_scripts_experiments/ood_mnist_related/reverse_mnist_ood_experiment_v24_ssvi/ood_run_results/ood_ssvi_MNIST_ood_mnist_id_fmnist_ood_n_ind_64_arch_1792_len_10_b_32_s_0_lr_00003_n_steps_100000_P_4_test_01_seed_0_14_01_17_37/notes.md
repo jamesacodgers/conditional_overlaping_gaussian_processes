@@ -1,0 +1,3 @@
+- This run is linearly decreasing the prior regulaisation strength from 100 to 1 over training. 
+- I didn't realise I had also inadvertently left Vx untrainable 
+- I also used a much higher learning rate but shorter run 

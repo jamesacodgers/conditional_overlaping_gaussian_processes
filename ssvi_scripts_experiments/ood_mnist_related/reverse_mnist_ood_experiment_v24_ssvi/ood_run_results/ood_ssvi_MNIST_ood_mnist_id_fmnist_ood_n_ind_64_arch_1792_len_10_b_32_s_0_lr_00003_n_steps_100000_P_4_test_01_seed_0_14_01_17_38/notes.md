@@ -1,0 +1,1 @@
+This linearly decreases the prior regularisation from 100 to 1, but with the Vx trainable and the "standard" learning rate. 

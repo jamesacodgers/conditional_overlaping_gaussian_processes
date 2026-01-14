@@ -1,0 +1,1 @@
+This was a test with no layer norms, but with the inducing point inputs fixed. 

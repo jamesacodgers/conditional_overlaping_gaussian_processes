@@ -399,7 +399,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         # Store config
         self.config = config
 
-    def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor = None):
+    def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor = None, prior_weight=1):
         """
         Modified train_step: proper SSVI separation of local/global optimization
         """
@@ -434,7 +434,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
                                    total_size=self.config.total_size,
-                                   missing_mask=missing_mask)
+                                   missing_mask=missing_mask, 
+                                   prior_weight=prior_weight)
         else:
             # Standard ELBO computation
             loss = -self.ssvi_elbo(Y_batch,
@@ -443,7 +444,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
                                    total_size=self.config.total_size,
-                                   missing_mask=None)
+                                   missing_mask=None,
+                                   prior_weight=prior_weight)
         
         # Backward pass (gradients computed for all parameters)
         loss.backward()
@@ -543,6 +545,8 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
     knn_metrics_iterations = []
     
     start_time = time.time()
+
+    init_prior_weight = 10
     
     for i in range(config.training_iterations):
         # Sample batch indices
@@ -551,7 +555,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OODSSVIConfi
         y_batch = y_train[batch_indices]
         
         # Training step - U sampling happens inside automatically each step
-        loss = model.train_step(y_batch, batch_indices)
+        loss = model.train_step(y_batch, batch_indices, prior_weight= init_prior_weight + (i/config.training_iterations)*(1-init_prior_weight))
         losses.append(loss)
         
         # Metrics computation (periodic)

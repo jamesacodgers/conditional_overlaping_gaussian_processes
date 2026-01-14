@@ -1,0 +1,1 @@
+Moved the Vx to run with the local learning rate.

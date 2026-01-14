@@ -1,0 +1,1 @@
+I lowered the learning rate and started the prior regularisation at 10. 

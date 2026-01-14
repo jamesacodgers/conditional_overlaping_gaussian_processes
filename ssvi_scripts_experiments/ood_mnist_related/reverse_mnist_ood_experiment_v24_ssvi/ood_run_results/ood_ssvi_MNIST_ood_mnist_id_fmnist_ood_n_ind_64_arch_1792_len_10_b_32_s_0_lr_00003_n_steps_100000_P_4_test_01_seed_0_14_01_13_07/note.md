@@ -1,0 +1,1 @@
+This test is for directly regularising the values of Vx. 

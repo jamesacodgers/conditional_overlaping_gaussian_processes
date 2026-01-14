@@ -1,0 +1,1 @@
+This was done with a LayerNorm layer then another linear layer after the encoder

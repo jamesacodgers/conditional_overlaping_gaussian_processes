@@ -1,0 +1,1 @@
+In this version I increased the KL in the latent space 

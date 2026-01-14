@@ -1,0 +1,1 @@
+This test was with a layer norm after the encoder network. 

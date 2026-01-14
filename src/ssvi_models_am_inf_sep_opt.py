@@ -64,13 +64,16 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         # Output layer: outputs output_dim dimensions (A for mu_encoder or A for sigma_encoder)
         layers.append(nn.Linear(prev_dim, output_dim))
-        
+        # layers.append(nn.LayerNorm(output_dim))
+        # layers.append(nn.Linear(output_dim, output_dim))
         return nn.Sequential(*layers)
 
     def _setup_optimizers(self, local_lr, global_lr):
         """Setup separate optimizers for different learning rates"""
         # Local parameters (amortized inference encoders - both mu and sigma)
         local_params = list(self.mu_encoder.parameters()) + list(self.sigma_encoder.parameters())
+        if hasattr(self.gp, 'Vx') and isinstance(self.gp.Vx, torch.nn.Parameter):
+            local_params.append(self.gp.Vx)
         self.optimizer_local = torch.optim.AdamW(local_params, lr=local_lr, weight_decay=1e-4)
         
         # Global parameters (GP hyperparameters, inducing points, and U distribution)
@@ -84,10 +87,10 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         ]
         
         # Add inducing inputs if trainable
-        if hasattr(self.gp, 'Vx') and isinstance(self.gp.Vx, torch.nn.Parameter):
-            global_params.append(self.gp.Vx)
+        # if hasattr(self.gp, 'Vx') and isinstance(self.gp.Vx, torch.nn.Parameter):
+        #     global_params.append(self.gp.Vx)
             
-        self.optimizer_global = torch.optim.Adam(global_params, lr=global_lr)
+        self.optimizer_global = torch.optim.AdamW(global_params, lr=global_lr)
 
     def encode_local_params(self, y_n, u_samples):
         """
@@ -290,7 +293,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         from src.missing_data_utils import reconstruct_missing_dimensions
         return reconstruct_missing_dimensions(self, y_observed, missing_mask, n_samples)
     
-    def ssvi_elbo(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask = None):
+    def ssvi_elbo(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask = None, prior_weight = 1):
         """
         Extended gplvm_elbo that handles missing data by modifying the coordinator's likelihood computation.
         Uses the original ELBO structure but handles missing data in the coordinator.
@@ -330,12 +333,16 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
 
         normalising_const = -n_observed/2*torch.log(2*torch.pi*self.sigma2)
 
-        training_inner_elbo = normalising_const - 1/(2*self.sigma2)*(y_sqr_clean - 2* cross_clean + signal_sqr_clean) - self.get_kl_x_from(mu_x, Sigma_x)
+        training_inner_elbo = normalising_const - 1/(2*self.sigma2)*(y_sqr_clean - 2* cross_clean + signal_sqr_clean) - self.get_kl_x_from(mu_x, Sigma_x)*prior_weight
         
         # Scale const_train for mini-batches to represent full dataset contribution
-        if batch_size != total_size:
-            training_inner_elbo = training_inner_elbo  / batch_size
+        training_inner_elbo = training_inner_elbo  / batch_size
         
+        # # Vx regularisation test
+        # V_mean = self.gp.Vx.mean(dim=-1)
+        # V_mean_sq = (V_mean**2).sum()
+        # V_var = self.gp.Vx.var(dim=-1)
+        # V_var_diff_sq = ((torch.ones_like(V_var) - V_var)**2).sum()
+        # V_reg = V_mean_sq - V_var_diff_sq
 
-
-        return training_inner_elbo  - (self.gp.get_kl_u())/total_size
+        return training_inner_elbo  - (self.gp.get_kl_u())/total_size # - V_reg
