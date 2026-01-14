@@ -635,7 +635,7 @@ def train_oil_flow_ssvi(
 
     start_time = time.time()
 
-    init_prior_weight = 10
+    init_prior_weight = 1
     
     for i in range(config.training_iterations):
         # Sample batch indices
@@ -644,7 +644,9 @@ def train_oil_flow_ssvi(
         y_batch = y_train[batch_indices]
 
         # Training step - U sampling happens inside automatically each step
-        loss = model.train_step(y_batch, batch_indices, prior_weight= init_prior_weight + (i/config.training_iterations)*(1-init_prior_weight))
+        loss = model.train_step(y_batch, batch_indices, prior_weight= init_prior_weight )
+        # loss = model.train_step(y_batch, batch_indices, prior_weight= init_prior_weight - (i/config.training_iterations)*(1-init_prior_weight))
+        # loss = model.train_step(y_batch, batch_indices, prior_weight= init_prior_weight/2 + init_prior_weight/2*torch.cos(torch.tensor(torch.pi*i/config.training_iterations)) + 1)
         losses.append(loss)
 
         # Metrics computation (periodic)

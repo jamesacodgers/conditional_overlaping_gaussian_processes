@@ -88,7 +88,7 @@ def visualize_mnist_missing_reconstruction(
     with torch.no_grad():
         # Get latent variables using amortized inference
         epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
-        U_samples = model.get_u_samples()
+        U_samples = model.get_u_samples(epsilon)
         
         # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(mask_batch, 
@@ -243,7 +243,7 @@ def visualize_mnist_missing_reconstruction_detailed(
     with torch.no_grad():
         # Get latent variables using amortized inference
         epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
-        U_samples = model.get_u_samples()
+        U_samples = model.get_u_samples(epsilon)
         
         # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(mask_batch, 
@@ -711,7 +711,8 @@ def visualize_test_image_predictions(
             y_selected_clean = y_selected
         
         # 2. Get U samples from variational posterior q(U) (same as prior sampling)
-        U_samples = model.get_u_samples()  # [P, M, C, L]
+        epsilon = torch.randn(model.P, model.M, model.C*model.Lx)
+        U_samples = model.get_u_samples(epsilon)  # [P, M, C, L]
         
         # 3. Get latent variables for selected images using amortized inference
         mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_selected_clean, U_samples)
