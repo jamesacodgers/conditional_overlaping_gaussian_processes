@@ -1,0 +1,1 @@
+I think this is cosine prior weighting. #bug-found
