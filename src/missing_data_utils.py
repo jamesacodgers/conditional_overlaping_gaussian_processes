@@ -112,7 +112,8 @@ def reconstruct_missing_dimensions(model,
     with torch.no_grad():
         # Get latent variables using amortized inference (encoder handles missing data)
         # The encoder should be robust to missing data through its input preprocessing
-        U_samples = model.get_u_samples()
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)
         
         # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(missing_mask, 
@@ -120,7 +121,7 @@ def reconstruct_missing_dimensions(model,
                                      y_observed)
         
         # Get latent distribution parameters
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
         
         # Sample from latent space and reconstruct
         reconstructions = []

@@ -238,15 +238,16 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
             # Get latent variables using new explicit training method
-            U = model.get_u_samples()  # [P, M, C, Lx]
+            epsilon = model.get_epsilon()
+            U = model.get_u_samples(epsilon)  # [P, M, C, Lx]
             
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 # Preprocess encoder input to handle missing data (replace NaN with -9.0)
                 y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)  # [P, N, A]
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, epsilon)  # [P, N, A]
             
             # Keep as torch tensors for sampling, convert to numpy after sampling
             mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
@@ -418,14 +419,15 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             lengthscales = (1 / model.gp.beta.flatten()).cpu()  # Move to CPU
             
             # Get latent variables
-            U = model.get_u_samples()  # [P, M, C, Lx]
+            epsilon = model.get_epsilon()
+            U = model.get_u_samples(epsilon)  # [P, M, C, Lx]
             
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)  # [P, N, A]
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, epsilon)  # [P, N, A]
             
             # Move to CPU for plotting
             mu_x_cpu = mu_x.cpu()
@@ -914,11 +916,12 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
     N = y_train.shape[0]  # Number of training points from actual data
 
     # Encode training data to get latent representations
-    U_samples = model.get_u_samples()
+    epsilon = model.get_epsilon()
+    U_samples = model.get_u_samples(epsilon)
     y_encoder_input = torch.where(torch.isnan(y_train), 
                                    torch.full_like(y_train, -9.0, dtype=torch.float64), 
                                    y_train)
-    mu_x_encoded, sigma_x_encoded = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+    mu_x_encoded, sigma_x_encoded = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
     mu_x_mean = mu_x_encoded.mean(0)  # [N, Q] - average over P samples
 
     # 1) pick most-informative latent dim (smallest lengthscale)

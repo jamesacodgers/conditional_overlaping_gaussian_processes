@@ -431,15 +431,16 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
                 dim3 = None  # Not enough dimensions for 3D plot
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
             # Get latent variables using new explicit training method
-            U = model.get_u_samples()  # [P, M, C, Lx]
+            epsilon = model.get_epsilon()
+            U = model.get_u_samples(epsilon)  # [P, M, C, Lx]
 
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 # Preprocess encoder input to handle missing data (replace NaN with -9.0)
                 y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0, dtype=torch.float64), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)  # [P, N, A]
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, epsilon)  # [P, N, A]
 
             # Keep as torch tensors for sampling, convert to numpy after sampling
             mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
@@ -496,14 +497,14 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             lengthscales = (1 / model.gp.beta.flatten()).cpu()  # Move to CPU
 
             # Get latent variables
-            U = model.get_u_samples()  # [P, M, C, Lx]
+            epsilon = model.get_epsilon()
 
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0, dtype=torch.float64), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)  # [P, N, A]
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, epsilon)  # [P, N, A]
 
             # Move to CPU for plotting
             mu_x_cpu = mu_x.cpu()

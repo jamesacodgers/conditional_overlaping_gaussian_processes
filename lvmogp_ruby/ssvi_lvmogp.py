@@ -366,7 +366,7 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         return mu_H, var_H
     
-    def get_mu_sigma_x_train_samples(self, Y_train_batch, U_samples=None, X_train_batch=None, fn_ids=None):
+    def get_mu_sigma_x_train_samples(self, Y_train_batch, epsilon, X_train_batch=None, fn_ids=None):
         """
         Override parent's method - not actively used in LVMOGP.
         
@@ -415,7 +415,7 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
                 continue
             
             # Encode this function (with aggregation inside encode_local_params)
-            mu_H_fn, var_H_fn = self.encode_local_params(Y_fn, U_samples, X_fn, fn_ids_fn)
+            mu_H_fn, var_H_fn = self.encode_local_params(Y_fn, epsilon, X_fn, fn_ids_fn)
             # Returns [P, Q_h] for this function
             
             # Broadcast to all observations of this function in batch

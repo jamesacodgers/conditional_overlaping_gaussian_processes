@@ -51,7 +51,7 @@ def compute_knn_accuracies(latent_representations, labels, k_values=[1, 3, 7, 12
     Examples
     --------
     >>> # For SSVI model with P samples
-    >>> mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)
+    >>> mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, epsilon)
     >>> latent = mu_x.mean(dim=0)  # Average across P samples
     >>> results = compute_knn_accuracies(latent, labels)
     >>> print(f"k=3 accuracy: {results['knn_3']:.4f}")
@@ -151,7 +151,7 @@ def compute_knn_accuracies_ssvi(model, y_train, labels_train, k_values=[1, 3, 7,
     with torch.no_grad():
         # Sample U once (shared across all batches)
         epsilon = model.get_epsilon()
-        U = model.get_u_samples(epsilon)
+        U_samples = model.get_u_samples(epsilon)
         
         # Process data in minibatches to reduce memory usage
         N = y_train.shape[0]
@@ -168,9 +168,9 @@ def compute_knn_accuracies_ssvi(model, y_train, labels_train, k_values=[1, 3, 7,
                     torch.full_like(y_batch, -9.0, dtype=torch.float64),
                     y_batch
                 )
-                mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch_clean, U)
+                mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch_clean, epsilon)
             else:
-                mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch, U)
+                mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch, epsilon)
             
             # Sample from distribution and average for this batch
             sampled_latents_batch = []
