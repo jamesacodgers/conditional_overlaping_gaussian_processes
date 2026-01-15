@@ -457,6 +457,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         self,
         Y_batch: torch.Tensor,
         batch_indices: torch.Tensor,
+        prior_weight: float,
         U_samples: torch.Tensor = None,
     ):
         """
@@ -503,6 +504,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                 batch_size=self.config.batch_size,
                 total_size=self.config.total_size,
                 missing_mask=missing_mask,
+                prior_weight=prior_weight
             )
         else:
             # Standard ELBO computation
@@ -514,6 +516,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                 batch_size=self.config.batch_size,
                 total_size=self.config.total_size,
                 missing_mask=None,
+                prior_weight=prior_weight
             )
 
         # Backward pass (gradients computed for all parameters)
@@ -590,6 +593,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                     batch_size=self.config.batch_size,
                     total_size=self.config.total_size,
                     missing_mask=mask_batch,
+                    prior_weight=1
                 )
             else:
                 batch_elbo = self.ssvi_elbo(
@@ -600,6 +604,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                     batch_size=self.config.batch_size,
                     total_size=self.config.total_size,
                     missing_mask=None,
+                    prior_weight=1
                 )
 
             batch_elbos.append(batch_elbo)
@@ -641,7 +646,7 @@ def train_oil_flow_ssvi(
     knn_metrics_iterations = []
 
     start_time = time.time()
-
+    init_prior_weight = 10
     for i in range(config.training_iterations):
         # Sample batch indices
         N = y_train.shape[0]
@@ -649,7 +654,10 @@ def train_oil_flow_ssvi(
         y_batch = y_train[batch_indices]
 
         # Training step - U sampling happens inside automatically each step
-        loss = model.train_step(y_batch, batch_indices)
+        # prior_weight = init_prior_weight 
+        # prior_weight = init_prior_weight + (i/config.training_iterations)*(1-init_prior_weight)
+        prior_weight = (init_prior_weight-1)/2 + (init_prior_weight-1)/2*torch.cos(torch.tensor(torch.pi*i/config.training_iterations)) + 1
+        loss = model.train_step(y_batch, batch_indices, prior_weight= prior_weight)
         losses.append(loss)
 
         # Metrics computation (periodic)
@@ -742,102 +750,93 @@ def train_oil_flow_ssvi(
         # Checkpoint saving (models and plots together)
         if logger and i > 0 and i % config.checkpoint_frequency == 0:
             print(f"  Saving checkpoint at iteration {i}...")
-            try:
-                # Save checkpoint model
-                checkpoint_filename = f"ood_ssvi_iter_{i}_seed_{config.random_seed}.pkl"
-                logger.save_model(model, checkpoint_filename, is_checkpoint=True)
-                print(f"    Checkpoint model saved: {checkpoint_filename}")
+            # Save checkpoint model
+            checkpoint_filename = f"ood_ssvi_iter_{i}_seed_{config.random_seed}.pkl"
+            logger.save_model(model, checkpoint_filename, is_checkpoint=True)
+            print(f"    Checkpoint model saved: {checkpoint_filename}")
 
-                # Save checkpoint plot (if enabled)
-                if config.save_training_plots:
-                    plot_filename = f"training_results_iter_{i}.png"
-                    try:
-                        from src.mnist_ood_plot_helper import visualize_ssvi_results
+            # Save checkpoint plot (if enabled)
+            if config.save_training_plots:
+                plot_filename = f"training_results_iter_{i}.png"
+                from src.mnist_ood_plot_helper import visualize_ssvi_results
 
-                        # Use full ELBO losses for checkpoint plots
-                        visualize_ssvi_results(
-                            model=model,
-                            y_train=y_train,
-                            labels_train=labels_train,
-                            losses=full_elbo_losses,  # Use full dataset ELBO for plots
-                            config=config,
-                            logger=logger,
-                            save_filename=plot_filename,
-                            show_plot=False,
-                            is_checkpoint=True,
-                            train_indices=split_data["train_indices"],
-                            dataset_name=config.id_dataset,
-                            is_ood=False,
-                            full_elbo_iterations=full_elbo_iterations,
-                            batch_losses=losses  # Batch losses up to current iteration
-                        )
-                        print(f"    Checkpoint plot saved: {plot_filename}")
-                    except Exception as e:
-                        print(
-                            f"    Warning: Could not create checkpoint visualization at iteration {i}: {e}"
-                        )
+                # Use full ELBO losses for checkpoint plots
+                visualize_ssvi_results(
+                    model=model,
+                    y_train=y_train,
+                    labels_train=labels_train,
+                    losses=full_elbo_losses,  # Use full dataset ELBO for plots
+                    config=config,
+                    logger=logger,
+                    save_filename=plot_filename,
+                    show_plot=False,
+                    is_checkpoint=True,
+                    train_indices=split_data["train_indices"],
+                    dataset_name=config.id_dataset,
+                    is_ood=False,
+                    full_elbo_iterations=full_elbo_iterations,
+                    batch_losses=losses  # Batch losses up to current iteration
+                )
+                print(f"    Checkpoint plot saved: {plot_filename}")
+                
 
-                    # Save prior samples plots at checkpoint
-                    try:
-                        plots_checkpoints_dir = os.path.join(
-                            logger.plots_dir, "checkpoints"
-                        )
-                        os.makedirs(plots_checkpoints_dir, exist_ok=True)
+                # Save prior samples plots at checkpoint
+                
+                plots_checkpoints_dir = os.path.join(
+                    logger.plots_dir, "checkpoints"
+                )
+                os.makedirs(plots_checkpoints_dir, exist_ok=True)
 
-                        prior_samples_path = os.path.join(
-                            plots_checkpoints_dir,
-                            f"prior_samples_iter_{i}_{config.random_seed}.png",
-                        )
-                        visualize_prior_samples(
-                            model=model,
-                            n_images=24,
-                            save_path=prior_samples_path,
-                            show_plot=False,
-                            dataset_name=config.id_dataset,
-                            image_shape=(28, 28),
-                            scaler=split_data.get("scaler"),
-                        )
-                        print(
-                            f"    Prior samples checkpoint saved: prior_samples_iter_{i}_{config.random_seed}.png"
-                        )
+                prior_samples_path = os.path.join(
+                    plots_checkpoints_dir,
+                    f"prior_samples_iter_{i}_{config.random_seed}.png",
+                )
+                visualize_prior_samples(
+                    model=model,
+                    n_images=24,
+                    save_path=prior_samples_path,
+                    show_plot=False,
+                    dataset_name=config.id_dataset,
+                    image_shape=(28, 28),
+                    scaler=split_data.get("scaler"),
+                )
+                print(
+                    f"    Prior samples checkpoint saved: prior_samples_iter_{i}_{config.random_seed}.png"
+                )
 
-                        prior_samples_avg_path = os.path.join(
-                            plots_checkpoints_dir,
-                            f"prior_samples_averaged_iter_{i}_{config.random_seed}.png",
-                        )
-                        visualize_prior_samples_averaged(
-                            model=model,
-                            n_images=8,
-                            save_path=prior_samples_avg_path,
-                            show_plot=False,
-                            dataset_name=config.id_dataset,
-                            image_shape=(28, 28),
-                            scaler=split_data.get("scaler"),
-                        )
-                        print(
-                            f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png"
-                        )
+                prior_samples_avg_path = os.path.join(
+                    plots_checkpoints_dir,
+                    f"prior_samples_averaged_iter_{i}_{config.random_seed}.png",
+                )
+                visualize_prior_samples_averaged(
+                    model=model,
+                    n_images=8,
+                    save_path=prior_samples_avg_path,
+                    show_plot=False,
+                    dataset_name=config.id_dataset,
+                    image_shape=(28, 28),
+                    scaler=split_data.get("scaler"),
+                )
+                print(
+                    f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png"
+                )
 
-                        test_image_predictions_checkpoint_path = os.path.join(plots_checkpoints_dir, f"test_image_predictions_iter_{i}_{config.random_seed}.png")
-                        visualize_test_image_predictions(
-                            model=model,
-                            y_train=split_data['y_test'],
-                            config=config,
-                            n_images=24,
-                            save_path=test_image_predictions_checkpoint_path,
-                            show_plot=False,
-                            dataset_name=config.id_dataset,
-                            image_shape=(28, 28),
-                            scaler=split_data.get('scaler')
-                        )
-                        print(f"    Test image predictions checkpoint saved: test_image_predictions_iter_{i}_{config.random_seed}.png")
-                    except Exception as e:
-                        print(
-                            f"    Warning: Could not create prior samples checkpoint at iteration {i}: {e}"
-                        )
+                test_image_predictions_checkpoint_path = os.path.join(plots_checkpoints_dir, f"test_image_predictions_iter_{i}_{config.random_seed}.png")
+                visualize_test_image_predictions(
+                    model=model,
+                    y_train=split_data['y_test'],
+                    config=config,
+                    n_images=24,
+                    save_path=test_image_predictions_checkpoint_path,
+                    show_plot=False,
+                    dataset_name=config.id_dataset,
+                    image_shape=(28, 28),
+                    scaler=split_data.get('scaler')
+                )
+                print(f"    Test image predictions checkpoint saved: test_image_predictions_iter_{i}_{config.random_seed}.png")
+                    
 
-            except Exception as e:
-                print(f"    Warning: Error saving checkpoint at iteration {i}: {e}")
+            
 
         # Gradient logging (only if logger provided and enabled)
         if (
@@ -937,37 +936,33 @@ def evaluate_ood_detection_metrics(
     for score_type in config.ood_score_types:
         print(f"\nEvaluating with {score_type.upper()} scores...")
 
-        try:
-            metrics, id_scores, ood_scores = evaluate_ood_detection(
-                model=model,
-                id_test_data=id_test_data,
-                ood_data=split_data["y_ood"],
-                score_type=score_type,
+        metrics, id_scores, ood_scores = evaluate_ood_detection(
+            model=model,
+            id_test_data=id_test_data,
+            ood_data=split_data["y_ood"],
+            score_type=score_type,
+        )
+
+        print(f"  AUROC: {metrics.auroc:.4f}")
+        print(f"  AUPRC: {metrics.auprc:.4f}")
+        print(f"  FPR@80: {metrics.fpr_at_80_tpr:.4f}")
+
+        ood_results[score_type] = {
+            "metrics": metrics.to_dict(),
+            "id_scores_mean": float(np.mean(id_scores)),
+            "id_scores_std": float(np.std(id_scores)),
+            "ood_scores_mean": float(np.mean(ood_scores)),
+            "ood_scores_std": float(np.std(ood_scores)),
+            "id_scores": id_scores.tolist(),
+            "ood_scores": ood_scores.tolist(),
+        }
+
+        # Log to file
+        if logger:
+            logger.log_training(
+                f"OOD {score_type.upper()}: AUROC={metrics.auroc:.4f}, AUPRC={metrics.auprc:.4f}, FPR@80={metrics.fpr_at_80_tpr:.4f}"
             )
 
-            print(f"  AUROC: {metrics.auroc:.4f}")
-            print(f"  AUPRC: {metrics.auprc:.4f}")
-            print(f"  FPR@80: {metrics.fpr_at_80_tpr:.4f}")
-
-            ood_results[score_type] = {
-                "metrics": metrics.to_dict(),
-                "id_scores_mean": float(np.mean(id_scores)),
-                "id_scores_std": float(np.std(id_scores)),
-                "ood_scores_mean": float(np.mean(ood_scores)),
-                "ood_scores_std": float(np.std(ood_scores)),
-                "id_scores": id_scores.tolist(),
-                "ood_scores": ood_scores.tolist(),
-            }
-
-            # Log to file
-            if logger:
-                logger.log_training(
-                    f"OOD {score_type.upper()}: AUROC={metrics.auroc:.4f}, AUPRC={metrics.auprc:.4f}, FPR@80={metrics.fpr_at_80_tpr:.4f}"
-                )
-
-        except Exception as e:
-            print(f"  Warning: Failed to compute {score_type} scores: {e}")
-            ood_results[score_type] = {"error": str(e)}
 
     # Restore original P value
     model.P = original_P
@@ -981,48 +976,44 @@ def plot_ood_score_histograms(ood_results, config: OODSSVIConfig, logger=None):
         return
 
     for score_type, result in ood_results.items():
-        if "error" in result:
-            continue
 
-        try:
-            id_scores = np.array(result["id_scores"])
-            ood_scores = np.array(result["ood_scores"])
 
-            plt.figure(figsize=(10, 6))
+        id_scores = np.array(result["id_scores"])
+        ood_scores = np.array(result["ood_scores"])
 
-            plt.hist(
-                id_scores,
-                bins=50,
-                alpha=0.7,
-                label=f"{config.id_dataset} (ID)",
-                density=True,
-            )
-            plt.hist(
-                ood_scores,
-                bins=50,
-                alpha=0.7,
-                label=f"{config.get_ood_dataset()} (OOD)",
-                density=True,
-            )
+        plt.figure(figsize=(10, 6))
 
-            plt.xlabel(f"{score_type.upper()} Score")
-            plt.ylabel("Density")
-            plt.title(
-                f"OOD Detection: {config.id_dataset} vs {config.get_ood_dataset()}"
-            )
-            plt.legend()
-            plt.grid(True, alpha=0.3)
+        plt.hist(
+            id_scores,
+            bins=50,
+            alpha=0.7,
+            label=f"{config.id_dataset} (ID)",
+            density=True,
+        )
+        plt.hist(
+            ood_scores,
+            bins=50,
+            alpha=0.7,
+            label=f"{config.get_ood_dataset()} (OOD)",
+            density=True,
+        )
 
-            save_path = os.path.join(
-                logger.plots_dir, f"ood_hist_{score_type}_{config.random_seed}.png"
-            )
-            plt.savefig(save_path, dpi=150, bbox_inches="tight")
-            plt.close()
+        plt.xlabel(f"{score_type.upper()} Score")
+        plt.ylabel("Density")
+        plt.title(
+            f"OOD Detection: {config.id_dataset} vs {config.get_ood_dataset()}"
+        )
+        plt.legend()
+        plt.grid(True, alpha=0.3)
 
-            print(f"  OOD histogram saved: {save_path}")
+        save_path = os.path.join(
+            logger.plots_dir, f"ood_hist_{score_type}_{config.random_seed}.png"
+        )
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close()
 
-        except Exception as e:
-            print(f"  Warning: Failed to plot {score_type} histogram: {e}")
+        print(f"  OOD histogram saved: {save_path}")
+
 
 
 # === Pre-defined Configurations ===
@@ -1034,14 +1025,14 @@ def get_fast_config():
     Default: Cross-dataset OOD with FashionMNIST as ID, MNIST as OOD.
     """
     return OODSSVIConfig(
-        training_iterations=100,
+        training_iterations=2000,
         batch_size=50,
         n_inducing_points=16,
         encoder_hidden_dims=[128, 64],
         local_lr=2e-3,
         global_lr=1e-2,
         P=16,
-        log_frequency=50,
+        log_frequency=200,
         checkpoint_frequency=50,
         enable_gradient_logging=True,
         gradient_log_frequency=25,
@@ -1151,24 +1142,21 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
 
     # Visualize results (use full ELBO losses for plots)
     print(f"\nVisualizing results...")
-    try:
-        from src.mnist_ood_plot_helper import visualize_ssvi_results
+    from src.mnist_ood_plot_helper import visualize_ssvi_results
 
-        visualize_ssvi_results(
-            model,
-            y_train,
-            labels_train,
-            full_elbo_losses,
-            config,
-            logger,
-            show_plot=False,
-            train_indices=split_data["train_indices"],
-            dataset_name=config.id_dataset,
-            is_ood=False,
-        )
-    except Exception as e:
-        print(f"Warning: Could not create latent space visualization: {e}")
-
+    visualize_ssvi_results(
+        model,
+        y_train,
+        labels_train,
+        full_elbo_losses,
+        config,
+        logger,
+        show_plot=False,
+        train_indices=split_data["train_indices"],
+        dataset_name=config.id_dataset,
+        is_ood=False,
+    )
+    
     # Generate final metrics and plots if metrics were computed
     summary = None
     if (
@@ -1603,9 +1591,8 @@ if __name__ == "__main__":
             config_dir = os.path.dirname(args.config)
             config.results_dir = os.path.join(config_dir, "ood_run_results")
         else:
-            print(
-                f"Warning: Config file {args.config} not found, using default OOD fast config"
-            )
+            raise Exception(f"Config file {args.config} not found, using default OOD fast config")
+
             config = get_fast_config()
             config_name = "fast"
 

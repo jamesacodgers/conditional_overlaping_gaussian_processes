@@ -357,7 +357,6 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
         # prior_weight = init_prior_weight + (i/config.training_iterations)*(1-init_prior_weight)
         prior_weight = (init_prior_weight-1)/2 + (init_prior_weight-1)/2*torch.cos(torch.tensor(torch.pi*i/config.training_iterations)) + 1
         loss = model.train_step(y_batch, batch_indices, prior_weight= prior_weight)
-        loss = model.train_step(y_batch, batch_indices)
         losses.append(loss)
         
         # Metrics computation (periodic)

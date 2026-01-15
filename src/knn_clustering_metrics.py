@@ -150,7 +150,8 @@ def compute_knn_accuracies_ssvi(model, y_train, labels_train, k_values=[1, 3, 7,
     """
     with torch.no_grad():
         # Sample U once (shared across all batches)
-        U = model.get_u_samples()
+        epsilon = model.get_epsilon()
+        U = model.get_u_samples(epsilon)
         
         # Process data in minibatches to reduce memory usage
         N = y_train.shape[0]

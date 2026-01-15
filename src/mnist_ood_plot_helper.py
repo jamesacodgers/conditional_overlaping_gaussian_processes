@@ -582,7 +582,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             
             # Get latent variables using batched processing to reduce memory usage
             batch_size = getattr(config, 'batch_size', 128)  # Use config batch_size if available, otherwise default to 128
-            U = model.get_u_samples()  # [P, M, C, Lx] - Sample U once (shared across all batches)
+            epsilon = model.get_epsilon()
+            U = model.get_u_samples(epsilon)  # [P, M, C, Lx] - Sample U once (shared across all batches)
             
             # Process data in minibatches
             N = y_train.shape[0]

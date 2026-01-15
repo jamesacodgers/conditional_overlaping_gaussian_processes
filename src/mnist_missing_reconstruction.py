@@ -87,7 +87,8 @@ def visualize_mnist_missing_reconstruction(
     # Reconstruct images
     with torch.no_grad():
         # Get latent variables using amortized inference
-        U_samples = model.get_u_samples()
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)
         
         # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(mask_batch, 
@@ -95,7 +96,7 @@ def visualize_mnist_missing_reconstruction(
                                      y_batch)
         
         # Get latent distribution parameters
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
         
         # Generate multiple reconstruction samples (consistent with SSVI metrics)
         # Take first n_samples from P samples and sample from Normal distribution
@@ -241,7 +242,8 @@ def visualize_mnist_missing_reconstruction_detailed(
     # Reconstruct images
     with torch.no_grad():
         # Get latent variables using amortized inference
-        U_samples = model.get_u_samples()
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)
         
         # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(mask_batch, 
@@ -249,7 +251,7 @@ def visualize_mnist_missing_reconstruction_detailed(
                                      y_batch)
         
         # Get latent distribution parameters
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
         
         # Generate multiple reconstruction samples (consistent with SSVI metrics)
         # Take first n_samples from P samples and sample from Normal distribution
@@ -432,7 +434,8 @@ def visualize_prior_samples(
         x_prior = torch.randn(n_images, latent_dim, dtype=torch.float64, device=device)
         
         # 2. Get U samples from variational posterior q(U)
-        U_samples = model.get_u_samples()  # [P, M, C, L]
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)  # [P, M, C, L]
         
         # 3. Get GP predictive distribution for each latent point
         # Shape: x_prior needs to be [P, n_images, latent_dim] for consistency with U_samples
@@ -555,7 +558,8 @@ def visualize_prior_samples_averaged(
         x_prior = torch.randn(n_images, latent_dim, dtype=torch.float64, device=device)
         
         # 2. Get U samples from variational posterior q(U)
-        U_samples = model.get_u_samples()  # [P, M, C, L]
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)  # [P, M, C, L]
         
         # 3. Get GP predictive distribution for each latent point
         # Shape: x_prior needs to be [P, n_images, latent_dim] for consistency with U_samples
@@ -707,10 +711,11 @@ def visualize_test_image_predictions(
             y_selected_clean = y_selected
         
         # 2. Get U samples from variational posterior q(U) (same as prior sampling)
-        U_samples = model.get_u_samples()  # [P, M, C, L]
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)  # [P, M, C, L]
         
         # 3. Get latent variables for selected images using amortized inference
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_selected_clean, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_selected_clean, epsilon)
         # mu_x: [P, n_images, latent_dim], sigma_x: [P, n_images, latent_dim]
         
         # 4. Get GP predictive distribution using latent variables

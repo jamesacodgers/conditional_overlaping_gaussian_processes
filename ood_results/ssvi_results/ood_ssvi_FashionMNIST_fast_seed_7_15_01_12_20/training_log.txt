@@ -1,0 +1,22 @@
+=== OOD Detection SSVI GP-LVM Training Session ===
+ID Dataset: FashionMNIST, OOD Dataset: MNIST
+Model: 16 inducing points, latent_dim=6
+Training: 100 iter, batch=50
+Learning rates: Local=0.002, Global=0.01
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': 0.0, 'test_rmse': 0.0, 'train_nlpd': 0.0, 'test_nlpd': 0.0, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 0, 'total_latent_dims': 0, 'elbo_loss': -832.0318516313853}
+k-NN metrics at iteration 0: {'knn_1': 0.55, 'knn_3': 0.675, 'knn_7': 0.65, 'knn_12': 0.675}
+Iteration 0/100: Loss=1100.8882, Time=2.2s
+Metrics at iteration 50: {'iteration': 50, 'train_rmse': 0.0, 'test_rmse': 0.0, 'train_nlpd': 0.0, 'test_nlpd': 0.0, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 0, 'total_latent_dims': 0, 'elbo_loss': -654.0328851464723}
+k-NN metrics at iteration 50: {'knn_1': 0.725, 'knn_3': 0.7, 'knn_7': 0.825, 'knn_12': 0.825}
+Checkpoint model saved: pre_trained_models/checkpoints/ood_ssvi_iter_50_seed_7.pkl
+Iteration 50/100: Loss=805.0267, Time=30.1s
+Training completed! Final Full Loss: 587.6578 (batch loss: 816.4751), Total time: 61.6s (1.6 iter/s)
+Final comprehensive metrics computed: {'iteration': 100, 'train_rmse': 0.0, 'test_rmse': 0.0, 'train_nlpd': 0.0, 'test_nlpd': 0.0, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 0, 'total_latent_dims': 0, 'elbo_loss': -587.6578192767324}
+Plot saved: plots/metrics_progression.png
+Plot saved: plots/final_metrics_summary.png
+Checkpoint metrics saved: training_results/ood_ssvi_7_checkpoint_metrics.json
+Training losses saved: training_results/ood_ssvi_full_loss_7_losses.json
+Training losses saved: training_results/ood_ssvi_batch_7_losses.json
+k-NN metrics saved: training_results/ood_ssvi_7_knn_metrics.json
+Model saved: pre_trained_models/ood_ssvi_7.pkl
+Experiment summary saved: experiment_summary.json
