@@ -84,7 +84,7 @@ from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_d
 
 # Import OOD metrics
 from src.ood_metrics import evaluate_ood_detection, compute_all_ood_metrics, OODMetrics
-from src.pytorch_scalers import StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 # Device will be set in main() from config
 
@@ -306,6 +306,8 @@ def load_ood_data(config: OODSSVIConfig):
         scaler = StandardScalerPytorch(device=config.device)
     elif config.standardization == "minmax":
         scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
     elif config.standardization == "none":
         scaler = NoTransform(device=config.device)
     else:
