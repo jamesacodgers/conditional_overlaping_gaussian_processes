@@ -200,17 +200,18 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         self.optimizer_local.zero_grad()
 
         # Sample U before amortized inference step
-        U_samples = self.get_u_samples()
+        epsilon = self.get_epsilon()
+        U_samples = self.get_u_samples(epsilon)
 
         # Handle missing data preprocessing for encoder input
         if self.enable_missing_data:
             # Replace NaN values with -9.0 for encoder input (encoder expects clean data)
             Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0, dtype=torch.float64), Y_batch)
             # Get local parameters via amortized inference (gradients only to encoder)
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples)
+            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, epsilon)
         else:
             # Standard case: no missing data preprocessing needed
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
+            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, epsilon)
         
         # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()
@@ -463,7 +464,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     )
     
     print(f"Model initialized:")
-    print(f"  Encoder: {model.encoder}")
+    print(f"  Encoder: {model.mu_encoder}")
     print(f"  Inducing points: {model.gp.Vx.shape}")
     print(f"  Latent variables: {model.mu_x.shape}")
     

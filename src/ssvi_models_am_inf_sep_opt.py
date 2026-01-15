@@ -89,7 +89,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             
         self.optimizer_global = torch.optim.Adam(global_params, lr=global_lr)
 
-    def encode_local_params(self, y_n, u_samples):
+    def encode_local_params(self, y_n, epsilon):
         """
         Amortized inference: encode observation y_n and u_samples to local variational parameters
         
@@ -104,13 +104,13 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         batch_size = y_n.shape[0] 
         y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
 
-        u_samples = u_samples.squeeze(2)  # Remove C=1 dimension for GP-LVM: [P, M, Lx]
-        u_samples = u_samples.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
-        u_samples = u_samples.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
+        epsilon = epsilon.squeeze(2)  # Remove C=1 dimension for GP-LVM: [P, M, Lx]
+        epsilon = epsilon.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
+        epsilon = epsilon.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
 
 
 
-        encoder_input = torch.cat([y_n, u_samples], dim=-1) # [P, batch_size, M + M*Lx]
+        encoder_input = torch.cat([y_n, epsilon], dim=-1) # [P, batch_size, M + M*Lx]
         
         # Encode to local parameters using separate networks (like Original GP-LVM)
         mu_n = self.mu_encoder(encoder_input)  # [P, batch_size, A]
@@ -120,7 +120,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         return mu_n, Sigma_n
 
-    def get_mu_sigma_x_train_samples(self, Y_train_batch, U_samples=None):
+    def get_mu_sigma_x_train_samples(self, Y_train_batch, epsilon):
         """
         Get latent variable samples for training data using amortized inference
         
@@ -132,12 +132,12 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             (mu_x, sigma_x): Training latent variable samples (P, batch_size, D)
         """
         
-        mu_x, sigma_x = self.encode_local_params(Y_train_batch, U_samples)
+        mu_x, sigma_x = self.encode_local_params(Y_train_batch, epsilon)
         return mu_x, sigma_x
     
-    def get_mu_sigma_x_test_samples(self, Y_test_batch, U_samples=None):
+    def get_mu_sigma_x_test_samples(self, Y_test_batch, epsilon):
         # For SSVI, test and train use the same amortized inference
-        mu_x, sigma_x = self.encode_local_params(Y_test_batch, U_samples)
+        mu_x, sigma_x = self.encode_local_params(Y_test_batch, epsilon)
         return mu_x, sigma_x
     
     
@@ -290,7 +290,7 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         from src.missing_data_utils import reconstruct_missing_dimensions
         return reconstruct_missing_dimensions(self, y_observed, missing_mask, n_samples)
     
-    def ssvi_elbo(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, missing_mask = None):
+    def ssvi_elbo(self, y, mu_x, Sigma_x, U_samples, batch_size, total_size, prior_weight, missing_mask = None):
         """
         Extended gplvm_elbo that handles missing data by modifying the coordinator's likelihood computation.
         Uses the original ELBO structure but handles missing data in the coordinator.
@@ -330,12 +330,10 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
 
         normalising_const = -n_observed/2*torch.log(2*torch.pi*self.sigma2)
 
-        training_inner_elbo = normalising_const - 1/(2*self.sigma2)*(y_sqr_clean - 2* cross_clean + signal_sqr_clean) - self.get_kl_x_from(mu_x, Sigma_x)
+        training_inner_elbo = normalising_const - 1/(2*self.sigma2)*(y_sqr_clean - 2* cross_clean + signal_sqr_clean) - self.get_kl_x_from(mu_x, Sigma_x)*prior_weight
         
         # Scale const_train for mini-batches to represent full dataset contribution
-        if batch_size != total_size:
-            training_inner_elbo = training_inner_elbo  / batch_size
+        training_inner_elbo = training_inner_elbo  / batch_size
         
-
 
         return training_inner_elbo  - (self.gp.get_kl_u())/total_size

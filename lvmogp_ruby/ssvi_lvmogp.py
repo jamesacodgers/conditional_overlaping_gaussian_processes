@@ -608,7 +608,8 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         # Sample U if not provided
         if U_samples is None:
-            U_samples = self.get_u_samples()  # Returns [P, M, C, Lx] directly
+            epsilon = self.get_epsilon()
+            U_samples = self.get_u_samples(epsilon)  # Returns [P, M, C, Lx] directly
         
         # Store fn_ids_batch for use in get_kl_x_from
         self._current_fn_ids_batch = fn_ids_batch
@@ -689,7 +690,8 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             # X_tilde_mean: [P, N_new, Q_total], X_tilde_var: [P, N_new, Q_total]
             
             # Sample U from q(u) for prediction
-            U_samples = self.get_u_samples()  # [P, M, C, Lx]
+            epsilon = self.get_epsilon()
+            U_samples = self.get_u_samples(epsilon)  # [P, M, C, Lx]
             
             # Get GP expectation - use proper GP method
             # For LVMOGP: C=1 (single output component)
