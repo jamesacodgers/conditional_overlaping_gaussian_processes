@@ -70,6 +70,9 @@ from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_d
 
 plt.style.use('ggplot')
 
+# Import shared function from mnist_ood_GPLVM.py
+from ssvi_scripts_experiments.mnist_ood_GPLVM import compute_full_elbo_minibatched
+
 def _init_pca(Y, latent_dim):
     U, S, V = torch.pca_lowrank(Y, q = latent_dim)
     return torch.nn.Parameter(torch.matmul(Y, V[:,:latent_dim]))
@@ -314,7 +317,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Training loop - optimises the objective wrt kernel hypers, variational params and inducing inputs
         # using the optimizer provided.
         
-        loss_list = []
+        loss_list = []  # Batch losses (negative ELBO)
+        full_loss_list = []  # Full dataset losses (negative ELBO)
+        full_loss_iterations = []  # Iterations at which full loss was computed
         noise_trace = []
         
         # Metrics tracking for progression plot (train only)
@@ -324,7 +329,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         train_missing_rmse_list = []  # For missing data RMSE tracking
         effective_dims_list = []
         metrics_iterations = []
-        metrics_losses = []
+        metrics_losses = []  # Will store full dataset losses
         
         iterator = trange(steps_per_model[model_name], leave=True)
         batch_size = config.batch_size
@@ -358,6 +363,14 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 try:
                     with torch.no_grad():
                         model.eval()
+                        
+                        # Compute full dataset loss (negative ELBO) using minibatches
+                        full_elbo = compute_full_elbo_minibatched(model, Y_train, elbo, model_name, config)
+                        full_loss = -full_elbo  # Store as negative ELBO (loss)
+                        full_loss_list.append(full_loss)
+                        full_loss_iterations.append(i)
+                        print(f"  Full Dataset Loss: {full_loss:.4f} (batch loss: {loss.item():.4f})")
+                        
                         # Get training latent variables
                         if config.enable_missing_data and model_name == 'nn_gauss':
                             # For nn_gauss with missing data, use cleaned input for encoder
@@ -435,7 +448,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         train_missing_rmse_list.append(float(train_missing_rmse) if train_missing_rmse is not None else float('nan'))
                         effective_dims_list.append(effective_dims)
                         metrics_iterations.append(i)
-                        metrics_losses.append(float(loss.item()))
+                        metrics_losses.append(full_loss)  # Use full dataset loss instead of batch loss
                         
                         print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, Effective dims: {effective_dims}/{total_dims}")
                         
@@ -449,15 +462,27 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 from src.ssvi_alignment_utils import save_iteration_model, create_iteration_plot
                 print(f"  Saving iteration {i} model and plot...")
                 save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
-                create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "original", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device))
+                # Use full_loss_list for checkpoint plots (consistent with SSVI)
+                create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "original", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device), full_loss_iterations=full_loss_iterations, batch_losses=loss_list)
         model.store(loss_list, likelihood)
         
-        logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
+        # Compute final full dataset loss if not already computed at last iteration
+        if not full_loss_list or full_loss_iterations[-1] != steps_per_model[model_name] - 1:
+            with torch.no_grad():
+                model.eval()
+                final_full_elbo = compute_full_elbo_minibatched(model, Y_train, elbo, model_name, config)
+                final_full_loss = -final_full_elbo
+                full_loss_list.append(final_full_loss)
+                full_loss_iterations.append(steps_per_model[model_name])
+                model.train()
+        
+        final_full_loss = full_loss_list[-1] if full_loss_list else loss_list[-1]
+        logger.log_training(f"Training completed for {model_name}. Final full loss: {final_full_loss:.4f} (batch loss: {loss_list[-1]:.4f})")
         
         # Save metrics progression plot (train metrics only)
         if logger.get_results_dir() and train_rmse_list and train_nlpd_list:
             plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, 
-                                   metrics_losses, effective_dims_list, logger.get_results_dir(), model_name, config.random_seed)
+                                   metrics_losses, effective_dims_list, logger.get_results_dir(), model_name, config.random_seed, batch_losses=loss_list)
             
             # Save checkpoint metrics to JSON (train metrics only)
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
@@ -503,7 +528,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             from src.ssvi_alignment_utils import create_standardized_scattered_plot
             # lb_train is already a numpy array from train_test_split, no need to convert
             # Use Y_train on the same device as model to avoid device mismatch
-            create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device))
+            # Use full_loss_list for final plots (consistent with SSVI)
+            create_standardized_scattered_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="original", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device), full_loss_iterations=full_loss_iterations, batch_losses=loss_list)
         else:
             pass
         
@@ -768,7 +794,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_missing_nlpd': test_missing_nlpd_value,   # Preserve computed value or use NaN
                 'train_missing_rmse': train_missing_rmse_value,  # Preserve computed value or use NaN
                 'test_missing_rmse': test_missing_rmse_value,   # Preserve computed value or use NaN
-                'final_loss': float(loss_list[-1]),
+                'final_batch_loss': float(loss_list[-1]),
+                'final_full_loss': float(full_loss_list[-1]) if full_loss_list else float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
             
