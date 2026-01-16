@@ -146,6 +146,7 @@ run_config() {
     
     # Determine Python executable
     # Priority: 1) PYTHON_CMD env var, 2) python3 in PATH, 3) python in PATH, 4) relative venv path
+    local PYTHON_EXE
     if [[ -n "$PYTHON_CMD" ]]; then
         PYTHON_EXE="$PYTHON_CMD"
     elif command -v python3 &> /dev/null; then
