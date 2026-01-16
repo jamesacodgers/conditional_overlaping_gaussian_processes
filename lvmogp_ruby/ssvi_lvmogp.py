@@ -366,7 +366,7 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         return mu_H, var_H
     
-    def get_mu_sigma_x_train_samples(self, Y_train_batch, U_samples=None, X_train_batch=None, fn_ids=None):
+    def get_mu_sigma_x_train_samples(self, Y_train_batch, epsilon, X_train_batch=None, fn_ids=None):
         """
         Override parent's method - not actively used in LVMOGP.
         
@@ -415,7 +415,7 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
                 continue
             
             # Encode this function (with aggregation inside encode_local_params)
-            mu_H_fn, var_H_fn = self.encode_local_params(Y_fn, U_samples, X_fn, fn_ids_fn)
+            mu_H_fn, var_H_fn = self.encode_local_params(Y_fn, epsilon, X_fn, fn_ids_fn)
             # Returns [P, Q_h] for this function
             
             # Broadcast to all observations of this function in batch
@@ -608,7 +608,8 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
         
         # Sample U if not provided
         if U_samples is None:
-            U_samples = self.get_u_samples()  # Returns [P, M, C, Lx] directly
+            epsilon = self.get_epsilon()
+            U_samples = self.get_u_samples(epsilon)  # Returns [P, M, C, Lx] directly
         
         # Store fn_ids_batch for use in get_kl_x_from
         self._current_fn_ids_batch = fn_ids_batch
@@ -689,7 +690,8 @@ class LVMOGP_SSVI(GPLVM_SSVI_AM_INF):
             # X_tilde_mean: [P, N_new, Q_total], X_tilde_var: [P, N_new, Q_total]
             
             # Sample U from q(u) for prediction
-            U_samples = self.get_u_samples()  # [P, M, C, Lx]
+            epsilon = self.get_epsilon()
+            U_samples = self.get_u_samples(epsilon)  # [P, M, C, Lx]
             
             # Get GP expectation - use proper GP method
             # For LVMOGP: C=1 (single output component)

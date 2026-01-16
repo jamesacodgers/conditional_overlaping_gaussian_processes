@@ -107,7 +107,7 @@ from src.ood_metrics import (
     compute_all_ood_metrics,
     OODMetrics
 )
-from src.pytorch_scalers import StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 plt.style.use('ggplot')
 
@@ -343,6 +343,8 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     
     if config.standardization == "standard":
         scaler = StandardScalerPytorch(device=config.device)
+    if config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
     elif config.standardization == "minmax":
         scaler = MinMaxScalerPytorch(device=config.device)
     elif config.standardization == "none":
@@ -657,8 +659,8 @@ def get_fast_config():
         random_seed=7,
         test_iterations=100,
         test_size=0.2,
-        checkpoint_frequency=50,
-        metrics_frequency=50,
+        checkpoint_frequency=4000,
+        metrics_frequency=4000,
         # === GP Hyperparameters ===
         init_lengthscales=2.0,
         init_output_noise_scale=2.0,

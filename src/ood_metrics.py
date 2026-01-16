@@ -178,7 +178,8 @@ def compute_nlpd_scores(model, Y: torch.Tensor, n_samples: int = 32) -> np.ndarr
     
     with torch.no_grad():
         # Get U samples (same as ssvi_metrics.compute_nlpd)
-        U_samples = model.get_u_samples()
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)
         
         N = Y.shape[0]
         all_nlpd_scores = []
@@ -195,7 +196,7 @@ def compute_nlpd_scores(model, Y: torch.Tensor, n_samples: int = 32) -> np.ndarr
             y_encoder_input = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0, dtype=torch.float64), Y_batch)
             
             # Get latent representations using SSVI encoder (same as ssvi_metrics.py line 277)
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
             
             # Sample latent variables (same as ssvi_metrics.py line 280-281)
             x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -292,7 +293,8 @@ def compute_reconstruction_error_scores(model, Y: torch.Tensor,
         # === EXACTLY as in ssvi_metrics.compute_rmse ===
         
         # Sample U for both model types (same as ssvi_metrics.py line 95)
-        U_samples = model.get_u_samples()
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)
         
         N = Y.shape[0]
         all_rmse_scores = []
@@ -309,7 +311,7 @@ def compute_reconstruction_error_scores(model, Y: torch.Tensor,
             y_encoder_input = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0, dtype=torch.float64), Y_batch)
             
             # Get latent representations for this batch using SSVI encoder (same as ssvi_metrics.py line 112)
-            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
             
             # Use proper probabilistic sampling like in compute_nlpd (same as ssvi_metrics.py lines 115-116)
             x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -382,18 +384,19 @@ def compute_latent_variance_scores(model, Y: torch.Tensor) -> np.ndarray:
     model.eval()
     
     with torch.no_grad():
-        U_samples = model.get_u_samples()
+        epsilon = model.get_epsilon()
         
         Y_clean = torch.where(torch.isnan(Y), torch.full_like(Y, -9.0, dtype=torch.float64), Y)
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y_clean, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y_clean, epsilon)
         
         # sigma_x may have shape [P, N, latent_dim] or [N, latent_dim]
         # Sum variance across latent dimensions for each sample
-        var_scores = sigma_x.sum(dim=-1)  # [P, N] or [N]
+        var_mu = mu_x.var(dim=0).sum(dim=-1)
+        var_scores = sigma_x.sum(dim=-1).mean(dim=0)  # [P, N] or [N]
         
         # If there's a P dimension, average over it to get per-sample scores [N]
         if var_scores.dim() == 2:
-            var_scores = var_scores.mean(dim=0)  # [N]
+            var_scores = var_scores+var_mu  # [N]
         
         var_scores = var_scores.cpu().numpy()
     
