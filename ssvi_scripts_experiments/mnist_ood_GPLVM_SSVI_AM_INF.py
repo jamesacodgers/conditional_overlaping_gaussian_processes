@@ -76,8 +76,8 @@ from src.ssvi_config_utils import (
 )
 from sklearn.model_selection import train_test_split
 
-# Import OilFlowSSVIConfig from oil_flow_GPLVM_SSVI_AM_INF.py
-from ssvi_scripts_experiments.oil_flow_GPLVM_SSVI_AM_INF import OilFlowSSVIConfig
+# Import OilFlowSSVIConfig from shared config module
+from src.ssvi_config import OilFlowSSVIConfig
 
 # Import data loaders
 from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset
@@ -1048,7 +1048,7 @@ def get_fast_config():
         init_lengthscales=1.0,
         init_output_noise_scale=1.0,
         # === Missing Data Configuration ===
-        enable_missing_data=True,
+        enable_missing_data=False,
         missing_data_ratio=0.3,
         reconstruction_samples=50,
         # === Random Seed Configuration ===
