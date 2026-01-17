@@ -1093,6 +1093,20 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
                                          metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list, train_missing_rmse_list)
             
+            # Save training losses (full dataset loss and batch loss) - matching SSVI pattern
+            print("Saving training losses (full dataset loss)...")
+            # Save full dataset losses (negative ELBO, for metrics/plots)
+            if full_loss_list:
+                full_loss_list_floats = [float(x) for x in full_loss_list]
+                logger.save_training_losses(
+                    full_loss_list_floats, f"{model_name}_full_loss", config.random_seed
+                )
+            # Also save batch losses for reference
+            loss_list_floats = [float(x) for x in loss_list]
+            logger.save_training_losses(
+                loss_list_floats, f"{model_name}_batch", config.random_seed
+            )
+            
             if config.enable_missing_data and train_missing_nlpd_list:
                 plot_missing_nlpd_metrics_progression(train_missing_nlpd_list, metrics_iterations, 
                                                     logger.get_results_dir(), model_name, config.random_seed)

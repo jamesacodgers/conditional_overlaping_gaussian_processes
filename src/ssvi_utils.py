@@ -147,7 +147,7 @@ class SSVIResultsLogger:
                     'test_nlpd': float(metrics.test_nlpd),
                     'train_missing_nlpd': float(metrics.train_missing_nlpd),
                     'test_missing_nlpd': float(metrics.test_missing_nlpd),
-                    'elbo_loss': float(metrics.elbo_loss)
+                    'full_dataset_elbo_loss': float(-metrics.elbo_loss)  # Convert positive ELBO to negative (loss) for consistency
                 }
                 checkpoint_data['checkpoints'].append(checkpoint_entry)
             
