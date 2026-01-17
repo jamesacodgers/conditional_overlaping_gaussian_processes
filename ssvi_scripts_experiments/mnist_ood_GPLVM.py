@@ -343,14 +343,16 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     
     if config.standardization == "standard":
         scaler = StandardScalerPytorch(device=config.device)
-    if config.standardization == "mean":
-        scaler = MeanCenter(device=config.device)
     elif config.standardization == "minmax":
         scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
     elif config.standardization == "none":
         scaler = NoTransform(device=config.device)
     else:
-        raise ValueError(f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', or 'none'")
+        raise ValueError(
+            f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', or 'none'"
+        )
     
     # Fit scaler on training data only (critical: don't mix test data)
     print(f"Fitting scaler on training data only ({Y_train.shape[0]} samples)...")

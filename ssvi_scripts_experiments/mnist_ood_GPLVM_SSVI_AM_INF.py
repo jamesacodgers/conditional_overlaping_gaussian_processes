@@ -1027,7 +1027,7 @@ def get_fast_config():
     Default: Cross-dataset OOD with FashionMNIST as ID, MNIST as OOD.
     """
     return OODSSVIConfig(
-        training_iterations=2000,
+        training_iterations=100,
         batch_size=50,
         n_inducing_points=16,
         encoder_hidden_dims=[128, 64],
