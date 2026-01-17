@@ -147,7 +147,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
         metrics_computer = SSVIMetricsComputer(device=config.device, metrics_batch_size=config.batch_size)
     
     start_time = time.time()
-    init_prior_weight = 10
+    init_prior_weight = 1
     for i in range(config.training_iterations):
         # Sample batch indices
         N = y_train.shape[0]
