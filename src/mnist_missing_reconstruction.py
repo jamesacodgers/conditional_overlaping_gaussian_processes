@@ -99,9 +99,11 @@ def visualize_mnist_missing_reconstruction(
         mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
         
         # Generate multiple reconstruction samples (consistent with SSVI metrics)
-        # Take first n_samples from P samples and sample from Normal distribution
+        # Generate exactly n_samples reconstructions by cycling through P samples if needed
         reconstructions = []
-        for p in range(min(n_samples, model.P)):
+        for s in range(n_samples):
+            # Cycle through P samples if n_samples > model.P
+            p = s % model.P
             mu_sample = mu_x[p, :n_images, :]  # [n_images, latent_dim]
             sigma_sample = sigma_x[p, :n_images, :]  # [n_images, latent_dim]
             
@@ -124,7 +126,9 @@ def visualize_mnist_missing_reconstruction(
     if scaler is not None:
         # Inverse transform y_original and reconstructions to original scale
         y_orig_batch = scaler.inverse_transform(y_orig_batch)
-        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(reconstructions.shape)
+        # Store original shape before reshape
+        original_shape = reconstructions.shape
+        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(original_shape)
     
     # Compute image dimensions (assume square images)
     img_dim = int(np.sqrt(y_batch.shape[1]))
@@ -254,9 +258,11 @@ def visualize_mnist_missing_reconstruction_detailed(
         mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
         
         # Generate multiple reconstruction samples (consistent with SSVI metrics)
-        # Take first n_samples from P samples and sample from Normal distribution
+        # Generate exactly n_samples reconstructions by cycling through P samples if needed
         reconstructions = []
-        for p in range(min(n_samples, model.P)):
+        for s in range(n_samples):
+            # Cycle through P samples if n_samples > model.P
+            p = s % model.P
             mu_sample = mu_x[p, :n_images, :]  # [n_images, latent_dim]
             sigma_sample = sigma_x[p, :n_images, :]  # [n_images, latent_dim]
             
@@ -283,7 +289,9 @@ def visualize_mnist_missing_reconstruction_detailed(
     if scaler is not None:
         # Inverse transform y_original, reconstructions, mean, and std to original scale
         y_orig_batch = scaler.inverse_transform(y_orig_batch)
-        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(reconstructions.shape)
+        # Store original shape before reshape
+        original_shape = reconstructions.shape
+        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(original_shape)
         y_recon_mean = scaler.inverse_transform(y_recon_mean)
         # For std, we need to scale by the scaler's std (variance scales as std^2)
         if hasattr(scaler, 'std'):
