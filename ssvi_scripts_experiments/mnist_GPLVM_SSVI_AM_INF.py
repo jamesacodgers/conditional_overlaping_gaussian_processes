@@ -237,7 +237,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
                                    total_size=self.config.total_size,
-                                   missing_mask=missing_mask)
+                                   missing_mask=missing_mask, 
+                                   prior_weight=1)
         else:
             # Standard ELBO computation
             loss = -self.ssvi_elbo(Y_batch,
@@ -246,7 +247,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
                                    total_size=self.config.total_size,
-                                   missing_mask=None)
+                                   missing_mask=None, prior_weight=1)
         
         # Backward pass (gradients computed for all parameters)
         loss.backward()

@@ -13,7 +13,7 @@ n_inducing_points: 64
 encoder_hidden_dims: [512, 256]
 
 # Training Configuration
-training_iterations: 40000
+training_iterations: 80000
 batch_size: 32
 
 # Learning Rates
@@ -70,7 +70,7 @@ ood_score_types:                # Score types to compute for OOD detection
   - variance
 
 # OOD Evaluation Configuration
-ood_n_samples: 16               # Number of samples for OOD evaluation (null = use training P)
+ood_n_samples: 4               # Number of samples for OOD evaluation (null = use training P)
 
 # Missing Data Configuration
 enable_missing_data: false       # Enable missing data reconstruction capability

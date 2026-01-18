@@ -66,7 +66,7 @@ class MeanCenter:
     
     def inverse_transform(self, X):
         """Inverse transform the data"""
-        if self.mean is None or self.std is None:
+        if self.mean is None:
             raise ValueError("Scaler must be fitted before inverse_transform")
         # Ensure mean and std are on the same device as X
         mean = self.mean.to(X.device)

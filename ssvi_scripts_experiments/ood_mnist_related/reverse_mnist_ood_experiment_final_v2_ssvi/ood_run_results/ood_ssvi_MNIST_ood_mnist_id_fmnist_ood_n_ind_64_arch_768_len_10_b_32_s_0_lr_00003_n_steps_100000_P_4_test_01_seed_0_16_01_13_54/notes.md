@@ -1,0 +1,1 @@
+This was with cosine weighting 

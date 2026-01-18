@@ -155,7 +155,7 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
     ood_n_samples: int = None              # Number of samples for OOD evaluation (None = use default 4)
     
     # === Data Standardization Configuration ===
-    standardization: str = "standard"      # "standard" (mean=0, std=1), "minmax" ([0,1]), or "none" (no transform)
+    standardization: str = "mean"      # "standard" (mean=0, std=1), "minmax" ([0,1]), or "none" (no transform)
     
     def __post_init__(self):
         super().__post_init__()
@@ -350,9 +350,7 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     elif config.standardization == "none":
         scaler = NoTransform(device=config.device)
     else:
-        raise ValueError(
-            f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', or 'none'"
-        )
+        raise ValueError(f"Unknown standardization method: {config.standardization}. Must be 'standard', 'mean', 'minmax', or 'none'")
     
     # Fit scaler on training data only (critical: don't mix test data)
     print(f"Fitting scaler on training data only ({Y_train.shape[0]} samples)...")
@@ -361,7 +359,7 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     # Transform all data using the scaler fitted on training data
     print(f"Transforming train/test/OOD data...")
     print(f"  Before transform - Train shape: {Y_train.shape}, Test shape: {Y_test.shape}, OOD shape: {y_ood.shape}")
-    print(f"  Scaler mean shape: {scaler.mean.shape}, std shape: {scaler.std.shape}")
+    print(f"  Scaler mean shape: {scaler.mean.shape}")
     print(f"  Before transform - Train mean: {Y_train.mean().item():.6f}, Test mean: {Y_test.mean().item():.6f}, OOD mean: {y_ood.mean().item():.6f}")
     print(f"  Before transform - Train std: {Y_train.std().item():.6f}, Test std: {Y_test.std().item():.6f}, OOD std: {y_ood.std().item():.6f}")
     
@@ -659,7 +657,7 @@ def get_fast_config():
         n_inducing=15,
         learning_rate=0.002,
         random_seed=7,
-        test_iterations=100,
+        test_iterations=4000,
         test_size=0.2,
         checkpoint_frequency=4000,
         metrics_frequency=4000,

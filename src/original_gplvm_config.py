@@ -48,8 +48,8 @@ class OriginalGPLVMConfig:
     experiment_name: str = "fast"
     
     # === Checkpointing Configuration ===
-    checkpoint_frequency: int = 2000  # Save models, plots, metrics, and log progress every N iterations
-    metrics_frequency: int = 100      # Compute metrics every N iterations (more frequent than checkpoints)
+    checkpoint_frequency: int = 4000  # Save models, plots, metrics, and log progress every N iterations
+    metrics_frequency: int = 4000      # Compute metrics every N iterations (more frequent than checkpoints)
     
     # === Visualization Configuration ===
     save_plots: bool = True

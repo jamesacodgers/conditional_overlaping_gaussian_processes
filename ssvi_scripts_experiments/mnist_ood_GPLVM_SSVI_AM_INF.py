@@ -133,9 +133,8 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     ood_n_samples: int = None               # Number of P samples for OOD evaluation (None = use model.P)
     
     # === Data Standardization Configuration ===
-    standardization: str = (
-        "standard"  # "standard" (mean=0, std=1), "minmax" ([0,1]), or "none" (no transform)
-    )
+    standardization: str = "mean"  # "standard" (mean=0, std=1), "minmax" ([0,1]), or "none" (no transform)
+    
 
     def __post_init__(self):
         super().__post_init__()
@@ -324,7 +323,7 @@ def load_ood_data(config: OODSSVIConfig):
     print(
         f"  Before transform - Train shape: {y_train.shape}, Test shape: {y_test.shape}, OOD shape: {y_ood.shape}"
     )
-    print(f"  Scaler mean shape: {scaler.mean.shape}, std shape: {scaler.std.shape}")
+    print(f"  Scaler mean shape: {scaler.mean.shape}")
     print(
         f"  Before transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}, OOD mean: {y_ood.mean().item():.6f}"
     )
@@ -654,12 +653,13 @@ def train_oil_flow_ssvi(
         N = y_train.shape[0]
         batch_indices = torch.randperm(N, device=y_train.device)[: config.batch_size]
         y_batch = y_train[batch_indices]
-
+        frac = i/config.training_iterations
+        weight = (1-frac)**2
         # Training step - U sampling happens inside automatically each step
         # prior_weight = init_prior_weight 
         # prior_weight = init_prior_weight + (i/config.training_iterations)*(1-init_prior_weight)
-        prior_weight = (init_prior_weight-1)/2 + (init_prior_weight-1)/2*torch.cos(torch.tensor(torch.pi*i/config.training_iterations)) + 1
-        loss = model.train_step(y_batch, batch_indices, prior_weight= prior_weight)
+        # prior_weight = (init_prior_weight-1)/2 + (init_prior_weight-1)/2*torch.cos(torch.tensor(torch.pi*i/config.training_iterations)) + 1
+        loss = model.train_step(y_batch, batch_indices, prior_weight= weight*init_prior_weight + (1-weight))
         losses.append(loss)
 
         # Metrics computation (periodic)
