@@ -42,7 +42,7 @@ from src.ssvi_utils import SSVIResultsLogger, plot_metrics_history, plot_final_m
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
-from src.swiss_roll_plot_helper import visualize_ssvi_results
+from src.swiss_roll_plot_helper import visualize_ssvi_results, visualize_swiss_roll_reconstruction
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
@@ -393,13 +393,13 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
 def get_fast_config():
     """Fast configuration for Swiss roll (2D latent manifold in 3D space)"""
     return OilFlowSSVIConfig(
-        training_iterations=5_000,
+        training_iterations=5000,
         batch_size=50,
-        latent_dim=3,  # Swiss roll is a 2D manifold (key difference from qPCR)
-        n_inducing_points=16,  # Fewer inducing points for smaller dataset
+        latent_dim=2,  # Swiss roll is a 2D manifold (key difference from qPCR)
+        n_inducing_points=32,  # Fewer inducing points for smaller dataset
         encoder_hidden_dims=[128, 64],  # Smaller network for 3D->2D mapping
-        local_lr=1e-2,
-        global_lr=1e-2,
+        local_lr=1e-3,
+        global_lr=1e-3,
         P=16,
         log_frequency=1000,
         checkpoint_frequency=1000,  # Save checkpoint models every 100 iterations
@@ -601,6 +601,23 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             }
         
         logger.save_experiment_summary(experiment_summary)
+    
+    # Visualize Swiss roll reconstruction
+    print("\n=== Swiss Roll Reconstruction Visualization ===")
+    try:
+        visualize_swiss_roll_reconstruction(
+            model=model,
+            y_train=y_train,
+            labels_train=labels_train,
+            config=config,
+            logger=logger,
+            n_reconstruction_samples=32,  # Number of reconstruction samples for averaging
+            show_plot=False
+        )
+        print("Swiss roll reconstruction visualization completed.")
+    except Exception as e:
+        print(f"Warning: Could not create reconstruction visualization: {e}")
+    print("=" * 50)
     
     return model, losses, config, metrics_computer, final_metrics
 

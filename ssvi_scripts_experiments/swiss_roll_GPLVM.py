@@ -494,7 +494,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if logger.get_results_dir():
             try:
                 # Import function only when needed to avoid directory creation issues
-                from src.swiss_roll_plot_helper import create_standardized_scattered_plot
+                from src.swiss_roll_plot_helper import create_standardized_scattered_plot, visualize_swiss_roll_reconstruction_original_gplvm
                 # lb_train is already a numpy array from train_test_split, no need to convert
                 # Use Y_train on the same device as model to avoid device mismatch
                 create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="SwissRoll", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device))
@@ -729,6 +729,27 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             }
             
             logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
+            
+            # Visualize Swiss roll reconstruction for this model
+            print(f"\n=== Swiss Roll Reconstruction Visualization ({model_name}) ===")
+            try:
+                # Use the already computed X_train_mean and X_train_covar
+                visualize_swiss_roll_reconstruction_original_gplvm(
+                    model=model,
+                    y_train=Y_train,
+                    labels_train=lb_train,
+                    config=config,
+                    model_name=model_name,
+                    logger=logger,
+                    n_reconstruction_samples=32,  # Number of reconstruction samples for averaging
+                    show_plot=False,
+                    X_mean=X_train_mean_device,  # Use already computed latent means
+                    X_covar=X_train_covar  # Use already computed latent covariances
+                )
+                print(f"Swiss roll reconstruction visualization completed for {model_name}.")
+            except Exception as e:
+                print(f"Warning: Could not create reconstruction visualization for {model_name}: {e}")
+            print("=" * 50)
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)

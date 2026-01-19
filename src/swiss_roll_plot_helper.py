@@ -11,6 +11,7 @@ import numpy as np
 import pickle as pkl
 import json
 from datetime import datetime
+from typing import Optional, Union, List
 from sklearn.model_selection import train_test_split
 import plotly.graph_objects as go
 import plotly.express as px
@@ -647,3 +648,407 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             print(f"Skipped 3D scatter plot for SSVI (less than 3 latent dimensions)")
 
         print("Additional plots created successfully!")
+
+
+def visualize_swiss_roll_reconstruction(
+    model,
+    y_train: torch.Tensor,
+    labels_train,
+    config,
+    logger: SSVIResultsLogger = None,
+    n_reconstruction_samples: int = 32,
+    save_path: Optional[str] = None,
+    show_plot: bool = False,
+):
+    """
+    Visualize Swiss roll reconstruction: Y -> X -> Y_reconstructed
+    
+    This function:
+    1. Takes Y (3D observations) - uses full training set
+    2. Gets X (latent) using amortized inference
+    3. Reconstructs Y from X using GP
+    4. Plots both original Y and reconstructed Y in 3D
+    
+    Args:
+        model: Trained SSVI GP-LVM model
+        y_train: Training data [N, 3] (3D Swiss roll coordinates) - full training set
+        labels_train: Labels for color mapping (Swiss roll position parameter)
+        config: Configuration object
+        logger: Results logger for saving plots
+        n_reconstruction_samples: Number of reconstruction samples for averaging (default: 32)
+        save_path: Path to save the visualization (optional)
+        show_plot: Whether to display the plot (default: False)
+    """
+    
+    model.eval()
+    
+    # Use full training set
+    N = y_train.shape[0]
+    y_selected = y_train  # Use all samples
+    labels_selected = np.array(labels_train)
+    
+    with torch.no_grad():
+        # Handle missing data preprocessing for encoder input
+        if model.enable_missing_data:
+            y_selected_clean = torch.where(
+                torch.isnan(y_selected),
+                torch.full_like(y_selected, -9.0, dtype=torch.float64),
+                y_selected
+            )
+        else:
+            y_selected_clean = y_selected
+        
+        # Get U samples from variational posterior q(U)
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)  # [P, M, C, L]
+        
+        # Get latent variables for all samples using amortized inference
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_selected_clean, epsilon)
+        # mu_x: [P, N, latent_dim], sigma_x: [P, N, latent_dim]
+        
+        # Generate multiple reconstruction samples
+        # Sample from latent distribution (this will give us [P, N, latent_dim])
+        x_dist = torch.distributions.Normal(mu_x, sigma_x)  # [P, N, latent_dim]
+        
+        # Collect multiple reconstruction samples
+        reconstructions = []
+        for s in range(n_reconstruction_samples):
+            # Sample from the distribution (each call gives a different sample)
+            x_samples = x_dist.rsample()  # [P, N, latent_dim]
+            
+            # Reconstruct through GP mean prediction
+            # get_gp_expectation_given_U expects [P, N, latent_dim] where P is number of U samples, N is batch size
+            # It returns [P, N, M, C] or similar shape
+            y_recon = model.gp.get_gp_expectation_given_U(x_samples, U_samples)  # [P, N, M, C]
+            
+            # Handle output dimensions (squeeze if C=1)
+            if y_recon.shape[-1] == 1:
+                y_recon = y_recon[..., 0]  # [P, N, M]
+            
+            # Average over P samples (U samples dimension)
+            y_recon_mean = y_recon.mean(dim=0)  # [N, M]
+            reconstructions.append(y_recon_mean)
+        
+        # Stack and average reconstructions over multiple samples
+        reconstructions = torch.stack(reconstructions, dim=0)  # [n_reconstruction_samples, N, M]
+        y_reconstructed = reconstructions.mean(dim=0)  # [N, M]
+    
+    # Convert to numpy for plotting
+    y_original_np = y_selected.cpu().numpy()  # [N, 3]
+    y_reconstructed_np = y_reconstructed.cpu().numpy()  # [N, 3]
+    
+    # Get color mapping for labels
+    colors, cmap, labels_min, labels_max = get_swiss_roll_colors(labels_selected)
+    
+    # Compute axis ranges from original data for consistent scaling
+    x_min, x_max = y_original_np[:, 0].min(), y_original_np[:, 0].max()
+    y_min, y_max = y_original_np[:, 1].min(), y_original_np[:, 1].max()
+    z_min, z_max = y_original_np[:, 2].min(), y_original_np[:, 2].max()
+    
+    # Create two separate 3D plots: one for original, one for reconstructed
+    
+    # Plot 1: Original Swiss roll
+    fig_original = go.Figure()
+    fig_original.add_trace(go.Scatter3d(
+        x=y_original_np[:, 0],
+        y=y_original_np[:, 1],
+        z=y_original_np[:, 2],
+        mode='markers',
+        marker=dict(
+            size=4,
+            color=labels_selected,
+            colorscale='Viridis',
+            opacity=0.7,
+            colorbar=dict(title="Position (t)")
+        ),
+        name='Original'
+    ))
+    fig_original.update_layout(
+        title='Swiss Roll: Original Data',
+        scene=dict(
+            xaxis_title='X',
+            yaxis_title='Y',
+            zaxis_title='Z',
+            xaxis=dict(range=[x_min, x_max]),
+            yaxis=dict(range=[y_min, y_max]),
+            zaxis=dict(range=[z_min, z_max]),
+            aspectmode='data'
+        ),
+        width=900,
+        height=700
+    )
+    
+    # Plot 2: Reconstructed Swiss roll (with same axis scaling as original)
+    fig_reconstructed = go.Figure()
+    fig_reconstructed.add_trace(go.Scatter3d(
+        x=y_reconstructed_np[:, 0],
+        y=y_reconstructed_np[:, 1],
+        z=y_reconstructed_np[:, 2],
+        mode='markers',
+        marker=dict(
+            size=4,
+            color=labels_selected,
+            colorscale='Viridis',
+            opacity=0.7,
+            colorbar=dict(title="Position (t)")
+        ),
+        name='Reconstructed'
+    ))
+    fig_reconstructed.update_layout(
+        title='Swiss Roll: Reconstructed Data',
+        scene=dict(
+            xaxis_title='X',
+            yaxis_title='Y',
+            zaxis_title='Z',
+            xaxis=dict(range=[x_min, x_max]),
+            yaxis=dict(range=[y_min, y_max]),
+            zaxis=dict(range=[z_min, z_max]),
+            aspectmode='data'
+        ),
+        width=900,
+        height=700
+    )
+    
+    # Save plots
+    if save_path is None and logger is not None:
+        save_path_original = os.path.join(logger.plots_dir, f"swiss_roll_original_{config.random_seed}.html")
+        save_path_reconstructed = os.path.join(logger.plots_dir, f"swiss_roll_reconstructed_{config.random_seed}.html")
+    elif save_path is None:
+        save_path_original = f"swiss_roll_original_{config.random_seed}.html"
+        save_path_reconstructed = f"swiss_roll_reconstructed_{config.random_seed}.html"
+    else:
+        # If save_path provided, create two separate filenames
+        base_path = save_path.replace('.html', '')
+        save_path_original = f"{base_path}_original.html"
+        save_path_reconstructed = f"{base_path}_reconstructed.html"
+    
+    if save_path_original:
+        fig_original.write_html(save_path_original)
+        print(f"Swiss roll original data visualization saved: {save_path_original}")
+    
+    if save_path_reconstructed:
+        fig_reconstructed.write_html(save_path_reconstructed)
+        print(f"Swiss roll reconstructed data visualization saved: {save_path_reconstructed}")
+    
+    if show_plot:
+        fig_original.show()
+        fig_reconstructed.show()
+    
+    model.train()
+    
+    return y_reconstructed
+
+
+def visualize_swiss_roll_reconstruction_original_gplvm(
+    model,
+    y_train: torch.Tensor,
+    labels_train,
+    config,
+    model_name: str,
+    logger=None,
+    n_reconstruction_samples: int = 32,
+    save_path: Optional[str] = None,
+    show_plot: bool = False,
+    X_mean: torch.Tensor = None,
+    X_covar: Union[torch.Tensor, List[torch.Tensor], None] = None,
+):
+    """
+    Visualize Swiss roll reconstruction for Original GP-LVM: Y -> X -> Y_reconstructed
+    
+    This function:
+    1. Takes Y (3D observations) - uses full training set
+    2. Gets X (latent) from model (or uses provided X_mean/X_covar)
+    3. Reconstructs Y from X using model.reconstruct_y
+    4. Plots both original Y and reconstructed Y in 3D
+    
+    Args:
+        model: Trained Original GP-LVM model (gauss or nn_gauss)
+        y_train: Training data [N, 3] (3D Swiss roll coordinates) - full training set
+        labels_train: Labels for color mapping (Swiss roll position parameter)
+        config: Configuration object
+        model_name: Model type ('gauss' or 'nn_gauss')
+        logger: Results logger for saving plots (optional)
+        n_reconstruction_samples: Number of reconstruction samples for averaging (default: 32)
+        save_path: Path to save the visualization (optional)
+        show_plot: Whether to display the plot (default: False)
+        X_mean: Pre-computed latent means [N, latent_dim] (optional, will compute if None)
+        X_covar: Pre-computed latent covariances [N, latent_dim] for gauss or list for nn_gauss (optional)
+    """
+    model.eval()
+    
+    # Determine if using encoder (nn_gauss) or not (gauss)
+    ae = (model_name == 'nn_gauss')
+    
+    # Use full training set
+    N = y_train.shape[0]
+    y_selected = y_train  # Use all samples
+    labels_selected = np.array(labels_train)
+    
+    with torch.no_grad():
+        # Get latent variables if not provided
+        if X_mean is None:
+            # Get latent variables from model
+            if config.enable_missing_data and model_name == 'nn_gauss':
+                # For nn_gauss with missing data, use cleaned input for encoder
+                y_for_encoder = y_train.clone()
+                y_for_encoder[torch.isnan(y_for_encoder)] = -999.0  # Match original GP-LVM convention
+                X_mean = model.get_X_mean(y_for_encoder)
+                X_covar = model.X.sigma(y_for_encoder).detach()
+            else:
+                X_mean = model.get_X_mean(y_train)
+                if model_name == "nn_gauss":
+                    X_covar = model.X.sigma(y_train).detach()
+                else:
+                    X_covar = torch.nn.functional.softplus(model.X.q_log_sigma).detach()
+        
+        # Get latent variables for all samples
+        mu_x_all = X_mean  # [N, latent_dim]
+        
+        # Handle X_covar based on model type
+        if model_name == 'nn_gauss':
+            # For nn_gauss, X_covar is a list of covariance matrices
+            if isinstance(X_covar, list):
+                # X_covar is already a list
+                sigma_x_all = torch.stack([torch.sqrt(x.diag()) for x in X_covar])
+            else:
+                # X_covar is a tensor (shouldn't happen for nn_gauss, but handle it)
+                sigma_x_all = torch.stack([torch.sqrt(x.diag()) for x in X_covar])
+        else:
+            # For gauss, X_covar already contains standard deviations (tensor)
+            sigma_x_all = X_covar  # [N, latent_dim]
+        
+        # Generate multiple reconstruction samples
+        reconstructions = []
+        for s in range(n_reconstruction_samples):
+            # Sample from latent distribution
+            x_dist = torch.distributions.Normal(mu_x_all, sigma_x_all)
+            x_sample = x_dist.sample()  # [N, latent_dim]
+            
+            # Reconstruct through model.reconstruct_y
+            if model_name == 'nn_gauss':
+                if config.enable_missing_data:
+                    y_for_recon = y_selected.clone()
+                    y_for_recon[torch.isnan(y_for_recon)] = -999.0
+                    y_recon, _ = model.reconstruct_y(x_sample, y_for_recon, ae=True, model_name=model_name)
+                else:
+                    y_recon, _ = model.reconstruct_y(x_sample, y_selected, ae=True, model_name=model_name)
+            else:  # gauss model
+                y_recon, _ = model.reconstruct_y(x_sample, y_selected, ae=False, model_name=model_name)
+            
+            # y_recon is [D, N], need to transpose to [N, D]
+            y_recon_T = y_recon.T  # [N, 3]
+            reconstructions.append(y_recon_T)
+        
+        # Stack and average reconstructions
+        reconstructions = torch.stack(reconstructions, dim=0)  # [n_reconstruction_samples, N, 3]
+        y_reconstructed = reconstructions.mean(dim=0)  # [N, 3]
+    
+    # Convert to numpy for plotting
+    y_original_np = y_selected.cpu().numpy()  # [N, 3]
+    y_reconstructed_np = y_reconstructed.cpu().numpy()  # [N, 3]
+    
+    # Get color mapping for labels
+    colors, cmap, labels_min, labels_max = get_swiss_roll_colors(labels_selected)
+    
+    # Compute axis ranges from original data for consistent scaling
+    x_min, x_max = y_original_np[:, 0].min(), y_original_np[:, 0].max()
+    y_min, y_max = y_original_np[:, 1].min(), y_original_np[:, 1].max()
+    z_min, z_max = y_original_np[:, 2].min(), y_original_np[:, 2].max()
+    
+    # Create two separate 3D plots: one for original, one for reconstructed
+    
+    # Plot 1: Original Swiss roll
+    fig_original = go.Figure()
+    fig_original.add_trace(go.Scatter3d(
+        x=y_original_np[:, 0],
+        y=y_original_np[:, 1],
+        z=y_original_np[:, 2],
+        mode='markers',
+        marker=dict(
+            size=4,
+            color=labels_selected,
+            colorscale='Viridis',
+            opacity=0.7,
+            colorbar=dict(title="Position (t)")
+        ),
+        name='Original'
+    ))
+    fig_original.update_layout(
+        title=f'Swiss Roll: Original Data ({model_name})',
+        scene=dict(
+            xaxis_title='X',
+            yaxis_title='Y',
+            zaxis_title='Z',
+            xaxis=dict(range=[x_min, x_max]),
+            yaxis=dict(range=[y_min, y_max]),
+            zaxis=dict(range=[z_min, z_max]),
+            aspectmode='data'
+        ),
+        width=900,
+        height=700
+    )
+    
+    # Plot 2: Reconstructed Swiss roll (with same axis scaling as original)
+    fig_reconstructed = go.Figure()
+    fig_reconstructed.add_trace(go.Scatter3d(
+        x=y_reconstructed_np[:, 0],
+        y=y_reconstructed_np[:, 1],
+        z=y_reconstructed_np[:, 2],
+        mode='markers',
+        marker=dict(
+            size=4,
+            color=labels_selected,
+            colorscale='Viridis',
+            opacity=0.7,
+            colorbar=dict(title="Position (t)")
+        ),
+        name='Reconstructed'
+    ))
+    fig_reconstructed.update_layout(
+        title=f'Swiss Roll: Reconstructed Data ({model_name})',
+        scene=dict(
+            xaxis_title='X',
+            yaxis_title='Y',
+            zaxis_title='Z',
+            xaxis=dict(range=[x_min, x_max]),
+            yaxis=dict(range=[y_min, y_max]),
+            zaxis=dict(range=[z_min, z_max]),
+            aspectmode='data'
+        ),
+        width=900,
+        height=700
+    )
+    
+    # Save plots
+    if save_path is None and logger is not None:
+        results_dir = logger.get_results_dir() if hasattr(logger, 'get_results_dir') else None
+        if results_dir:
+            save_path_original = os.path.join(results_dir, f"swiss_roll_original_{model_name}_{config.random_seed}.html")
+            save_path_reconstructed = os.path.join(results_dir, f"swiss_roll_reconstructed_{model_name}_{config.random_seed}.html")
+        else:
+            save_path_original = f"swiss_roll_original_{model_name}_{config.random_seed}.html"
+            save_path_reconstructed = f"swiss_roll_reconstructed_{model_name}_{config.random_seed}.html"
+    elif save_path is None:
+        save_path_original = f"swiss_roll_original_{model_name}_{config.random_seed}.html"
+        save_path_reconstructed = f"swiss_roll_reconstructed_{model_name}_{config.random_seed}.html"
+    else:
+        # If save_path provided, create two separate filenames
+        base_path = save_path.replace('.html', '')
+        save_path_original = f"{base_path}_original.html"
+        save_path_reconstructed = f"{base_path}_reconstructed.html"
+    
+    if save_path_original:
+        fig_original.write_html(save_path_original)
+        print(f"Swiss roll original data visualization saved: {save_path_original}")
+    
+    if save_path_reconstructed:
+        fig_reconstructed.write_html(save_path_reconstructed)
+        print(f"Swiss roll reconstructed data visualization saved: {save_path_reconstructed}")
+    
+    if show_plot:
+        fig_original.show()
+        fig_reconstructed.show()
+    
+    model.train()
+    
+    return y_reconstructed
