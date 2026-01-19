@@ -733,9 +733,23 @@ def visualize_swiss_roll_reconstruction(
         reconstructions = torch.stack(reconstructions, dim=0)  # [n_reconstruction_samples, N, M]
         y_reconstructed = reconstructions.mean(dim=0)  # [N, M]
     
-    # Convert to numpy for plotting
-    y_original_np = y_selected.cpu().numpy()  # [N, 3]
-    y_reconstructed_np = y_reconstructed.cpu().numpy()  # [N, 3]
+    # Inverse transform Y data if scaler is available (for visualization in original scale)
+    if hasattr(config, 'scaler') and config.scaler is not None:
+        # Convert to tensors for inverse transform
+        y_original_tensor = y_selected  # Already a tensor
+        y_reconstructed_tensor = y_reconstructed  # Already a tensor
+        
+        # Inverse transform both original and reconstructed data
+        y_original_tensor = config.scaler.inverse_transform(y_original_tensor)
+        y_reconstructed_tensor = config.scaler.inverse_transform(y_reconstructed_tensor)
+        
+        # Convert to numpy for plotting
+        y_original_np = y_original_tensor.cpu().numpy()  # [N, 3]
+        y_reconstructed_np = y_reconstructed_tensor.cpu().numpy()  # [N, 3]
+    else:
+        # No scaler - use data as-is
+        y_original_np = y_selected.cpu().numpy()  # [N, 3]
+        y_reconstructed_np = y_reconstructed.cpu().numpy()  # [N, 3]
     
     # Get color mapping for labels
     colors, cmap, labels_min, labels_max = get_swiss_roll_colors(labels_selected)
@@ -943,9 +957,23 @@ def visualize_swiss_roll_reconstruction_original_gplvm(
         reconstructions = torch.stack(reconstructions, dim=0)  # [n_reconstruction_samples, N, 3]
         y_reconstructed = reconstructions.mean(dim=0)  # [N, 3]
     
-    # Convert to numpy for plotting
-    y_original_np = y_selected.cpu().numpy()  # [N, 3]
-    y_reconstructed_np = y_reconstructed.cpu().numpy()  # [N, 3]
+    # Inverse transform Y data if scaler is available (for visualization in original scale)
+    if hasattr(config, 'scaler') and config.scaler is not None:
+        # Convert to tensors for inverse transform
+        y_original_tensor = y_selected  # Already a tensor
+        y_reconstructed_tensor = y_reconstructed  # Already a tensor
+        
+        # Inverse transform both original and reconstructed data
+        y_original_tensor = config.scaler.inverse_transform(y_original_tensor)
+        y_reconstructed_tensor = config.scaler.inverse_transform(y_reconstructed_tensor)
+        
+        # Convert to numpy for plotting
+        y_original_np = y_original_tensor.cpu().numpy()  # [N, 3]
+        y_reconstructed_np = y_reconstructed_tensor.cpu().numpy()  # [N, 3]
+    else:
+        # No scaler - use data as-is
+        y_original_np = y_selected.cpu().numpy()  # [N, 3]
+        y_reconstructed_np = y_reconstructed.cpu().numpy()  # [N, 3]
     
     # Get color mapping for labels
     colors, cmap, labels_min, labels_max = get_swiss_roll_colors(labels_selected)

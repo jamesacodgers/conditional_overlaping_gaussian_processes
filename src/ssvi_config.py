@@ -69,7 +69,7 @@ class OilFlowSSVIConfig:
     enable_missing_data: bool = False      # Enable missing data reconstruction capability
     missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
     reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
-    
+
     # === MNIST Data Filtering Configuration ===
     mnist_digits: list = None           # List of digits to include (e.g., [0, 1, 2]). None = all digits (0-9)
     samples_per_digit: int = None          # Number of samples per digit. None = use all available samples
@@ -102,6 +102,7 @@ class OilFlowSSVIConfig:
         print(f"Logging: Save results={self.save_results}, Gradients={self.enable_gradient_logging}")
         if self.enable_gradient_logging:
             print(f"  Gradient log frequency: every {self.gradient_log_frequency} iterations")
+        print(f"Data Standardization: {self.standardization}")
 
         print("=" * 50)
 

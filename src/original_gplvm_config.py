@@ -64,6 +64,9 @@ class OriginalGPLVMConfig:
     missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
     reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
     
+    # === Data Standardization Configuration ===
+    standardization: str = "mean"  # "standard" (mean=0, std=1), "minmax" ([0,1]), "mean" (mean center), or "none" (no transform)
+    
     # === MNIST Data Filtering Configuration ===
     mnist_digits: List[int] = None         # List of digits to include (e.g., [0, 1, 2]). None = all digits (0-9)
     samples_per_digit: int = None          # Number of samples per digit. None = use all available samples
@@ -121,6 +124,7 @@ class OriginalGPLVMConfig:
         if self.save_results:
             print(f"Results dir: {self.results_dir}")
         print(f"Missing data: {self.enable_missing_data} (ratio: {self.missing_data_ratio})")
+        print(f"Data Standardization: {self.standardization}")
         print("=" * 50)
 
 def get_fast_config():

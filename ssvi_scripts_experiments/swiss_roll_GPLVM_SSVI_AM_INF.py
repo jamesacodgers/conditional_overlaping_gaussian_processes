@@ -49,6 +49,7 @@ from src.ssvi_config_utils import (
 )
 from sklearn.model_selection import train_test_split
 from src.data_utils import generate_swiss_roll_data
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 # Import OilFlowSSVIConfig from oil_flow_GPLVM_SSVI_AM_INF.py
 from ssvi_scripts_experiments.oil_flow_GPLVM_SSVI_AM_INF import OilFlowSSVIConfig
@@ -98,6 +99,66 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     print(f"Data split shapes - Train: {y_train.shape}, Test: {y_test.shape}")
     print(f"Labels split info - Train: {type(labels_train)}, length: {len(labels_train) if hasattr(labels_train, '__len__') else 'no length'}")
     print(f"Labels split info - Test: {type(labels_test)}, length: {len(labels_test) if hasattr(labels_test, '__len__') else 'no length'}")
+
+    # === Data Standardization ===
+    # Fit scaler on training data only (before missing data preprocessing)
+    print(f"\n=== Data Standardization ===")
+    print(f"Standardization method: {config.standardization}")
+
+    if config.standardization == "standard":
+        scaler = StandardScalerPytorch(device=config.device)
+    elif config.standardization == "minmax":
+        scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
+    elif config.standardization == "none":
+        scaler = NoTransform(device=config.device)
+    else:
+        raise ValueError(
+            f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', 'mean', or 'none'"
+        )
+
+    # Fit scaler on training data only (critical: don't mix test data)
+    print(f"Fitting scaler on training data only ({y_train.shape[0]} samples)...")
+    scaler.fit(y_train)
+
+    # Transform all data using the scaler fitted on training data
+    print(f"Transforming train/test data...")
+    print(
+        f"  Before transform - Train shape: {y_train.shape}, Test shape: {y_test.shape}"
+    )
+    if hasattr(scaler, 'mean'):
+        print(f"  Scaler mean shape: {scaler.mean.shape}")
+    print(
+        f"  Before transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}"
+    )
+    print(
+        f"  Before transform - Train std: {y_train.std().item():.6f}, Test std: {y_test.std().item():.6f}"
+    )
+
+    y_train = scaler.transform(y_train)
+    y_test = scaler.transform(y_test)
+
+    # Debug: Show statistics after transform
+    print(
+        f"  After transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}"
+    )
+    print(
+        f"  After transform - Train std: {y_train.std().item():.6f}, Test std: {y_test.std().item():.6f}"
+    )
+    if hasattr(scaler, 'min'):
+        print(
+            f"  After transform - Train min: {y_train.min().item():.6f}, Test min: {y_test.min().item():.6f}"
+        )
+        print(
+            f"  After transform - Train max: {y_train.max().item():.6f}, Test max: {y_test.max().item():.6f}"
+        )
+
+    print(f"Standardization completed.")
+    print("=" * 50)
+
+    # Store scaler in config for later use (e.g., inverse transform)
+    config.scaler = scaler
 
     # Use training data for model initialization
     y = y_train
@@ -393,10 +454,10 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
 def get_fast_config():
     """Fast configuration for Swiss roll (2D latent manifold in 3D space)"""
     return OilFlowSSVIConfig(
-        training_iterations=20000,
+        training_iterations=7000,
         batch_size=250,
         latent_dim=3,  # Swiss roll is a 2D manifold (key difference from qPCR)
-        n_inducing_points=64,  # Fewer inducing points for smaller dataset
+        n_inducing_points=32,  # Fewer inducing points for smaller dataset
         encoder_hidden_dims=[128, 64],  # Smaller network for 3D->2D mapping
         local_lr=1e-3,
         global_lr=1e-3,
