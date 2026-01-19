@@ -151,18 +151,18 @@ def get_fast_config():
 def get_swiss_roll_fast_config():
     """Fast configuration for Swiss roll experiments (2D manifold in 3D space)"""
     return OriginalGPLVMConfig(
-        device="cuda",  # Use CUDA device
-        training_steps={'gauss': 200, 'nn_gauss': 200},
+        device="cpu", # "cuda",  # Use CUDA device
+        training_steps={'gauss': 20_000, 'nn_gauss': 20_000},
         batch_size=50,
-        latent_dim=2,   # Swiss roll is a 2D manifold (key difference from qPCR)
+        latent_dim=3,   # Swiss roll is a 2D manifold (key difference from qPCR)
         n_inducing=10,  # Fewer inducing points for smaller dataset
-        learning_rate=0.002,
+        learning_rate=0.01,
         random_seed=42,
-        test_iterations=200,
+        test_iterations=1000,
         test_size=0.2,  # 20% for testing
-        checkpoint_frequency=100,  # Save checkpoints every 100 iterations
-        metrics_frequency=50,      # Compute metrics every 50 iterations
-        nn_layers=(20, 20),        # Smaller network for 3D->2D mapping
+        checkpoint_frequency=1000,  # Save checkpoints every 100 iterations
+        metrics_frequency=1000,      # Compute metrics every 50 iterations
+        nn_layers=(128, 64),        # Smaller network for 3D->2D mapping
         # === GP Hyperparameters ===
         init_lengthscales=2.0,
         init_output_noise_scale=2.0,
