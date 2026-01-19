@@ -152,7 +152,7 @@ def get_swiss_roll_fast_config():
     """Fast configuration for Swiss roll experiments (2D manifold in 3D space)"""
     return OriginalGPLVMConfig(
         device="cpu", # "cuda",  # Use CUDA device
-        training_steps={'gauss': 20_000, 'nn_gauss': 20_000},
+        training_steps={'gauss': 5_000, 'nn_gauss': 5_000},
         batch_size=50,
         latent_dim=3,   # Swiss roll is a 2D manifold (key difference from qPCR)
         n_inducing=10,  # Fewer inducing points for smaller dataset

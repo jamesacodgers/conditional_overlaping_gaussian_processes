@@ -60,7 +60,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     print("Loading Swiss roll data...")
     
     # Generate Swiss roll data (consistent with swiss_roll_GPLVM.py)
-    n_samples = 10000
+    n_samples = 1000
     Y, X_true, labels = generate_swiss_roll_data(n_samples=n_samples, noise=0.1, random_state=config.random_seed)
     
     print(f"Generated Swiss Roll data: {Y.shape[0]} samples, {Y.shape[1]} dimensions")
@@ -393,14 +393,14 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
 def get_fast_config():
     """Fast configuration for Swiss roll (2D latent manifold in 3D space)"""
     return OilFlowSSVIConfig(
-        training_iterations=20_000,
+        training_iterations=5_000,
         batch_size=50,
         latent_dim=3,  # Swiss roll is a 2D manifold (key difference from qPCR)
         n_inducing_points=16,  # Fewer inducing points for smaller dataset
         encoder_hidden_dims=[128, 64],  # Smaller network for 3D->2D mapping
         local_lr=1e-2,
         global_lr=1e-2,
-        P=64,
+        P=16,
         log_frequency=1000,
         checkpoint_frequency=1000,  # Save checkpoint models every 100 iterations
         enable_gradient_logging=True,
