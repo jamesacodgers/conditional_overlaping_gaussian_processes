@@ -393,10 +393,10 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
 def get_fast_config():
     """Fast configuration for Swiss roll (2D latent manifold in 3D space)"""
     return OilFlowSSVIConfig(
-        training_iterations=5000,
-        batch_size=50,
-        latent_dim=2,  # Swiss roll is a 2D manifold (key difference from qPCR)
-        n_inducing_points=32,  # Fewer inducing points for smaller dataset
+        training_iterations=20000,
+        batch_size=250,
+        latent_dim=3,  # Swiss roll is a 2D manifold (key difference from qPCR)
+        n_inducing_points=64,  # Fewer inducing points for smaller dataset
         encoder_hidden_dims=[128, 64],  # Smaller network for 3D->2D mapping
         local_lr=1e-3,
         global_lr=1e-3,
