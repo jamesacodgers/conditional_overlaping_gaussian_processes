@@ -1,0 +1,36 @@
+=== Oil Flow SSVI GP-LVM Training Session ===
+Model: 16 inducing points, latent_dim=4
+Training: 5000 iter, batch=50
+Learning rates: Local=0.01, Global=0.01
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': np.float64(1.1255044846027138), 'test_rmse': np.float64(1.1129100824881852), 'train_nlpd': 5.322311753014353, 'test_nlpd': 5.253459941216765, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 5.701305909261628}
+Iteration 0/5000: Loss=5.7013, Time=0.3s
+Metrics at iteration 1000: {'iteration': 1000, 'train_rmse': np.float64(0.3907482829144491), 'test_rmse': np.float64(0.38846662972633134), 'train_nlpd': 1.6248332627903643, 'test_nlpd': 1.6254852410856446, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 1, 'total_latent_dims': 4, 'elbo_loss': 3.552060462137716}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1000_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1000.png
+Iteration 1000/5000: Loss=3.5521, Time=21.2s
+Metrics at iteration 2000: {'iteration': 2000, 'train_rmse': np.float64(0.3607263023580029), 'test_rmse': np.float64(0.3586230327056751), 'train_nlpd': 1.3482445227907, 'test_nlpd': 1.3415892985626252, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 1, 'total_latent_dims': 4, 'elbo_loss': 3.3785776869441153}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2000_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2000.png
+Iteration 2000/5000: Loss=3.3786, Time=42.3s
+Metrics at iteration 3000: {'iteration': 3000, 'train_rmse': np.float64(0.35081411060201423), 'test_rmse': np.float64(0.34916776252910475), 'train_nlpd': 1.2653071187864018, 'test_nlpd': 1.2509699802163556, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 1, 'total_latent_dims': 4, 'elbo_loss': 3.7108100613222246}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3000_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3000.png
+Iteration 3000/5000: Loss=3.7108, Time=63.5s
+Metrics at iteration 4000: {'iteration': 4000, 'train_rmse': np.float64(0.3460342371395619), 'test_rmse': np.float64(0.3439742115765957), 'train_nlpd': 1.2108166357301204, 'test_nlpd': 1.186128931101372, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 1, 'total_latent_dims': 4, 'elbo_loss': 3.5988441891399297}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4000_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4000.png
+Iteration 4000/5000: Loss=3.5988, Time=85.2s
+Training completed! Final Loss: 3.4681, Total time: 105.4s (47.4 iter/s)
+Plot saved: plots/training_results.png
+Plot saved: plots/1d_histogram_most_important_dim.png
+Final comprehensive metrics computed: {'iteration': 5000, 'train_rmse': np.float64(0.34125544510678363), 'test_rmse': np.float64(0.33876388400290086), 'train_nlpd': 1.1797359913412526, 'test_nlpd': 1.1736187019861442, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 1, 'total_latent_dims': 4, 'elbo_loss': 3.4681370340084867}
+Plot saved: plots/metrics_progression.png
+Plot saved: plots/final_metrics_summary.png
+Checkpoint metrics saved: training_results/oilflow_ssvi_42_checkpoint_metrics.json
+Training losses saved: training_results/oilflow_ssvi_42_losses.json
+Model saved: pre_trained_models/swiss_roll_ssvi_42.pkl
+Experiment summary saved: experiment_summary.json

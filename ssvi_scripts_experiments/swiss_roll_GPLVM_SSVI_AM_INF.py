@@ -227,7 +227,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
                                    total_size=self.config.total_size,
-                                   missing_mask=missing_mask)
+                                   missing_mask=missing_mask,
+                                   prior_weight=1)
         else:
             # Standard ELBO computation
             loss = -self.ssvi_elbo(Y_batch,
@@ -236,7 +237,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
                                    total_size=self.config.total_size,
-                                   missing_mask=None)
+                                   missing_mask=None,
+                                   prior_weight=1)
         
         # Backward pass (gradients computed for all parameters)
         loss.backward()
@@ -391,20 +393,20 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
 def get_fast_config():
     """Fast configuration for Swiss roll (2D latent manifold in 3D space)"""
     return OilFlowSSVIConfig(
-        training_iterations=200,
+        training_iterations=5000,
         batch_size=50,
-        latent_dim=2,  # Swiss roll is a 2D manifold (key difference from qPCR)
-        n_inducing_points=10,  # Fewer inducing points for smaller dataset
-        encoder_hidden_dims=[20, 20],  # Smaller network for 3D->2D mapping
-        local_lr=2e-3,
+        latent_dim=4,  # Swiss roll is a 2D manifold (key difference from qPCR)
+        n_inducing_points=16,  # Fewer inducing points for smaller dataset
+        encoder_hidden_dims=[128, 64],  # Smaller network for 3D->2D mapping
+        local_lr=1e-2,
         global_lr=1e-2,
         P=16,
-        log_frequency=50,
-        checkpoint_frequency=100,  # Save checkpoint models every 100 iterations
+        log_frequency=1000,
+        checkpoint_frequency=1000,  # Save checkpoint models every 100 iterations
         enable_gradient_logging=True,
         gradient_log_frequency=25,
         enable_metrics=True,
-        metrics_frequency=50,
+        metrics_frequency=1000,
         save_training_plots=True,
         plot_training=True,
         plot_latent_space=True,

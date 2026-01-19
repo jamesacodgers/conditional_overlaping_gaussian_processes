@@ -1,0 +1,361 @@
+=== Oil Flow SSVI GP-LVM Training Session ===
+Model: 16 inducing points, latent_dim=4
+Training: 5000 iter, batch=50
+Learning rates: Local=0.001, Global=0.001
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': np.float64(1.1382332994637545), 'test_rmse': np.float64(1.1221027053352617), 'train_nlpd': 5.473351618610658, 'test_nlpd': 5.349611411141523, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 5.701305909261628}
+Iteration 0/5000: Loss=5.7013, Time=0.4s
+Metrics at iteration 50: {'iteration': 50, 'train_rmse': np.float64(1.1646302924450627), 'test_rmse': np.float64(1.0853430858568383), 'train_nlpd': 5.115205235758259, 'test_nlpd': 5.113439535970029, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 5.30172334097574}
+Iteration 50/5000: Loss=5.3017, Time=1.9s
+Metrics at iteration 100: {'iteration': 100, 'train_rmse': np.float64(1.0511006292973522), 'test_rmse': np.float64(1.0259471502730457), 'train_nlpd': 4.909930862814934, 'test_nlpd': 4.978287960900623, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 5.064241466757959}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_100_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_100.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_100.png
+Iteration 100/5000: Loss=5.0642, Time=5.7s
+Metrics at iteration 150: {'iteration': 150, 'train_rmse': np.float64(0.9946619139176959), 'test_rmse': np.float64(0.966555780377609), 'train_nlpd': 4.773456065692471, 'test_nlpd': 4.830070211552397, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.898527812494565}
+Iteration 150/5000: Loss=4.8985, Time=7.2s
+Metrics at iteration 200: {'iteration': 200, 'train_rmse': np.float64(0.9419036468060179), 'test_rmse': np.float64(0.9326009130256082), 'train_nlpd': 4.667062719313491, 'test_nlpd': 4.670863979117224, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.897997360352906}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_200_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_200.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_200.png
+Iteration 200/5000: Loss=4.8980, Time=11.0s
+Metrics at iteration 250: {'iteration': 250, 'train_rmse': np.float64(0.9164984677160989), 'test_rmse': np.float64(0.9363286166537804), 'train_nlpd': 4.629387264381135, 'test_nlpd': 4.583639935172352, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.679716311886155}
+Iteration 250/5000: Loss=4.6797, Time=12.2s
+Metrics at iteration 300: {'iteration': 300, 'train_rmse': np.float64(0.9091295490997803), 'test_rmse': np.float64(0.9153703760364978), 'train_nlpd': 4.55065645890211, 'test_nlpd': 4.5322485645290795, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.719577880739044}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_300_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_300.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_300.png
+Iteration 300/5000: Loss=4.7196, Time=16.1s
+Metrics at iteration 350: {'iteration': 350, 'train_rmse': np.float64(0.9131227579856793), 'test_rmse': np.float64(0.8872971748166677), 'train_nlpd': 4.417809395871151, 'test_nlpd': 4.443321691654162, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.633725109267254}
+Iteration 350/5000: Loss=4.6337, Time=17.3s
+Metrics at iteration 400: {'iteration': 400, 'train_rmse': np.float64(0.8788785499733529), 'test_rmse': np.float64(0.8794968694144794), 'train_nlpd': 4.416823297874355, 'test_nlpd': 4.418959975255796, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.6381921159733785}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_400_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_400.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_400.png
+Iteration 400/5000: Loss=4.6382, Time=21.0s
+Metrics at iteration 450: {'iteration': 450, 'train_rmse': np.float64(0.869198762725322), 'test_rmse': np.float64(0.8622590980980394), 'train_nlpd': 4.36798990238844, 'test_nlpd': 4.365469339108997, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.484310339306589}
+Iteration 450/5000: Loss=4.4843, Time=22.2s
+Metrics at iteration 500: {'iteration': 500, 'train_rmse': np.float64(0.8690774917906384), 'test_rmse': np.float64(0.8938013493611229), 'train_nlpd': 4.277113579669991, 'test_nlpd': 4.253730710287877, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.501404527835621}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_500_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_500.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_500.png
+Iteration 500/5000: Loss=4.5014, Time=26.0s
+Metrics at iteration 550: {'iteration': 550, 'train_rmse': np.float64(0.8697304598653042), 'test_rmse': np.float64(0.8762339504235589), 'train_nlpd': 4.2166885477683955, 'test_nlpd': 4.228552182329586, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.359276036714863}
+Iteration 550/5000: Loss=4.3593, Time=27.2s
+Metrics at iteration 600: {'iteration': 600, 'train_rmse': np.float64(0.8429206930166517), 'test_rmse': np.float64(0.8522202700139755), 'train_nlpd': 4.163712582963585, 'test_nlpd': 4.1418594768145764, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.368812245560704}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_600_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_600.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_600.png
+Iteration 600/5000: Loss=4.3688, Time=30.8s
+Metrics at iteration 650: {'iteration': 650, 'train_rmse': np.float64(0.837464016347453), 'test_rmse': np.float64(0.8389813644378805), 'train_nlpd': 4.10890054339446, 'test_nlpd': 4.1466205958352695, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.445532810993849}
+Iteration 650/5000: Loss=4.4455, Time=32.2s
+Metrics at iteration 700: {'iteration': 700, 'train_rmse': np.float64(0.8281942066410763), 'test_rmse': np.float64(0.7888259576162545), 'train_nlpd': 4.052897523356827, 'test_nlpd': 4.116829342921849, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.396254202223955}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_700_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_700.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_700.png
+Iteration 700/5000: Loss=4.3963, Time=35.8s
+Metrics at iteration 750: {'iteration': 750, 'train_rmse': np.float64(0.8158863265266245), 'test_rmse': np.float64(0.7885851834614267), 'train_nlpd': 4.018522504251088, 'test_nlpd': 4.078844724230926, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.3182824049107005}
+Iteration 750/5000: Loss=4.3183, Time=37.2s
+Metrics at iteration 800: {'iteration': 800, 'train_rmse': np.float64(0.7951820959117041), 'test_rmse': np.float64(0.7881898133314746), 'train_nlpd': 4.007947628345027, 'test_nlpd': 3.989514762282317, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.22998902785872}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_800_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_800.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_800.png
+Iteration 800/5000: Loss=4.2300, Time=40.9s
+Metrics at iteration 850: {'iteration': 850, 'train_rmse': np.float64(0.7566247986011512), 'test_rmse': np.float64(0.8380180848729822), 'train_nlpd': 3.9830887789404965, 'test_nlpd': 3.929875554807691, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.268926418469123}
+Iteration 850/5000: Loss=4.2689, Time=42.2s
+Metrics at iteration 900: {'iteration': 900, 'train_rmse': np.float64(0.7379459813332839), 'test_rmse': np.float64(0.7743588674634948), 'train_nlpd': 3.882744789544694, 'test_nlpd': 3.8407347796266156, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.313995097765118}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_900_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_900.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_900.png
+Iteration 900/5000: Loss=4.3140, Time=46.1s
+Metrics at iteration 950: {'iteration': 950, 'train_rmse': np.float64(0.7584523412564753), 'test_rmse': np.float64(0.7606809473369117), 'train_nlpd': 3.915919420831376, 'test_nlpd': 3.845420477799064, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.1714323461598815}
+Iteration 950/5000: Loss=4.1714, Time=47.2s
+Metrics at iteration 1000: {'iteration': 1000, 'train_rmse': np.float64(0.7732131644700918), 'test_rmse': np.float64(0.772419971248259), 'train_nlpd': 3.767281518636586, 'test_nlpd': 3.762211805882289, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.224515822500964}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1000_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1000.png
+Iteration 1000/5000: Loss=4.2245, Time=50.9s
+Metrics at iteration 1050: {'iteration': 1050, 'train_rmse': np.float64(0.7266174592567627), 'test_rmse': np.float64(0.7187773103121892), 'train_nlpd': 3.775166575060444, 'test_nlpd': 3.8303343674891477, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.190951487221798}
+Iteration 1050/5000: Loss=4.1910, Time=52.1s
+Metrics at iteration 1100: {'iteration': 1100, 'train_rmse': np.float64(0.7163434564116316), 'test_rmse': np.float64(0.7275107906156218), 'train_nlpd': 3.7693794717818103, 'test_nlpd': 3.7189536441800177, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.172221912938268}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1100_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1100.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1100.png
+Iteration 1100/5000: Loss=4.1722, Time=55.9s
+Metrics at iteration 1150: {'iteration': 1150, 'train_rmse': np.float64(0.7181661874667027), 'test_rmse': np.float64(0.7396688355654704), 'train_nlpd': 3.6788460775058662, 'test_nlpd': 3.7489190100406264, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9847201815367255}
+Iteration 1150/5000: Loss=3.9847, Time=57.4s
+Metrics at iteration 1200: {'iteration': 1200, 'train_rmse': np.float64(0.7188905173546692), 'test_rmse': np.float64(0.7035764695823475), 'train_nlpd': 3.6455886871306884, 'test_nlpd': 3.653372536010076, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.180261968376093}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1200_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1200.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1200.png
+Iteration 1200/5000: Loss=4.1803, Time=61.2s
+Metrics at iteration 1250: {'iteration': 1250, 'train_rmse': np.float64(0.7370573575832453), 'test_rmse': np.float64(0.7385535572352729), 'train_nlpd': 3.7332172782372326, 'test_nlpd': 3.6043145751097705, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.069267467150054}
+Iteration 1250/5000: Loss=4.0693, Time=62.6s
+Metrics at iteration 1300: {'iteration': 1300, 'train_rmse': np.float64(0.725443955716044), 'test_rmse': np.float64(0.6832438011812864), 'train_nlpd': 3.694821791458425, 'test_nlpd': 3.6812450684547744, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.077696091040628}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1300_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1300.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1300.png
+Iteration 1300/5000: Loss=4.0777, Time=66.7s
+Metrics at iteration 1350: {'iteration': 1350, 'train_rmse': np.float64(0.6858489268738054), 'test_rmse': np.float64(0.7469873182108661), 'train_nlpd': 3.5285098670993365, 'test_nlpd': 3.6214578658780536, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.007284424624567}
+Iteration 1350/5000: Loss=4.0073, Time=68.3s
+Metrics at iteration 1400: {'iteration': 1400, 'train_rmse': np.float64(0.6776114934467661), 'test_rmse': np.float64(0.6824760733826201), 'train_nlpd': 3.49046575402666, 'test_nlpd': 3.6209212270503595, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.033643824862948}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1400_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1400.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1400.png
+Iteration 1400/5000: Loss=4.0336, Time=72.0s
+Metrics at iteration 1450: {'iteration': 1450, 'train_rmse': np.float64(0.6632670790856141), 'test_rmse': np.float64(0.6692905537678459), 'train_nlpd': 3.6498571010258427, 'test_nlpd': 3.5754775484429917, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.261968581954583}
+Iteration 1450/5000: Loss=4.2620, Time=73.3s
+Metrics at iteration 1500: {'iteration': 1500, 'train_rmse': np.float64(0.741893985260307), 'test_rmse': np.float64(0.6905272023481559), 'train_nlpd': 3.5696784010371836, 'test_nlpd': 3.5452745428451813, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.122792034301806}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1500_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1500.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1500.png
+Iteration 1500/5000: Loss=4.1228, Time=77.3s
+Metrics at iteration 1550: {'iteration': 1550, 'train_rmse': np.float64(0.6812371190771374), 'test_rmse': np.float64(0.6919919231691877), 'train_nlpd': 3.567675108633008, 'test_nlpd': 3.5080613515578256, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.02639122288858}
+Iteration 1550/5000: Loss=4.0264, Time=78.4s
+Metrics at iteration 1600: {'iteration': 1600, 'train_rmse': np.float64(0.6846301295189389), 'test_rmse': np.float64(0.6719105766582298), 'train_nlpd': 3.5584585573784, 'test_nlpd': 3.5780747259295476, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.028751194092969}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1600_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1600.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1600.png
+Iteration 1600/5000: Loss=4.0288, Time=82.2s
+Metrics at iteration 1650: {'iteration': 1650, 'train_rmse': np.float64(0.6580195930821651), 'test_rmse': np.float64(0.6961861422008747), 'train_nlpd': 3.598085485656797, 'test_nlpd': 3.5175855286562063, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.117381944990694}
+Iteration 1650/5000: Loss=4.1174, Time=83.4s
+Metrics at iteration 1700: {'iteration': 1700, 'train_rmse': np.float64(0.7405228567689446), 'test_rmse': np.float64(0.7190837061735484), 'train_nlpd': 3.489811293653572, 'test_nlpd': 3.522432401148799, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.058216840526162}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1700_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1700.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1700.png
+Iteration 1700/5000: Loss=4.0582, Time=87.0s
+Metrics at iteration 1750: {'iteration': 1750, 'train_rmse': np.float64(0.6551085285532752), 'test_rmse': np.float64(0.6665479571131351), 'train_nlpd': 3.410710641898218, 'test_nlpd': 3.484426750839061, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.090113939097947}
+Iteration 1750/5000: Loss=4.0901, Time=88.2s
+Metrics at iteration 1800: {'iteration': 1800, 'train_rmse': np.float64(0.6736509175004125), 'test_rmse': np.float64(0.6535283594621281), 'train_nlpd': 3.6105907936826562, 'test_nlpd': 3.52881288624636, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.064865673915271}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1800_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1800.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1800.png
+Iteration 1800/5000: Loss=4.0649, Time=91.8s
+Metrics at iteration 1850: {'iteration': 1850, 'train_rmse': np.float64(0.6450648368693515), 'test_rmse': np.float64(0.6955128930967617), 'train_nlpd': 3.6220266298633907, 'test_nlpd': 3.5062312308853456, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.035395908635803}
+Iteration 1850/5000: Loss=4.0354, Time=93.3s
+Metrics at iteration 1900: {'iteration': 1900, 'train_rmse': np.float64(0.7138266948515788), 'test_rmse': np.float64(0.6736059821424869), 'train_nlpd': 3.586910795394753, 'test_nlpd': 3.494311258989076, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.133701609078868}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_1900_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_1900.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_1900.png
+Iteration 1900/5000: Loss=4.1337, Time=97.2s
+Metrics at iteration 1950: {'iteration': 1950, 'train_rmse': np.float64(0.6625071788912394), 'test_rmse': np.float64(0.6301265907852164), 'train_nlpd': 3.480518438456712, 'test_nlpd': 3.417081678277008, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.012154314930038}
+Iteration 1950/5000: Loss=4.0122, Time=98.8s
+Metrics at iteration 2000: {'iteration': 2000, 'train_rmse': np.float64(0.6747876737349338), 'test_rmse': np.float64(0.6928554867601694), 'train_nlpd': 3.5482211889675384, 'test_nlpd': 3.4488616371672314, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.971390537277357}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2000_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2000.png
+Iteration 2000/5000: Loss=3.9714, Time=102.6s
+Metrics at iteration 2050: {'iteration': 2050, 'train_rmse': np.float64(0.7090878345205802), 'test_rmse': np.float64(0.722149131755676), 'train_nlpd': 3.49836304431183, 'test_nlpd': 3.559638537101264, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.92090606846719}
+Iteration 2050/5000: Loss=3.9209, Time=103.9s
+Metrics at iteration 2100: {'iteration': 2100, 'train_rmse': np.float64(0.694498507928977), 'test_rmse': np.float64(0.6684249085760194), 'train_nlpd': 3.4220641418638036, 'test_nlpd': 3.45759095600716, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.090959214414967}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2100_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2100.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2100.png
+Iteration 2100/5000: Loss=4.0910, Time=107.9s
+Metrics at iteration 2150: {'iteration': 2150, 'train_rmse': np.float64(0.6909764528166742), 'test_rmse': np.float64(0.6758842302080325), 'train_nlpd': 3.565059940048214, 'test_nlpd': 3.56090605231807, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.016310750105833}
+Iteration 2150/5000: Loss=4.0163, Time=109.0s
+Metrics at iteration 2200: {'iteration': 2200, 'train_rmse': np.float64(0.703888237522854), 'test_rmse': np.float64(0.6916335756649363), 'train_nlpd': 3.5387456872254477, 'test_nlpd': 3.490280567863629, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.118522984325752}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2200_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2200.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2200.png
+Iteration 2200/5000: Loss=4.1185, Time=112.9s
+Metrics at iteration 2250: {'iteration': 2250, 'train_rmse': np.float64(0.6944086637355313), 'test_rmse': np.float64(0.6799751582559765), 'train_nlpd': 3.4578275280907316, 'test_nlpd': 3.5939500959563127, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.942249557764827}
+Iteration 2250/5000: Loss=3.9422, Time=114.1s
+Metrics at iteration 2300: {'iteration': 2300, 'train_rmse': np.float64(0.663704559897581), 'test_rmse': np.float64(0.6579618440157914), 'train_nlpd': 3.488269921181785, 'test_nlpd': 3.426670711659666, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.975263127528662}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2300_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2300.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2300.png
+Iteration 2300/5000: Loss=3.9753, Time=117.9s
+Metrics at iteration 2350: {'iteration': 2350, 'train_rmse': np.float64(0.6793084078620695), 'test_rmse': np.float64(0.6626241076342638), 'train_nlpd': 3.4531346559162386, 'test_nlpd': 3.474261881518242, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.947049117274753}
+Iteration 2350/5000: Loss=3.9470, Time=119.1s
+Metrics at iteration 2400: {'iteration': 2400, 'train_rmse': np.float64(0.7256581626155301), 'test_rmse': np.float64(0.6443138845846704), 'train_nlpd': 3.491827115220226, 'test_nlpd': 3.4855285617599447, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9799360446711183}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2400_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2400.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2400.png
+Iteration 2400/5000: Loss=3.9799, Time=122.7s
+Metrics at iteration 2450: {'iteration': 2450, 'train_rmse': np.float64(0.7097579630684694), 'test_rmse': np.float64(0.7359170446751697), 'train_nlpd': 3.3903947185283685, 'test_nlpd': 3.4496252928316933, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.020030972073605}
+Iteration 2450/5000: Loss=4.0200, Time=123.9s
+Metrics at iteration 2500: {'iteration': 2500, 'train_rmse': np.float64(0.6961366946072461), 'test_rmse': np.float64(0.6967132273125363), 'train_nlpd': 3.5586253797439356, 'test_nlpd': 3.569875011285294, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9360023257220753}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2500_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2500.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2500.png
+Iteration 2500/5000: Loss=3.9360, Time=127.7s
+Metrics at iteration 2550: {'iteration': 2550, 'train_rmse': np.float64(0.6380295926425973), 'test_rmse': np.float64(0.7146141183830959), 'train_nlpd': 3.502826905957263, 'test_nlpd': 3.4620957427043586, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9376138221801407}
+Iteration 2550/5000: Loss=3.9376, Time=129.2s
+Metrics at iteration 2600: {'iteration': 2600, 'train_rmse': np.float64(0.6365932794675047), 'test_rmse': np.float64(0.6762937818934017), 'train_nlpd': 3.5532368547174227, 'test_nlpd': 3.616759994371438, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.089445833293851}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2600_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2600.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2600.png
+Iteration 2600/5000: Loss=4.0894, Time=133.1s
+Metrics at iteration 2650: {'iteration': 2650, 'train_rmse': np.float64(0.6602606834394023), 'test_rmse': np.float64(0.7288961733338714), 'train_nlpd': 3.383950085068561, 'test_nlpd': 3.3859096392172234, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.214674882500188}
+Iteration 2650/5000: Loss=4.2147, Time=134.5s
+Metrics at iteration 2700: {'iteration': 2700, 'train_rmse': np.float64(0.654122592415), 'test_rmse': np.float64(0.6708280116182533), 'train_nlpd': 3.412251177142821, 'test_nlpd': 3.438226581377375, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.037660631271231}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2700_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2700.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2700.png
+Iteration 2700/5000: Loss=4.0377, Time=138.3s
+Metrics at iteration 2750: {'iteration': 2750, 'train_rmse': np.float64(0.6951364582874221), 'test_rmse': np.float64(0.6803204742320489), 'train_nlpd': 3.378151572471132, 'test_nlpd': 3.4034677095212396, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.115232199382406}
+Iteration 2750/5000: Loss=4.1152, Time=139.5s
+Metrics at iteration 2800: {'iteration': 2800, 'train_rmse': np.float64(0.6573012666667157), 'test_rmse': np.float64(0.6644410159612754), 'train_nlpd': 3.4621448974036664, 'test_nlpd': 3.355989892534606, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.120777536762455}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2800_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2800.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2800.png
+Iteration 2800/5000: Loss=4.1208, Time=143.5s
+Metrics at iteration 2850: {'iteration': 2850, 'train_rmse': np.float64(0.6910076791839791), 'test_rmse': np.float64(0.639873748754064), 'train_nlpd': 3.4532446147005293, 'test_nlpd': 3.442185477415311, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9229920803433074}
+Iteration 2850/5000: Loss=3.9230, Time=144.7s
+Metrics at iteration 2900: {'iteration': 2900, 'train_rmse': np.float64(0.6417623932384864), 'test_rmse': np.float64(0.6692142491283164), 'train_nlpd': 3.4536180303504658, 'test_nlpd': 3.417915728998405, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.0852832441356846}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_2900_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_2900.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_2900.png
+Iteration 2900/5000: Loss=4.0853, Time=148.5s
+Metrics at iteration 2950: {'iteration': 2950, 'train_rmse': np.float64(0.7063218855443413), 'test_rmse': np.float64(0.6694037956068163), 'train_nlpd': 3.4104446926340146, 'test_nlpd': 3.474609179612815, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.8650637051848005}
+Iteration 2950/5000: Loss=3.8651, Time=149.7s
+Metrics at iteration 3000: {'iteration': 3000, 'train_rmse': np.float64(0.6674268564783228), 'test_rmse': np.float64(0.6916681927364161), 'train_nlpd': 3.554212817067584, 'test_nlpd': 3.4389488993711206, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.906859324146262}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3000_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3000.png
+Iteration 3000/5000: Loss=3.9069, Time=153.5s
+Metrics at iteration 3050: {'iteration': 3050, 'train_rmse': np.float64(0.6561066287727331), 'test_rmse': np.float64(0.6945997443481906), 'train_nlpd': 3.3301633060870817, 'test_nlpd': 3.562194697725143, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.127400680899144}
+Iteration 3050/5000: Loss=4.1274, Time=154.8s
+Metrics at iteration 3100: {'iteration': 3100, 'train_rmse': np.float64(0.6686613527275318), 'test_rmse': np.float64(0.6441232796926543), 'train_nlpd': 3.3698569047313414, 'test_nlpd': 3.401512748544278, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9124055137968936}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3100_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3100.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3100.png
+Iteration 3100/5000: Loss=3.9124, Time=158.7s
+Metrics at iteration 3150: {'iteration': 3150, 'train_rmse': np.float64(0.6837733574075413), 'test_rmse': np.float64(0.6882406655002828), 'train_nlpd': 3.4004749282582614, 'test_nlpd': 3.50436734852152, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.03943878082654}
+Iteration 3150/5000: Loss=4.0394, Time=160.1s
+Metrics at iteration 3200: {'iteration': 3200, 'train_rmse': np.float64(0.7185072449095259), 'test_rmse': np.float64(0.7290566040591461), 'train_nlpd': 3.3799976583090787, 'test_nlpd': 3.4480739899850485, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.7983671472977147}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3200_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3200.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3200.png
+Iteration 3200/5000: Loss=3.7984, Time=164.3s
+Metrics at iteration 3250: {'iteration': 3250, 'train_rmse': np.float64(0.6654570320995914), 'test_rmse': np.float64(0.7410988637718994), 'train_nlpd': 3.4963470299830846, 'test_nlpd': 3.490971712315812, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9731942887915057}
+Iteration 3250/5000: Loss=3.9732, Time=165.9s
+Metrics at iteration 3300: {'iteration': 3300, 'train_rmse': np.float64(0.6773838509239182), 'test_rmse': np.float64(0.691521909379403), 'train_nlpd': 3.3903509066366304, 'test_nlpd': 3.596276102193374, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.103424342852618}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3300_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3300.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3300.png
+Iteration 3300/5000: Loss=4.1034, Time=169.8s
+Metrics at iteration 3350: {'iteration': 3350, 'train_rmse': np.float64(0.7056285229618575), 'test_rmse': np.float64(0.6769273905739186), 'train_nlpd': 3.4973417015656993, 'test_nlpd': 3.480562387329992, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.079181044916189}
+Iteration 3350/5000: Loss=4.0792, Time=171.6s
+Metrics at iteration 3400: {'iteration': 3400, 'train_rmse': np.float64(0.7162426695145276), 'test_rmse': np.float64(0.7160066913631961), 'train_nlpd': 3.437002222599547, 'test_nlpd': 3.508996683298521, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9963977781420312}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3400_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3400.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3400.png
+Iteration 3400/5000: Loss=3.9964, Time=175.5s
+Metrics at iteration 3450: {'iteration': 3450, 'train_rmse': np.float64(0.6603326411806865), 'test_rmse': np.float64(0.7293755992160017), 'train_nlpd': 3.409207569847518, 'test_nlpd': 3.5353130845501863, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.863687811782348}
+Iteration 3450/5000: Loss=3.8637, Time=177.0s
+Metrics at iteration 3500: {'iteration': 3500, 'train_rmse': np.float64(0.6765364022886627), 'test_rmse': np.float64(0.695770779577169), 'train_nlpd': 3.369464573371457, 'test_nlpd': 3.3492959588815148, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.016779434380759}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3500_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3500.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3500.png
+Iteration 3500/5000: Loss=4.0168, Time=181.2s
+Metrics at iteration 3550: {'iteration': 3550, 'train_rmse': np.float64(0.6920058587165665), 'test_rmse': np.float64(0.684209525479762), 'train_nlpd': 3.4049557297233517, 'test_nlpd': 3.367581233363678, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.953551433289831}
+Iteration 3550/5000: Loss=3.9536, Time=182.5s
+Metrics at iteration 3600: {'iteration': 3600, 'train_rmse': np.float64(0.6693158989103837), 'test_rmse': np.float64(0.6927835127393057), 'train_nlpd': 3.502231983181913, 'test_nlpd': 3.481083626715893, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.076096045325461}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3600_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3600.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3600.png
+Iteration 3600/5000: Loss=4.0761, Time=186.3s
+Metrics at iteration 3650: {'iteration': 3650, 'train_rmse': np.float64(0.7165197291277492), 'test_rmse': np.float64(0.671937010557271), 'train_nlpd': 3.4787684350124777, 'test_nlpd': 3.466561750150137, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.044698249492888}
+Iteration 3650/5000: Loss=4.0447, Time=187.6s
+Metrics at iteration 3700: {'iteration': 3700, 'train_rmse': np.float64(0.6703344185819496), 'test_rmse': np.float64(0.6756603559518853), 'train_nlpd': 3.4066335397016467, 'test_nlpd': 3.5588514252816266, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.977493431531633}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3700_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3700.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3700.png
+Iteration 3700/5000: Loss=3.9775, Time=191.4s
+Metrics at iteration 3750: {'iteration': 3750, 'train_rmse': np.float64(0.670491603903535), 'test_rmse': np.float64(0.728419026761057), 'train_nlpd': 3.5004567989107382, 'test_nlpd': 3.429644916535401, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.106652268729991}
+Iteration 3750/5000: Loss=4.1067, Time=192.8s
+Metrics at iteration 3800: {'iteration': 3800, 'train_rmse': np.float64(0.6626066849517829), 'test_rmse': np.float64(0.6969001275789624), 'train_nlpd': 3.483775544002089, 'test_nlpd': 3.3709823499179024, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.045356191434338}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3800_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3800.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3800.png
+Iteration 3800/5000: Loss=4.0454, Time=196.5s
+Metrics at iteration 3850: {'iteration': 3850, 'train_rmse': np.float64(0.6902760230582832), 'test_rmse': np.float64(0.6941530340097956), 'train_nlpd': 3.491016727895859, 'test_nlpd': 3.426199128809947, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9879090126561634}
+Iteration 3850/5000: Loss=3.9879, Time=197.8s
+Metrics at iteration 3900: {'iteration': 3900, 'train_rmse': np.float64(0.6548974379381867), 'test_rmse': np.float64(0.663969264866183), 'train_nlpd': 3.310702366937459, 'test_nlpd': 3.3564169181793413, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.0502803062323505}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_3900_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_3900.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_3900.png
+Iteration 3900/5000: Loss=4.0503, Time=201.6s
+Metrics at iteration 3950: {'iteration': 3950, 'train_rmse': np.float64(0.6763077393430112), 'test_rmse': np.float64(0.6696616167368687), 'train_nlpd': 3.4517612823549575, 'test_nlpd': 3.452196886958101, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.101841042174903}
+Iteration 3950/5000: Loss=4.1018, Time=203.1s
+Metrics at iteration 4000: {'iteration': 4000, 'train_rmse': np.float64(0.6539481906475831), 'test_rmse': np.float64(0.6746979042467459), 'train_nlpd': 3.5136097255784224, 'test_nlpd': 3.3798713724965475, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.973273154051118}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4000_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4000.png
+Iteration 4000/5000: Loss=3.9733, Time=207.1s
+Metrics at iteration 4050: {'iteration': 4050, 'train_rmse': np.float64(0.6628206217937375), 'test_rmse': np.float64(0.6620012664035261), 'train_nlpd': 3.428749725542204, 'test_nlpd': 3.439668762910902, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.921075848222601}
+Iteration 4050/5000: Loss=3.9211, Time=208.6s
+Metrics at iteration 4100: {'iteration': 4100, 'train_rmse': np.float64(0.6800536266789513), 'test_rmse': np.float64(0.6495447046288547), 'train_nlpd': 3.3718378163536364, 'test_nlpd': 3.537108674167758, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.010115977864137}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4100_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4100.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4100.png
+Iteration 4100/5000: Loss=4.0101, Time=212.5s
+Metrics at iteration 4150: {'iteration': 4150, 'train_rmse': np.float64(0.6662671287063568), 'test_rmse': np.float64(0.6889319736695578), 'train_nlpd': 3.399934964913044, 'test_nlpd': 3.423125621295637, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.951498445602699}
+Iteration 4150/5000: Loss=3.9515, Time=213.8s
+Metrics at iteration 4200: {'iteration': 4200, 'train_rmse': np.float64(0.6761287203093566), 'test_rmse': np.float64(0.6782843925111206), 'train_nlpd': 3.473095995345917, 'test_nlpd': 3.4340145331414753, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.986319620861957}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4200_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4200.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4200.png
+Iteration 4200/5000: Loss=3.9863, Time=217.8s
+Metrics at iteration 4250: {'iteration': 4250, 'train_rmse': np.float64(0.697468506982661), 'test_rmse': np.float64(0.6625320598429189), 'train_nlpd': 3.5244115816802055, 'test_nlpd': 3.3456215526711683, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9506228800933223}
+Iteration 4250/5000: Loss=3.9506, Time=219.0s
+Metrics at iteration 4300: {'iteration': 4300, 'train_rmse': np.float64(0.6835459572057061), 'test_rmse': np.float64(0.710386059278507), 'train_nlpd': 3.3335982063548495, 'test_nlpd': 3.4006746582274148, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.030149436896955}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4300_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4300.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4300.png
+Iteration 4300/5000: Loss=4.0301, Time=223.1s
+Metrics at iteration 4350: {'iteration': 4350, 'train_rmse': np.float64(0.7210005850962125), 'test_rmse': np.float64(0.7000059055117185), 'train_nlpd': 3.435452787529286, 'test_nlpd': 3.4507400440086577, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.1682682506369675}
+Iteration 4350/5000: Loss=4.1683, Time=224.2s
+Metrics at iteration 4400: {'iteration': 4400, 'train_rmse': np.float64(0.6610808783564563), 'test_rmse': np.float64(0.6749200233581575), 'train_nlpd': 3.38337313221359, 'test_nlpd': 3.398966337004295, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.04789055255928}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4400_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4400.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4400.png
+Iteration 4400/5000: Loss=4.0479, Time=228.0s
+Metrics at iteration 4450: {'iteration': 4450, 'train_rmse': np.float64(0.6959024900682667), 'test_rmse': np.float64(0.6588909301755382), 'train_nlpd': 3.442696292809681, 'test_nlpd': 3.3937966496598175, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.953739440070215}
+Iteration 4450/5000: Loss=3.9537, Time=229.2s
+Metrics at iteration 4500: {'iteration': 4500, 'train_rmse': np.float64(0.69182515364059), 'test_rmse': np.float64(0.7032823703319917), 'train_nlpd': 3.3325348567016353, 'test_nlpd': 3.390801251070319, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.8125464093404373}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4500_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4500.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4500.png
+Iteration 4500/5000: Loss=3.8125, Time=233.0s
+Metrics at iteration 4550: {'iteration': 4550, 'train_rmse': np.float64(0.6511429220429036), 'test_rmse': np.float64(0.6246894930251791), 'train_nlpd': 3.467258523119455, 'test_nlpd': 3.2769151361651794, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.149056255955266}
+Iteration 4550/5000: Loss=4.1491, Time=234.2s
+Metrics at iteration 4600: {'iteration': 4600, 'train_rmse': np.float64(0.7000392064750028), 'test_rmse': np.float64(0.702552427862059), 'train_nlpd': 3.372816683334084, 'test_nlpd': 3.3910330282392396, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.9432126278862936}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4600_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4600.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4600.png
+Iteration 4600/5000: Loss=3.9432, Time=238.1s
+Metrics at iteration 4650: {'iteration': 4650, 'train_rmse': np.float64(0.681909594854457), 'test_rmse': np.float64(0.6823277337872131), 'train_nlpd': 3.34153321312871, 'test_nlpd': 3.4905955210630557, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.7588677316474417}
+Iteration 4650/5000: Loss=3.7589, Time=239.5s
+Metrics at iteration 4700: {'iteration': 4700, 'train_rmse': np.float64(0.6765840369825861), 'test_rmse': np.float64(0.6831134770119567), 'train_nlpd': 3.427863953032512, 'test_nlpd': 3.4315501174994396, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.026589374572914}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4700_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4700.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4700.png
+Iteration 4700/5000: Loss=4.0266, Time=243.4s
+Metrics at iteration 4750: {'iteration': 4750, 'train_rmse': np.float64(0.7011054535864668), 'test_rmse': np.float64(0.6749250498116887), 'train_nlpd': 3.4092362678535166, 'test_nlpd': 3.366278345894318, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.8706448342062196}
+Iteration 4750/5000: Loss=3.8706, Time=245.0s
+Metrics at iteration 4800: {'iteration': 4800, 'train_rmse': np.float64(0.6970494568804504), 'test_rmse': np.float64(0.6340470381888357), 'train_nlpd': 3.494161158981138, 'test_nlpd': 3.456790123615151, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.117406267493815}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4800_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4800.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4800.png
+Iteration 4800/5000: Loss=4.1174, Time=248.8s
+Metrics at iteration 4850: {'iteration': 4850, 'train_rmse': np.float64(0.7052710612866967), 'test_rmse': np.float64(0.6452322561971559), 'train_nlpd': 3.338745065345484, 'test_nlpd': 3.395023006488212, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 3.993708884364516}
+Iteration 4850/5000: Loss=3.9937, Time=250.3s
+Metrics at iteration 4900: {'iteration': 4900, 'train_rmse': np.float64(0.6941761112503949), 'test_rmse': np.float64(0.6751295845626115), 'train_nlpd': 3.476812882803412, 'test_nlpd': 3.466989976005483, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.08950770253031}
+Checkpoint model saved: pre_trained_models/checkpoints/oilflow_ssvi_iter_4900_seed_42.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4900.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4900.png
+Iteration 4900/5000: Loss=4.0895, Time=254.2s
+Metrics at iteration 4950: {'iteration': 4950, 'train_rmse': np.float64(0.6699118835182887), 'test_rmse': np.float64(0.6672554038632296), 'train_nlpd': 3.4088238505511637, 'test_nlpd': 3.555590062734178, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.169407967359639}
+Iteration 4950/5000: Loss=4.1694, Time=255.3s
+Training completed! Final Loss: 4.0537, Total time: 256.4s (19.5 iter/s)
+Plot saved: plots/training_results.png
+Plot saved: plots/1d_histogram_most_important_dim.png
+Final comprehensive metrics computed: {'iteration': 5000, 'train_rmse': np.float64(0.6887483776079385), 'test_rmse': np.float64(0.6255414587881869), 'train_nlpd': 3.42738337115806, 'test_nlpd': 3.4886860995678406, 'train_missing_nlpd': nan, 'test_missing_nlpd': nan, 'train_missing_rmse': nan, 'test_missing_rmse': nan, 'effective_latent_dims': 4, 'total_latent_dims': 4, 'elbo_loss': 4.053696147754854}
+Plot saved: plots/metrics_progression.png
+Plot saved: plots/final_metrics_summary.png
+Checkpoint metrics saved: training_results/oilflow_ssvi_42_checkpoint_metrics.json
+Training losses saved: training_results/oilflow_ssvi_42_losses.json
+Model saved: pre_trained_models/swiss_roll_ssvi_42.pkl
+Experiment summary saved: experiment_summary.json
