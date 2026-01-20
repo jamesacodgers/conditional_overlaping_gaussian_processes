@@ -9,6 +9,13 @@ import numpy as np
 import urllib.request
 import tarfile
 
+# Import scalers for data standardization
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
+
+# === Data Standardization Configuration ===
+# Options: "standard" (mean=0, std=1), "minmax" ([0,1]), "mean" (mean=0), or "none" (no transform)
+standardization = "mean"  # Default: mean centering
+
 url = "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"
 urllib.request.urlretrieve(url, '3PhData.tar.gz')
 with tarfile.open('3PhData.tar.gz', 'r') as f:
@@ -18,6 +25,43 @@ with tarfile.open('3PhData.tar.gz', 'r') as f:
 y = torch.Tensor(np.loadtxt(fname='DataTrn.txt'))
 labels = torch.Tensor(np.loadtxt(fname='DataTrnLbls.txt'))
 labels = (labels @ np.diag([1, 2, 3])).sum(axis=1)
+
+# === Data Standardization ===
+# Fit scaler on data (before model initialization)
+print(f"\n=== Data Standardization ===")
+print(f"Standardization method: {standardization}")
+
+if standardization == "standard":
+    scaler = StandardScalerPytorch(device=y.device)
+elif standardization == "minmax":
+    scaler = MinMaxScalerPytorch(device=y.device)
+elif standardization == "mean":
+    scaler = MeanCenter(device=y.device)
+elif standardization == "none":
+    scaler = NoTransform(device=y.device)
+else:
+    raise ValueError(
+        f"Unknown standardization method: {standardization}. Must be 'standard', 'minmax', 'mean', or 'none'"
+    )
+
+# Fit scaler on data
+print(f"Fitting scaler on data ({y.shape[0]} samples)...")
+scaler.fit(y)
+
+# Transform data using the fitted scaler
+print(f"Transforming data...")
+print(f"  Before transform - Shape: {y.shape}")
+print(f"  Before transform - Mean: {y.mean().item():.6f}, Std: {y.std().item():.6f}")
+
+y = scaler.transform(y)
+
+# Debug: Show statistics after transform
+print(f"  After transform - Mean: {y.mean().item():.6f}, Std: {y.std().item():.6f}")
+if hasattr(scaler, 'min'):
+    print(f"  After transform - Min: {y.min().item():.6f}, Max: {y.max().item():.6f}")
+
+print(f"Standardization completed.")
+print("=" * 50)
 A = 6
 Vx = torch.randn(12,A)
 mu_x,_,_ =  torch.pca_lowrank(y,A)

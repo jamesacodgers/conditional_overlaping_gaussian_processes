@@ -68,6 +68,7 @@ from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_ef
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 plt.style.use('ggplot')
 
@@ -208,6 +209,61 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     print(f"Data split shapes - Train: {Y_train.shape}, Test: {Y_test.shape}")
     print(f"Labels split info - Train: {type(lb_train)}, length: {len(lb_train) if hasattr(lb_train, '__len__') else 'no length'}")
     print(f"Labels split info - Test: {type(lb_test)}, length: {len(lb_test) if hasattr(lb_test, '__len__') else 'no length'}")
+    
+    # === Data Standardization ===
+    # Fit scaler on training data only (before missing data preprocessing)
+    print(f"\n=== Data Standardization ===")
+    print(f"Standardization method: {config.standardization}")
+
+    if config.standardization == "standard":
+        scaler = StandardScalerPytorch(device=config.device)
+    elif config.standardization == "minmax":
+        scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
+    elif config.standardization == "none":
+        scaler = NoTransform(device=config.device)
+    else:
+        raise ValueError(
+            f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', 'mean', or 'none'"
+        )
+
+    # Fit scaler on training data only (critical: don't mix test data)
+    print(f"Fitting scaler on training data only ({Y_train.shape[0]} samples)...")
+    scaler.fit(Y_train)
+
+    # Transform all data using the scaler fitted on training data
+    print(f"Transforming train/test data...")
+    print(
+        f"  Before transform - Train shape: {Y_train.shape}, Test shape: {Y_test.shape}"
+    )
+    print(f"  Scaler mean shape: {scaler.mean.shape}")
+    print(
+        f"  Before transform - Train mean: {Y_train.mean().item():.6f}, Test mean: {Y_test.mean().item():.6f}"
+    )
+    print(
+        f"  Before transform - Train std: {Y_train.std().item():.6f}, Test std: {Y_test.std().item():.6f}"
+    )
+
+    Y_train = scaler.transform(Y_train)
+    Y_test = scaler.transform(Y_test)
+
+    # Debug: Show statistics after transform
+    print(
+        f"  After transform - Train mean: {Y_train.mean().item():.6f}, Test mean: {Y_test.mean().item():.6f}"
+    )
+    print(
+        f"  After transform - Train std: {Y_train.std().item():.6f}, Test std: {Y_test.std().item():.6f}"
+    )
+    print(
+        f"  After transform - Train min: {Y_train.min().item():.6f}, Test min: {Y_test.min().item():.6f}"
+    )
+    print(
+        f"  After transform - Train max: {Y_train.max().item():.6f}, Test max: {Y_test.max().item():.6f}"
+    )
+
+    print(f"Standardization completed.")
+    print("=" * 50)
     
     # Apply missing data preprocessing if enabled (using same function as SSVI for alignment)
     if config.enable_missing_data:
@@ -874,7 +930,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     y_train=Y_train,
                     model_name=model_name,
                     center="zeros",
-                    save_path=latent_slice_path_origin
+                    save_path=latent_slice_path_origin,
+                    scaler=scaler
                 )
                 print(f"  Saved latent slice (origin) to: {latent_slice_path_origin}")
                 
@@ -891,7 +948,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         model_name=model_name,
                         center="data_point",
                         n_idx=idx,
-                        save_path=latent_slice_path
+                        save_path=latent_slice_path,
+                        scaler=scaler
                     )
                     print(f"  Saved latent slice (point {idx}) to: {latent_slice_path}")
         except Exception as e:

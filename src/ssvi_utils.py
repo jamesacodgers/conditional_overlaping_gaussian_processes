@@ -924,7 +924,7 @@ def plot_final_metrics_summary(metrics_computer,
 
 
 @torch.no_grad()
-def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_path=None):
+def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_path=None, scaler=None):
     """
     Plot 1D latent slice with outer-expectation uncertainty bands.
     
@@ -939,6 +939,7 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
                 must provide n_idx to specify which data point to use as center.
         n_idx: int, index of data point to use as center when center="data_point"
         save_path: str, optional path to save the plot. If None, displays the plot.
+        scaler: optional scaler for inverse transform (to visualize in original scale)
     """
     device = model.device
     Q, M, P = model.A, model.M, model.P
@@ -994,8 +995,34 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
     
     pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))        # [G, M]
 
+    # Inverse transform predictions if scaler provided (for visualization in original scale)
+    if scaler is not None:
+        f = scaler.inverse_transform(f)  # [G, M]
+        # For standard deviation, scale by scaler's std if available
+        if hasattr(scaler, 'std'):
+            pred_sd = pred_sd * scaler.std  # [G, M]
+        # For variance-based scalers, we need to handle differently
+        # For now, just scale by std if available, otherwise keep as is
+
+    # Compute Y-axis limits from actual data for consistent scaling across models
+    # Get data in original scale (inverse transform if scaler provided)
+    y_data_for_limits = y_train.clone()
+    if scaler is not None:
+        y_data_for_limits = scaler.inverse_transform(y_data_for_limits)
+    
+    # Compute global Y-axis limits from data range (with padding for uncertainty bands)
+    y_min_global = y_data_for_limits.min().item()
+    y_max_global = y_data_for_limits.max().item()
+    y_range = y_max_global - y_min_global
+    y_padding = 0.4 * y_range  # 40% padding (fixed proportion for consistency across scripts)
+    y_lim_min = y_min_global - y_padding
+    y_lim_max = y_max_global + y_padding
+
     # 9) plot - show first 12 dimensions (or M if M < 12)
     xnp = xs.detach().cpu().numpy()
+    
+    # Set X-axis limits for consistency (already using [-3, 3] range)
+    x_lim_min, x_lim_max = -3.0, 3.0
     
     # Plot only first 12 dimensions (or all if M < 12)
     M_plot = min(M, 12)
@@ -1014,6 +1041,9 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
         ax.set_title(f"y[{m}] vs x_{j} (l={ells[j]:.2g})", fontsize=9)
         ax.set_xlabel(f"x_{j}")
         ax.set_ylabel(f"y[{m}]")
+        # Set consistent axis limits
+        ax.set_xlim(x_lim_min, x_lim_max)
+        ax.set_ylim(y_lim_min, y_lim_max)
     
     for k in range(M_plot, len(axes)):
         axes[k].axis("off")
