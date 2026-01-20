@@ -579,8 +579,9 @@ def visualize_prior_samples_averaged(
         pred_var = f_var + model.sigma2  # [P, n_images, M]
         
         # Average over P samples (mean prediction and variance)
+        # For variance: use law of total variance = variance of means + mean of variances
         f_mean_avg = f_mean.mean(dim=0)  # [n_images, M]
-        pred_var_avg = pred_var.mean(dim=0)  # [n_images, M]
+        pred_var_avg = f_mean.var(dim=0) + pred_var.mean(dim=0)  # [n_images, M]
     
     # Inverse transform for visualization if scaler provided
     if scaler is not None:
@@ -637,6 +638,146 @@ def visualize_prior_samples_averaged(
     
     # Return generated images (mean) and variance averaged over P
     return f_mean_avg, pred_var_avg
+
+
+def visualize_test_image_predictions(
+    model,
+    y_train: torch.Tensor,
+    config,
+    n_images: int = 24,
+    save_path: Optional[str] = None,
+    show_plot: bool = False,
+    dataset_name: str = "MNIST",
+    image_shape: tuple = (28, 28),
+    scaler=None
+):
+    """
+    Visualize predictions for selected test images using their latent representations.
+    
+    This function:
+    1. Samples n_images indices from the test set using config.random_seed
+    2. For each selected image:
+       - Gets latent variable (mu_x, sigma_x) using amortized inference
+       - Uses the same U samples as in prior sampling
+       - Gets f_mean and f_var using the latent variables
+    3. Visualizes mean and variance in a grid
+    
+    Args:
+        model: Trained SSVI GP-LVM model
+        y_train: Test data [N, M]
+        config: Configuration object with random_seed attribute
+        n_images: Number of images to visualize (default: 24)
+        save_path: Path to save the visualization (optional)
+        show_plot: Whether to display the plot (default: False)
+        dataset_name: Name of the dataset for plot title (default: "MNIST")
+        image_shape: Shape of the output image (default: (28, 28) for MNIST)
+        scaler: Scaler for inverse transform (optional)
+    
+    Returns:
+        f_mean_avg: Tensor of mean predictions [n_images, M]
+        pred_var_avg: Tensor of predictive variances [n_images, M]
+    """
+    model.eval()
+    
+    with torch.no_grad():
+        # Get model parameters
+        device = model.gp.Vx.device
+        
+        # 1. Sample image indices from test set using config seed
+        N = y_train.shape[0]
+        if n_images > N:
+            n_images = N
+        
+        # Use config seed for reproducibility
+        rng = np.random.RandomState(config.random_seed)
+        image_indices = rng.choice(N, size=n_images, replace=False)
+        image_indices = torch.tensor(image_indices, dtype=torch.int64, device=device)
+        
+        # Get selected images
+        y_selected = y_train[image_indices]  # [n_images, M]
+        
+        # Handle missing data preprocessing for encoder input
+        if model.enable_missing_data:
+            y_selected_clean = torch.where(
+                torch.isnan(y_selected), 
+                torch.full_like(y_selected, -9.0, dtype=torch.float64), 
+                y_selected
+            )
+        else:
+            y_selected_clean = y_selected
+        
+        # 2. Get U samples from variational posterior q(U) (same as prior sampling)
+        U_samples = model.get_u_samples()  # [P, M, C, L]
+        
+        # 3. Get latent variables for selected images using amortized inference
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_selected_clean, U_samples)
+        # mu_x: [P, n_images, latent_dim], sigma_x: [P, n_images, latent_dim]
+        
+        # 4. Get GP predictive distribution using latent variables
+        # Use mu_x directly as x values (mean of latent distribution)
+        # mu_x is already [P, n_images, latent_dim], matching the expected input shape
+        # Get GP predictive mean: [P, n_images, M, C]
+        f_mean = model.gp.get_gp_expectation_given_U(mu_x, U_samples)
+        
+        # For C=1 case (standard GP-LVM for images), extract mean
+        if f_mean.shape[-1] == 1:
+            f_mean = f_mean[..., 0]  # [P, n_images, M]
+        
+        # Average over P samples (mean prediction)
+        f_mean_avg = f_mean.mean(dim=0)  # [n_images, M]
+    
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        f_mean_avg = scaler.inverse_transform(f_mean_avg)
+    
+    img_h, img_w = image_shape
+    
+    # Create grid layout
+    n_cols = min(8, n_images)
+    n_rows = (n_images + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 1.5, n_rows * 1.5))
+    
+    # Handle edge cases
+    if n_rows == 1 and n_cols == 1:
+        axes = np.array([[axes]])
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)
+    elif n_cols == 1:
+        axes = axes.reshape(-1, 1)
+    
+    for i in range(n_images):
+        row = i // n_cols
+        col = i % n_cols
+        img_mean = f_mean_avg[i].cpu().numpy().reshape(img_h, img_w)
+        img_mean = np.clip(img_mean, 0, 1)
+        axes[row, col].imshow(img_mean, cmap='gray', vmin=0, vmax=1)
+        axes[row, col].axis('off')
+    
+    # Hide unused subplots
+    for i in range(n_images, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        axes[row, col].axis('off')
+    
+    fig.suptitle(f'{dataset_name} Test Image Predictions', fontsize=14)
+    plt.tight_layout()
+    
+    # Save if path provided
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Test image predictions visualization saved: {save_path}")
+    
+    # Show if requested
+    if show_plot:
+        plt.show()
+    else:
+        plt.close(fig)
+    
+    model.train()
+    
+    # Return mean predictions
+    return f_mean_avg
 
 
 def visualize_prior_samples_original_gplvm(
@@ -810,12 +951,14 @@ def visualize_prior_samples_original_gplvm_averaged(
         f_mean_stacked = torch.stack(f_mean_samples, dim=0)  # [n_samples, n_images, data_dim]
         f_var_stacked = torch.stack(f_var_samples, dim=0)    # [n_samples, n_images, data_dim]
         
-        f_mean_avg = f_mean_stacked.mean(dim=0)  # [n_images, data_dim]
-        f_var_avg = f_var_stacked.mean(dim=0)    # [n_images, data_dim]
-        
-        # Add observation noise to get predictive variance
+        # Add observation noise to each sample's variance first
         obs_noise = likelihood.noise
-        pred_var_avg = f_var_avg + obs_noise  # [n_images, data_dim]
+        pred_var_stacked = f_var_stacked + obs_noise  # [n_samples, n_images, data_dim]
+        
+        # Average over samples (mean prediction and variance)
+        # For variance: use law of total variance = variance of means + mean of variances
+        f_mean_avg = f_mean_stacked.mean(dim=0)  # [n_images, data_dim]
+        pred_var_avg = f_mean_stacked.var(dim=0) + pred_var_stacked.mean(dim=0)  # [n_images, data_dim]
     
     # Inverse transform for visualization if scaler provided
     if scaler is not None:
@@ -872,6 +1015,156 @@ def visualize_prior_samples_original_gplvm_averaged(
     
     # Return generated images (mean) and variance averaged over samples
     return f_mean_avg, pred_var_avg
+
+def visualize_test_image_predictions_original_gplvm(
+    model,
+    likelihood,
+    y_test: torch.Tensor,
+    config,
+    model_name: str = 'nn_gauss',
+    n_images: int = 24,
+    save_path: Optional[str] = None,
+    show_plot: bool = False,
+    dataset_name: str = "MNIST",
+    image_shape: tuple = (28, 28),
+    scaler=None
+):
+    """
+    Visualize predictions for selected test images using their latent representations.
+    
+    This function:
+    1. Samples n_images indices from the test set using config.random_seed
+    2. For each selected image:
+       - Gets latent variable using encoder (for nn_gauss)
+       - Gets GP predictive mean using the latent variables
+    3. Visualizes mean predictions in a grid
+    
+    Args:
+        model: Trained Original GP-LVM model (BayesianGPLVM)
+        likelihood: The Gaussian likelihood from the model
+        y_test: Test data [N, M]
+        config: Configuration object with random_seed and enable_missing_data attributes
+        model_name: Model name ('nn_gauss' or 'gauss', default: 'nn_gauss')
+        n_images: Number of images to visualize (default: 24)
+        save_path: Path to save the visualization (optional)
+        show_plot: Whether to display the plot (default: False)
+        dataset_name: Name of the dataset for plot title (default: "MNIST")
+        image_shape: Shape of the output image (default: (28, 28) for MNIST)
+        scaler: Scaler for inverse transform (optional)
+    
+    Returns:
+        f_mean: Tensor of mean predictions [n_images, M]
+    """
+    model.eval()
+    likelihood.eval()
+    
+    with torch.no_grad():
+        # Get model parameters
+        device = model.variational_strategy.inducing_points.device
+        latent_dim = model.variational_strategy.inducing_points.shape[1]
+        
+        # 1. Sample image indices from test set using config seed
+        N = y_test.shape[0]
+        if n_images > N:
+            n_images = N
+        
+        # Use config seed for reproducibility
+        rng = np.random.RandomState(config.random_seed)
+        image_indices = rng.choice(N, size=n_images, replace=False)
+        image_indices = torch.tensor(image_indices, dtype=torch.int64, device=device)
+        
+        # Get selected images
+        y_selected = y_test[image_indices]  # [n_images, M]
+        
+        # 2. Get latent variables for selected images
+        if model_name == 'nn_gauss':
+            # For nn_gauss, use encoder
+            # Temporarily adjust jitter size
+            original_jitter = model.X.jitter
+            test_jitter = torch.eye(latent_dim, dtype=torch.float64, device=device).unsqueeze(0) * 1e-5
+            model.X.jitter = torch.cat([test_jitter for _ in range(n_images)], axis=0)
+            
+            # Handle missing data preprocessing for encoder input
+            if config.enable_missing_data:
+                y_selected_clean = torch.where(
+                    torch.isnan(y_selected),
+                    torch.full_like(y_selected, -9.0, dtype=torch.float64),
+                    y_selected
+                )
+            else:
+                y_selected_clean = y_selected
+            
+            # Get latent variables using encoder
+            X_selected_mean = model.X.mu(y_selected_clean)  # [n_images, latent_dim]
+            
+            # Restore original jitter
+            model.X.jitter = original_jitter
+        else:
+            # For gauss model, would need predict_latent which is expensive
+            # This function assumes nn_gauss for efficiency
+            raise ValueError(f"visualize_test_image_predictions_original_gplvm currently only supports nn_gauss model, got {model_name}")
+        
+        # 3. Get GP predictive distribution using latent variables
+        # model(x) returns MultivariateNormal with shape [data_dim, n_images]
+        gp_dist = model(X_selected_mean)
+        
+        # Extract mean (same approach as prior samples)
+        # gp_dist.loc has shape [data_dim, n_images], transpose to [n_images, data_dim]
+        f_mean = gp_dist.loc.T  # [n_images, data_dim]
+    
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        f_mean = scaler.inverse_transform(f_mean)
+    
+    img_h, img_w = image_shape
+    
+    # Create grid layout
+    n_cols = min(8, n_images)
+    n_rows = (n_images + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 1.5, n_rows * 1.5))
+    
+    # Handle edge cases
+    if n_rows == 1 and n_cols == 1:
+        axes = np.array([[axes]])
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)
+    elif n_cols == 1:
+        axes = axes.reshape(-1, 1)
+    
+    for i in range(n_images):
+        row = i // n_cols
+        col = i % n_cols
+        img_mean = f_mean[i].cpu().numpy().reshape(img_h, img_w)
+        img_mean = np.clip(img_mean, 0, 1)
+        axes[row, col].imshow(img_mean, cmap='gray', vmin=0, vmax=1)
+        axes[row, col].axis('off')
+    
+    # Hide unused subplots
+    for i in range(n_images, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        axes[row, col].axis('off')
+    
+    fig.suptitle(f'{dataset_name} Test Image Predictions (Original GP-LVM)', fontsize=14)
+    plt.tight_layout()
+    
+    # Save if path provided
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Test image predictions visualization saved: {save_path}")
+    
+    # Show if requested
+    if show_plot:
+        plt.show()
+    else:
+        plt.close(fig)
+    
+    model.train()
+    likelihood.train()
+    
+    # Return mean predictions
+    return f_mean
 
 
 def visualize_mnist_missing_reconstruction_gauss(
@@ -1192,4 +1485,5 @@ def visualize_mnist_missing_reconstruction_gauss_detailed(
     print(f"Missing pixels mean RMSE (first {n_images} images): {mean_rmse:.4f}")
     
     return mean_rmse
+
 
