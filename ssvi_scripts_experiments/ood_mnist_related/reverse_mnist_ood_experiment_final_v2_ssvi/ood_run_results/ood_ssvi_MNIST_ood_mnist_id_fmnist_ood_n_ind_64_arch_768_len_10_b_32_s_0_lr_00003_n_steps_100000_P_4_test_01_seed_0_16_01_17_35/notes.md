@@ -1,0 +1,1 @@
+This quadratically decayed to the prior 

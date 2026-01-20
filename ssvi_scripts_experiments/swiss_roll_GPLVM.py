@@ -69,6 +69,7 @@ from src.missing_data_utils import preprocess_data_for_missing_training, rmse_mi
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling
 from src.data_utils import generate_swiss_roll_data
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 plt.style.use('ggplot')
 
@@ -182,6 +183,66 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     print(f"Data split shapes - Train: {Y_train.shape}, Test: {Y_test.shape}")
     print(f"Labels split info - Train: {type(lb_train)}, length: {len(lb_train) if hasattr(lb_train, '__len__') else 'no length'}")
     print(f"Labels split info - Test: {type(lb_test)}, length: {len(lb_test) if hasattr(lb_test, '__len__') else 'no length'}")
+    
+    # === Data Standardization ===
+    # Fit scaler on training data only (before missing data preprocessing)
+    print(f"\n=== Data Standardization ===")
+    print(f"Standardization method: {config.standardization}")
+
+    if config.standardization == "standard":
+        scaler = StandardScalerPytorch(device=config.device)
+    elif config.standardization == "minmax":
+        scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
+    elif config.standardization == "none":
+        scaler = NoTransform(device=config.device)
+    else:
+        raise ValueError(
+            f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', 'mean', or 'none'"
+        )
+
+    # Fit scaler on training data only (critical: don't mix test data)
+    print(f"Fitting scaler on training data only ({Y_train.shape[0]} samples)...")
+    scaler.fit(Y_train)
+
+    # Transform all data using the scaler fitted on training data
+    print(f"Transforming train/test data...")
+    print(
+        f"  Before transform - Train shape: {Y_train.shape}, Test shape: {Y_test.shape}"
+    )
+    if hasattr(scaler, 'mean'):
+        print(f"  Scaler mean shape: {scaler.mean.shape}")
+    print(
+        f"  Before transform - Train mean: {Y_train.mean().item():.6f}, Test mean: {Y_test.mean().item():.6f}"
+    )
+    print(
+        f"  Before transform - Train std: {Y_train.std().item():.6f}, Test std: {Y_test.std().item():.6f}"
+    )
+
+    Y_train = scaler.transform(Y_train)
+    Y_test = scaler.transform(Y_test)
+
+    # Debug: Show statistics after transform
+    print(
+        f"  After transform - Train mean: {Y_train.mean().item():.6f}, Test mean: {Y_test.mean().item():.6f}"
+    )
+    print(
+        f"  After transform - Train std: {Y_train.std().item():.6f}, Test std: {Y_test.std().item():.6f}"
+    )
+    if hasattr(scaler, 'min'):
+        print(
+            f"  After transform - Train min: {Y_train.min().item():.6f}, Test min: {Y_test.min().item():.6f}"
+        )
+        print(
+            f"  After transform - Train max: {Y_train.max().item():.6f}, Test max: {Y_test.max().item():.6f}"
+        )
+
+    print(f"Standardization completed.")
+    print("=" * 50)
+
+    # Store scaler in config for later use (e.g., inverse transform in plotting)
+    config.scaler = scaler
     
     # Apply missing data preprocessing if enabled (using same function as SSVI for alignment)
     if config.enable_missing_data:
@@ -494,7 +555,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if logger.get_results_dir():
             try:
                 # Import function only when needed to avoid directory creation issues
-                from src.swiss_roll_plot_helper import create_standardized_scattered_plot
+                from src.swiss_roll_plot_helper import create_standardized_scattered_plot, visualize_swiss_roll_reconstruction_original_gplvm
                 # lb_train is already a numpy array from train_test_split, no need to convert
                 # Use Y_train on the same device as model to avoid device mismatch
                 create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="SwissRoll", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device))
@@ -729,6 +790,27 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             }
             
             logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
+            
+            # Visualize Swiss roll reconstruction for this model
+            print(f"\n=== Swiss Roll Reconstruction Visualization ({model_name}) ===")
+            try:
+                # Use the already computed X_train_mean and X_train_covar
+                visualize_swiss_roll_reconstruction_original_gplvm(
+                    model=model,
+                    y_train=Y_train,
+                    labels_train=lb_train,
+                    config=config,
+                    model_name=model_name,
+                    logger=logger,
+                    n_reconstruction_samples=32,  # Number of reconstruction samples for averaging
+                    show_plot=False,
+                    X_mean=X_train_mean_device,  # Use already computed latent means
+                    X_covar=X_train_covar  # Use already computed latent covariances
+                )
+                print(f"Swiss roll reconstruction visualization completed for {model_name}.")
+            except Exception as e:
+                print(f"Warning: Could not create reconstruction visualization for {model_name}: {e}")
+            print("=" * 50)
     
     # Save final experiment summary
     logger.save_final_summary(results_summary)

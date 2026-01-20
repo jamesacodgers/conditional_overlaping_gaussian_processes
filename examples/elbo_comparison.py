@@ -69,7 +69,9 @@ def main():
 
     # Generate identical inputs for both ELBOs using the same random base for q(u)
     # Draw U from Struc sampling and feed the SAME fixed samples to both models
-    U_samples = struc.get_u_samples().detach()  # [P, M, C, L]
+    epsilon = struc.get_epsilon()
+
+    U_samples = struc.get_u_samples(epsilon).detach()  # [P, M, C, L]
     mu_x_P = struc.mu_x_train.detach()          # [P, N, Q]
     Sigma_x_P = struc.Sigma_x_train.detach()    # [P, N, Q]
 

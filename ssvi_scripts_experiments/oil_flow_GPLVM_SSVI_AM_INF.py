@@ -19,8 +19,6 @@ Usage examples:
 import torch 
 import matplotlib.pyplot as plt
 
-from dataclasses import dataclass
-from typing import Any
 import numpy as np
 import urllib.request
 import tarfile
@@ -45,104 +43,10 @@ from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
 )
+from src.ssvi_config import OilFlowSSVIConfig
+from ssvi_scripts_experiments.mnist_ood_GPLVM_SSVI_AM_INF import OilFlow_SSVI_GPLVM
 
 # Device will be set in main() from config
-
-@dataclass
-class OilFlowSSVIConfig:
-    """Configuration for Oil Flow SSVI GP-LVM with Amortized Inference"""
-    
-    total_size = None  # To be set after data loading
-
-    # === Device Configuration ===
-    device: str = "auto"  # "auto", "cuda", "cpu", or specific device like "cuda:0"
-    
-    # === Data Configuration ===
-    # data_url: str = "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.tar.gz"  # Now using data folder approach
-    latent_dim: int = 6  # A = 6 from original
-    test_size_int: int = 50  # Number of test samples (like original GP LVM)
-    random_seed: int = 7  # Random seed for reproducibility
-    
-    # === Model Architecture ===
-    n_inducing_points: int = 64
-    encoder_hidden_dims: list = None  # Will be set to [256, 128, 64] if None
-    
-    # === Training Configuration ===
-    training_iterations: int = 1000
-    batch_size: int = 100
-    
-    # === Learning Rates ===
-    local_lr: float = 1e-3   # Encoder parameters
-    global_lr: float = 1e-2  # GP hyperparameters (higher like in original)
-    
-    # === GP Hyperparameters ===
-    sigma2_s: Any = None     # Signal variances (None = auto)
-    init_lengthscales: float = 1.0  # Initial lengthscales value (1/beta) - default matches current standard
-    init_output_noise_scale: float = 1.0  # Initial output noise scale (sigma2) - default matches current standard
-    P: int = 8               # Number of samples for SSVI (like original)
-    trainable_V: bool = True
-    
-    # === Progress Reporting ===
-    log_frequency: int = 100  # Log every N iterations
-    checkpoint_frequency: int = 100  # Save checkpoint models every N iterations
-    
-    # === Advanced Logging ===
-    enable_gradient_logging: bool = False  # Log gradients and parameter changes
-    gradient_log_frequency: int = 50       # Log gradients every N iterations
-    save_results: bool = True              # Save results to folder
-    results_dir: str = "oil_flow_results/ssvi_results"  # Results directory (relative to current working directory)
-
-    # === Metrics Configuration ===
-    enable_metrics: bool = True            # Compute evaluation metrics
-    metrics_frequency: int = 4000           # Compute metrics every N iterations
-    test_size: float = 0.1                 # Fraction of data for testing
-    
-    # === Visualization Configuration ===
-    save_training_plots: bool = True       # Save training result plots during training (saved with checkpoints)
-    plot_training: bool = True             # Plot training progress
-    plot_latent_space: bool = True         # Plot latent space visualization  
-    plot_hyperparams: bool = True          # Plot model hyperparameters
-    plot_latent_slice: bool = True         # Plot 1D latent slice with uncertainty bands (adaptive grid from data)
-    
-    # === Missing Data Configuration ===
-    enable_missing_data: bool = False      # Enable missing data reconstruction capability
-    missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
-    reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
-    
-    # === MNIST Data Filtering Configuration ===
-    mnist_digits: list = None           # List of digits to include (e.g., [0, 1, 2]). None = all digits (0-9)
-    samples_per_digit: int = None          # Number of samples per digit. None = use all available samples
-    
-    def __post_init__(self):
-        """Set default encoder architecture and resolve device if not specified"""
-        if self.encoder_hidden_dims is None:
-            self.encoder_hidden_dims = [256, 128, 64]
-        
-        # Resolve device configuration
-        if self.device == "auto":
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    def print_config(self):
-        """Print configuration summary"""
-        print("=== Oil Flow SSVI GP-LVM Configuration ===")
-        print(f"Device: {self.device}")
-        if torch.cuda.is_available():
-            print(f"CUDA available: {torch.cuda.get_device_name(0) if self.device.startswith('cuda') else 'Not using CUDA'}")
-        else:
-            print("CUDA available: No")
-        print(f"Model: {self.n_inducing_points} inducing points, latent_dim={self.latent_dim}")
-        print(f"Encoder: {self.encoder_hidden_dims} hidden dims")
-        print(f"Training: {self.training_iterations} iter, batch={self.batch_size}")
-        print(f"Learning rates: Local={self.local_lr}, Global={self.global_lr}")
-        print(f"Random seed: {self.random_seed}")
-        print(f"Init lengthscales: {self.init_lengthscales}")
-        print(f"Init output noise scale: {self.init_output_noise_scale}")
-        print(f"SSVI: P={self.P} samples")
-        print(f"Logging: Save results={self.save_results}, Gradients={self.enable_gradient_logging}")
-        if self.enable_gradient_logging:
-            print(f"  Gradient log frequency: every {self.gradient_log_frequency} iterations")
-
-        print("=" * 50)
 
 def load_oil_flow_data(config: OilFlowSSVIConfig):
     """Load and preprocess oil flow data with optional train/test split"""
@@ -226,110 +130,12 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
 
     return y, labels, Vx, mu_x, split_data
 
-class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
-    """Oil Flow SSVI GP-LVM with Amortized Inference"""
-    
-    def __init__(self, config: OilFlowSSVIConfig, Vx, mu_x, M):
-        # Use init_lengthscales to create beta values
-        # beta = lengthscales, so for init_lengthscales=1.0, beta=[1,1,1,1,1,1]
-        beta = [[config.init_lengthscales] * config.latent_dim] * 1  # C=1 for GP-LVM
-        
-        # Use init_output_noise_scale for sigma2 initialization
-        sigma2 = config.init_output_noise_scale
-        
-        # Initialize underlying SSVI model
-        super().__init__(
-            Vx=Vx,
-            M=M,  # Observation dimension
-            mu_x=mu_x,
-            sigma2=sigma2,
-            beta=beta,
-            sigma2_s=config.sigma2_s,
-            P=config.P,
-            trainable_V=config.trainable_V,
-            encoder_hidden_dims=config.encoder_hidden_dims,
-            local_lr=config.local_lr, 
-            global_lr=config.global_lr,
-            device=config.device,
-            enable_missing_data=config.enable_missing_data
-        )
-        
-        # Store config
-        self.config = config
-
-    def train_step(self, Y_batch: torch.Tensor, batch_indices: torch.Tensor, U_samples: torch.Tensor = None):
-        """
-        Modified train_step: proper SSVI separation of local/global optimization
-        """
-        # Convert input data to float64 to match model parameters
-        Y_batch = Y_batch.to(dtype=torch.float64)
-        
-        # Zero gradients for local optimizer (encoder) only initially
-        self.optimizer_local.zero_grad()
-
-        # Sample U before amortized inference step
-        U_samples = self.get_u_samples()
-
-        # Handle missing data preprocessing for encoder input
-        if self.enable_missing_data:
-            # Replace NaN values with -9.0 for encoder input (encoder expects clean data)
-            Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0, dtype=torch.float64), Y_batch)
-            # Get local parameters via amortized inference (gradients only to encoder)
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples)
-        else:
-            # Standard case: no missing data preprocessing needed
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
-
-        sigma_n_batch = sigma_n_batch**2
-
-        # Now zero gradients for global optimizer before global computation
-        self.optimizer_global.zero_grad()
-        
-        # Compute global ELBO loss (gradients flow to all parameters)
-        if self.enable_missing_data:
-            # Use missing data aware ELBO (coordinator handles the missing mask automatically)
-            missing_mask = torch.isnan(Y_batch)
-            # Use the same clean data for ELBO computation to maintain consistency with encoder
-            loss = -self.ssvi_elbo(Y_batch_clean,
-                                   mu_n_batch,
-                                   sigma_n_batch,
-                                   U_samples=U_samples,
-                                   batch_size=self.config.batch_size,
-                                   total_size=self.config.total_size,
-                                   missing_mask=missing_mask)
-        else:
-            # Standard ELBO computation
-            loss = -self.ssvi_elbo(Y_batch,
-                                   mu_n_batch,
-                                   sigma_n_batch,
-                                   U_samples=U_samples,
-                                   batch_size=self.config.batch_size,
-                                   total_size=self.config.total_size,
-                                   missing_mask=None)
-        
-        # Backward pass (gradients computed for all parameters)
-        loss.backward()
-        
-        # Update parameters with different learning rates
-        self.optimizer_local.step()
-        self.optimizer_global.step()
-        
-        return loss.item()
-
-    @property 
-    def mu_x(self): 
-        return self.mu_x_train
-    
-    @property 
-    def Sigma_x(self): 
-        return self.Sigma_x_train
-    
-
-
 def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIConfig,
                         logger: SSVIResultsLogger = None, split_data=None, labels_train=None):
     """Training function for Oil Flow SSVI GP-LVM with optional logging and metrics"""
-    losses = []
+    losses = []  # Batch ELBO losses (for training monitoring)
+    full_elbo_losses = []  # Full dataset ELBO (for metrics and plots)
+    full_elbo_iterations = []  # Iterations at which full ELBO was computed
     
     print(f"Training Oil Flow SSVI GP-LVM...")
     print(f"Iterations: {config.training_iterations}, Batch size: {config.batch_size}")
@@ -341,15 +147,18 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
         metrics_computer = SSVIMetricsComputer(device=config.device, metrics_batch_size=config.batch_size)
     
     start_time = time.time()
-    
+    init_prior_weight = 1
     for i in range(config.training_iterations):
         # Sample batch indices
         N = y_train.shape[0]
         batch_indices = torch.randperm(N, device=y_train.device)[:config.batch_size]
         y_batch = y_train[batch_indices]
-        
+
         # Training step - U sampling happens inside automatically each step
-        loss = model.train_step(y_batch, batch_indices)
+        # prior_weight = init_prior_weight 
+        # prior_weight = init_prior_weight + (i/config.training_iterations)*(1-init_prior_weight)
+        prior_weight = (init_prior_weight-1)/2 + (init_prior_weight-1)/2*torch.cos(torch.tensor(torch.pi*i/config.training_iterations)) + 1
+        loss = model.train_step(y_batch, batch_indices, prior_weight=prior_weight)
         losses.append(loss)
         
         # Metrics computation (periodic)
@@ -359,7 +168,20 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
             
             print(f"  Computing metrics at iteration {i}...")
 
-                # Use full datasets for proper evaluation
+            # Compute full dataset loss (negative ELBO, for metrics and plots)
+            if config.enable_missing_data:
+                full_elbo = model.compute_full_elbo(
+                    split_data['y_train'], missing_mask=split_data['train_missing_mask']
+                )
+            else:
+                full_elbo = model.compute_full_elbo(split_data['y_train'])
+
+            # Store as negative ELBO (loss) for consistency with batch losses
+            full_elbo_losses.append(-full_elbo)
+            full_elbo_iterations.append(i)
+            print(f"    Full Dataset Loss: {-full_elbo:.4f} (batch loss: {loss:.4f})")
+
+            # Use full datasets for proper evaluation
             # Compute metrics with missing data info if enabled
             if config.enable_missing_data:
                 metrics = metrics_computer.compute_full_metrics(
@@ -367,7 +189,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                     y_train=split_data['y_train'],
                     y_test=split_data['y_test'],
                     iteration=i,
-                    elbo_loss=loss,
+                    elbo_loss=full_elbo,  # Use full dataset ELBO
                     n_samples=32,  # Fixed number of samples for metrics computation
                     y_train_original=split_data['y_train_original'],
                     y_test_original=split_data['y_test_original'],
@@ -380,11 +202,11 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                     y_train=split_data['y_train'],
                     y_test=split_data['y_test'],
                     iteration=i,
-                    elbo_loss=loss,
+                    elbo_loss=full_elbo,  # Use full dataset ELBO
                     n_samples=32  # Fixed number of samples for metrics computation
                 )
             
-            print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} (Ratio: {metrics.test_rmse/metrics.train_rmse:.3f})")
+            print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} ")
             print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
             if config.enable_missing_data and not np.isnan(metrics.train_missing_nlpd):
                 print(f"    Train Missing Data NLPD: {metrics.train_missing_nlpd:.3f}")
@@ -395,7 +217,7 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
             print(f"    Effective dims: {metrics.effective_latent_dims}/{metrics.total_latent_dims}")
             print(f"    Full datasets: Train={split_data['y_train'].shape[0]}, Test={split_data['y_test'].shape[0]} samples")
                 
-                # Log metrics
+            # Log metrics
             if logger:
                 logger.log_training(f"Metrics at iteration {i}: {metrics.to_dict()}")
                             
@@ -411,17 +233,20 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                 # Save checkpoint plot (if enabled)
                 if config.save_training_plots:
                     plot_filename = f"training_results_iter_{i}.png"
+                    # Use full ELBO losses for checkpoint plots
                     visualize_ssvi_results(
                         model=model,
                         y_train=y_train,
                         labels_train=labels_train,
-                        losses=losses,
+                        losses=full_elbo_losses,  # Use full dataset ELBO for plots
                         config=config,
                         logger=logger,
                         save_filename=plot_filename,
                         show_plot=False,
                         is_checkpoint=True,
-                        train_indices=split_data['train_indices']
+                        train_indices=split_data['train_indices'],
+                        full_elbo_iterations=full_elbo_iterations,
+                        batch_losses=losses  # Batch losses up to current iteration
                     )
                     print(f"    Checkpoint plot saved: {plot_filename}")
                 
@@ -445,15 +270,40 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
                 logger.log_training(message)
     
     total_time = time.time() - start_time
-    final_message = f"Training completed! Final Loss: {losses[-1]:.4f}, Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)"
+
+    # Compute final full dataset loss (negative ELBO)
+    if config.enable_missing_data and split_data is not None:
+        final_full_elbo = model.compute_full_elbo(
+            split_data['y_train'], missing_mask=split_data['train_missing_mask']
+        )
+    elif split_data is not None:
+        final_full_elbo = model.compute_full_elbo(split_data['y_train'])
+    else:
+        if config.enable_missing_data:
+            missing_mask = torch.isnan(y_train)
+        else:
+            missing_mask = None
+        final_full_elbo = model.compute_full_elbo(y_train, missing_mask=missing_mask)
+
+    # Store as negative ELBO (loss) for consistency with batch losses
+    full_elbo_losses.append(-final_full_elbo)
+    full_elbo_iterations.append(config.training_iterations)
+
+    final_message = f"Training completed! Final Full Loss: {-final_full_elbo:.4f} (batch loss: {losses[-1]:.4f}), Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)"
     print(f"Training completed!")
-    print(f"Final Loss: {losses[-1]:.4f}")
+    print(f"Final Full Dataset Loss: {-final_full_elbo:.4f}")
+    print(f"Final Batch Loss: {losses[-1]:.4f}")
     print(f"Total time: {total_time:.1f}s ({config.training_iterations/total_time:.1f} iter/s)")
     # Log to file
     if logger:
         logger.log_training(final_message)
     
-    return losses, metrics_computer
+    # Return full ELBO losses for plots (with iterations for x-axis)
+    return {
+        "batch_losses": losses,
+        "full_elbo_losses": full_elbo_losses,
+        "full_elbo_iterations": full_elbo_iterations,
+    }, metrics_computer
 
 # === Pre-defined Configurations ===
 
@@ -524,7 +374,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     )
     
     print(f"Model initialized:")
-    print(f"  Encoder: {model.encoder}")
+    print(f"  Mu Encoder: {model.mu_encoder}")
+    print(f"  Sigma Encoder: {model.sigma_encoder}")
     print(f"  Inducing points: {model.gp.Vx.shape}")
     print(f"  Latent variables: {model.mu_x.shape}")
     
@@ -541,11 +392,27 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     
     # Train model
     print(f"\nTraining model...")
-    losses, metrics_computer = train_oil_flow_ssvi(model, y_train, config, logger, split_data, labels_train)
+    training_result, metrics_computer = train_oil_flow_ssvi(model, y_train, config, logger, split_data, labels_train)
     
-    # Visualize results
+    # Extract losses from training result
+    batch_losses = training_result["batch_losses"]
+    full_elbo_losses = training_result["full_elbo_losses"]
+    full_elbo_iterations = training_result["full_elbo_iterations"]
+    
+    # Visualize results (use full ELBO losses for plots)
     print(f"\nVisualizing results...")
-    visualize_ssvi_results(model, y_train, labels_train, losses, config, logger, show_plot=False, train_indices=split_data['train_indices'])
+    visualize_ssvi_results(
+        model, 
+        y_train, 
+        labels_train, 
+        full_elbo_losses, 
+        config, 
+        logger, 
+        show_plot=False, 
+        train_indices=split_data['train_indices'],
+        full_elbo_iterations=full_elbo_iterations,
+        batch_losses=batch_losses
+    )
     
     # Generate final metrics and plots if metrics were computed
     if metrics_computer is not None and config.enable_metrics and split_data is not None:
@@ -555,13 +422,17 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         print("Computing final metrics on full datasets...")
         
         # Compute final metrics with missing data info if enabled
+        # Use final full ELBO for metrics (not batch ELBO)
+        # Note: full_elbo_losses stores -elbo (loss), so negate to get ELBO
+        final_full_elbo = -full_elbo_losses[-1] if full_elbo_losses else 0.0
+        
         if config.enable_missing_data:
             final_metrics = metrics_computer.compute_full_metrics(
                 model=model,
                 y_train=split_data['y_train'],
                 y_test=split_data['y_test'],
                 iteration=config.training_iterations,
-                elbo_loss=losses[-1] if losses else 0.0,
+                elbo_loss=final_full_elbo,
                 n_samples=32,  # Fixed number of samples for final metrics computation
                 y_train_original=split_data['y_train_original'],
                 y_test_original=split_data['y_test_original'],
@@ -574,7 +445,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 y_train=split_data['y_train'],
                 y_test=split_data['y_test'],
                 iteration=config.training_iterations,
-                elbo_loss=losses[-1] if losses else 0.0,
+                elbo_loss=final_full_elbo,
                 n_samples=32  # Fixed number of samples for final metrics computation
             )
         
@@ -602,7 +473,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         
         # Generate metrics plots
         print("Generating metrics progression plots...")
-        plot_metrics_history(metrics_computer, logger, show_plot=False)
+        plot_metrics_history(metrics_computer, logger, show_plot=False, batch_losses=batch_losses)
         
         print("Generating final metrics summary plots...")
         plot_final_metrics_summary(metrics_computer, model, logger, show_plot=False)
@@ -618,8 +489,11 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         if logger:
             print("Saving checkpoint metrics...")
             logger.save_checkpoint_metrics(metrics_computer, "oilflow_ssvi", config.random_seed)
-            print("Saving training losses...")
-            logger.save_training_losses(losses, "oilflow_ssvi", config.random_seed)
+            print("Saving training losses (full dataset loss)...")
+            # Save full dataset losses (negative ELBO, for metrics/plots)
+            logger.save_training_losses(full_elbo_losses, "oilflow_ssvi_full_loss", config.random_seed)
+            # Also save batch losses for reference
+            logger.save_training_losses(batch_losses, "oilflow_ssvi_batch", config.random_seed)
 
     
     # Generate latent slice visualization (after all metrics and plots)
@@ -689,13 +563,14 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 'test_missing_data_nlpd': summary.get('final_test_missing_nlpd', float('nan')),
                 'train_missing_data_rmse': summary.get('final_train_missing_rmse', float('nan')),
                 'test_missing_data_rmse': summary.get('final_test_missing_rmse', float('nan')),
-                'final_loss': losses[-1] if losses else 0.0,
+                'final_full_loss': full_elbo_losses[-1] if full_elbo_losses else 0.0,
+                'final_batch_loss': batch_losses[-1] if batch_losses else 0.0,
                 'final_noise': float(final_noise)  # Ensure it's a Python float
             }
         
         logger.save_experiment_summary(experiment_summary)
     
-    return model, losses, config, metrics_computer, final_metrics
+    return model, training_result, config, metrics_computer, final_metrics
 
 if __name__ == "__main__":
     # Parse command line arguments

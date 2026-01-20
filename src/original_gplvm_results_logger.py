@@ -185,7 +185,7 @@ class OriginalGPLVMResultsLogger:
                     'iteration': iteration,
                     'train_rmse': float(train_rmse),
                     'train_nlpd': float(train_nlpd),
-                    'elbo_loss': float(loss)
+                    'full_dataset_elbo_loss': float(loss)  # Negative ELBO (loss) computed on full dataset
                 }
                 # Add effective dimensions if available
                 if effective_dims_list and i < len(effective_dims_list):
@@ -204,6 +204,22 @@ class OriginalGPLVMResultsLogger:
                 json.dump(checkpoint_data, f, indent=2)
             
             self.log_training(f"Checkpoint metrics saved: training_results/{os.path.basename(checkpoint_file)}")
+    
+    def save_training_losses(self, losses, model_name: str, random_seed: int):
+        """Save training losses to JSON file in training_results folder"""
+        if self.results_dir:
+            losses_data = {
+                'model_name': model_name,
+                'seed': random_seed,
+                'losses': [float(loss) for loss in losses],
+                'total_iterations': len(losses)
+            }
+            
+            losses_file = os.path.join(self.training_results_dir, f"{model_name}_{random_seed}_losses.json")
+            with open(losses_file, 'w') as f:
+                json.dump(losses_data, f, indent=2)
+            
+            self.log_training(f"Training losses saved: training_results/{os.path.basename(losses_file)}")
     
     def get_results_dir(self) -> Optional[str]:
         """Get results directory path"""

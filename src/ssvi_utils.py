@@ -147,7 +147,7 @@ class SSVIResultsLogger:
                     'test_nlpd': float(metrics.test_nlpd),
                     'train_missing_nlpd': float(metrics.train_missing_nlpd),
                     'test_missing_nlpd': float(metrics.test_missing_nlpd),
-                    'elbo_loss': float(metrics.elbo_loss)
+                    'full_dataset_elbo_loss': float(-metrics.elbo_loss)  # Convert positive ELBO to negative (loss) for consistency
                 }
                 checkpoint_data['checkpoints'].append(checkpoint_entry)
             
@@ -191,8 +191,19 @@ class SSVIResultsLogger:
 
 
 
-def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False, train_indices: torch.Tensor = None):
-    """Visualize SSVI training results and latent space"""
+def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger: SSVIResultsLogger, save_filename: str = "training_results.png", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False, train_indices: torch.Tensor = None, full_elbo_iterations: list = None, batch_losses: list = None):
+    """
+    Visualize SSVI training results and latent space
+    
+    Parameters
+    ----------
+    losses : list
+        Full ELBO losses (negative ELBO values)
+    full_elbo_iterations : list, optional
+        Iteration numbers corresponding to full_elbo_losses. If provided, used for x-axis of full ELBO plot.
+    batch_losses : list, optional
+        Batch ELBO losses (one per training iteration). If provided, creates an additional plot showing batch ELBO progression.
+    """
     
     if not (hasattr(config, 'plot_training') and config.plot_training or
             hasattr(config, 'plot_latent_space') and config.plot_latent_space or
@@ -210,19 +221,37 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             hasattr(config, 'plot_latent_space') and config.plot_latent_space,
             hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
         ]
-        n_plots = sum(plot_flags)
+        plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
+        n_plots = sum(plot_flags) + (1 if plot_batch_elbo else 0)
         fig_width = 4 * n_plots
         fig = plt.figure(figsize=(fig_width, 4))
         
         plot_idx = 1
         
-        # Plot 1: Training curve
+        # Plot 1: Full ELBO Training curve
         if plot_flags[0]:
             plt.subplot(1, n_plots, plot_idx)
-            plt.plot(losses, 'b-', alpha=0.7)
+            if full_elbo_iterations is not None and len(full_elbo_iterations) == len(losses):
+                # Use iteration numbers on x-axis
+                plt.plot(full_elbo_iterations, losses, 'b-', alpha=0.7)
+            else:
+                # Fallback: use indices if iterations not provided
+                plt.plot(losses, 'b-', alpha=0.7)
             plt.xlabel('Iteration')
             plt.ylabel('Loss')
-            plt.title('SSVI Training Curve')
+            plt.title('SSVI Training Curve (Full ELBO)')
+            plt.grid(True, alpha=0.3)
+            plot_idx += 1
+        
+        # Plot 2: Batch ELBO progression (if batch_losses provided)
+        if plot_batch_elbo:
+            plt.subplot(1, n_plots, plot_idx)
+            # Batch losses are computed at every iteration, so x-axis is just iteration indices
+            batch_iterations = list(range(len(batch_losses)))
+            plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
+            plt.xlabel('Iteration')
+            plt.ylabel('Loss')
+            plt.title('Batch ELBO Progression')
             plt.grid(True, alpha=0.3)
             plot_idx += 1
         
@@ -238,15 +267,16 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
             # Get latent variables using new explicit training method
-            U = model.get_u_samples()  # [P, M, C, Lx]
+            epsilon = model.get_epsilon()
+            U = model.get_u_samples(epsilon)  # [P, M, C, Lx]
             
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 # Preprocess encoder input to handle missing data (replace NaN with -9.0)
                 y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)  # [P, N, A]
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, epsilon)  # [P, N, A]
             
             # Keep as torch tensors for sampling, convert to numpy after sampling
             mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
@@ -418,14 +448,15 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             lengthscales = (1 / model.gp.beta.flatten()).cpu()  # Move to CPU
             
             # Get latent variables
-            U = model.get_u_samples()  # [P, M, C, Lx]
+            epsilon = model.get_epsilon()
+            U = model.get_u_samples(epsilon)  # [P, M, C, Lx]
             
             # Handle missing data if enabled
             if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
                 y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)  # [P, N, A]
             else:
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, U)  # [P, N, A]
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, epsilon)  # [P, N, A]
             
             # Move to CPU for plotting
             mu_x_cpu = mu_x.cpu()
@@ -914,11 +945,12 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
     N = y_train.shape[0]  # Number of training points from actual data
 
     # Encode training data to get latent representations
-    U_samples = model.get_u_samples()
+    epsilon = model.get_epsilon()
+    U_samples = model.get_u_samples(epsilon)
     y_encoder_input = torch.where(torch.isnan(y_train), 
                                    torch.full_like(y_train, -9.0, dtype=torch.float64), 
                                    y_train)
-    mu_x_encoded, sigma_x_encoded = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+    mu_x_encoded, sigma_x_encoded = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
     mu_x_mean = mu_x_encoded.mean(0)  # [N, Q] - average over P samples
 
     # 1) pick most-informative latent dim (smallest lengthscale)

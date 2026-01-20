@@ -19,12 +19,21 @@ import plotly.express as px
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 
-def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, model_type="original", custom_filename=None, train_indices=None):
+def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, model_type="original", custom_filename=None, train_indices=None, full_loss_iterations: list = None, batch_losses: list = None):
     """
     Create standardized scattered plots that match the SSVI plotting exactly.
     
     This function replicates the exact structure and styling of the SSVI visualization
     from src/ssvi_utils.py with the same subplot order and styling.
+    
+    Parameters
+    ----------
+    losses : list
+        Full ELBO losses (negative ELBO values)
+    full_loss_iterations : list, optional
+        Iteration numbers corresponding to losses. If provided, used for x-axis of full ELBO plot.
+    batch_losses : list, optional
+        Batch ELBO losses (one per training iteration). If provided, creates a plot showing batch ELBO progression.
     """
     import matplotlib.pyplot as plt
     import torch
@@ -39,21 +48,39 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
         c = ["r", "g", "b"]
         colors = [c[int(i)-1] for i in labels_train]
         
-        # Create figure with same layout as SSVI (3 subplots)
-        n_plots = 3
+        # Determine which plots to show
+        plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
+        n_plots = 1 + (1 if plot_batch_elbo else 0) + 1 + 1  # Full ELBO, Batch ELBO (optional), Latent space, Hyperparams
         fig_width = 4 * n_plots
         fig = plt.figure(figsize=(fig_width, 4))
         
         plot_idx = 1
         
-        # Plot 1: Training curve (exactly like SSVI)
+        # Plot 1: Full ELBO Training curve (always shown)
         plt.subplot(1, n_plots, plot_idx)
-        plt.plot(losses, 'b-', alpha=0.7)
+        if full_loss_iterations is not None and len(full_loss_iterations) == len(losses):
+            # Use iteration numbers on x-axis
+            plt.plot(full_loss_iterations, losses, 'b-', alpha=0.7)
+        else:
+            # Fallback: use indices if iterations not provided
+            plt.plot(losses, 'b-', alpha=0.7)
         plt.xlabel('Iteration')
         plt.ylabel('Loss')
-        plt.title('ELBO Training Curve')
+        plt.title('ELBO Training Curve (Full ELBO)')
         plt.grid(True, alpha=0.3)
         plot_idx += 1
+        
+        # Plot 2: Batch ELBO progression (if batch_losses provided)
+        if plot_batch_elbo:
+            plt.subplot(1, n_plots, plot_idx)
+            # Batch losses are computed at every iteration, so x-axis is just iteration indices
+            batch_iterations = list(range(len(batch_losses)))
+            plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
+            plt.xlabel('Iteration')
+            plt.ylabel('Loss')
+            plt.title('Batch ELBO Progression')
+            plt.grid(True, alpha=0.3)
+            plot_idx += 1
         
         # Plot 2: Latent space visualization (exactly like SSVI)
         plt.subplot(1, n_plots, plot_idx)
@@ -418,9 +445,18 @@ def save_iteration_model(model, model_name, iteration, random_seed, results_dir)
     return filepath
 
 
-def create_iteration_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, iteration, model_type="original", train_indices=None):
+def create_iteration_plot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, iteration, model_type="original", train_indices=None, full_loss_iterations: list = None, batch_losses: list = None):
     """
     Create iteration-based plot saved to plots/checkpoints folder
+    
+    Parameters
+    ----------
+    losses : list
+        Full ELBO losses (negative ELBO values)
+    full_loss_iterations : list, optional
+        Iteration numbers corresponding to losses. If provided, used for x-axis of full ELBO plot.
+    batch_losses : list, optional
+        Batch ELBO losses (one per training iteration). If provided, creates a plot showing batch ELBO progression.
     """
     plot_filename = f"oilflow_{model_name}_iter_{iteration}_seed_{random_seed}.png"
     
@@ -432,7 +468,8 @@ def create_iteration_plot(model, losses, labels_train, config, results_dir, mode
     create_standardized_scattered_plot(
         model, losses, labels_train, config, plots_checkpoints_dir, 
         model_name, random_seed, Y_train, model_type=model_type, 
-        custom_filename=plot_filename, train_indices=train_indices
+        custom_filename=plot_filename, train_indices=train_indices,
+        full_loss_iterations=full_loss_iterations, batch_losses=batch_losses
     )
     
     return plot_filename
