@@ -952,7 +952,8 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
                                    torch.full_like(y_train, -9.0, dtype=torch.float64), 
                                    y_train)
     mu_x_encoded, sigma_x_encoded = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
-    mu_x_mean = mu_x_encoded.mean(0)  # [N, Q] - average over P samples
+    # Take first P sample instead of averaging
+    mu_x_mean = mu_x_encoded[0]  # [N, Q] - first sample from P samples
 
     # 1) pick most-informative latent dim (smallest lengthscale)
     betas = model.gp.beta[0].detach().cpu().numpy()  # (Q,)
@@ -1014,7 +1015,7 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
     y_min_global = y_data_for_limits.min().item()
     y_max_global = y_data_for_limits.max().item()
     y_range = y_max_global - y_min_global
-    y_padding = 0.4 * y_range  # 40% padding (fixed proportion for consistency across scripts)
+    y_padding = 1.0 * y_range  # 100% padding (fixed proportion for consistency across scripts, extra space for histograms)
     y_lim_min = y_min_global - y_padding
     y_lim_max = y_max_global + y_padding
 
@@ -1032,6 +1033,14 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2.5 * n_rows), constrained_layout=True)
     axes = axes.ravel()
     
+    # Sample from q(X) distribution along dimension j for histogram
+    # mu_x_encoded is [P, N, Q], sigma_x_encoded is [P, N, Q] (variance)
+    # Use first P sample instead of averaging
+    sigma_x_first = sigma_x_encoded[0]  # [N, Q] - first sample variance from P samples
+    # Sample from N(mu_x_mean, sigma_x_first) for each data point
+    x_samples_j = torch.normal(mu_x_mean[:, j], torch.sqrt(torch.clamp(sigma_x_first[:, j], min=1e-8)))  # [N]
+    x_j_values = x_samples_j.detach().cpu().numpy()
+    
     for m in range(M_plot):
         mu = f[:, m].cpu().numpy()
         sd = pred_sd[:, m].cpu().numpy()
@@ -1044,6 +1053,17 @@ def plot_latent_slice_outer(model, y_train, center="zeros", n_idx=None, save_pat
         # Set consistent axis limits
         ax.set_xlim(x_lim_min, x_lim_max)
         ax.set_ylim(y_lim_min, y_lim_max)
+        
+        # Add histogram directly on the same axes, aligned with x-axis at bottom
+        # Compute histogram and scale to make it bigger (use 25% of y-axis range)
+        # Use fixed number of bins for consistent granularity across all models
+        counts, bins = np.histogram(x_j_values, bins=15, density=True)
+        y_range_hist = (y_lim_max - y_lim_min) * 0.25
+        max_count = counts.max() if len(counts) > 0 and counts.max() > 0 else 1.0
+        counts_scaled = (counts / max_count) * y_range_hist if max_count > 0 else counts * 0
+        bin_centers = (bins[:-1] + bins[1:]) / 2
+        ax.bar(bin_centers, counts_scaled, width=(bins[1] - bins[0]), 
+               bottom=y_lim_min, alpha=0.6, color='lightblue', edgecolor='black')
     
     for k in range(M_plot, len(axes)):
         axes[k].axis("off")
