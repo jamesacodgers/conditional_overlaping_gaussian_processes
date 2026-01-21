@@ -7,7 +7,7 @@ device: "cuda"
 # Data Configuration  
 dataset: "oilflow"
 test_size: 0.1  # Fraction of data for testing
-random_seed: 2  # Matches oilflow_expt.py: SEED = 7
+random_seed: 4  # Matches oilflow_expt.py: SEED = 7
 
 # Model Configuration (matching SSVI base config)
 latent_dim: 10
@@ -66,14 +66,14 @@ init_output_noise_scale: 1.0
 
 # === OOD Detection Configuration ===
 # In-Distribution (ID) Dataset Configuration
-id_dataset: "FashionMNIST"      # ID dataset name: "MNIST" or "FashionMNIST"
+id_dataset: "MNIST"      # ID dataset name: "MNIST" or "FashionMNIST"
 id_classes: null                # ID class indices (null = all classes)
                                 # FashionMNIST classes: 0=T-shirt, 1=Trouser, 2=Pullover, 3=Dress, 4=Coat,
                                 #                       5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
 id_samples_per_class: 1000       # Samples per ID class (null = use all)
 
 # Out-of-Distribution (OOD) Dataset Configuration
-ood_dataset: "MNIST"             # OOD dataset name (must be explicitly specified)
+ood_dataset: "FashionMNIST"             # OOD dataset name (must be explicitly specified)
 ood_classes: null               # OOD class indices (null = all classes)
                                 # MNIST classes: 0-9 = Digits 0-9
 ood_samples_per_class: 500     # Samples per OOD class (null = use all)
@@ -85,7 +85,7 @@ ood_score_types:                # Score types to compute for OOD detection
   - variance
 
 # OOD Evaluation Configuration
-ood_n_samples: 4               # Number of samples for OOD evaluation (null = default 4)
+ood_n_samples: 16               # Number of samples for OOD evaluation (null = default 4)
 
 # Missing Data Configuration
 enable_missing_data: false       # Enable missing data reconstruction capability
