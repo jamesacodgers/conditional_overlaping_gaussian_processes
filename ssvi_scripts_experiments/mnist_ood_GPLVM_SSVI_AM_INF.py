@@ -417,16 +417,9 @@ def generate_random_missing_mask(data: torch.Tensor, missing_ratio: float, devic
         device = data.device
     
     N, M = data.shape
-    missing_mask = torch.zeros(N, M, dtype=torch.bool, device=device)
-    
-    # Random missing pattern - each data point has random missing dimensions
-    # Use numpy for reproducibility (global seed already set)
-    for i in range(N):
-        n_missing = int(missing_ratio * M)
-        if n_missing > 0:
-            # Use numpy random permutation (reproducible via global seed)
-            missing_dims = np.random.permutation(M)[:n_missing]
-            missing_mask[i, missing_dims] = True
+
+    missing_mask = torch.rand(N, M, dtype=torch.bool, device=device) < missing_ratio
+
     
     return missing_mask
 
