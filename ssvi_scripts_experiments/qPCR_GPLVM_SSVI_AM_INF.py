@@ -49,6 +49,7 @@ from src.ssvi_config_utils import (
 from src.ssvi_config import OilFlowSSVIConfig
 from ssvi_scripts_experiments.mnist_ood_GPLVM_SSVI_AM_INF import OilFlow_SSVI_GPLVM
 from sklearn.model_selection import train_test_split
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 # Device will be set in main() from config
 
@@ -123,6 +124,61 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     print(f"Labels split info - Train: {type(labels_train)}, length: {len(labels_train) if hasattr(labels_train, '__len__') else 'no length'}")
     print(f"Labels split info - Test: {type(labels_test)}, length: {len(labels_test) if hasattr(labels_test, '__len__') else 'no length'}")
 
+    # === Data Standardization ===
+    # Fit scaler on training data only (before missing data preprocessing)
+    print(f"\n=== Data Standardization ===")
+    print(f"Standardization method: {config.standardization}")
+
+    if config.standardization == "standard":
+        scaler = StandardScalerPytorch(device=config.device)
+    elif config.standardization == "minmax":
+        scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
+    elif config.standardization == "none":
+        scaler = NoTransform(device=config.device)
+    else:
+        raise ValueError(
+            f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', 'mean', or 'none'"
+        )
+
+    # Fit scaler on training data only (critical: don't mix test data)
+    print(f"Fitting scaler on training data only ({y_train.shape[0]} samples)...")
+    scaler.fit(y_train)
+
+    # Transform all data using the scaler fitted on training data
+    print(f"Transforming train/test data...")
+    print(
+        f"  Before transform - Train shape: {y_train.shape}, Test shape: {y_test.shape}"
+    )
+    print(f"  Scaler mean shape: {scaler.mean.shape}")
+    print(
+        f"  Before transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}"
+    )
+    print(
+        f"  Before transform - Train std: {y_train.std().item():.6f}, Test std: {y_test.std().item():.6f}"
+    )
+
+    y_train = scaler.transform(y_train)
+    y_test = scaler.transform(y_test)
+
+    # Debug: Show statistics after transform
+    print(
+        f"  After transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}"
+    )
+    print(
+        f"  After transform - Train std: {y_train.std().item():.6f}, Test std: {y_test.std().item():.6f}"
+    )
+    print(
+        f"  After transform - Train min: {y_train.min().item():.6f}, Test min: {y_test.min().item():.6f}"
+    )
+    print(
+        f"  After transform - Train max: {y_train.max().item():.6f}, Test max: {y_test.max().item():.6f}"
+    )
+
+    print(f"Standardization completed.")
+    print("=" * 50)
+
     # Use training data for model initialization
     y = y_train
     labels = labels_train
@@ -134,7 +190,9 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
         'train_indices': train_indices_tensor,
         'test_indices': test_indices_tensor,
         'pseudo_train': pseudo_train,
-        'pseudo_test': pseudo_test
+        'pseudo_test': pseudo_test,
+        # Scaler for inverse transforms (needed for visualization)
+        'scaler': scaler,
     }
     # Initialize inducing points and latent variables (following original)
     Vx = torch.randn(config.n_inducing_points, config.latent_dim, dtype=torch.float64, device=config.device)
@@ -387,13 +445,15 @@ def get_fast_config():
         init_lengthscales=1.0,          # Initial lengthscales value (1/beta) - default matches current standard
         init_output_noise_scale=1.0,    # Initial output noise scale (sigma2) - default matches current standard
         # === Missing Data Configuration ===
-        enable_missing_data=True,      # Enable missing data reconstruction capability
+        enable_missing_data=False,     # Disabled for fast config
         missing_data_ratio=0.3,        # Fraction of dimensions to artificially mask (for testing)
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
         # === Random Seed Configuration ===
         random_seed=7,                 # Random seed for reproducibility (matches SSVI base config)
         # === Test Size Configuration ===
-        test_size=0.2                  # Fast config uses 0.2 (20% for testing)
+        test_size=0.2,                 # Fast config uses 0.2 (20% for testing)
+        # === Data Standardization Configuration ===
+        standardization="mean"         # "standard" (mean=0, std=1), "minmax" ([0,1]), "mean" (mean=0), or "none" (no transform)
     )
 
 def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
@@ -569,7 +629,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             model=model,
             y_train=y_train,
             center="zeros",
-            save_path=latent_slice_path_origin
+            save_path=latent_slice_path_origin,
+            scaler=split_data.get('scaler')
         )
         print(f"  Saved latent slice (origin) to: {latent_slice_path_origin}")
         
@@ -585,7 +646,8 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 y_train=y_train,
                 center="data_point",
                 n_idx=idx,
-                save_path=latent_slice_path
+                save_path=latent_slice_path,
+                scaler=split_data.get('scaler')
             )
             print(f"  Saved latent slice (point {idx}) to: {latent_slice_path}")
     except Exception as e:

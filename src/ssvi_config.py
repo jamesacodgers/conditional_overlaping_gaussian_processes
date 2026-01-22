@@ -74,6 +74,9 @@ class OilFlowSSVIConfig:
     mnist_digits: list = None           # List of digits to include (e.g., [0, 1, 2]). None = all digits (0-9)
     samples_per_digit: int = None          # Number of samples per digit. None = use all available samples
     
+    # === Data Standardization Configuration ===
+    standardization: str = "mean"  # "standard" (mean=0, std=1), "minmax" ([0,1]), "mean" (mean=0), or "none" (no transform)
+    
     def __post_init__(self):
         """Set default encoder architecture and resolve device if not specified"""
         if self.encoder_hidden_dims is None:

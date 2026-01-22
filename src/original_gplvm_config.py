@@ -144,7 +144,7 @@ def get_fast_config():
         init_lengthscales=2.0,  # Initial lengthscales value (default matches GPyTorch RBFKernel)
         init_output_noise_scale=2.0,  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
         # === Missing Data Configuration ===
-        enable_missing_data=True,      # Enable missing data for MNIST testing and visualization
+        enable_missing_data=False,     # Disabled for fast config (can be enabled for MNIST testing)
         missing_data_ratio=0.3,        # 30% missing data for testing
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
         # === MNIST Data Filtering Configuration ===
