@@ -8,8 +8,9 @@
 # GP-LVM with configurations from a specified subfolder.
 #
 # Usage examples:
-#   # Run all configs in ood_mnist_related/mnist_ssvi_configs
+#   # Run all configs in any config subfolder
 #   ./run_mnist_ood_ssvi_configs_folder.sh ood_mnist_related/mnist_ssvi_configs
+#   ./run_mnist_ood_ssvi_configs_folder.sh ssvi_configs/my_ood_configs
 #
 #   # Run specific config file
 #   ./run_mnist_ood_ssvi_configs_folder.sh ood_mnist_related/mnist_ssvi_configs mnist_base_lr_0001_s7.yaml
@@ -99,6 +100,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Examples:"
             echo "  $0 ood_mnist_related/mnist_ssvi_configs"
+            echo "  $0 ssvi_configs/my_ood_configs"
             echo "  $0 ood_mnist_related/mnist_ssvi_configs mnist_base_lr_0001_s7.yaml"
             echo "  $0 ood_mnist_related/mnist_ssvi_configs --device cuda"
             echo "  $0 ood_mnist_related/mnist_ssvi_configs --id-dataset MNIST"
@@ -139,11 +141,13 @@ CONFIG_DIR="$SCRIPT_DIR/$CONFIG_SUBFOLDER"
 if [[ ! -d "$CONFIG_DIR" ]]; then
     echo "Error: Config directory does not exist: $CONFIG_DIR"
     echo "Available config paths:"
-    if [[ -d "$SCRIPT_DIR/ood_mnist_related" ]]; then
-        find "$SCRIPT_DIR/ood_mnist_related" -type d -name "*" | sed "s|$SCRIPT_DIR/||" | grep -v "^ood_mnist_related$" | sed 's/^/  - /'
-    else
-        echo "  (ood_mnist_related directory not found)"
-    fi
+    # Search for common config directories
+    for dir in "$SCRIPT_DIR/ood_mnist_related" "$SCRIPT_DIR/ssvi_configs" "$SCRIPT_DIR"; do
+        if [[ -d "$dir" ]]; then
+            find "$dir" -type d -name "*" | sed "s|$SCRIPT_DIR/||" | grep -v "^$" | sed 's/^/  - /' | head -20
+            break
+        fi
+    done
     exit 1
 fi
 
@@ -171,9 +175,24 @@ run_config() {
     # Extract config name from filename (remove .yaml extension)
     local config_name=$(basename "$config_file" .yaml)
     
+    # Determine Python executable
+    # Priority: 1) PYTHON_CMD env var, 2) python3 in PATH, 3) python in PATH, 4) relative venv path
+    local PYTHON_EXE
+    if [[ -n "$PYTHON_CMD" ]]; then
+        PYTHON_EXE="$PYTHON_CMD"
+    elif command -v python3 &> /dev/null; then
+        PYTHON_EXE="python3"
+    elif command -v python &> /dev/null; then
+        PYTHON_EXE="python"
+    elif [[ -f "$PROJECT_ROOT/.venv/bin/python" ]]; then
+        PYTHON_EXE="$PROJECT_ROOT/.venv/bin/python"
+    else
+        echo "Error: Could not find Python executable. Please activate your virtual environment or set PYTHON_CMD environment variable."
+        return 1
+    fi
+    
     # Build command (now running from ssvi_scripts_experiments directory)
-    # Adjust the Python path as needed for your environment
-    local cmd="/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/bin/python mnist_ood_GPLVM_SSVI_AM_INF.py --config \"$config_path\" --config-name \"$config_name\""
+    local cmd="$PYTHON_EXE mnist_ood_GPLVM_SSVI_AM_INF.py --config \"$config_path\" --config-name \"$config_name\""
     
     # Only add device parameter if explicitly specified
     if [[ -n "$DEVICE" ]]; then
