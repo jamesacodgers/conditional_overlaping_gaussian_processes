@@ -13,12 +13,12 @@ n_inducing_points: 64
 encoder_hidden_dims: [512, 256]
 
 # Training Configuration
-training_iterations: 20000
+training_iterations: 100000
 batch_size: 32
 
 # Learning Rates
-local_lr: 0.0003   # Encoder parameters
-global_lr: 0.0003  # GP hyperparameters
+local_lr: 0.0001   # Encoder parameters
+global_lr: 0.0001  # GP hyperparameters
 
 # GP Hyperparameters
 sigma2_s: null  # Signal variances (null = auto)

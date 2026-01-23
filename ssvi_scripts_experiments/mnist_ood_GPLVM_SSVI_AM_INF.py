@@ -418,8 +418,7 @@ def generate_random_missing_mask(data: torch.Tensor, missing_ratio: float, devic
     
     N, M = data.shape
 
-    missing_mask = torch.rand(N, M, dtype=torch.bool, device=device) < missing_ratio
-
+    missing_mask = torch.rand(N, M, device=device) < missing_ratio
     
     return missing_mask
 
