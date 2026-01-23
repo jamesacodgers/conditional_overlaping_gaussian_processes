@@ -90,13 +90,13 @@ def visualize_mnist_missing_reconstruction(
         epsilon = model.get_epsilon()
         U_samples = model.get_u_samples(epsilon)
         
-        # Handle missing data in encoder input (consistent with training)
-        y_encoder_input = torch.where(mask_batch, 
-                                     torch.full_like(y_batch, -9.0, dtype=torch.float64), 
-                                     y_batch)
+        # Pass y_batch with NaNs directly to encoder (encoder handles NaN replacement internally)
+        # Ensure missing values are NaN (consistent with training)
+        y_encoder_input = y_batch.clone()
+        y_encoder_input[mask_batch] = float('nan')
         
-        # Get latent distribution parameters
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
+        # Get latent distribution parameters (pass missing_mask so encoder can include it in input)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon, missing_mask=mask_batch)
         
         # Generate multiple reconstruction samples (consistent with SSVI metrics)
         # Generate exactly n_samples reconstructions by cycling through P samples if needed
@@ -249,13 +249,13 @@ def visualize_mnist_missing_reconstruction_detailed(
         epsilon = model.get_epsilon()
         U_samples = model.get_u_samples(epsilon)
         
-        # Handle missing data in encoder input (consistent with training)
-        y_encoder_input = torch.where(mask_batch, 
-                                     torch.full_like(y_batch, -9.0, dtype=torch.float64), 
-                                     y_batch)
+        # Pass y_batch with NaNs directly to encoder (encoder handles NaN replacement internally)
+        # Ensure missing values are NaN (consistent with training)
+        y_encoder_input = y_batch.clone()
+        y_encoder_input[mask_batch] = float('nan')
         
-        # Get latent distribution parameters
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
+        # Get latent distribution parameters (pass missing_mask so encoder can include it in input)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon, missing_mask=mask_batch)
         
         # Generate multiple reconstruction samples (consistent with SSVI metrics)
         # Generate exactly n_samples reconstructions by cycling through P samples if needed
