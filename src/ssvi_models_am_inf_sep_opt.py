@@ -50,8 +50,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         """Build amortized inference encoder network"""
         layers = []
         # Calculate correct input dimension:
-        # y_n: [M] + u_samples: [M * Lx] + missing_mask: [M] (only if enable_missing_data)
-        input_dim = self.M + self.M * self.Lx
+        # y_n: [M] + missing_mask: [M] (only if enable_missing_data)
+        input_dim = self.M
         if self.enable_missing_data:
             input_dim += self.M  # Add missing mask dimension
 
@@ -92,11 +92,11 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
 
     def encode_local_params(self, y_n, epsilon, missing_mask=None):
         """
-        Amortized inference: encode observation y_n and u_samples to local variational parameters
+        Amortized inference: encode observation y_n to local variational parameters
         
         Args:
             y_n: [batch_size, M] - observations (may contain NaN for missing values)
-            epsilon: [P, M, C, Lx] - epsilon samples for U reparameterization (C=1 for GP-LVM)
+            epsilon: [P, M, C, Lx] - epsilon samples for U reparameterization (not used in encoder, kept for compatibility)
             missing_mask: [batch_size, M] - binary mask where True=missing (optional, only used if enable_missing_data=True)
             
         Returns:
@@ -123,18 +123,14 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
 
-        epsilon = epsilon.squeeze(2)  # Remove C=1 dimension for GP-LVM: [P, M, Lx]
-        epsilon = epsilon.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
-        epsilon = epsilon.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
-
         # Concatenate inputs: include missing_mask only if enable_missing_data is True
         if self.enable_missing_data and missing_mask is not None:
             # Expand missing_mask to match encoder input shape
             missing_mask_expanded = missing_mask.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
             missing_mask_flat = missing_mask_expanded.float()  # Convert to float for concatenation
-            encoder_input = torch.cat([y_n, epsilon, missing_mask_flat], dim=-1)  # [P, batch_size, M + M*Lx + M]
+            encoder_input = torch.cat([y_n, missing_mask_flat], dim=-1)  # [P, batch_size, M + M]
         else:
-            encoder_input = torch.cat([y_n, epsilon], dim=-1)  # [P, batch_size, M + M*Lx]
+            encoder_input = y_n  # [P, batch_size, M]
         
         # Encode to local parameters using separate networks (like Original GP-LVM)
         mu_n = self.mu_encoder(encoder_input)  # [P, batch_size, A]
