@@ -1,0 +1,244 @@
+=== OOD Detection SSVI GP-LVM Training Session ===
+ID Dataset: MNIST, OOD Dataset: FashionMNIST
+Model: 64 inducing points, latent_dim=10
+Training: 20000 iter, batch=32
+Learning rates: Local=0.0003, Global=0.0003
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': np.float64(0.2828623306087839), 'test_rmse': np.float64(0.28446134895963837), 'train_nlpd': 503.0681531383431, 'test_nlpd': 502.8535665971524, 'train_missing_nlpd': 503.0166665178494, 'test_missing_nlpd': 503.2463729866718, 'train_missing_rmse': np.float64(0.2834240659645363), 'test_missing_rmse': np.float64(0.2829005224760252), 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -568.1630759078771}
+k-NN metrics at iteration 0: {'knn_1': 0.094, 'knn_3': 0.09, 'knn_7': 0.1, 'knn_12': 0.106}
+Iteration 0/20000: Loss=575.8097, Time=6.9s
+Iteration 100/20000: Loss=564.8617, Time=14.2s
+Iteration 200/20000: Loss=558.5004, Time=21.6s
+Iteration 300/20000: Loss=550.3986, Time=28.9s
+Iteration 400/20000: Loss=546.1376, Time=36.2s
+Iteration 500/20000: Loss=539.6344, Time=43.6s
+Iteration 600/20000: Loss=509.2822, Time=50.9s
+Iteration 700/20000: Loss=478.4091, Time=58.3s
+Iteration 800/20000: Loss=461.1063, Time=65.6s
+Iteration 900/20000: Loss=446.6045, Time=72.9s
+Iteration 1000/20000: Loss=430.8833, Time=80.3s
+Iteration 1100/20000: Loss=420.3831, Time=87.6s
+Iteration 1200/20000: Loss=408.6210, Time=94.9s
+Iteration 1300/20000: Loss=401.6201, Time=102.3s
+Iteration 1400/20000: Loss=389.0278, Time=109.6s
+Iteration 1500/20000: Loss=384.8296, Time=116.9s
+Iteration 1600/20000: Loss=373.6203, Time=124.3s
+Iteration 1700/20000: Loss=365.7865, Time=131.6s
+Iteration 1800/20000: Loss=356.7753, Time=138.9s
+Iteration 1900/20000: Loss=347.0853, Time=146.3s
+Iteration 2000/20000: Loss=339.6305, Time=153.6s
+Iteration 2100/20000: Loss=330.5218, Time=161.0s
+Iteration 2200/20000: Loss=324.3757, Time=168.3s
+Iteration 2300/20000: Loss=312.1699, Time=175.6s
+Iteration 2400/20000: Loss=310.6232, Time=183.0s
+Iteration 2500/20000: Loss=300.6958, Time=190.3s
+Iteration 2600/20000: Loss=290.0510, Time=197.6s
+Iteration 2700/20000: Loss=285.3637, Time=205.0s
+Iteration 2800/20000: Loss=279.1172, Time=212.3s
+Iteration 2900/20000: Loss=272.1670, Time=219.6s
+Iteration 3000/20000: Loss=268.6566, Time=227.0s
+Iteration 3100/20000: Loss=258.3856, Time=234.3s
+Iteration 3200/20000: Loss=248.8177, Time=241.7s
+Iteration 3300/20000: Loss=248.2900, Time=249.9s
+Iteration 3400/20000: Loss=239.3282, Time=257.2s
+Iteration 3500/20000: Loss=229.6989, Time=264.6s
+Iteration 3600/20000: Loss=229.2184, Time=271.9s
+Iteration 3700/20000: Loss=220.5469, Time=279.3s
+Iteration 3800/20000: Loss=215.7576, Time=286.6s
+Iteration 3900/20000: Loss=206.4642, Time=293.9s
+Metrics at iteration 4000: {'iteration': 4000, 'train_rmse': np.float64(0.2602210249603949), 'test_rmse': np.float64(0.26000156499194294), 'train_nlpd': 142.17128144786136, 'test_nlpd': 142.31958518992369, 'train_missing_nlpd': 142.3157850836598, 'test_missing_nlpd': 142.62559912482067, 'train_missing_rmse': np.float64(0.2599059807583534), 'test_missing_rmse': np.float64(0.2609491686333244), 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -170.97935685575857}
+k-NN metrics at iteration 4000: {'knn_1': 0.086, 'knn_3': 0.106, 'knn_7': 0.112, 'knn_12': 0.094}
+Checkpoint model saved: pre_trained_models/checkpoints/ood_ssvi_iter_4000_seed_0.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_4000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_4000.png
+Iteration 4000/20000: Loss=200.8117, Time=329.3s
+Iteration 4100/20000: Loss=199.8290, Time=336.6s
+Iteration 4200/20000: Loss=192.8054, Time=343.9s
+Iteration 4300/20000: Loss=188.0819, Time=351.0s
+Iteration 4400/20000: Loss=180.1952, Time=358.1s
+Iteration 4500/20000: Loss=184.3732, Time=365.1s
+Iteration 4600/20000: Loss=173.7674, Time=372.2s
+Iteration 4700/20000: Loss=171.7017, Time=379.3s
+Iteration 4800/20000: Loss=167.2968, Time=386.4s
+Iteration 4900/20000: Loss=156.6497, Time=393.4s
+Iteration 5000/20000: Loss=144.8173, Time=400.5s
+Iteration 5100/20000: Loss=143.0592, Time=407.6s
+Iteration 5200/20000: Loss=143.8811, Time=414.7s
+Iteration 5300/20000: Loss=141.3707, Time=421.7s
+Iteration 5400/20000: Loss=134.1270, Time=428.8s
+Iteration 5500/20000: Loss=132.2311, Time=435.9s
+Iteration 5600/20000: Loss=131.4686, Time=443.0s
+Iteration 5700/20000: Loss=129.5082, Time=450.0s
+Iteration 5800/20000: Loss=121.4738, Time=457.1s
+Iteration 5900/20000: Loss=129.7755, Time=464.2s
+Iteration 6000/20000: Loss=107.1562, Time=471.3s
+Iteration 6100/20000: Loss=109.2572, Time=478.3s
+Iteration 6200/20000: Loss=107.5146, Time=485.4s
+Iteration 6300/20000: Loss=95.4539, Time=492.5s
+Iteration 6400/20000: Loss=93.2270, Time=499.6s
+Iteration 6500/20000: Loss=97.2779, Time=506.7s
+Iteration 6600/20000: Loss=89.3802, Time=513.7s
+Iteration 6700/20000: Loss=84.1250, Time=520.8s
+Iteration 6800/20000: Loss=86.2045, Time=527.9s
+Iteration 6900/20000: Loss=84.5484, Time=535.0s
+Iteration 7000/20000: Loss=74.9587, Time=542.1s
+Iteration 7100/20000: Loss=90.6251, Time=549.1s
+Iteration 7200/20000: Loss=79.3301, Time=556.2s
+Iteration 7300/20000: Loss=75.3711, Time=563.3s
+Iteration 7400/20000: Loss=92.1026, Time=570.4s
+Iteration 7500/20000: Loss=72.4689, Time=577.4s
+Iteration 7600/20000: Loss=63.0584, Time=584.5s
+Iteration 7700/20000: Loss=71.2277, Time=591.6s
+Iteration 7800/20000: Loss=64.6091, Time=598.7s
+Iteration 7900/20000: Loss=63.0996, Time=605.8s
+Metrics at iteration 8000: {'iteration': 8000, 'train_rmse': np.float64(0.2504046917544436), 'test_rmse': np.float64(0.2486366472234204), 'train_nlpd': 26.676456862849705, 'test_nlpd': 27.09619853229838, 'train_missing_nlpd': 27.53524691893393, 'test_missing_nlpd': 27.384525334833032, 'train_missing_rmse': np.float64(0.253341844357374), 'test_missing_rmse': np.float64(0.2500657614134689), 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': -46.05256994151799}
+k-NN metrics at iteration 8000: {'knn_1': 0.228, 'knn_3': 0.264, 'knn_7': 0.266, 'knn_12': 0.27}
+Checkpoint model saved: pre_trained_models/checkpoints/ood_ssvi_iter_8000_seed_0.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_8000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_8000.png
+Iteration 8000/20000: Loss=51.0933, Time=630.9s
+Iteration 8100/20000: Loss=57.5239, Time=639.9s
+Iteration 8200/20000: Loss=55.8009, Time=647.3s
+Iteration 8300/20000: Loss=41.9213, Time=655.6s
+Iteration 8400/20000: Loss=59.2257, Time=663.0s
+Iteration 8500/20000: Loss=48.2787, Time=670.3s
+Iteration 8600/20000: Loss=53.3935, Time=677.6s
+Iteration 8700/20000: Loss=60.0954, Time=685.0s
+Iteration 8800/20000: Loss=39.0546, Time=692.3s
+Iteration 8900/20000: Loss=49.9167, Time=699.6s
+Iteration 9000/20000: Loss=41.6451, Time=707.0s
+Iteration 9100/20000: Loss=34.7842, Time=714.3s
+Iteration 9200/20000: Loss=44.9982, Time=721.6s
+Iteration 9300/20000: Loss=42.4477, Time=729.0s
+Iteration 9400/20000: Loss=37.1671, Time=736.3s
+Iteration 9500/20000: Loss=25.9556, Time=743.6s
+Iteration 9600/20000: Loss=37.6005, Time=751.0s
+Iteration 9700/20000: Loss=41.4918, Time=758.3s
+Iteration 9800/20000: Loss=24.7933, Time=765.6s
+Iteration 9900/20000: Loss=42.9906, Time=773.0s
+Iteration 10000/20000: Loss=19.1993, Time=780.3s
+Iteration 10100/20000: Loss=32.3922, Time=787.6s
+Iteration 10200/20000: Loss=22.0724, Time=795.0s
+Iteration 10300/20000: Loss=26.8832, Time=802.3s
+Iteration 10400/20000: Loss=21.7404, Time=809.6s
+Iteration 10500/20000: Loss=20.4416, Time=817.0s
+Iteration 10600/20000: Loss=29.1669, Time=824.3s
+Iteration 10700/20000: Loss=40.8172, Time=831.6s
+Iteration 10800/20000: Loss=18.2552, Time=839.0s
+Iteration 10900/20000: Loss=12.0844, Time=846.3s
+Iteration 11000/20000: Loss=-1.8102, Time=853.6s
+Iteration 11100/20000: Loss=24.5892, Time=861.0s
+Iteration 11200/20000: Loss=26.6679, Time=868.3s
+Iteration 11300/20000: Loss=15.4743, Time=875.6s
+Iteration 11400/20000: Loss=34.8708, Time=883.0s
+Iteration 11500/20000: Loss=10.1548, Time=890.3s
+Iteration 11600/20000: Loss=18.3351, Time=897.6s
+Iteration 11700/20000: Loss=-4.7203, Time=904.9s
+Iteration 11800/20000: Loss=14.4849, Time=912.3s
+Iteration 11900/20000: Loss=7.7828, Time=919.6s
+Metrics at iteration 12000: {'iteration': 12000, 'train_rmse': np.float64(0.2214255350666466), 'test_rmse': np.float64(0.22441173871264727), 'train_nlpd': -23.44239504554747, 'test_nlpd': -23.414961375306074, 'train_missing_nlpd': -18.38163041032346, 'test_missing_nlpd': -16.82573374927844, 'train_missing_rmse': np.float64(0.2249412855524647), 'test_missing_rmse': np.float64(0.2251206529683209), 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 3.9913831435124285}
+k-NN metrics at iteration 12000: {'knn_1': 0.45, 'knn_3': 0.472, 'knn_7': 0.496, 'knn_12': 0.506}
+Checkpoint model saved: pre_trained_models/checkpoints/ood_ssvi_iter_12000_seed_0.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_12000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_12000.png
+Iteration 12000/20000: Loss=-1.4106, Time=946.4s
+Iteration 12100/20000: Loss=0.7760, Time=954.1s
+Iteration 12200/20000: Loss=14.3997, Time=962.2s
+Iteration 12300/20000: Loss=9.2409, Time=969.5s
+Iteration 12400/20000: Loss=15.5396, Time=976.9s
+Iteration 12500/20000: Loss=-7.8245, Time=984.2s
+Iteration 12600/20000: Loss=-12.9629, Time=991.6s
+Iteration 12700/20000: Loss=-8.6651, Time=998.9s
+Iteration 12800/20000: Loss=0.7149, Time=1006.3s
+Iteration 12900/20000: Loss=-5.1175, Time=1013.6s
+Iteration 13000/20000: Loss=-9.0869, Time=1021.0s
+Iteration 13100/20000: Loss=-5.1955, Time=1028.4s
+Iteration 13200/20000: Loss=-16.6891, Time=1035.7s
+Iteration 13300/20000: Loss=-1.4776, Time=1043.1s
+Iteration 13400/20000: Loss=1.8250, Time=1050.4s
+Iteration 13500/20000: Loss=-4.0565, Time=1057.8s
+Iteration 13600/20000: Loss=-6.9058, Time=1065.1s
+Iteration 13700/20000: Loss=7.6578, Time=1072.5s
+Iteration 13800/20000: Loss=-3.3829, Time=1079.8s
+Iteration 13900/20000: Loss=2.9839, Time=1087.2s
+Iteration 14000/20000: Loss=-21.3103, Time=1094.6s
+Iteration 14100/20000: Loss=-16.2965, Time=1101.9s
+Iteration 14200/20000: Loss=-5.4446, Time=1109.3s
+Iteration 14300/20000: Loss=-13.1092, Time=1116.6s
+Iteration 14400/20000: Loss=-7.8742, Time=1124.0s
+Iteration 14500/20000: Loss=-35.5202, Time=1131.4s
+Iteration 14600/20000: Loss=0.5010, Time=1138.7s
+Iteration 14700/20000: Loss=-14.2994, Time=1146.1s
+Iteration 14800/20000: Loss=-32.4102, Time=1153.4s
+Iteration 14900/20000: Loss=-5.1769, Time=1160.8s
+Iteration 15000/20000: Loss=-4.2292, Time=1168.1s
+Iteration 15100/20000: Loss=-32.2306, Time=1175.5s
+Iteration 15200/20000: Loss=-33.2127, Time=1182.9s
+Iteration 15300/20000: Loss=-14.7303, Time=1190.2s
+Iteration 15400/20000: Loss=-5.4461, Time=1197.6s
+Iteration 15500/20000: Loss=-14.2312, Time=1204.9s
+Iteration 15600/20000: Loss=-4.9679, Time=1212.3s
+Iteration 15700/20000: Loss=-4.0082, Time=1219.7s
+Iteration 15800/20000: Loss=-29.0975, Time=1227.0s
+Iteration 15900/20000: Loss=-27.0167, Time=1234.4s
+Metrics at iteration 16000: {'iteration': 16000, 'train_rmse': np.float64(0.20673193753187669), 'test_rmse': np.float64(0.20774516978763524), 'train_nlpd': -44.60628102958203, 'test_nlpd': -48.57049975298558, 'train_missing_nlpd': -42.95837585384458, 'test_missing_nlpd': -38.11732461265454, 'train_missing_rmse': np.float64(0.2119143224027968), 'test_missing_rmse': np.float64(0.2120648234247427), 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 18.585263383796374}
+k-NN metrics at iteration 16000: {'knn_1': 0.576, 'knn_3': 0.584, 'knn_7': 0.624, 'knn_12': 0.636}
+Checkpoint model saved: pre_trained_models/checkpoints/ood_ssvi_iter_16000_seed_0.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_16000.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_16000.png
+Iteration 16000/20000: Loss=-14.0470, Time=1262.1s
+Iteration 16100/20000: Loss=-31.4206, Time=1270.7s
+Iteration 16200/20000: Loss=-4.2996, Time=1278.0s
+Iteration 16300/20000: Loss=-17.6343, Time=1285.1s
+Iteration 16400/20000: Loss=-39.4720, Time=1292.2s
+Iteration 16500/20000: Loss=-15.2852, Time=1299.2s
+Iteration 16600/20000: Loss=-20.5320, Time=1306.3s
+Iteration 16700/20000: Loss=-9.0727, Time=1313.4s
+Iteration 16800/20000: Loss=-25.5338, Time=1320.5s
+Iteration 16900/20000: Loss=-30.6417, Time=1327.6s
+Iteration 17000/20000: Loss=-27.4189, Time=1334.6s
+Iteration 17100/20000: Loss=-43.2110, Time=1341.7s
+Iteration 17200/20000: Loss=-21.5378, Time=1348.8s
+Iteration 17300/20000: Loss=-46.4533, Time=1355.9s
+Iteration 17400/20000: Loss=-38.7059, Time=1363.0s
+Iteration 17500/20000: Loss=-26.1353, Time=1370.1s
+Iteration 17600/20000: Loss=-36.6469, Time=1377.1s
+Iteration 17700/20000: Loss=-29.0056, Time=1384.2s
+Iteration 17800/20000: Loss=-46.6308, Time=1391.3s
+Iteration 17900/20000: Loss=-60.7006, Time=1398.4s
+Iteration 18000/20000: Loss=-48.8003, Time=1405.5s
+Iteration 18100/20000: Loss=-54.5600, Time=1412.5s
+Iteration 18200/20000: Loss=-50.4237, Time=1419.6s
+Iteration 18300/20000: Loss=-56.7900, Time=1426.7s
+Iteration 18400/20000: Loss=-15.6855, Time=1433.8s
+Iteration 18500/20000: Loss=-20.1792, Time=1440.9s
+Iteration 18600/20000: Loss=-36.2254, Time=1447.9s
+Iteration 18700/20000: Loss=-64.3049, Time=1455.0s
+Iteration 18800/20000: Loss=-30.5774, Time=1462.1s
+Iteration 18900/20000: Loss=-34.2877, Time=1469.2s
+Iteration 19000/20000: Loss=-40.7967, Time=1476.3s
+Iteration 19100/20000: Loss=-44.5236, Time=1483.4s
+Iteration 19200/20000: Loss=-17.3226, Time=1490.4s
+Iteration 19300/20000: Loss=-37.1532, Time=1497.5s
+Iteration 19400/20000: Loss=-38.6403, Time=1504.6s
+Iteration 19500/20000: Loss=-38.4708, Time=1511.7s
+Iteration 19600/20000: Loss=-36.4266, Time=1518.8s
+Iteration 19700/20000: Loss=-50.7408, Time=1525.9s
+Iteration 19800/20000: Loss=-34.0863, Time=1532.9s
+Iteration 19900/20000: Loss=-59.4770, Time=1540.0s
+Training completed! Final Full Loss: -42.9490 (batch loss: -29.6587), Total time: 1548.0s (12.9 iter/s)
+Plot saved: plots/training_results.png
+Plot saved: plots/1d_histogram_most_important_dim.png
+Final comprehensive metrics computed: {'iteration': 20000, 'train_rmse': np.float64(0.1959660769508335), 'test_rmse': np.float64(0.19614647380076408), 'train_nlpd': -66.23954763499547, 'test_nlpd': -69.19527445108162, 'train_missing_nlpd': -58.597410907093256, 'test_missing_nlpd': -61.37669118107651, 'train_missing_rmse': np.float64(0.20140283243193888), 'test_missing_rmse': np.float64(0.20088672898609145), 'effective_latent_dims': 10, 'total_latent_dims': 10, 'elbo_loss': 42.94900797902163}
+Plot saved: plots/metrics_progression.png
+Plot saved: plots/final_metrics_summary.png
+Plot saved: plots/missing_nlpd_metrics_progression.png
+Plot saved: plots/missing_rmse_metrics_progression.png
+Checkpoint metrics saved: training_results/ood_ssvi_0_checkpoint_metrics.json
+Training losses saved: training_results/ood_ssvi_full_loss_0_losses.json
+Training losses saved: training_results/ood_ssvi_batch_0_losses.json
+k-NN metrics saved: training_results/ood_ssvi_0_knn_metrics.json
+OOD NLPD: AUROC=0.8418, AUPRC=0.9835, FPR@80=0.3020
+OOD RMSE: AUROC=0.8583, AUPRC=0.9850, FPR@80=0.2440
+OOD VARIANCE: AUROC=0.3342, AUPRC=0.8460, FPR@80=0.9020
+Model saved: pre_trained_models/ood_ssvi_0.pkl
+Experiment summary saved: experiment_summary.json
