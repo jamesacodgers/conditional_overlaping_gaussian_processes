@@ -54,20 +54,23 @@ class CheckpointMetrics:
     iteration: int
     train_rmse: float
     train_nlpd: float
-    elbo_loss: float
+    elbo_loss: float  # May be full_dataset_elbo_loss in newer checkpoints
 
 
 @dataclass
 class FinalMetrics:
     """Final metrics from experiment_summary.json"""
-    train_rmse: float
-    test_rmse: float
-    train_nlpd: float
-    test_nlpd: float
-    train_missing_nlpd: float
-    test_missing_nlpd: float
-    final_loss: float
-    final_noise: float
+    train_rmse: Optional[float]
+    test_rmse: Optional[float]
+    train_nlpd: Optional[float]
+    test_nlpd: Optional[float]
+    train_missing_data_nlpd: Optional[float]
+    test_missing_data_nlpd: Optional[float]
+    train_missing_data_rmse: Optional[float]
+    test_missing_data_rmse: Optional[float]
+    final_full_loss: Optional[float]
+    final_batch_loss: Optional[float]
+    final_noise: Optional[float]
 
 @dataclass
 class RunResults:
@@ -135,11 +138,14 @@ class ResultsComparator:
             
             metrics = []
             for checkpoint in data.get('checkpoints', []):
+                # Try full_dataset_elbo_loss first (new format), fall back to elbo_loss (old format)
+                elbo_loss = checkpoint.get('full_dataset_elbo_loss', checkpoint.get('elbo_loss', 0.0))
+                
                 metrics.append(CheckpointMetrics(
                     iteration=checkpoint.get('iteration', 0),
                     train_rmse=checkpoint.get('train_rmse', 0.0),
                     train_nlpd=checkpoint.get('train_nlpd', 0.0),
-                    elbo_loss=checkpoint.get('elbo_loss', 0.0)
+                    elbo_loss=elbo_loss
                 ))
             
             return metrics
@@ -178,14 +184,18 @@ class ResultsComparator:
                     return None
                 return float(value)
             
+            # Handle both new and old field names for backward compatibility
             final_metrics = FinalMetrics(
                 train_rmse=safe_float(model_data.get('train_rmse', 0.0)),
                 test_rmse=safe_float(model_data.get('test_rmse', 0.0)),
                 train_nlpd=safe_float(model_data.get('train_nlpd', 0.0)),
                 test_nlpd=safe_float(model_data.get('test_nlpd', 0.0)),
-                train_missing_nlpd=safe_float(model_data.get('train_missing_nlpd', None)),
-                test_missing_nlpd=safe_float(model_data.get('test_missing_nlpd', None)),
-                final_loss=safe_float(model_data.get('final_loss', 0.0)),
+                train_missing_data_nlpd=safe_float(model_data.get('train_missing_data_nlpd', model_data.get('train_missing_nlpd', None))),
+                test_missing_data_nlpd=safe_float(model_data.get('test_missing_data_nlpd', model_data.get('test_missing_nlpd', None))),
+                train_missing_data_rmse=safe_float(model_data.get('train_missing_data_rmse', None)),
+                test_missing_data_rmse=safe_float(model_data.get('test_missing_data_rmse', None)),
+                final_full_loss=safe_float(model_data.get('final_full_loss', model_data.get('final_loss', None))),
+                final_batch_loss=safe_float(model_data.get('final_batch_loss', None)),
                 final_noise=safe_float(model_data.get('final_noise', 0.0))
             )
             
@@ -411,9 +421,9 @@ class ResultsComparator:
         }
         
         model_display_names = {
-            'gauss': 'SVI',
-            'nn_gauss': 'AE-SVI', 
-            'ssvi': 'AE-SSVI'
+            'gauss': 'MF',
+            'nn_gauss': 'A-MF', 
+            'ssvi': 'A-S'
         }
         
         # Create figure with subplots (only 3 plots, no text box)
@@ -443,21 +453,21 @@ class ResultsComparator:
             std_elbo_loss = np.array(std_elbo_loss)
             
             # Plot 1: ELBO Loss
-            ax1.plot(iterations, mean_elbo_loss, color=color, label=f'{display_name} (n={len(runs)})', linewidth=2)
+            ax1.plot(iterations, mean_elbo_loss, color=color, label=f'{display_name}', linewidth=2)
             ax1.fill_between(iterations, 
                            mean_elbo_loss - std_elbo_loss, 
                            mean_elbo_loss + std_elbo_loss, 
                            color=color, alpha=0.2)
             
             # Plot 2: Train RMSE
-            ax2.plot(iterations, mean_train_rmse, color=color, label=f'{display_name} (n={len(runs)})', linewidth=2)
+            ax2.plot(iterations, mean_train_rmse, color=color, label=f'{display_name}', linewidth=2)
             ax2.fill_between(iterations, 
                            mean_train_rmse - std_train_rmse, 
                            mean_train_rmse + std_train_rmse, 
                            color=color, alpha=0.2)
             
             # Plot 3: Train NLPD
-            ax3.plot(iterations, mean_train_nlpd, color=color, label=f'{display_name} (n={len(runs)})', linewidth=2)
+            ax3.plot(iterations, mean_train_nlpd, color=color, label=f'{display_name}', linewidth=2)
             ax3.fill_between(iterations, 
                            mean_train_nlpd - std_train_nlpd, 
                            mean_train_nlpd + std_train_nlpd, 
@@ -507,9 +517,9 @@ class ResultsComparator:
         }
         
         model_display_names = {
-            'gauss': 'SVI',
-            'nn_gauss': 'AE-SVI', 
-            'ssvi': 'AE-SSVI'
+            'gauss': 'MF',
+            'nn_gauss': 'A-MF', 
+            'ssvi': 'A-S'
         }
         
         # Collect final metrics for each model type
@@ -529,7 +539,8 @@ class ResultsComparator:
                 'test_rmse': [run.final_metrics.test_rmse for run in valid_runs if run.final_metrics.test_rmse is not None],
                 'train_nlpd': [run.final_metrics.train_nlpd for run in valid_runs if run.final_metrics.train_nlpd is not None],
                 'test_nlpd': [run.final_metrics.test_nlpd for run in valid_runs if run.final_metrics.test_nlpd is not None],
-                'final_loss': [run.final_metrics.final_loss for run in valid_runs if run.final_metrics.final_loss is not None],
+                'final_full_loss': [run.final_metrics.final_full_loss for run in valid_runs if run.final_metrics.final_full_loss is not None],
+                'final_batch_loss': [run.final_metrics.final_batch_loss for run in valid_runs if run.final_metrics.final_batch_loss is not None],
                 'final_noise': [run.final_metrics.final_noise for run in valid_runs if run.final_metrics.final_noise is not None]
             }
         
@@ -558,7 +569,7 @@ class ResultsComparator:
                 if model_type in final_metrics_data and final_metrics_data[model_type][metric_key]:
                     display_name = model_display_names.get(model_type, model_type)
                     boxplot_data.append(final_metrics_data[model_type][metric_key])
-                    boxplot_labels.append(f'{display_name}\n(n={len(final_metrics_data[model_type][metric_key])})')
+                    boxplot_labels.append(f'{display_name}')
                     boxplot_colors.append(model_colors.get(model_type, 'gray'))
             
             if boxplot_data:
@@ -646,7 +657,12 @@ class ResultsComparator:
                 'test_rmse': [run.final_metrics.test_rmse for run in valid_runs if run.final_metrics.test_rmse is not None],
                 'train_nlpd': [run.final_metrics.train_nlpd for run in valid_runs if run.final_metrics.train_nlpd is not None],
                 'test_nlpd': [run.final_metrics.test_nlpd for run in valid_runs if run.final_metrics.test_nlpd is not None],
-                'final_loss': [run.final_metrics.final_loss for run in valid_runs if run.final_metrics.final_loss is not None],
+                'train_missing_data_nlpd': [run.final_metrics.train_missing_data_nlpd for run in valid_runs if run.final_metrics.train_missing_data_nlpd is not None],
+                'test_missing_data_nlpd': [run.final_metrics.test_missing_data_nlpd for run in valid_runs if run.final_metrics.test_missing_data_nlpd is not None],
+                'train_missing_data_rmse': [run.final_metrics.train_missing_data_rmse for run in valid_runs if run.final_metrics.train_missing_data_rmse is not None],
+                'test_missing_data_rmse': [run.final_metrics.test_missing_data_rmse for run in valid_runs if run.final_metrics.test_missing_data_rmse is not None],
+                'final_full_loss': [run.final_metrics.final_full_loss for run in valid_runs if run.final_metrics.final_full_loss is not None],
+                'final_batch_loss': [run.final_metrics.final_batch_loss for run in valid_runs if run.final_metrics.final_batch_loss is not None],
                 'final_noise': [run.final_metrics.final_noise for run in valid_runs if run.final_metrics.final_noise is not None]
             }
             
@@ -700,9 +716,9 @@ class ResultsComparator:
         
         # Define display names for console output
         model_display_names = {
-            'gauss': 'SVI',
-            'nn_gauss': 'AE-SVI', 
-            'ssvi': 'AE-SSVI'
+            'gauss': 'MF',
+            'nn_gauss': 'A-MF', 
+            'ssvi': 'A-S'
         }
         
         for model_type in ['gauss', 'nn_gauss', 'ssvi']:
@@ -763,15 +779,15 @@ def main():
     # =============================================================================
     # HARDCODED DEFAULT PATHS - Modify these for your specific setup
     # =============================================================================
-    DEFAULT_ORIG_GPLVM_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\qpcr_related\final_v1_orig_gplvm\orig_gplvm_run_results"
-    DEFAULT_SSVI_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\qpcr_related\final_v1_ssvi\ssvi_run_results"
+    DEFAULT_ORIG_GPLVM_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\oil_flow_related\final_v1_orig_gplvm\orig_gplvm_run_results"
+    DEFAULT_SSVI_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\oil_flow_related\final_v1_ssvi\ssvi_run_results"
     
     # Auto-detect experiment name and create output directory in ssvi_scripts_experiments
     experiment_name = detect_experiment_name(DEFAULT_ORIG_GPLVM_DIR)
     DEFAULT_OUTPUT_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\comparison_results"
     
     # Hardcoded subfolder name for this comparison
-    COMPARISON_SUBFOLDER = "qpcr_related_comparison"
+    COMPARISON_SUBFOLDER = "oilflow_related_comparison_21_01"
     # =============================================================================
     
     parser = argparse.ArgumentParser(description='Automatic Results Comparison for GP-LVM Experiments')

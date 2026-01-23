@@ -582,7 +582,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             
             # Get latent variables using batched processing to reduce memory usage
             batch_size = getattr(config, 'batch_size', 128)  # Use config batch_size if available, otherwise default to 128
-            U = model.get_u_samples()  # [P, M, C, Lx] - Sample U once (shared across all batches)
+            epsilon = model.get_epsilon()
+            U_samples = model.get_u_samples(epsilon)  # [P, M, C, Lx] - Sample U once (shared across all batches)
             
             # Process data in minibatches
             N = y_train.shape[0]
@@ -600,9 +601,9 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
                         torch.full_like(y_batch, -9.0, dtype=torch.float64),
                         y_batch
                     )
-                    mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch_clean, U)
+                    mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch_clean, epsilon)
                 else:
-                    mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch, U)
+                    mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch, epsilon)
                 
                 mu_x_batches.append(mu_x_batch)
                 sigma_x_batches.append(sigma_x_batch)

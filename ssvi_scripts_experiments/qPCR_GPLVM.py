@@ -68,8 +68,12 @@ from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_ef
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 plt.style.use('ggplot')
+
+# Import shared function from mnist_ood_GPLVM.py
+from ssvi_scripts_experiments.mnist_ood_GPLVM import compute_full_elbo_minibatched
 
 def _init_pca(Y, latent_dim):
     U, S, V = torch.pca_lowrank(Y, q = latent_dim)
@@ -205,6 +209,61 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     print(f"Data split shapes - Train: {Y_train.shape}, Test: {Y_test.shape}")
     print(f"Labels split info - Train: {type(lb_train)}, length: {len(lb_train) if hasattr(lb_train, '__len__') else 'no length'}")
     print(f"Labels split info - Test: {type(lb_test)}, length: {len(lb_test) if hasattr(lb_test, '__len__') else 'no length'}")
+    
+    # === Data Standardization ===
+    # Fit scaler on training data only (before missing data preprocessing)
+    print(f"\n=== Data Standardization ===")
+    print(f"Standardization method: {config.standardization}")
+
+    if config.standardization == "standard":
+        scaler = StandardScalerPytorch(device=config.device)
+    elif config.standardization == "minmax":
+        scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
+    elif config.standardization == "none":
+        scaler = NoTransform(device=config.device)
+    else:
+        raise ValueError(
+            f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', 'mean', or 'none'"
+        )
+
+    # Fit scaler on training data only (critical: don't mix test data)
+    print(f"Fitting scaler on training data only ({Y_train.shape[0]} samples)...")
+    scaler.fit(Y_train)
+
+    # Transform all data using the scaler fitted on training data
+    print(f"Transforming train/test data...")
+    print(
+        f"  Before transform - Train shape: {Y_train.shape}, Test shape: {Y_test.shape}"
+    )
+    print(f"  Scaler mean shape: {scaler.mean.shape}")
+    print(
+        f"  Before transform - Train mean: {Y_train.mean().item():.6f}, Test mean: {Y_test.mean().item():.6f}"
+    )
+    print(
+        f"  Before transform - Train std: {Y_train.std().item():.6f}, Test std: {Y_test.std().item():.6f}"
+    )
+
+    Y_train = scaler.transform(Y_train)
+    Y_test = scaler.transform(Y_test)
+
+    # Debug: Show statistics after transform
+    print(
+        f"  After transform - Train mean: {Y_train.mean().item():.6f}, Test mean: {Y_test.mean().item():.6f}"
+    )
+    print(
+        f"  After transform - Train std: {Y_train.std().item():.6f}, Test std: {Y_test.std().item():.6f}"
+    )
+    print(
+        f"  After transform - Train min: {Y_train.min().item():.6f}, Test min: {Y_test.min().item():.6f}"
+    )
+    print(
+        f"  After transform - Train max: {Y_train.max().item():.6f}, Test max: {Y_test.max().item():.6f}"
+    )
+
+    print(f"Standardization completed.")
+    print("=" * 50)
     
     # Apply missing data preprocessing if enabled (using same function as SSVI for alignment)
     if config.enable_missing_data:
@@ -349,7 +408,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Training loop - optimises the objective wrt kernel hypers, variational params and inducing inputs
         # using the optimizer provided.
         
-        loss_list = []
+        loss_list = []  # Batch losses (negative ELBO)
+        full_loss_list = []  # Full dataset losses (negative ELBO)
+        full_loss_iterations = []  # Iterations at which full loss was computed
         noise_trace = []
         
         # Metrics tracking for progression plot (train only)
@@ -359,7 +420,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         train_missing_rmse_list = []  # For missing data RMSE tracking
         effective_dims_list = []
         metrics_iterations = []
-        metrics_losses = []
+        metrics_losses = []  # Will store full dataset losses
         
         iterator = trange(steps_per_model[model_name], leave=True)
         batch_size = config.batch_size
@@ -393,6 +454,14 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 try:
                     with torch.no_grad():
                         model.eval()
+                        
+                        # Compute full dataset loss (negative ELBO) using minibatches
+                        full_elbo = compute_full_elbo_minibatched(model, Y_train, elbo, model_name, config)
+                        full_loss = -full_elbo  # Store as negative ELBO (loss)
+                        full_loss_list.append(full_loss)
+                        full_loss_iterations.append(i)
+                        print(f"  Full Dataset Loss: {full_loss:.4f} (batch loss: {loss.item():.4f})")
+                        
                         # Get training latent variables
                         if config.enable_missing_data and model_name == 'nn_gauss':
                             # For nn_gauss with missing data, use cleaned input for encoder
@@ -470,7 +539,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         train_missing_rmse_list.append(float(train_missing_rmse) if train_missing_rmse is not None else float('nan'))
                         effective_dims_list.append(effective_dims)
                         metrics_iterations.append(i)
-                        metrics_losses.append(float(loss.item()))
+                        metrics_losses.append(full_loss)  # Use full dataset loss instead of batch loss
                         
                         print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, Effective dims: {effective_dims}/{total_dims}")
                         
@@ -481,27 +550,53 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
 
             # Save iteration-based models and plots (like SSVI does)
             if logger and logger.get_results_dir() and i > 0 and i % config.checkpoint_frequency == 0:
-                from src.ssvi_alignment_utils import save_iteration_model, create_iteration_plot
+                from src.ssvi_alignment_utils import save_iteration_model
                 print(f"  Saving iteration {i} model and plot...")
                 save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
+                # Use full_loss_list for checkpoint plots (consistent with SSVI)
                 try:
                     from src.qpcr_plot_helper import create_iteration_plot
-                    create_iteration_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "qPCR", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device))
+                    create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "qPCR", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device), full_loss_iterations=full_loss_iterations, batch_losses=loss_list)
                 except Exception as e:
                     print(f"  Warning: Could not create iteration plot at iteration {i}: {e}")
                     print(f"  This is likely due to qPCR labels structure differences. Skipping plot creation.")
         model.store(loss_list, likelihood)
         
-        logger.log_training(f"Training completed for {model_name}. Final loss: {loss_list[-1]:.4f}")
+        # Compute final full dataset loss if not already computed at last iteration
+        if not full_loss_list or full_loss_iterations[-1] != steps_per_model[model_name] - 1:
+            with torch.no_grad():
+                model.eval()
+                final_full_elbo = compute_full_elbo_minibatched(model, Y_train, elbo, model_name, config)
+                final_full_loss = -final_full_elbo
+                full_loss_list.append(final_full_loss)
+                full_loss_iterations.append(steps_per_model[model_name])
+                model.train()
+        
+        final_full_loss = full_loss_list[-1] if full_loss_list else loss_list[-1]
+        logger.log_training(f"Training completed for {model_name}. Final full loss: {final_full_loss:.4f} (batch loss: {loss_list[-1]:.4f})")
         
         # Save metrics progression plot (train metrics only)
         if logger.get_results_dir() and train_rmse_list and train_nlpd_list:
             plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, 
-                                   metrics_losses, effective_dims_list, logger.get_results_dir(), model_name, config.random_seed)
+                                   metrics_losses, effective_dims_list, logger.get_results_dir(), model_name, config.random_seed, batch_losses=loss_list)
             
             # Save checkpoint metrics to JSON (train metrics only)
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
                                          metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list, train_missing_rmse_list)
+            
+            # Save training losses (full dataset loss and batch loss) - matching SSVI pattern
+            print("Saving training losses (full dataset loss)...")
+            # Save full dataset losses (negative ELBO, for metrics/plots)
+            if full_loss_list:
+                full_loss_list_floats = [float(x) for x in full_loss_list]
+                logger.save_training_losses(
+                    full_loss_list_floats, f"{model_name}_full_loss", config.random_seed
+                )
+            # Also save batch losses for reference
+            loss_list_floats = [float(x) for x in loss_list]
+            logger.save_training_losses(
+                loss_list_floats, f"{model_name}_batch", config.random_seed
+            )
             
             # Generate missing NLPD metrics progression plot if missing data is enabled and we have missing NLPD data
             if config.enable_missing_data and train_missing_nlpd_list:
@@ -544,7 +639,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 from src.qpcr_plot_helper import create_standardized_scattered_plot
                 # lb_train is already a numpy array from train_test_split, no need to convert
                 # Use Y_train on the same device as model to avoid device mismatch
-                create_standardized_scattered_plot(model, loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="qPCR", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device))
+                # Use full_loss_list for final plots (consistent with SSVI)
+                create_standardized_scattered_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model.X.__class__.__name__, config.random_seed, Y_train, model_type="qPCR", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device), full_loss_iterations=full_loss_iterations, batch_losses=loss_list)
             except Exception as e:
                 print(f"Warning: Could not create standardized scattered plot: {e}")
                 print(f"This is likely due to qPCR labels structure differences. Skipping plot creation.")
@@ -812,7 +908,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_missing_nlpd': test_missing_nlpd_value,   # Preserve computed value or use NaN
                 'train_missing_rmse': train_missing_rmse_value,  # Preserve computed value or use NaN
                 'test_missing_rmse': test_missing_rmse_value,   # Preserve computed value or use NaN
-                'final_loss': float(loss_list[-1]),
+                'final_batch_loss': float(loss_list[-1]),
+                'final_full_loss': float(full_loss_list[-1]) if full_loss_list else float(loss_list[-1]),
                 'final_noise': float(noise_trace[-1])
             }
             
@@ -833,7 +930,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                     y_train=Y_train,
                     model_name=model_name,
                     center="zeros",
-                    save_path=latent_slice_path_origin
+                    save_path=latent_slice_path_origin,
+                    scaler=scaler
                 )
                 print(f"  Saved latent slice (origin) to: {latent_slice_path_origin}")
                 
@@ -850,7 +948,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         model_name=model_name,
                         center="data_point",
                         n_idx=idx,
-                        save_path=latent_slice_path
+                        save_path=latent_slice_path,
+                        scaler=scaler
                     )
                     print(f"  Saved latent slice (point {idx}) to: {latent_slice_path}")
         except Exception as e:

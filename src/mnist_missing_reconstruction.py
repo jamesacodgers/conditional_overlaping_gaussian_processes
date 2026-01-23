@@ -87,7 +87,8 @@ def visualize_mnist_missing_reconstruction(
     # Reconstruct images
     with torch.no_grad():
         # Get latent variables using amortized inference
-        U_samples = model.get_u_samples()
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)
         
         # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(mask_batch, 
@@ -95,12 +96,14 @@ def visualize_mnist_missing_reconstruction(
                                      y_batch)
         
         # Get latent distribution parameters
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
         
         # Generate multiple reconstruction samples (consistent with SSVI metrics)
-        # Take first n_samples from P samples and sample from Normal distribution
+        # Generate exactly n_samples reconstructions by cycling through P samples if needed
         reconstructions = []
-        for p in range(min(n_samples, model.P)):
+        for s in range(n_samples):
+            # Cycle through P samples if n_samples > model.P
+            p = s % model.P
             mu_sample = mu_x[p, :n_images, :]  # [n_images, latent_dim]
             sigma_sample = sigma_x[p, :n_images, :]  # [n_images, latent_dim]
             
@@ -123,7 +126,9 @@ def visualize_mnist_missing_reconstruction(
     if scaler is not None:
         # Inverse transform y_original and reconstructions to original scale
         y_orig_batch = scaler.inverse_transform(y_orig_batch)
-        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(reconstructions.shape)
+        # Store original shape before reshape
+        original_shape = reconstructions.shape
+        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(original_shape)
     
     # Compute image dimensions (assume square images)
     img_dim = int(np.sqrt(y_batch.shape[1]))
@@ -241,7 +246,8 @@ def visualize_mnist_missing_reconstruction_detailed(
     # Reconstruct images
     with torch.no_grad():
         # Get latent variables using amortized inference
-        U_samples = model.get_u_samples()
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)
         
         # Handle missing data in encoder input (consistent with training)
         y_encoder_input = torch.where(mask_batch, 
@@ -249,12 +255,14 @@ def visualize_mnist_missing_reconstruction_detailed(
                                      y_batch)
         
         # Get latent distribution parameters
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
         
         # Generate multiple reconstruction samples (consistent with SSVI metrics)
-        # Take first n_samples from P samples and sample from Normal distribution
+        # Generate exactly n_samples reconstructions by cycling through P samples if needed
         reconstructions = []
-        for p in range(min(n_samples, model.P)):
+        for s in range(n_samples):
+            # Cycle through P samples if n_samples > model.P
+            p = s % model.P
             mu_sample = mu_x[p, :n_images, :]  # [n_images, latent_dim]
             sigma_sample = sigma_x[p, :n_images, :]  # [n_images, latent_dim]
             
@@ -281,7 +289,9 @@ def visualize_mnist_missing_reconstruction_detailed(
     if scaler is not None:
         # Inverse transform y_original, reconstructions, mean, and std to original scale
         y_orig_batch = scaler.inverse_transform(y_orig_batch)
-        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(reconstructions.shape)
+        # Store original shape before reshape
+        original_shape = reconstructions.shape
+        reconstructions = scaler.inverse_transform(reconstructions.reshape(-1, reconstructions.shape[-1])).reshape(original_shape)
         y_recon_mean = scaler.inverse_transform(y_recon_mean)
         # For std, we need to scale by the scaler's std (variance scales as std^2)
         if hasattr(scaler, 'std'):
@@ -432,7 +442,8 @@ def visualize_prior_samples(
         x_prior = torch.randn(n_images, latent_dim, dtype=torch.float64, device=device)
         
         # 2. Get U samples from variational posterior q(U)
-        U_samples = model.get_u_samples()  # [P, M, C, L]
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)  # [P, M, C, L]
         
         # 3. Get GP predictive distribution for each latent point
         # Shape: x_prior needs to be [P, n_images, latent_dim] for consistency with U_samples
@@ -555,7 +566,8 @@ def visualize_prior_samples_averaged(
         x_prior = torch.randn(n_images, latent_dim, dtype=torch.float64, device=device)
         
         # 2. Get U samples from variational posterior q(U)
-        U_samples = model.get_u_samples()  # [P, M, C, L]
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)  # [P, M, C, L]
         
         # 3. Get GP predictive distribution for each latent point
         # Shape: x_prior needs to be [P, n_images, latent_dim] for consistency with U_samples
@@ -707,10 +719,11 @@ def visualize_test_image_predictions(
             y_selected_clean = y_selected
         
         # 2. Get U samples from variational posterior q(U) (same as prior sampling)
-        U_samples = model.get_u_samples()  # [P, M, C, L]
+        epsilon = model.get_epsilon()
+        U_samples = model.get_u_samples(epsilon)  # [P, M, C, L]
         
         # 3. Get latent variables for selected images using amortized inference
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_selected_clean, U_samples)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_selected_clean, epsilon)
         # mu_x: [P, n_images, latent_dim], sigma_x: [P, n_images, latent_dim]
         
         # 4. Get GP predictive distribution using latent variables

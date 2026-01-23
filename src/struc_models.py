@@ -163,10 +163,14 @@ class Struc_WS_GPLVM(MF_WS_GPLVM):
         # self._samples = torch.distributions.Normal(0,1).rsample([P*M*self.L*self.C,]).reshape(self.P, self.M, self.L*self.C)
         # self._samples = torch.nn.Parameter(torch.randn(self.P, self.M, self.L*self.C))
 
-    def get_u_samples(self,):
-        dist = self.gp.get_q_u_dist()
-        samples = dist.rsample((self.P,))
-        # samples = self.get_u_vec_samples()
+    def get_epsilon(self):
+        return torch.randn(self.P, self.M, self.C*self.Lx)
+
+    def get_u_samples(self, epsilon):
+        mu_u = self.gp.get_vector_mu_u()
+        L = self.gp.get_chol_Sigma_u()
+        samples = (L[None,:,:,:]@epsilon[:,:,:,None]).squeeze(-1) + mu_u[None,...]
+
         return samples.reshape(self.P, self.M, self.C, self.Lx)
     
     def get_u_vec_samples(self):
@@ -196,7 +200,9 @@ class Struc_WS_GPLVM(MF_WS_GPLVM):
         # kernel_expectation = self.get_kernel_expectation(mu_x,sigma_x)
         # return torch.einsum("nck,ckl,mcl->nmc", kernel_expectation, K_VV_inv, mu_u)
         K_VV_inv = self.gp.get_K_VV_x_inv() # C x L x L 
-        u_samples = self.get_u_samples() # P x M x C x L
+        epsilon = self.get_epsilon()
+
+        u_samples = self.get_u_samples(epsilon) # P x M x C x L
         return (kernel_expectation[:,:,None,:,None,:]@K_VV_inv[None,None,None,:,:,:]@u_samples[:,None,:,:,:,None])[...,0,0] # P x N x M x C 
     
     def get_s_outer_expectation(self, kernel_outer_expectation):

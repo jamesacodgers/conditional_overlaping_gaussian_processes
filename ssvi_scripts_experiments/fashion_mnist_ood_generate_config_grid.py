@@ -126,20 +126,20 @@ def generate_config_grid():
     # ========================================
     
     # Model Architecture
-    n_inducing_values = [32]
-    architecture_values = [[128, 64, 32]]  # encoder_hidden_dims
+    n_inducing_values = [64]
+    architecture_values = [[512, 256]]  # encoder_hidden_dims
     
     # GP Hyperparameters
     init_lengthscales_values = [1.0]
-    num_inducing_samples_list = [8]  # P samples for SSVI
+    num_inducing_samples_list = [4]  # P samples for SSVI
     
     # Training Configuration
     batch_size_values = [32]
-    learning_rate_values = [0.0005]
+    learning_rate_values = [0.0001]
     n_training_steps = [200_000]
     
     # Random Seeds
-    random_seed_values = [0]
+    random_seed_values = [0,1,2]
     
     # Data Split
     test_size_values = [0.1]
@@ -155,14 +155,14 @@ def generate_config_grid():
     ood_dataset_values = ["MNIST"]  # Options: "MNIST", "FashionMNIST" (must be explicitly specified)
     
     # OOD Evaluation Configuration
-    ood_n_samples_values = [16]  # Number of samples for OOD evaluation
+    ood_n_samples_values = [4]  # Number of samples for OOD evaluation
     
     # ========================================
     # ID Dataset Filtering Configuration
     # ========================================
     # Applied to in-distribution dataset
     id_classes_values = [None]  # None = all classes, or list like [0,1,2,3,4,5,6,7] for subset
-    id_samples_per_class_values = [500]  # Samples per ID class (None = use all)
+    id_samples_per_class_values = [1000]  # Samples per ID class (None = use all)
     
     # ========================================
     # OOD Dataset Filtering Configuration
@@ -174,7 +174,7 @@ def generate_config_grid():
     # ========================================
     # Output Configuration
     # ========================================
-    output_folder_name = "fashion_mnist_ood_experiment_v1"
+    output_folder_name = "fashion_mnist_ood_experiment_final_v2"
     ssvi_output_folder = f"ood_mnist_related/{output_folder_name}_ssvi"
     orig_output_folder = f"ood_mnist_related/{output_folder_name}_orig_gplvm"
     

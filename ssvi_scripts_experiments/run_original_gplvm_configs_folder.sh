@@ -145,9 +145,24 @@ run_config() {
     # Extract config name from filename (remove .yaml extension)
     local config_name=$(basename "$config_file" .yaml)
     
+    # Determine Python executable
+    # Priority: 1) PYTHON_CMD env var, 2) python3 in PATH, 3) python in PATH, 4) relative venv path
+    local PYTHON_EXE
+    if [[ -n "$PYTHON_CMD" ]]; then
+        PYTHON_EXE="$PYTHON_CMD"
+    elif command -v python3 &> /dev/null; then
+        PYTHON_EXE="python3"
+    elif command -v python &> /dev/null; then
+        PYTHON_EXE="python"
+    elif [[ -f "$PROJECT_ROOT/.venv/bin/python" ]]; then
+        PYTHON_EXE="$PROJECT_ROOT/.venv/bin/python"
+    else
+        echo "Error: Could not find Python executable. Please activate your virtual environment or set PYTHON_CMD environment variable."
+        return 1
+    fi
+    
     # Build command (now running from ssvi_scripts_experiments directory)
-    # local cmd="/home/hgf_hmgu/hgf_vrm8102/conditional_overlaping_gaussian_processes/.venv/bin/python oil_flow_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
-    local cmd="/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/.venv/bin/python oil_flow_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
+    local cmd="$PYTHON_EXE oil_flow_GPLVM.py --config \"$config_path\" --config-name \"$config_name\""
     
     # Only add device parameter if explicitly specified
     if [[ -n "$DEVICE" ]]; then

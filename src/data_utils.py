@@ -10,7 +10,7 @@ import tarfile
 import shutil
 import numpy as np
 import torch
-from sklearn.datasets import make_s_curve
+from sklearn.datasets import make_swiss_roll
 from torchvision import datasets
 
 def download_oilflow_data_if_needed():
@@ -72,7 +72,7 @@ def generate_swiss_roll_data(n_samples=1000, noise=0.1, random_state=42):
         Color labels based on position
     """
     # Generate swiss roll data
-    Y_np, t = make_s_curve(n_samples=n_samples, noise=noise, random_state=random_state)
+    Y_np, t = make_swiss_roll(n_samples=n_samples, noise=noise, random_state=random_state)
     
     # Convert to torch tensors
     Y = torch.tensor(Y_np, dtype=torch.float64)

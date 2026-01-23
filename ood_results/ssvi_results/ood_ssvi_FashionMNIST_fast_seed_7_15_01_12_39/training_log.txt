@@ -1,0 +1,26 @@
+=== OOD Detection SSVI GP-LVM Training Session ===
+ID Dataset: FashionMNIST, OOD Dataset: MNIST
+Model: 16 inducing points, latent_dim=6
+Training: 100 iter, batch=50
+Learning rates: Local=0.002, Global=0.01
+Metrics at iteration 0: {'iteration': 0, 'train_rmse': np.float64(0.9785989593513194), 'test_rmse': np.float64(1.0828271337554585), 'train_nlpd': 827.1126510415934, 'test_nlpd': 857.3411948337949, 'train_missing_nlpd': 352.8980833857928, 'test_missing_nlpd': 370.58080199598425, 'train_missing_rmse': np.float64(0.9684474431363014), 'test_missing_rmse': np.float64(1.1066086798622377), 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': -832.0318516313853}
+k-NN metrics at iteration 0: {'knn_1': 0.6, 'knn_3': 0.575, 'knn_7': 0.575, 'knn_12': 0.65}
+Iteration 0/100: Loss=1100.8882, Time=3.0s
+Metrics at iteration 50: {'iteration': 50, 'train_rmse': np.float64(0.9560715273360693), 'test_rmse': np.float64(1.079002211461054), 'train_nlpd': 774.1877467563951, 'test_nlpd': 826.8073061420195, 'train_missing_nlpd': 331.68352983007856, 'test_missing_nlpd': 358.28471076227095, 'train_missing_rmse': np.float64(0.9559308783093471), 'test_missing_rmse': np.float64(1.1013474825849519), 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': -655.531358473577}
+k-NN metrics at iteration 50: {'knn_1': 0.825, 'knn_3': 0.825, 'knn_7': 0.675, 'knn_12': 0.75}
+Checkpoint model saved: pre_trained_models/checkpoints/ood_ssvi_iter_50_seed_7.pkl
+Checkpoint plot saved: plots/checkpoints/training_results_iter_50.png
+Checkpoint plot saved: plots/checkpoints/1d_histogram_most_important_dim_iter_50.png
+Iteration 50/100: Loss=819.8734, Time=48.6s
+Training completed! Final Full Loss: 583.8625 (batch loss: 739.7766), Total time: 90.0s (1.1 iter/s)
+Plot saved: plots/training_results.png
+Plot saved: plots/1d_histogram_most_important_dim.png
+Final comprehensive metrics computed: {'iteration': 100, 'train_rmse': np.float64(0.8049368156800122), 'test_rmse': np.float64(1.060963685037588), 'train_nlpd': 681.4130822927198, 'test_nlpd': 819.3054174377579, 'train_missing_nlpd': 293.9949638643587, 'test_missing_nlpd': 359.11425446788655, 'train_missing_rmse': np.float64(0.8105314053677406), 'test_missing_rmse': np.float64(1.0819646995269148), 'effective_latent_dims': 6, 'total_latent_dims': 6, 'elbo_loss': -583.8624787883109}
+Plot saved: plots/metrics_progression.png
+Plot saved: plots/final_metrics_summary.png
+Plot saved: plots/missing_nlpd_metrics_progression.png
+Plot saved: plots/missing_rmse_metrics_progression.png
+Checkpoint metrics saved: training_results/ood_ssvi_7_checkpoint_metrics.json
+Training losses saved: training_results/ood_ssvi_full_loss_7_losses.json
+Training losses saved: training_results/ood_ssvi_batch_7_losses.json
+k-NN metrics saved: training_results/ood_ssvi_7_knn_metrics.json

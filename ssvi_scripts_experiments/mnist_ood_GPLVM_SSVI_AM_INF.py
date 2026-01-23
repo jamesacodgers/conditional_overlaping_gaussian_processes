@@ -76,15 +76,15 @@ from src.ssvi_config_utils import (
 )
 from sklearn.model_selection import train_test_split
 
-# Import OilFlowSSVIConfig from oil_flow_GPLVM_SSVI_AM_INF.py
-from ssvi_scripts_experiments.oil_flow_GPLVM_SSVI_AM_INF import OilFlowSSVIConfig
+# Import OilFlowSSVIConfig from shared config module
+from src.ssvi_config import OilFlowSSVIConfig
 
 # Import data loaders
 from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset
 
 # Import OOD metrics
 from src.ood_metrics import evaluate_ood_detection, compute_all_ood_metrics, OODMetrics
-from src.pytorch_scalers import StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 # Device will be set in main() from config
 
@@ -133,9 +133,8 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     ood_n_samples: int = None               # Number of P samples for OOD evaluation (None = use model.P)
     
     # === Data Standardization Configuration ===
-    standardization: str = (
-        "standard"  # "standard" (mean=0, std=1), "minmax" ([0,1]), or "none" (no transform)
-    )
+    standardization: str = "mean"  # "standard" (mean=0, std=1), "minmax" ([0,1]), or "none" (no transform)
+    
 
     def __post_init__(self):
         super().__post_init__()
@@ -306,6 +305,8 @@ def load_ood_data(config: OODSSVIConfig):
         scaler = StandardScalerPytorch(device=config.device)
     elif config.standardization == "minmax":
         scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
     elif config.standardization == "none":
         scaler = NoTransform(device=config.device)
     else:
@@ -322,7 +323,7 @@ def load_ood_data(config: OODSSVIConfig):
     print(
         f"  Before transform - Train shape: {y_train.shape}, Test shape: {y_test.shape}, OOD shape: {y_ood.shape}"
     )
-    print(f"  Scaler mean shape: {scaler.mean.shape}, std shape: {scaler.std.shape}")
+    print(f"  Scaler mean shape: {scaler.mean.shape}")
     print(
         f"  Before transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}, OOD mean: {y_ood.mean().item():.6f}"
     )
@@ -382,45 +383,45 @@ def load_ood_data(config: OODSSVIConfig):
     print(f"Inducing points: {Vx.shape}")
     config.total_size = y.shape[0]
 
-    # Apply missing data preprocessing if enabled
+    # Store original data for missing data scenarios (no preprocessing at initialization)
     if config.enable_missing_data:
-        print(f"\n=== Missing Data Preprocessing ===")
-
-        # Store original training data before preprocessing
-        y_original_train = y.clone()
-
-        y_train_missing, train_missing_mask, train_missing_info = (
-            preprocess_data_for_missing_training(split_data["y_train"], config)
-        )
-        y_test_missing, test_missing_mask, test_missing_info = (
-            preprocess_data_for_missing_training(split_data["y_test"], config)
-        )
-
+        print(f"\n=== Missing Data Configuration ===")
+        print(f"Missing data will be generated randomly per iteration")
+        print(f"Missing ratio: {config.missing_data_ratio}")
+        print("=" * 50)
+        # Store original data for reference (no masking applied yet)
         split_data.update(
             {
                 "y_train_original": split_data["y_train"].clone(),
                 "y_test_original": split_data["y_test"].clone(),
-                "y_train": y_train_missing,
-                "y_test": y_test_missing,
-                "train_missing_mask": train_missing_mask,
-                "test_missing_mask": test_missing_mask,
             }
         )
 
-        # Use training data with missing values for model training
-        y = y_train_missing
-        missing_mask = train_missing_mask
-        missing_info = train_missing_info
-
-        # Store missing data info for later use
-        config.missing_info = missing_info
-        config.y_original_train = y_original_train
-        config.missing_mask = missing_mask
-
-        print(f"Missing data preprocessing completed.")
-        print("=" * 50)
-
     return y, labels, Vx, mu_x, split_data
+
+
+def generate_random_missing_mask(data: torch.Tensor, missing_ratio: float, device: str = None) -> torch.Tensor:
+    """
+    Generate a random missing data mask for the given data.
+    Uses numpy random number generation (already seeded globally) for reproducibility.
+    
+    Args:
+        data: Data tensor [N, M]
+        missing_ratio: Fraction of dimensions to mask per data point
+        device: Device for the mask tensor
+        
+    Returns:
+        missing_mask: Boolean mask [N, M] where True=missing
+    """
+    if device is None:
+        device = data.device
+    
+    N, M = data.shape
+
+    missing_mask = torch.rand(N, M, dtype=torch.bool, device=device) < missing_ratio
+
+    
+    return missing_mask
 
 
 class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
@@ -457,63 +458,45 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         self,
         Y_batch: torch.Tensor,
         batch_indices: torch.Tensor,
+        prior_weight: float,
         U_samples: torch.Tensor = None,
+        iteration: int = None,
+        missing_mask: torch.Tensor = None,
     ):
         """
         Modified train_step: proper SSVI separation of local/global optimization
+        Uses provided missing mask if available.
+        
+        Args:
+            iteration: Current training iteration (for reproducible mask generation)
+            missing_mask: Optional missing data mask for this batch [batch_size, M]
         """
         # Zero gradients for local optimizer (encoder) only initially
         self.optimizer_local.zero_grad()
 
         # Sample U before amortized inference step
-        U_samples = self.get_u_samples()
+        epsilon = self.get_epsilon()
+        U_samples = self.get_u_samples(epsilon)
 
-        # Handle missing data preprocessing for encoder input
-        if self.enable_missing_data:
-            # Replace NaN values with -9.0 for encoder input (encoder expects clean data)
-            Y_batch_clean = torch.where(
-                torch.isnan(Y_batch),
-                torch.full_like(Y_batch, -9.0, dtype=torch.float64),
-                Y_batch,
-            )
-            # Get local parameters via amortized inference (gradients only to encoder)
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(
-                Y_batch_clean, U_samples
-            )
-        else:
-            # Standard case: no missing data preprocessing needed
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(
-                Y_batch, U_samples
-            )
+        # Get local parameters via amortized inference (encoder handles NaN replacement internally)
+        mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(
+            Y_batch, epsilon, missing_mask=missing_mask
+        )
 
         # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()
 
         # Compute global ELBO loss (gradients flow to all parameters)
-        if self.enable_missing_data:
-            # Use missing data aware ELBO (coordinator handles the missing mask automatically)
-            missing_mask = torch.isnan(Y_batch)
-            # Use the same clean data for ELBO computation to maintain consistency with encoder
-            loss = -self.ssvi_elbo(
-                Y_batch_clean,
-                mu_n_batch,
-                sigma_n_batch,
-                U_samples=U_samples,
-                batch_size=self.config.batch_size,
-                total_size=self.config.total_size,
-                missing_mask=missing_mask,
-            )
-        else:
-            # Standard ELBO computation
-            loss = -self.ssvi_elbo(
-                Y_batch,
-                mu_n_batch,
-                sigma_n_batch,
-                U_samples=U_samples,
-                batch_size=self.config.batch_size,
-                total_size=self.config.total_size,
-                missing_mask=None,
-            )
+        loss = -self.ssvi_elbo(
+            Y_batch,
+            mu_n_batch,
+            sigma_n_batch,
+            U_samples=U_samples,
+            batch_size=self.config.batch_size,
+            total_size=self.config.total_size,
+            missing_mask=missing_mask,
+            prior_weight=prior_weight
+        )
 
         # Backward pass (gradients computed for all parameters)
         loss.backward()
@@ -539,16 +522,18 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         """
         Compute ELBO on full dataset using minibatches (for metrics and plots, not optimization).
         Processes data in minibatches to reduce memory usage, using the same parameters as training.
+        Uses provided missing mask if available.
 
         Args:
-            y_full: Full dataset [N, M]
-            missing_mask: Optional boolean mask for missing data [N, M]
+            y_full: Full dataset [N, M] (original data without missing values)
+            missing_mask: Optional missing data mask [N, M] (if provided, uses this mask; otherwise generates new mask per batch)
 
         Returns:
             Full dataset ELBO value (scalar)
         """
         # Sample U for ELBO computation (same U for all batches)
-        U_samples = self.get_u_samples()
+        epsilon = self.get_epsilon()
+        U_samples = self.get_u_samples(epsilon)
 
         # Use same batch size as training
         batch_size = self.config.batch_size
@@ -559,46 +544,40 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
 
         for start_idx in range(0, N, batch_size):
             end_idx = min(start_idx + batch_size, N)
-            y_batch = y_full[start_idx:end_idx]
+            y_batch = y_full[start_idx:end_idx].clone()  # Clone to avoid modifying original
 
-            # Handle missing data preprocessing for encoder input (same as training)
-            if self.enable_missing_data and missing_mask is not None:
-                mask_batch = missing_mask[start_idx:end_idx]
-                y_batch_clean = torch.where(
-                    torch.isnan(y_batch),
-                    torch.full_like(y_batch, -9.0, dtype=torch.float64),
-                    y_batch,
-                )
-            else:
-                y_batch_clean = y_batch
-                mask_batch = None
+            # Use provided mask or generate new one for this batch
+            mask_batch = None
+            if self.enable_missing_data:
+                if missing_mask is not None:
+                    # Use provided mask (slice for this batch)
+                    mask_batch = missing_mask[start_idx:end_idx]
+                else:
+                    # Generate new random mask for this batch (fallback if no mask provided)
+                    mask_batch = generate_random_missing_mask(
+                        y_batch,
+                        missing_ratio=self.config.missing_data_ratio,
+                        device=y_batch.device
+                    )
+                # Apply mask: set missing values to NaN
+                y_batch[mask_batch] = float('nan')
 
             # Get latent parameters via amortized inference for this batch
             mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(
-                y_batch_clean, U_samples
+                y_batch, epsilon, missing_mask=mask_batch
             )
 
             # Compute ELBO for this batch (EXACTLY same as in training: batch_size=config.batch_size, total_size=config.total_size)
-            if self.enable_missing_data and mask_batch is not None:
-                batch_elbo = self.ssvi_elbo(
-                    y_batch_clean,
-                    mu_n_batch,
-                    sigma_n_batch,
-                    U_samples,
-                    batch_size=self.config.batch_size,
-                    total_size=self.config.total_size,
-                    missing_mask=mask_batch,
-                )
-            else:
-                batch_elbo = self.ssvi_elbo(
-                    y_batch_clean,
-                    mu_n_batch,
-                    sigma_n_batch,
-                    U_samples,
-                    batch_size=self.config.batch_size,
-                    total_size=self.config.total_size,
-                    missing_mask=None,
-                )
+            batch_elbo = self.ssvi_elbo(
+                y_batch,
+                mu_n_batch,
+                sigma_n_batch,
+                U_samples,
+                batch_size=self.config.batch_size,
+                total_size=self.config.total_size,
+                missing_mask=mask_batch,
+                prior_weight=1
+            )
 
             batch_elbos.append(batch_elbo)
 
@@ -639,15 +618,43 @@ def train_oil_flow_ssvi(
     knn_metrics_iterations = []
 
     start_time = time.time()
-
+    init_prior_weight = 10
     for i in range(config.training_iterations):
+        # Generate random missing masks for this iteration (same mask used for training step, full ELBO, and metrics)
+        train_missing_mask = None
+        test_missing_mask = None
+        if config.enable_missing_data:
+            train_missing_mask = generate_random_missing_mask(
+                split_data["y_train_original"],
+                missing_ratio=config.missing_data_ratio,
+                device=config.device
+            )
+            test_missing_mask = generate_random_missing_mask(
+                split_data["y_test_original"],
+                missing_ratio=config.missing_data_ratio,
+                device=config.device
+            )
+        
         # Sample batch indices
         N = y_train.shape[0]
         batch_indices = torch.randperm(N, device=y_train.device)[: config.batch_size]
         y_batch = y_train[batch_indices]
-
+        
+        # Get batch mask if missing data is enabled
+        batch_missing_mask = None
+        if config.enable_missing_data and train_missing_mask is not None:
+            batch_missing_mask = train_missing_mask[batch_indices]
+            # Apply mask to batch
+            y_batch = y_batch.clone()
+            y_batch[batch_missing_mask] = float('nan')
+        
+        frac = i/config.training_iterations
+        weight = (1-frac)**2
         # Training step - U sampling happens inside automatically each step
-        loss = model.train_step(y_batch, batch_indices)
+        # prior_weight = init_prior_weight 
+        # prior_weight = init_prior_weight + (i/config.training_iterations)*(1-init_prior_weight)
+        # prior_weight = (init_prior_weight-1)/2 + (init_prior_weight-1)/2*torch.cos(torch.tensor(torch.pi*i/config.training_iterations)) + 1
+        loss = model.train_step(y_batch, batch_indices, prior_weight= weight*init_prior_weight + (1-weight), iteration=i, missing_mask=batch_missing_mask)
         losses.append(loss)
 
         # Metrics computation (periodic)
@@ -660,12 +667,8 @@ def train_oil_flow_ssvi(
             print(f"  Computing metrics at iteration {i}...")
 
             # Compute full dataset loss (negative ELBO, for metrics and plots)
-            if config.enable_missing_data:
-                full_elbo = model.compute_full_elbo(
-                    split_data["y_train"], missing_mask=split_data["train_missing_mask"]
-                )
-            else:
-                full_elbo = model.compute_full_elbo(split_data["y_train"])
+            # Use the same mask generated at the start of this iteration
+            full_elbo = model.compute_full_elbo(split_data["y_train_original"], missing_mask=train_missing_mask)
 
             # Store as negative ELBO (loss) for consistency with batch losses
             full_elbo_losses.append(-full_elbo)
@@ -673,25 +676,36 @@ def train_oil_flow_ssvi(
             print(f"    Full Dataset Loss: {-full_elbo:.4f} (batch loss: {loss:.4f})")
 
             # Use full datasets for proper evaluation
+            # Use the same masks generated at the start of this iteration
+            if config.enable_missing_data:
+                # Create masked versions for metrics computation
+                y_train_masked = split_data["y_train_original"].clone()
+                y_train_masked[train_missing_mask] = float('nan')
+                y_test_masked = split_data["y_test_original"].clone()
+                y_test_masked[test_missing_mask] = float('nan')
+            else:
+                y_train_masked = split_data["y_train_original"]
+                y_test_masked = split_data["y_test_original"]
+
             # Compute metrics with missing data info if enabled
             if config.enable_missing_data:
                 metrics = metrics_computer.compute_full_metrics(
                     model=model,
-                    y_train=split_data["y_train"],
-                    y_test=split_data["y_test"],
+                    y_train=y_train_masked,
+                    y_test=y_test_masked,
                     iteration=i,
                     elbo_loss=full_elbo,  # Use full dataset ELBO
                     n_samples=32,  # Fixed number of samples for metrics computation
                     y_train_original=split_data["y_train_original"],
                     y_test_original=split_data["y_test_original"],
-                    train_missing_mask=split_data["train_missing_mask"],
-                    test_missing_mask=split_data["test_missing_mask"],
+                    train_missing_mask=train_missing_mask,
+                    test_missing_mask=test_missing_mask,
                 )
             else:
                 metrics = metrics_computer.compute_full_metrics(
                     model=model,
-                    y_train=split_data["y_train"],
-                    y_test=split_data["y_test"],
+                    y_train=y_train_masked,
+                    y_test=y_test_masked,
                     iteration=i,
                     elbo_loss=full_elbo,  # Use full dataset ELBO
                     n_samples=32,  # Fixed number of samples for metrics computation
@@ -720,7 +734,7 @@ def train_oil_flow_ssvi(
             print(f"    Computing k-NN clustering metrics...")
             knn_results = compute_knn_accuracies_ssvi(
                 model=model,
-                y_train=split_data['y_test'],
+                y_train=split_data['y_test_original'] if config.enable_missing_data else split_data['y_test'],
                 labels_train=split_data['labels_test'],
                 k_values=[1, 3, 7, 12],
                 batch_size=config.batch_size,
@@ -740,102 +754,93 @@ def train_oil_flow_ssvi(
         # Checkpoint saving (models and plots together)
         if logger and i > 0 and i % config.checkpoint_frequency == 0:
             print(f"  Saving checkpoint at iteration {i}...")
-            try:
-                # Save checkpoint model
-                checkpoint_filename = f"ood_ssvi_iter_{i}_seed_{config.random_seed}.pkl"
-                logger.save_model(model, checkpoint_filename, is_checkpoint=True)
-                print(f"    Checkpoint model saved: {checkpoint_filename}")
+            # Save checkpoint model
+            checkpoint_filename = f"ood_ssvi_iter_{i}_seed_{config.random_seed}.pkl"
+            logger.save_model(model, checkpoint_filename, is_checkpoint=True)
+            print(f"    Checkpoint model saved: {checkpoint_filename}")
 
-                # Save checkpoint plot (if enabled)
-                if config.save_training_plots:
-                    plot_filename = f"training_results_iter_{i}.png"
-                    try:
-                        from src.mnist_ood_plot_helper import visualize_ssvi_results
+            # Save checkpoint plot (if enabled)
+            if config.save_training_plots:
+                plot_filename = f"training_results_iter_{i}.png"
+                from src.mnist_ood_plot_helper import visualize_ssvi_results
 
-                        # Use full ELBO losses for checkpoint plots
-                        visualize_ssvi_results(
-                            model=model,
-                            y_train=y_train,
-                            labels_train=labels_train,
-                            losses=full_elbo_losses,  # Use full dataset ELBO for plots
-                            config=config,
-                            logger=logger,
-                            save_filename=plot_filename,
-                            show_plot=False,
-                            is_checkpoint=True,
-                            train_indices=split_data["train_indices"],
-                            dataset_name=config.id_dataset,
-                            is_ood=False,
-                            full_elbo_iterations=full_elbo_iterations,
-                            batch_losses=losses  # Batch losses up to current iteration
-                        )
-                        print(f"    Checkpoint plot saved: {plot_filename}")
-                    except Exception as e:
-                        print(
-                            f"    Warning: Could not create checkpoint visualization at iteration {i}: {e}"
-                        )
+                # Use full ELBO losses for checkpoint plots
+                visualize_ssvi_results(
+                    model=model,
+                    y_train=y_train,
+                    labels_train=labels_train,
+                    losses=full_elbo_losses,  # Use full dataset ELBO for plots
+                    config=config,
+                    logger=logger,
+                    save_filename=plot_filename,
+                    show_plot=False,
+                    is_checkpoint=True,
+                    train_indices=split_data["train_indices"],
+                    dataset_name=config.id_dataset,
+                    is_ood=False,
+                    full_elbo_iterations=full_elbo_iterations,
+                    batch_losses=losses  # Batch losses up to current iteration
+                )
+                print(f"    Checkpoint plot saved: {plot_filename}")
+                
 
-                    # Save prior samples plots at checkpoint
-                    try:
-                        plots_checkpoints_dir = os.path.join(
-                            logger.plots_dir, "checkpoints"
-                        )
-                        os.makedirs(plots_checkpoints_dir, exist_ok=True)
+                # Save prior samples plots at checkpoint
+                
+                plots_checkpoints_dir = os.path.join(
+                    logger.plots_dir, "checkpoints"
+                )
+                os.makedirs(plots_checkpoints_dir, exist_ok=True)
 
-                        prior_samples_path = os.path.join(
-                            plots_checkpoints_dir,
-                            f"prior_samples_iter_{i}_{config.random_seed}.png",
-                        )
-                        visualize_prior_samples(
-                            model=model,
-                            n_images=24,
-                            save_path=prior_samples_path,
-                            show_plot=False,
-                            dataset_name=config.id_dataset,
-                            image_shape=(28, 28),
-                            scaler=split_data.get("scaler"),
-                        )
-                        print(
-                            f"    Prior samples checkpoint saved: prior_samples_iter_{i}_{config.random_seed}.png"
-                        )
+                prior_samples_path = os.path.join(
+                    plots_checkpoints_dir,
+                    f"prior_samples_iter_{i}_{config.random_seed}.png",
+                )
+                visualize_prior_samples(
+                    model=model,
+                    n_images=24,
+                    save_path=prior_samples_path,
+                    show_plot=False,
+                    dataset_name=config.id_dataset,
+                    image_shape=(28, 28),
+                    scaler=split_data.get("scaler"),
+                )
+                print(
+                    f"    Prior samples checkpoint saved: prior_samples_iter_{i}_{config.random_seed}.png"
+                )
 
-                        prior_samples_avg_path = os.path.join(
-                            plots_checkpoints_dir,
-                            f"prior_samples_averaged_iter_{i}_{config.random_seed}.png",
-                        )
-                        visualize_prior_samples_averaged(
-                            model=model,
-                            n_images=8,
-                            save_path=prior_samples_avg_path,
-                            show_plot=False,
-                            dataset_name=config.id_dataset,
-                            image_shape=(28, 28),
-                            scaler=split_data.get("scaler"),
-                        )
-                        print(
-                            f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png"
-                        )
+                prior_samples_avg_path = os.path.join(
+                    plots_checkpoints_dir,
+                    f"prior_samples_averaged_iter_{i}_{config.random_seed}.png",
+                )
+                visualize_prior_samples_averaged(
+                    model=model,
+                    n_images=8,
+                    save_path=prior_samples_avg_path,
+                    show_plot=False,
+                    dataset_name=config.id_dataset,
+                    image_shape=(28, 28),
+                    scaler=split_data.get("scaler"),
+                )
+                print(
+                    f"    Prior samples averaged checkpoint saved: prior_samples_averaged_iter_{i}_{config.random_seed}.png"
+                )
 
-                        test_image_predictions_checkpoint_path = os.path.join(plots_checkpoints_dir, f"test_image_predictions_iter_{i}_{config.random_seed}.png")
-                        visualize_test_image_predictions(
-                            model=model,
-                            y_train=split_data['y_test'],
-                            config=config,
-                            n_images=24,
-                            save_path=test_image_predictions_checkpoint_path,
-                            show_plot=False,
-                            dataset_name=config.id_dataset,
-                            image_shape=(28, 28),
-                            scaler=split_data.get('scaler')
-                        )
-                        print(f"    Test image predictions checkpoint saved: test_image_predictions_iter_{i}_{config.random_seed}.png")
-                    except Exception as e:
-                        print(
-                            f"    Warning: Could not create prior samples checkpoint at iteration {i}: {e}"
-                        )
+                test_image_predictions_checkpoint_path = os.path.join(plots_checkpoints_dir, f"test_image_predictions_iter_{i}_{config.random_seed}.png")
+                visualize_test_image_predictions(
+                    model=model,
+                    y_train=split_data['y_test_original'] if config.enable_missing_data else split_data['y_test'],
+                    config=config,
+                    n_images=24,
+                    save_path=test_image_predictions_checkpoint_path,
+                    show_plot=False,
+                    dataset_name=config.id_dataset,
+                    image_shape=(28, 28),
+                    scaler=split_data.get('scaler')
+                )
+                print(f"    Test image predictions checkpoint saved: test_image_predictions_iter_{i}_{config.random_seed}.png")
+                    
 
-            except Exception as e:
-                print(f"    Warning: Error saving checkpoint at iteration {i}: {e}")
+            
 
         # Gradient logging (only if logger provided and enabled)
         if (
@@ -860,18 +865,11 @@ def train_oil_flow_ssvi(
     total_time = time.time() - start_time
 
     # Compute final full dataset loss (negative ELBO)
-    if config.enable_missing_data and split_data is not None:
-        final_full_elbo = model.compute_full_elbo(
-            split_data["y_train"], missing_mask=split_data["train_missing_mask"]
-        )
-    elif split_data is not None:
-        final_full_elbo = model.compute_full_elbo(split_data["y_train"])
+    # Use original data - random mask will be generated inside compute_full_elbo
+    if split_data is not None:
+        final_full_elbo = model.compute_full_elbo(split_data["y_train_original"])
     else:
-        if config.enable_missing_data:
-            missing_mask = torch.isnan(y_train)
-        else:
-            missing_mask = None
-        final_full_elbo = model.compute_full_elbo(y_train, missing_mask=missing_mask)
+        final_full_elbo = model.compute_full_elbo(y_train)
 
     # Store as negative ELBO (loss) for consistency with batch losses
     full_elbo_losses.append(-final_full_elbo)
@@ -935,37 +933,33 @@ def evaluate_ood_detection_metrics(
     for score_type in config.ood_score_types:
         print(f"\nEvaluating with {score_type.upper()} scores...")
 
-        try:
-            metrics, id_scores, ood_scores = evaluate_ood_detection(
-                model=model,
-                id_test_data=id_test_data,
-                ood_data=split_data["y_ood"],
-                score_type=score_type,
+        metrics, id_scores, ood_scores = evaluate_ood_detection(
+            model=model,
+            id_test_data=id_test_data,
+            ood_data=split_data["y_ood"],
+            score_type=score_type,
+        )
+
+        print(f"  AUROC: {metrics.auroc:.4f}")
+        print(f"  AUPRC: {metrics.auprc:.4f}")
+        print(f"  FPR@80: {metrics.fpr_at_80_tpr:.4f}")
+
+        ood_results[score_type] = {
+            "metrics": metrics.to_dict(),
+            "id_scores_mean": float(np.mean(id_scores)),
+            "id_scores_std": float(np.std(id_scores)),
+            "ood_scores_mean": float(np.mean(ood_scores)),
+            "ood_scores_std": float(np.std(ood_scores)),
+            "id_scores": id_scores.tolist(),
+            "ood_scores": ood_scores.tolist(),
+        }
+
+        # Log to file
+        if logger:
+            logger.log_training(
+                f"OOD {score_type.upper()}: AUROC={metrics.auroc:.4f}, AUPRC={metrics.auprc:.4f}, FPR@80={metrics.fpr_at_80_tpr:.4f}"
             )
 
-            print(f"  AUROC: {metrics.auroc:.4f}")
-            print(f"  AUPRC: {metrics.auprc:.4f}")
-            print(f"  FPR@80: {metrics.fpr_at_80_tpr:.4f}")
-
-            ood_results[score_type] = {
-                "metrics": metrics.to_dict(),
-                "id_scores_mean": float(np.mean(id_scores)),
-                "id_scores_std": float(np.std(id_scores)),
-                "ood_scores_mean": float(np.mean(ood_scores)),
-                "ood_scores_std": float(np.std(ood_scores)),
-                "id_scores": id_scores.tolist(),
-                "ood_scores": ood_scores.tolist(),
-            }
-
-            # Log to file
-            if logger:
-                logger.log_training(
-                    f"OOD {score_type.upper()}: AUROC={metrics.auroc:.4f}, AUPRC={metrics.auprc:.4f}, FPR@80={metrics.fpr_at_80_tpr:.4f}"
-                )
-
-        except Exception as e:
-            print(f"  Warning: Failed to compute {score_type} scores: {e}")
-            ood_results[score_type] = {"error": str(e)}
 
     # Restore original P value
     model.P = original_P
@@ -979,48 +973,44 @@ def plot_ood_score_histograms(ood_results, config: OODSSVIConfig, logger=None):
         return
 
     for score_type, result in ood_results.items():
-        if "error" in result:
-            continue
 
-        try:
-            id_scores = np.array(result["id_scores"])
-            ood_scores = np.array(result["ood_scores"])
 
-            plt.figure(figsize=(10, 6))
+        id_scores = np.array(result["id_scores"])
+        ood_scores = np.array(result["ood_scores"])
 
-            plt.hist(
-                id_scores,
-                bins=50,
-                alpha=0.7,
-                label=f"{config.id_dataset} (ID)",
-                density=True,
-            )
-            plt.hist(
-                ood_scores,
-                bins=50,
-                alpha=0.7,
-                label=f"{config.get_ood_dataset()} (OOD)",
-                density=True,
-            )
+        plt.figure(figsize=(10, 6))
 
-            plt.xlabel(f"{score_type.upper()} Score")
-            plt.ylabel("Density")
-            plt.title(
-                f"OOD Detection: {config.id_dataset} vs {config.get_ood_dataset()}"
-            )
-            plt.legend()
-            plt.grid(True, alpha=0.3)
+        plt.hist(
+            id_scores,
+            bins=50,
+            alpha=0.7,
+            label=f"{config.id_dataset} (ID)",
+            density=True,
+        )
+        plt.hist(
+            ood_scores,
+            bins=50,
+            alpha=0.7,
+            label=f"{config.get_ood_dataset()} (OOD)",
+            density=True,
+        )
 
-            save_path = os.path.join(
-                logger.plots_dir, f"ood_hist_{score_type}_{config.random_seed}.png"
-            )
-            plt.savefig(save_path, dpi=150, bbox_inches="tight")
-            plt.close()
+        plt.xlabel(f"{score_type.upper()} Score")
+        plt.ylabel("Density")
+        plt.title(
+            f"OOD Detection: {config.id_dataset} vs {config.get_ood_dataset()}"
+        )
+        plt.legend()
+        plt.grid(True, alpha=0.3)
 
-            print(f"  OOD histogram saved: {save_path}")
+        save_path = os.path.join(
+            logger.plots_dir, f"ood_hist_{score_type}_{config.random_seed}.png"
+        )
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close()
 
-        except Exception as e:
-            print(f"  Warning: Failed to plot {score_type} histogram: {e}")
+        print(f"  OOD histogram saved: {save_path}")
+
 
 
 # === Pre-defined Configurations ===
@@ -1039,7 +1029,7 @@ def get_fast_config():
         local_lr=2e-3,
         global_lr=1e-2,
         P=16,
-        log_frequency=50,
+        log_frequency=200,
         checkpoint_frequency=50,
         enable_gradient_logging=True,
         gradient_log_frequency=25,
@@ -1149,24 +1139,21 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
 
     # Visualize results (use full ELBO losses for plots)
     print(f"\nVisualizing results...")
-    try:
-        from src.mnist_ood_plot_helper import visualize_ssvi_results
+    from src.mnist_ood_plot_helper import visualize_ssvi_results
 
-        visualize_ssvi_results(
-            model,
-            y_train,
-            labels_train,
-            full_elbo_losses,
-            config,
-            logger,
-            show_plot=False,
-            train_indices=split_data["train_indices"],
-            dataset_name=config.id_dataset,
-            is_ood=False,
-        )
-    except Exception as e:
-        print(f"Warning: Could not create latent space visualization: {e}")
-
+    visualize_ssvi_results(
+        model,
+        y_train,
+        labels_train,
+        full_elbo_losses,
+        config,
+        logger,
+        show_plot=False,
+        train_indices=split_data["train_indices"],
+        dataset_name=config.id_dataset,
+        is_ood=False,
+    )
+    
     # Generate final metrics and plots if metrics were computed
     summary = None
     if (
@@ -1184,24 +1171,47 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         # Note: full_elbo_losses stores -elbo (loss), so negate to get ELBO
         final_full_elbo = -full_elbo_losses[-1] if full_elbo_losses else 0.0
 
+        # Generate random missing masks for final metrics computation if missing data is enabled
+        train_missing_mask = None
+        test_missing_mask = None
+        if config.enable_missing_data:
+            train_missing_mask = generate_random_missing_mask(
+                split_data["y_train_original"],
+                missing_ratio=config.missing_data_ratio,
+                device=config.device
+            )
+            test_missing_mask = generate_random_missing_mask(
+                split_data["y_test_original"],
+                missing_ratio=config.missing_data_ratio,
+                device=config.device
+            )
+            # Create masked versions for metrics computation
+            y_train_masked = split_data["y_train_original"].clone()
+            y_train_masked[train_missing_mask] = float('nan')
+            y_test_masked = split_data["y_test_original"].clone()
+            y_test_masked[test_missing_mask] = float('nan')
+        else:
+            y_train_masked = split_data["y_train_original"]
+            y_test_masked = split_data["y_test_original"]
+
         if config.enable_missing_data:
             final_metrics = metrics_computer.compute_full_metrics(
                 model=model,
-                y_train=split_data["y_train"],
-                y_test=split_data["y_test"],
+                y_train=y_train_masked,
+                y_test=y_test_masked,
                 iteration=config.training_iterations,
                 elbo_loss=final_full_elbo,
                 n_samples=32,
                 y_train_original=split_data["y_train_original"],
                 y_test_original=split_data["y_test_original"],
-                train_missing_mask=split_data["train_missing_mask"],
-                test_missing_mask=split_data["test_missing_mask"],
+                train_missing_mask=train_missing_mask,
+                test_missing_mask=test_missing_mask,
             )
         else:
             final_metrics = metrics_computer.compute_full_metrics(
                 model=model,
-                y_train=split_data["y_train"],
-                y_test=split_data["y_test"],
+                y_train=y_train_masked,
+                y_test=y_test_masked,
                 iteration=config.training_iterations,
                 elbo_loss=final_full_elbo,
                 n_samples=32,
@@ -1420,14 +1430,23 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     if config.enable_missing_data and split_data is not None:
         print("\n=== Missing Data Reconstruction Visualization ===")
 
+        # Generate random missing mask for visualization
+        train_missing_mask_viz = generate_random_missing_mask(
+            split_data["y_train_original"],
+            missing_ratio=config.missing_data_ratio,
+            device=config.device
+        )
+        y_train_masked_viz = split_data["y_train_original"].clone()
+        y_train_masked_viz[train_missing_mask_viz] = float('nan')
+
         # Simple visualization (3 columns: original, masked, samples)
         simple_viz_path = os.path.join(
             logger.plots_dir, f"missing_data_reconstruction_{config.random_seed}.png"
         )
         visualize_mnist_missing_reconstruction(
             model=model,
-            y_train=split_data["y_train"],
-            missing_mask=split_data["train_missing_mask"],
+            y_train=y_train_masked_viz,
+            missing_mask=train_missing_mask_viz,
             y_original=split_data["y_train_original"],
             n_images=10,
             n_samples=5,
@@ -1444,8 +1463,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         )
         visualize_mnist_missing_reconstruction_detailed(
             model=model,
-            y_train=split_data["y_train"],
-            missing_mask=split_data["train_missing_mask"],
+            y_train=y_train_masked_viz,
+            missing_mask=train_missing_mask_viz,
             y_original=split_data["y_train_original"],
             n_images=10,
             n_samples=5,
@@ -1492,7 +1511,7 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     test_image_predictions_path = os.path.join(logger.plots_dir, f"test_image_predictions_{config.random_seed}.png")
     visualize_test_image_predictions(
         model=model,
-        y_train=split_data['y_test'],
+        y_train=split_data['y_test_original'] if config.enable_missing_data else split_data['y_test'],
         config=config,
         n_images=24,
         save_path=test_image_predictions_path,
@@ -1601,9 +1620,8 @@ if __name__ == "__main__":
             config_dir = os.path.dirname(args.config)
             config.results_dir = os.path.join(config_dir, "ood_run_results")
         else:
-            print(
-                f"Warning: Config file {args.config} not found, using default OOD fast config"
-            )
+            raise Exception(f"Config file {args.config} not found, using default OOD fast config")
+
             config = get_fast_config()
             config_name = "fast"
 

@@ -48,8 +48,8 @@ class OriginalGPLVMConfig:
     experiment_name: str = "fast"
     
     # === Checkpointing Configuration ===
-    checkpoint_frequency: int = 2000  # Save models, plots, metrics, and log progress every N iterations
-    metrics_frequency: int = 100      # Compute metrics every N iterations (more frequent than checkpoints)
+    checkpoint_frequency: int = 4000  # Save models, plots, metrics, and log progress every N iterations
+    metrics_frequency: int = 4000      # Compute metrics every N iterations (more frequent than checkpoints)
     
     # === Visualization Configuration ===
     save_plots: bool = True
@@ -63,6 +63,9 @@ class OriginalGPLVMConfig:
     enable_missing_data: bool = False      # Enable missing data reconstruction capability
     missing_data_ratio: float = 0.3        # Fraction of dimensions to artificially mask (for testing)
     reconstruction_samples: int = 50       # Number of samples for missing data reconstruction
+    
+    # === Data Standardization Configuration ===
+    standardization: str = "mean"  # "standard" (mean=0, std=1), "minmax" ([0,1]), "mean" (mean center), or "none" (no transform)
     
     # === MNIST Data Filtering Configuration ===
     mnist_digits: List[int] = None         # List of digits to include (e.g., [0, 1, 2]). None = all digits (0-9)
@@ -121,6 +124,7 @@ class OriginalGPLVMConfig:
         if self.save_results:
             print(f"Results dir: {self.results_dir}")
         print(f"Missing data: {self.enable_missing_data} (ratio: {self.missing_data_ratio})")
+        print(f"Data Standardization: {self.standardization}")
         print("=" * 50)
 
 def get_fast_config():
@@ -140,7 +144,7 @@ def get_fast_config():
         init_lengthscales=2.0,  # Initial lengthscales value (default matches GPyTorch RBFKernel)
         init_output_noise_scale=2.0,  # Initial output noise scale (default matches GPyTorch GaussianLikelihood)
         # === Missing Data Configuration ===
-        enable_missing_data=True,      # Enable missing data for MNIST testing and visualization
+        enable_missing_data=False,     # Disabled for fast config (can be enabled for MNIST testing)
         missing_data_ratio=0.3,        # 30% missing data for testing
         reconstruction_samples=50,     # Number of samples for missing data reconstruction
         # === MNIST Data Filtering Configuration ===
@@ -151,18 +155,18 @@ def get_fast_config():
 def get_swiss_roll_fast_config():
     """Fast configuration for Swiss roll experiments (2D manifold in 3D space)"""
     return OriginalGPLVMConfig(
-        device="cuda",  # Use CUDA device
-        training_steps={'gauss': 200, 'nn_gauss': 200},
+        device="cpu", # "cuda",  # Use CUDA device
+        training_steps={'gauss': 5_000, 'nn_gauss': 5_000},
         batch_size=50,
-        latent_dim=2,   # Swiss roll is a 2D manifold (key difference from qPCR)
+        latent_dim=3,   # Swiss roll is a 2D manifold (key difference from qPCR)
         n_inducing=10,  # Fewer inducing points for smaller dataset
-        learning_rate=0.002,
+        learning_rate=0.01,
         random_seed=42,
-        test_iterations=200,
+        test_iterations=1000,
         test_size=0.2,  # 20% for testing
-        checkpoint_frequency=100,  # Save checkpoints every 100 iterations
-        metrics_frequency=50,      # Compute metrics every 50 iterations
-        nn_layers=(20, 20),        # Smaller network for 3D->2D mapping
+        checkpoint_frequency=1000,  # Save checkpoints every 100 iterations
+        metrics_frequency=1000,      # Compute metrics every 50 iterations
+        nn_layers=(128, 64),        # Smaller network for 3D->2D mapping
         # === GP Hyperparameters ===
         init_lengthscales=2.0,
         init_output_noise_scale=2.0,

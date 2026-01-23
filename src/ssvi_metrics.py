@@ -92,7 +92,8 @@ class SSVIMetricsComputer:
         model.eval()
         with torch.no_grad():
             # Sample U once for all batches
-            U_samples = model.get_u_samples()
+            epsilon = model.get_epsilon()
+            U_samples = model.get_u_samples(epsilon)
             
             N = y_true.shape[0]
             batch_size = self.metrics_batch_size
@@ -105,11 +106,11 @@ class SSVIMetricsComputer:
                 end_idx = min(start_idx + batch_size, N)
                 y_batch = y_true[start_idx:end_idx]
                 
-                # Preprocess encoder input to handle missing data (consistent with training)
-                y_encoder_input = torch.where(torch.isnan(y_batch), torch.full_like(y_batch, -9.0, dtype=torch.float64), y_batch)
+                # Pass NaN directly to encoder (encoder will replace with 0.0 internally)
+                # No preprocessing needed - encoder handles NaN replacement
                 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_batch, epsilon)
                 
                 # Use proper probabilistic sampling like in compute_nlpd
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -183,7 +184,8 @@ class SSVIMetricsComputer:
                 return float('nan')
             
             # Sample U once for all batches
-            U_samples = model.get_u_samples()
+            epsilon = model.get_epsilon()
+            U_samples = model.get_u_samples(epsilon)
             
             N = y_original.shape[0]
             batch_size = self.metrics_batch_size
@@ -197,13 +199,13 @@ class SSVIMetricsComputer:
                 y_batch = y_original[start_idx:end_idx]
                 mask_batch = missing_mask[start_idx:end_idx]
 
-                # Preprocess encoder input to handle missing data (consistent with training)
-                # Create masked data by setting missing dimensions to -9.0
+                # Set missing dimensions to NaN (encoder will replace with 0.0 internally)
                 y_encoder_input = y_batch.clone()
-                y_encoder_input[mask_batch] = -9.0
+                y_encoder_input[mask_batch] = float('nan')
 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                # Pass missing_mask so encoder can include it in input
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon, missing_mask=mask_batch)
 
                 # Use proper probabilistic sampling like in compute_nlpd
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -256,7 +258,8 @@ class SSVIMetricsComputer:
         model.eval()
         with torch.no_grad():
             # Sample U once for all batches
-            U_samples = model.get_u_samples()
+            epsilon = model.get_epsilon()
+            U_samples = model.get_u_samples(epsilon)
             
             N = y_true.shape[0]
             batch_size = self.metrics_batch_size
@@ -270,11 +273,11 @@ class SSVIMetricsComputer:
                 y_batch = y_true[start_idx:end_idx]
                 current_batch_size = end_idx - start_idx
                 
-                # Preprocess encoder input to handle missing data (consistent with training)
-                y_encoder_input = torch.where(torch.isnan(y_batch), torch.full_like(y_batch, -9.0, dtype=torch.float64), y_batch)
+                # Pass NaN directly to encoder (encoder will replace with 0.0 internally)
+                # No preprocessing needed - encoder handles NaN replacement
                 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_batch, epsilon)
                 
                 # Compute averaged latent variables once before the loop (optimization)
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -365,7 +368,8 @@ class SSVIMetricsComputer:
                 return float('nan')
             
             # Sample U once for all batches
-            U_samples = model.get_u_samples()
+            epsilon = model.get_epsilon()
+            U_samples = model.get_u_samples(epsilon)
             
             N = y_original.shape[0]
             batch_size = self.metrics_batch_size
@@ -380,13 +384,13 @@ class SSVIMetricsComputer:
                 mask_batch = missing_mask[start_idx:end_idx]
                 current_batch_size = end_idx - start_idx
                 
-                # Preprocess encoder input to handle missing data (consistent with training)
-                # Create masked data by setting missing dimensions to -9.0
+                # Set missing dimensions to NaN (encoder will replace with 0.0 internally)
                 y_encoder_input = y_batch.clone()
-                y_encoder_input[mask_batch] = -9.0
+                y_encoder_input[mask_batch] = float('nan')
                 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, U_samples)
+                # Pass missing_mask so encoder can include it in input
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon, missing_mask=mask_batch)
                 
                 # Compute averaged latent variables once before the loop (optimization)
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -488,44 +492,37 @@ class SSVIMetricsComputer:
         metrics.iteration = iteration
         metrics.elbo_loss = elbo_loss
         
-        try:
-            # Reconstruction metrics using SSVI encoder
-            metrics.train_rmse = self.compute_rmse(model, y_train, n_samples)
-            metrics.test_rmse = self.compute_rmse(model, y_test, n_samples)
-            
-            # Uncertainty metrics (computationally expensive, use fewer samples)
-            metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
-            metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
-            
-            # Missing data metrics (only if missing data is enabled and original data/masks are provided)
-            if (hasattr(model, 'enable_missing_data') and model.enable_missing_data and
-                y_train_original is not None and y_test_original is not None and 
-                train_missing_mask is not None and test_missing_mask is not None):
-                try:
-                    metrics.train_missing_nlpd = self.compute_missing_data_nlpd(
-                        model, y_train_original, train_missing_mask, n_samples
-                    )
-                    metrics.test_missing_nlpd = self.compute_missing_data_nlpd(
-                        model, y_test_original, test_missing_mask, n_samples
-                    )
-                    metrics.train_missing_rmse = self.compute_missing_data_rmse(
-                        model, y_train_original, train_missing_mask, n_samples
-                    )
-                    metrics.test_missing_rmse = self.compute_missing_data_rmse(
-                        model, y_test_original, test_missing_mask, n_samples
-                    )
-                except Exception as e:
-                    print(f"Warning: Error computing missing data metrics at iteration {iteration}: {e}")
-                    # Keep default values (nan) for failed metrics
+        # Reconstruction metrics using SSVI encoder
+        metrics.train_rmse = self.compute_rmse(model, y_train, n_samples)
+        metrics.test_rmse = self.compute_rmse(model, y_test, n_samples)
+        
+        # Uncertainty metrics (computationally expensive, use fewer samples)
+        metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
+        metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
+        
+        # Missing data metrics (only if missing data is enabled and original data/masks are provided)
+        if (hasattr(model, 'enable_missing_data') and model.enable_missing_data and
+            y_train_original is not None and y_test_original is not None and 
+            train_missing_mask is not None and test_missing_mask is not None):
+            metrics.train_missing_nlpd = self.compute_missing_data_nlpd(
+                model, y_train_original, train_missing_mask, n_samples
+            )
+            metrics.test_missing_nlpd = self.compute_missing_data_nlpd(
+                model, y_test_original, test_missing_mask, n_samples
+            )
+            metrics.train_missing_rmse = self.compute_missing_data_rmse(
+                model, y_train_original, train_missing_mask, n_samples
+            )
+            metrics.test_missing_rmse = self.compute_missing_data_rmse(
+                model, y_test_original, test_missing_mask, n_samples
+            )
+           
 
-            # Model complexity
-            effective_dims, total_dims = self.compute_effective_latent_dims(model)
-            metrics.effective_latent_dims = effective_dims
-            metrics.total_latent_dims = total_dims
+        # Model complexity
+        effective_dims, total_dims = self.compute_effective_latent_dims(model)
+        metrics.effective_latent_dims = effective_dims
+        metrics.total_latent_dims = total_dims
             
-        except Exception as e:
-            print(f"Warning: Error computing metrics at iteration {iteration}: {e}")
-            # Keep default values (0.0) for failed metrics
         
         # Store in history
         self.metrics_history.append(metrics)

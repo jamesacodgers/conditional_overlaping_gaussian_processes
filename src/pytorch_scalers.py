@@ -44,6 +44,38 @@ class StandardScalerPytorch:
         """Fit and transform the data"""
         self.fit(X)
         return self.transform(X)
+    
+class MeanCenter:
+    """Standard Scaler for PyTorch tensors"""
+    
+    def __init__(self, device="cpu"):
+        self.device = device
+        self.mean = None
+    
+    def fit(self, X):
+        """Fit the scaler to the data"""
+        self.mean = torch.nanmean(X, dim=0).to(self.device)
+    
+    def transform(self, X):
+        """Transform the data"""
+        if self.mean is None:
+            raise ValueError("Scaler must be fitted before transform")
+        # Ensure mean and std are on the same device as X
+        mean = self.mean.to(X.device)
+        return (X - mean)
+    
+    def inverse_transform(self, X):
+        """Inverse transform the data"""
+        if self.mean is None:
+            raise ValueError("Scaler must be fitted before inverse_transform")
+        # Ensure mean and std are on the same device as X
+        mean = self.mean.to(X.device)
+        return X + mean
+    
+    def fit_transform(self, X):
+        """Fit and transform the data"""
+        self.fit(X)
+        return self.transform(X)
 
 
 class NoTransform:

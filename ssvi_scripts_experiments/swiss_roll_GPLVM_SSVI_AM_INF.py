@@ -42,13 +42,14 @@ from src.ssvi_utils import SSVIResultsLogger, plot_metrics_history, plot_final_m
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
-from src.swiss_roll_plot_helper import visualize_ssvi_results
+from src.swiss_roll_plot_helper import visualize_ssvi_results, visualize_swiss_roll_reconstruction
 from src.ssvi_config_utils import (
     load_config_with_overrides, create_argument_parser, 
     get_base_config_path, ensure_config_dir_exists, print_available_configs
 )
 from sklearn.model_selection import train_test_split
 from src.data_utils import generate_swiss_roll_data
+from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
 # Import OilFlowSSVIConfig from oil_flow_GPLVM_SSVI_AM_INF.py
 from ssvi_scripts_experiments.oil_flow_GPLVM_SSVI_AM_INF import OilFlowSSVIConfig
@@ -60,7 +61,7 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     print("Loading Swiss roll data...")
     
     # Generate Swiss roll data (consistent with swiss_roll_GPLVM.py)
-    n_samples = 10000
+    n_samples = 1000
     Y, X_true, labels = generate_swiss_roll_data(n_samples=n_samples, noise=0.1, random_state=config.random_seed)
     
     print(f"Generated Swiss Roll data: {Y.shape[0]} samples, {Y.shape[1]} dimensions")
@@ -98,6 +99,66 @@ def load_oil_flow_data(config: OilFlowSSVIConfig):
     print(f"Data split shapes - Train: {y_train.shape}, Test: {y_test.shape}")
     print(f"Labels split info - Train: {type(labels_train)}, length: {len(labels_train) if hasattr(labels_train, '__len__') else 'no length'}")
     print(f"Labels split info - Test: {type(labels_test)}, length: {len(labels_test) if hasattr(labels_test, '__len__') else 'no length'}")
+
+    # === Data Standardization ===
+    # Fit scaler on training data only (before missing data preprocessing)
+    print(f"\n=== Data Standardization ===")
+    print(f"Standardization method: {config.standardization}")
+
+    if config.standardization == "standard":
+        scaler = StandardScalerPytorch(device=config.device)
+    elif config.standardization == "minmax":
+        scaler = MinMaxScalerPytorch(device=config.device)
+    elif config.standardization == "mean":
+        scaler = MeanCenter(device=config.device)
+    elif config.standardization == "none":
+        scaler = NoTransform(device=config.device)
+    else:
+        raise ValueError(
+            f"Unknown standardization method: {config.standardization}. Must be 'standard', 'minmax', 'mean', or 'none'"
+        )
+
+    # Fit scaler on training data only (critical: don't mix test data)
+    print(f"Fitting scaler on training data only ({y_train.shape[0]} samples)...")
+    scaler.fit(y_train)
+
+    # Transform all data using the scaler fitted on training data
+    print(f"Transforming train/test data...")
+    print(
+        f"  Before transform - Train shape: {y_train.shape}, Test shape: {y_test.shape}"
+    )
+    if hasattr(scaler, 'mean'):
+        print(f"  Scaler mean shape: {scaler.mean.shape}")
+    print(
+        f"  Before transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}"
+    )
+    print(
+        f"  Before transform - Train std: {y_train.std().item():.6f}, Test std: {y_test.std().item():.6f}"
+    )
+
+    y_train = scaler.transform(y_train)
+    y_test = scaler.transform(y_test)
+
+    # Debug: Show statistics after transform
+    print(
+        f"  After transform - Train mean: {y_train.mean().item():.6f}, Test mean: {y_test.mean().item():.6f}"
+    )
+    print(
+        f"  After transform - Train std: {y_train.std().item():.6f}, Test std: {y_test.std().item():.6f}"
+    )
+    if hasattr(scaler, 'min'):
+        print(
+            f"  After transform - Train min: {y_train.min().item():.6f}, Test min: {y_test.min().item():.6f}"
+        )
+        print(
+            f"  After transform - Train max: {y_train.max().item():.6f}, Test max: {y_test.max().item():.6f}"
+        )
+
+    print(f"Standardization completed.")
+    print("=" * 50)
+
+    # Store scaler in config for later use (e.g., inverse transform)
+    config.scaler = scaler
 
     # Use training data for model initialization
     y = y_train
@@ -200,17 +261,18 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         self.optimizer_local.zero_grad()
 
         # Sample U before amortized inference step
-        U_samples = self.get_u_samples()
+        epsilon = self.get_epsilon()
+        U_samples = self.get_u_samples(epsilon)
 
         # Handle missing data preprocessing for encoder input
         if self.enable_missing_data:
             # Replace NaN values with -9.0 for encoder input (encoder expects clean data)
             Y_batch_clean = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0, dtype=torch.float64), Y_batch)
             # Get local parameters via amortized inference (gradients only to encoder)
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, U_samples)
+            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch_clean, epsilon)
         else:
             # Standard case: no missing data preprocessing needed
-            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, U_samples)
+            mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(Y_batch, epsilon)
         
         # Now zero gradients for global optimizer before global computation
         self.optimizer_global.zero_grad()
@@ -226,7 +288,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
                                    total_size=self.config.total_size,
-                                   missing_mask=missing_mask)
+                                   missing_mask=missing_mask,
+                                   prior_weight=1)
         else:
             # Standard ELBO computation
             loss = -self.ssvi_elbo(Y_batch,
@@ -235,7 +298,8 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
                                    U_samples=U_samples,
                                    batch_size=self.config.batch_size,
                                    total_size=self.config.total_size,
-                                   missing_mask=None)
+                                   missing_mask=None,
+                                   prior_weight=1)
         
         # Backward pass (gradients computed for all parameters)
         loss.backward()
@@ -390,20 +454,20 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
 def get_fast_config():
     """Fast configuration for Swiss roll (2D latent manifold in 3D space)"""
     return OilFlowSSVIConfig(
-        training_iterations=200,
-        batch_size=50,
-        latent_dim=2,  # Swiss roll is a 2D manifold (key difference from qPCR)
-        n_inducing_points=10,  # Fewer inducing points for smaller dataset
-        encoder_hidden_dims=[20, 20],  # Smaller network for 3D->2D mapping
-        local_lr=2e-3,
-        global_lr=1e-2,
+        training_iterations=7000,
+        batch_size=250,
+        latent_dim=3,  # Swiss roll is a 2D manifold (key difference from qPCR)
+        n_inducing_points=32,  # Fewer inducing points for smaller dataset
+        encoder_hidden_dims=[128, 64],  # Smaller network for 3D->2D mapping
+        local_lr=1e-3,
+        global_lr=1e-3,
         P=16,
-        log_frequency=50,
-        checkpoint_frequency=100,  # Save checkpoint models every 100 iterations
+        log_frequency=1000,
+        checkpoint_frequency=1000,  # Save checkpoint models every 100 iterations
         enable_gradient_logging=True,
         gradient_log_frequency=25,
         enable_metrics=True,
-        metrics_frequency=50,
+        metrics_frequency=1000,
         save_training_plots=True,
         plot_training=True,
         plot_latent_space=True,
@@ -463,7 +527,7 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     )
     
     print(f"Model initialized:")
-    print(f"  Encoder: {model.encoder}")
+    print(f"  Encoder: {model.mu_encoder}")
     print(f"  Inducing points: {model.gp.Vx.shape}")
     print(f"  Latent variables: {model.mu_x.shape}")
     
@@ -598,6 +662,23 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             }
         
         logger.save_experiment_summary(experiment_summary)
+    
+    # Visualize Swiss roll reconstruction
+    print("\n=== Swiss Roll Reconstruction Visualization ===")
+    try:
+        visualize_swiss_roll_reconstruction(
+            model=model,
+            y_train=y_train,
+            labels_train=labels_train,
+            config=config,
+            logger=logger,
+            n_reconstruction_samples=32,  # Number of reconstruction samples for averaging
+            show_plot=False
+        )
+        print("Swiss roll reconstruction visualization completed.")
+    except Exception as e:
+        print(f"Warning: Could not create reconstruction visualization: {e}")
+    print("=" * 50)
     
     return model, losses, config, metrics_computer, final_metrics
 

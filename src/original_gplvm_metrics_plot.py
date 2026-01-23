@@ -252,7 +252,7 @@ def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iteration
     print(f"Metrics progression plot saved to: {plot_path}")
 
 
-def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros", n_idx=None, save_path=None):
+def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros", n_idx=None, save_path=None, scaler=None):
     """
     Plot 1D latent slice for original GP-LVM models (gauss and nn_gauss).
     
@@ -264,6 +264,7 @@ def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros",
                 must provide n_idx to specify which data point to use as center.
         n_idx: int, index of data point to use as center when center="data_point"
         save_path: str, optional path to save the plot. If None, displays the plot.
+        scaler: optional scaler for inverse transform (to visualize in original scale)
     """
     import numpy as np
     
@@ -286,6 +287,8 @@ def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros",
         if model_name == 'gauss':
             # For gauss: latent is variational parameters
             mu_x_mean = model.X.q_mu.detach()  # [N, Q]
+            # Get variance from q_log_sigma
+            sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma).detach()  # [N, Q] - standard deviation
         elif model_name == 'nn_gauss':
             # For nn_gauss: encode the training data
             # Handle missing data if present
@@ -293,6 +296,13 @@ def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros",
                                          torch.full_like(y_train, -999.0, dtype=torch.float64), 
                                          y_train)
             mu_x_mean = model.X.mu(y_encoder_input).detach()  # [N, Q]
+            # Get variance from encoder
+            sigma_x_tensors = model.X.sigma(y_encoder_input).detach()  # List of covariance matrices or tensor
+            # Extract diagonal standard deviations
+            if isinstance(sigma_x_tensors, list):
+                sigma_x = torch.stack([torch.sqrt(x.diag()) for x in sigma_x_tensors])  # [N, Q]
+            else:
+                sigma_x = torch.sqrt(torch.diagonal(sigma_x_tensors, dim1=-2, dim2=-1))  # [N, Q]
         else:
             raise ValueError(f"Unsupported model type: {model_name}. Use 'gauss' or 'nn_gauss'")
         
@@ -337,8 +347,32 @@ def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros",
         pred_var = f_var + obs_noise  # [G, M]
         pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))  # [G, M]
         
+        # Inverse transform predictions if scaler provided (for visualization in original scale)
+        if scaler is not None:
+            f_mean = scaler.inverse_transform(f_mean)  # [G, M]
+            # For standard deviation, scale by scaler's std if available
+            if hasattr(scaler, 'std'):
+                pred_sd = pred_sd * scaler.std  # [G, M]
+        
+        # Compute Y-axis limits from actual data for consistent scaling across models
+        # Get data in original scale (inverse transform if scaler provided)
+        y_data_for_limits = y_train.clone()
+        if scaler is not None:
+            y_data_for_limits = scaler.inverse_transform(y_data_for_limits)
+        
+        # Compute global Y-axis limits from data range (with padding for uncertainty bands)
+        y_min_global = y_data_for_limits.min().item()
+        y_max_global = y_data_for_limits.max().item()
+        y_range = y_max_global - y_min_global
+        y_padding = 1.0 * y_range  # 100% padding (fixed proportion for consistency across scripts, extra space for histograms)
+        y_lim_min = y_min_global - y_padding
+        y_lim_max = y_max_global + y_padding
+        
         # 4) Plot - show first 12 dimensions (or M if M < 12)
         xnp = xs.detach().cpu().numpy()
+        
+        # Set X-axis limits for consistency (already using [-3, 3] range)
+        x_lim_min, x_lim_max = -3.0, 3.0
         
         # Plot only first 12 dimensions (or all if M < 12)
         M_plot = min(M, 12)
@@ -347,6 +381,11 @@ def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros",
         
         fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2.5 * n_rows), constrained_layout=True)
         axes = axes.ravel()
+        
+        # Sample from q(X) distribution along dimension j for histogram
+        # Sample from N(mu_x_mean, sigma_x^2) for each data point
+        x_samples_j = torch.normal(mu_x_mean[:, j], torch.clamp(sigma_x[:, j], min=1e-8))  # [N]
+        x_j_values = x_samples_j.detach().cpu().numpy()
         
         for m in range(M_plot):
             mu = f_mean[:, m].cpu().numpy()
@@ -357,6 +396,20 @@ def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros",
             ax.set_title(f"y[{m}] vs x_{j} (l={ells[j]:.2g})", fontsize=9)
             ax.set_xlabel(f"x_{j}")
             ax.set_ylabel(f"y[{m}]")
+            # Set consistent axis limits
+            ax.set_xlim(x_lim_min, x_lim_max)
+            ax.set_ylim(y_lim_min, y_lim_max)
+            
+            # Add histogram directly on the same axes, aligned with x-axis at bottom
+            # Compute histogram and scale to make it bigger (use 25% of y-axis range)
+            # Use fixed number of bins for consistent granularity across all models
+            counts, bins = np.histogram(x_j_values, bins=15, density=True)
+            y_range_hist = (y_lim_max - y_lim_min) * 0.25
+            max_count = counts.max() if len(counts) > 0 and counts.max() > 0 else 1.0
+            counts_scaled = (counts / max_count) * y_range_hist if max_count > 0 else counts * 0
+            bin_centers = (bins[:-1] + bins[1:]) / 2
+            ax.bar(bin_centers, counts_scaled, width=(bins[1] - bins[0]), 
+                   bottom=y_lim_min, alpha=0.6, color='lightblue', edgecolor='black')
         
         for k in range(M_plot, len(axes)):
             axes[k].axis("off")
