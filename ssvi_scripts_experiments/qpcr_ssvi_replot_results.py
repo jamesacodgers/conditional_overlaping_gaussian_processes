@@ -29,7 +29,8 @@ sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 from src.ssvi_utils import SSVIResultsLogger, plot_metrics_history, plot_final_metrics_summary, \
-    plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_latent_slice_outer
+    plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression
+from src.replotting_helper import plot_latent_slice_outer_replot
 from src.ssvi_metrics import SSVIMetricsComputer, SSVIMetrics
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
@@ -447,6 +448,18 @@ def main(results_dir: str, model_filename: str = None):
     
     model.get_epsilon = patched_get_epsilon
     
+    # Explicitly move GP module components to ensure everything is on the correct device
+    if hasattr(model, 'gp'):
+        # Move Vx if it exists (it's a registered parameter but might not move with .to())
+        if hasattr(model.gp, 'Vx'):
+            if model.gp.Vx.device.type != target_device.split(':')[0]:
+                model.gp.Vx.data = model.gp.Vx.data.to(target_device)
+        # Move other GP parameters
+        if hasattr(model.gp, '_mu_u'):
+            model.gp._mu_u.data = model.gp._mu_u.data.to(target_device)
+        if hasattr(model.gp, '_raw_chol'):
+            model.gp._raw_chol.data = model.gp._raw_chol.data.to(target_device)
+    
     print(f"Model loaded successfully")
     print(f"  Mu Encoder: {model.mu_encoder}")
     print(f"  Sigma Encoder: {model.sigma_encoder}")
@@ -535,16 +548,76 @@ def main(results_dir: str, model_filename: str = None):
     try:
         print("  Generating latent slice visualizations...")
         
+        # Ensure plots directory exists
+        os.makedirs(logger.plots_dir, exist_ok=True)
+        
+        # Double-check that all model components are on the correct device
+        # This is important because plot_latent_slice_outer_replot creates tensors on model.device
+        print(f"    Verifying model device placement (target: {target_device})...")
+        
+        # Ensure GP module and all its components are on the correct device
+        if hasattr(model, 'gp'):
+            model.gp = model.gp.to(target_device)
+            # Explicitly move Vx if it exists (it's a registered parameter but might not move with .to())
+            if hasattr(model.gp, 'Vx'):
+                if model.gp.Vx.device.type != target_device.split(':')[0]:
+                    print(f"    Moving GP.Vx from {model.gp.Vx.device} to {target_device}")
+                    model.gp.Vx.data = model.gp.Vx.data.to(target_device)
+            # Move other GP parameters
+            if hasattr(model.gp, '_mu_u'):
+                model.gp._mu_u.data = model.gp._mu_u.data.to(target_device)
+            if hasattr(model.gp, '_raw_chol'):
+                model.gp._raw_chol.data = model.gp._raw_chol.data.to(target_device)
+            
+            # Patch GP module's get_K_VV_x method to ensure torch.eye is created on correct device
+            # The issue is in gps.py line 54: torch.eye(self.Lx)*1e-5 creates tensor on CPU
+            original_get_K_VV_x = model.gp.get_K_VV_x
+            def patched_get_K_VV_x():
+                result = model.gp.kernel_x(model.gp.Vx, model.gp.Vx)
+                eye_matrix = torch.eye(model.gp.Lx, dtype=result.dtype, device=result.device) * 1e-5
+                return result + eye_matrix
+            model.gp.get_K_VV_x = patched_get_K_VV_x
+            
+            # Also patch get_matrix_Sigma_u if it has similar issues
+            if hasattr(model.gp, 'get_matrix_Sigma_u'):
+                original_get_matrix_Sigma_u = model.gp.get_matrix_Sigma_u
+                def patched_get_matrix_Sigma_u():
+                    chol = model.gp.get_chol_Sigma_u()
+                    result = chol @ chol.transpose(-2, -1)[:, :, :]
+                    eye_matrix = torch.eye(model.gp.Lx * model.gp.C, dtype=result.dtype, device=result.device) * 1e-5
+                    return result + eye_matrix
+                model.gp.get_matrix_Sigma_u = patched_get_matrix_Sigma_u
+        
+        # Ensure encoders are on correct device
+        if hasattr(model, 'mu_encoder'):
+            model.mu_encoder = model.mu_encoder.to(target_device)
+        if hasattr(model, 'sigma_encoder'):
+            model.sigma_encoder = model.sigma_encoder.to(target_device)
+        
+        # Ensure model.device attribute matches
+        model.device = target_device
+        
+        # Verify device placement
+        if hasattr(model, 'gp') and hasattr(model.gp, 'Vx'):
+            print(f"    GP.Vx device: {model.gp.Vx.device}")
+        
+        # Ensure y_train is on the correct device
+        y_train_device = y_train.to(target_device)
+        
         # Plot slice centered at origin
-        latent_slice_path_origin = os.path.join(logger.plots_dir, f"latent_slice_origin_seed_{config.random_seed}.png")
-        plot_latent_slice_outer(
+        latent_slice_path_origin = os.path.join(logger.plots_dir, f"latent_slice_origin_seed_{config.random_seed}.pdf")
+        print(f"    Creating latent slice (origin)...")
+        plot_latent_slice_outer_replot(
             model=model,
-            y_train=y_train,
+            y_train=y_train_device,
             center="zeros",
             save_path=latent_slice_path_origin,
             scaler=split_data.get('scaler')
         )
-        print(f"    Saved latent slice (origin) to: {latent_slice_path_origin}")
+        if os.path.exists(latent_slice_path_origin):
+            print(f"    ✓ Saved latent slice (origin) to: {latent_slice_path_origin}")
+        else:
+            print(f"    ✗ Warning: File not created: {latent_slice_path_origin}")
         
         # Plot slices centered at a few interesting data points
         N = y_train.shape[0]
@@ -552,18 +625,25 @@ def main(results_dir: str, model_filename: str = None):
         
         for idx in representative_indices:
             latent_slice_path = os.path.join(logger.plots_dir,
-                                             f"latent_slice_point_{idx}_seed_{config.random_seed}.png")
-            plot_latent_slice_outer(
+                                             f"latent_slice_point_{idx}_seed_{config.random_seed}.pdf")
+            print(f"    Creating latent slice (point {idx})...")
+            plot_latent_slice_outer_replot(
                 model=model,
-                y_train=y_train,
+                y_train=y_train_device,
                 center="data_point",
                 n_idx=idx,
                 save_path=latent_slice_path,
                 scaler=split_data.get('scaler')
             )
-            print(f"    Saved latent slice (point {idx}) to: {latent_slice_path}")
+            if os.path.exists(latent_slice_path):
+                print(f"    ✓ Saved latent slice (point {idx}) to: {latent_slice_path}")
+            else:
+                print(f"    ✗ Warning: File not created: {latent_slice_path}")
     except Exception as e:
-        print(f"    Warning: Failed to generate latent slice visualizations: {e}")
+        import traceback
+        print(f"    ✗ Error: Failed to generate latent slice visualizations: {e}")
+        print(f"    Traceback:")
+        traceback.print_exc()
     
     # Print final model parameters
     print("\n8. Final model parameters:")
