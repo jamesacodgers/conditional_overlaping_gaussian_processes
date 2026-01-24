@@ -127,13 +127,35 @@ def plot_latent_slice_original_gplvm_replot(model, y_train, model_name, center="
     if scaler is not None:
         y_data_for_limits = scaler.inverse_transform(y_data_for_limits)
     
-    # Compute global Y-axis limits from data range (with padding for uncertainty bands)
-    y_min_global = y_data_for_limits.min().item()
-    y_max_global = y_data_for_limits.max().item()
+    # Filter out NaN and Inf values before computing limits (important for missing data)
+    y_data_valid = y_data_for_limits[torch.isfinite(y_data_for_limits)]
+    
+    if len(y_data_valid) == 0:
+        # Fallback: use default range if all data is invalid
+        y_min_global = -1.0
+        y_max_global = 1.0
+    else:
+        y_min_global = y_data_valid.min().item()
+        y_max_global = y_data_valid.max().item()
+    
+    # Ensure we have valid finite values
+    if not np.isfinite(y_min_global) or not np.isfinite(y_max_global):
+        y_min_global = -1.0
+        y_max_global = 1.0
+    
     y_range = y_max_global - y_min_global
+    if y_range <= 0 or not np.isfinite(y_range):
+        y_range = 2.0  # Default range
+    
     y_padding = 1.0 * y_range  # 100% padding (fixed proportion for consistency across scripts, extra space for histograms)
     y_lim_min = y_min_global - y_padding
     y_lim_max = y_max_global + y_padding
+    
+    # Final validation: ensure limits are finite
+    if not np.isfinite(y_lim_min):
+        y_lim_min = -2.0
+    if not np.isfinite(y_lim_max):
+        y_lim_max = 2.0
     
     # 4) Plot - show first 12 dimensions (or M if M < 12)
     xnp = xs.detach().cpu().numpy()
@@ -610,4 +632,432 @@ def create_standardized_scattered_plot_replot(model, losses, labels_train, confi
         
     except FileNotFoundError as e:
         print(f"Warning: Could not create fractions plot: {e}")
+
+
+# === MNIST OOD Plotting Functions ===
+
+# FashionMNIST class names for legend
+FASHION_MNIST_CLASSES = {
+    0: 'T-shirt',
+    1: 'Trouser',
+    2: 'Pullover',
+    3: 'Dress',
+    4: 'Coat',
+    5: 'Sandal',
+    6: 'Shirt',
+    7: 'Sneaker',
+    8: 'Bag',
+    9: 'Ankle boot'
+}
+
+
+def get_label_name_mnist_ood(label_val, dataset_name, is_ood=False):
+    """
+    Get legend label name based on dataset and ID/OOD status.
+    
+    Parameters
+    ----------
+    label_val : int
+        The class label (0-9)
+    dataset_name : str
+        'MNIST' or 'FashionMNIST'
+    is_ood : bool
+        Whether this is OOD data
+        
+    Returns
+    -------
+    str
+        Legend label like "MNIST Digit 1 (ID)" or "FashionMNIST Trouser (OOD)"
+    """
+    status = "OOD" if is_ood else "ID"
+    
+    if dataset_name == "MNIST":
+        return f'MNIST Digit {int(label_val)} ({status})'
+    elif dataset_name == "FashionMNIST":
+        class_name = FASHION_MNIST_CLASSES.get(int(label_val), f'Class {int(label_val)}')
+        return f'FashionMNIST {class_name} ({status})'
+    else:
+        return f'{dataset_name} Class {int(label_val)} ({status})'
+
+
+def get_consistent_mnist_colors_replot(labels_train):
+    """
+    Get consistent color mapping for MNIST digit labels (0-9) across SSVI and original GP LVM.
+    Ensures the same digit always gets the same color regardless of which plotting function is used.
+    
+    Modified for replotting to handle CUDA tensors.
+    """
+    # Convert to numpy if it's a tensor
+    if torch.is_tensor(labels_train):
+        labels_train_np = labels_train.cpu().numpy()
+    else:
+        labels_train_np = np.array(labels_train)
+    
+    # Use tab10 colormap for 10 digit classes (0-9)
+    cmap_colors = plt.get_cmap("tab10").colors
+    
+    # Create consistent color mapping based on unique labels
+    unique_labels = np.unique(labels_train_np)
+    color_map = {}
+    
+    # Assign colors in order of unique labels to ensure consistency
+    for i, label in enumerate(sorted(unique_labels)):
+        color_map[label] = cmap_colors[i % len(cmap_colors)]
+    
+    # Return colors in the same order as labels_train
+    colors = [color_map[label] for label in labels_train_np]
+    return colors, color_map
+
+
+def matplotlib_to_plotly_color_mnist(matplotlib_color):
+    """Convert matplotlib RGB tuple to Plotly format"""
+    if isinstance(matplotlib_color, tuple) and len(matplotlib_color) == 3:
+        r, g, b = matplotlib_color
+        return f'rgb({int(r*255)}, {int(g*255)}, {int(b*255)})'
+    return matplotlib_color
+
+
+@no_grad()
+def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_train, config, results_dir, model_name, random_seed,
+                                       Y_train, model_type="original", custom_filename=None, train_indices=None,
+                                       dataset_name="MNIST", is_ood=False, full_loss_iterations: list = None, batch_losses: list = None):
+    """
+    Create standardized scattered plots for MNIST OOD (saves as PDF).
+    
+    This is a copy of create_standardized_scattered_plot from src/mnist_ood_plot_helper.py
+    modified to save all matplotlib plots as PDF.
+    
+    Parameters
+    ----------
+    losses : list
+        Full ELBO losses (negative ELBO values)
+    full_loss_iterations : list, optional
+        Iteration numbers corresponding to losses. If provided, used for x-axis of full ELBO plot.
+    batch_losses : list, optional
+        Batch ELBO losses (one per training iteration). If provided, creates a plot showing batch ELBO progression.
+    dataset_name : str
+        'MNIST' or 'FashionMNIST' - used for legend labels
+    is_ood : bool
+        Whether this is OOD data - used for legend labels
+    """
+
+    # Use default matplotlib style to match SSVI (override any global ggplot style)
+    plt.style.use('default')
+
+    with torch.no_grad():
+        # Color mapping for MNIST labels (digits 0-9)
+        # Handle CUDA tensors by converting to numpy
+        colors, color_map = get_consistent_mnist_colors_replot(labels_train)
+
+        # Determine which plots to show
+        plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
+        n_plots = 1 + (1 if plot_batch_elbo else 0) + 1 + 1  # Full ELBO, Batch ELBO (optional), Latent space, Hyperparams
+        fig_width = 4 * n_plots
+        fig = plt.figure(figsize=(fig_width, 4))
+
+        plot_idx = 1
+
+        # Plot 1: Full ELBO Training curve (always shown)
+        plt.subplot(1, n_plots, plot_idx)
+        if full_loss_iterations is not None and len(full_loss_iterations) == len(losses):
+            # Use iteration numbers on x-axis
+            plt.plot(full_loss_iterations, losses, 'b-', alpha=0.7)
+        else:
+            # Fallback: use indices if iterations not provided
+            plt.plot(losses, 'b-', alpha=0.7)
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.title('ELBO Training Curve (Full ELBO)')
+        plt.grid(True, alpha=0.3)
+        plot_idx += 1
+
+        # Plot 2: Batch ELBO progression (if batch_losses provided) - second position
+        if plot_batch_elbo:
+            plt.subplot(1, n_plots, plot_idx)
+            # Batch losses are computed at every iteration, so x-axis is just iteration indices
+            batch_iterations = list(range(len(batch_losses)))
+            plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
+            plt.xlabel('Iteration')
+            plt.ylabel('Loss')
+            plt.title('Batch ELBO Progression')
+            plt.grid(True, alpha=0.3)
+            plot_idx += 1
+
+        # Plot 3: Latent space visualization (exactly like SSVI)
+        plt.subplot(1, n_plots, plot_idx)
+
+        # Find the two most informative dimensions (copy original approach exactly)
+        inv_lengthscale = 1 / model.covar_module.base_kernel.lengthscale
+        values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=2, largest=False)
+        dim1 = indices.cpu().numpy().flatten()[0]  # Move to CPU first
+        dim2 = indices.cpu().numpy().flatten()[1]  # Move to CPU first
+        # For consistency with SSVI, use sqrt(lengthscale) for axis labels too
+        lengthscales_cpu = torch.sqrt(inv_lengthscale.flatten()).cpu()  # Move to CPU for string formatting
+
+        # Get latent variables (use mu_x directly, no sampling)
+        model_name_class = model.X.__class__.__name__
+        if model_name_class == 'VariationalLatentVariable':  # 'gauss' model
+            # Variational GP-LVM (gauss)
+            mu_x = model.X.q_mu.detach().cpu().numpy()
+            sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma).detach().cpu().numpy()
+        elif model_name_class == 'NNEncoder':  # 'nn_gauss' model
+            Y_train_device = Y_train.to(model.X.mu_layers[0].weight.device) if Y_train.device != model.X.mu_layers[0].weight.device else Y_train
+
+            # Handle missing data for nn_gauss plotting (same as training)
+            if torch.isnan(Y_train_device).any():
+                # Replace NaN values with zeros for encoder input (consistent with training)
+                Y_train_for_plotting = Y_train_device.clone()
+                Y_train_for_plotting[torch.isnan(Y_train_for_plotting)] = -999.0
+            else:
+                Y_train_for_plotting = Y_train_device
+
+            # Process data in minibatches to reduce memory usage
+            batch_size = getattr(config, 'batch_size', 128)  # Use config batch_size if available, otherwise default to 128
+            N = Y_train_for_plotting.shape[0]
+            mu_x_batches = []
+            sigma_x_batches = []
+            
+            # Store original jitter to restore later (same pattern as test prediction)
+            original_jitter = model.X.jitter
+            latent_dim = model.X.latent_dim
+            device = original_jitter.device
+            dtype = original_jitter.dtype
+            
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = Y_train_for_plotting[start_idx:end_idx]
+                batch_size_actual = end_idx - start_idx
+                
+                # Create jitter for batch (same pattern as test prediction)
+                batch_jitter = torch.eye(latent_dim, dtype=dtype, device=device).unsqueeze(0) * 1e-5
+                model.X.jitter = torch.cat([batch_jitter for _ in range(batch_size_actual)], axis=0)
+                
+                mu_x_batch = model.X.mu(y_batch)
+                sigma_covariances_batch = model.X.sigma(y_batch)
+                
+                # Extract standard deviations from covariance matrices (same as original code)
+                # sigma_covariances_batch is [batch_size, latent_dim, latent_dim]
+                # Extract diagonal for each covariance matrix and take sqrt
+                sigma_x_batch = torch.stack([torch.sqrt(cov.diag()) for cov in sigma_covariances_batch])
+                
+                mu_x_batches.append(mu_x_batch.detach().cpu())
+                sigma_x_batches.append(sigma_x_batch.detach().cpu())
+            
+            # Restore original jitter
+            model.X.jitter = original_jitter
+            
+            # Concatenate all batches
+            mu_x_result = torch.cat(mu_x_batches, dim=0)
+            sigma_x_all = torch.cat(sigma_x_batches, dim=0)
+            
+            # Convert to numpy (matching original code format)
+            mu_x = mu_x_result.numpy()
+            sigma_x = sigma_x_all.numpy()
+
+        # Plot mu_x directly (no sampling) - exactly like SSVI
+        mu_x_torch = torch.from_numpy(mu_x).to(dtype=torch.float64)
+        sigma_x_torch = torch.from_numpy(sigma_x).to(dtype=torch.float64)
+
+        # Sample P_samples times using torch.distributions.Normal (same as SSVI)
+        for p in range(64):
+            sample_1 = torch.distributions.Normal(mu_x_torch[:, dim1], sigma_x_torch[:, dim1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_torch[:, dim2], sigma_x_torch[:, dim2]).sample()
+            plt.scatter(sample_1.detach().cpu().numpy(),
+                        sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
+
+        plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
+        plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})')
+        plt.title(f'Latent Space - Top 2 Informative Dims')
+        # Add legend with class names
+        labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
+        from matplotlib.patches import Patch
+        legend_handles = [Patch(color=color_map[l], label=get_label_name_mnist_ood(l, dataset_name, is_ood)) 
+                          for l in sorted(np.unique(labels_cpu))]
+        plt.legend(handles=legend_handles, loc='best', fontsize='small')
+        plot_idx += 1
+
+        # Plot 4: Hyperparameters (lengthscales) - consistent with SSVI
+        plt.subplot(1, n_plots, plot_idx)
+        # For mathematical consistency with SSVI version:
+        # SSVI: K = exp(-0.5 * d^2 / init_lengthscales)
+        # GP-LVM: K = exp(-0.5 * d^2 / lengthscale^2)
+        # For equivalence: lengthscale = sqrt(init_lengthscales)
+        lengthscales_plot = 1 / model.covar_module.base_kernel.lengthscale.flatten().cpu()
+        lengthscales_plot = lengthscales_plot**2
+        plt.bar(range(len(lengthscales_plot)), lengthscales_plot,
+                color="blue", alpha=0.7)
+        plt.xlabel('Latent Dimension')
+        plt.ylabel('Lengthscale')
+        plt.title('GP Lengthscales')
+        plt.grid(True, alpha=0.3)
+
+        plt.tight_layout()
+
+    # Use model name (gauss/nn_gauss) instead of class name for consistency
+    if model_name == 'VariationalLatentVariable':
+        model_short_name = 'gauss'
+    elif model_name == 'NNEncoder':
+        model_short_name = 'nn_gauss'
+    else:
+        model_short_name = model_name.lower()
+
+    # Use custom filename if provided, otherwise use default naming convention
+    if custom_filename:
+        plot_filename = custom_filename
+    else:
+        plot_filename = f"mnist_{model_short_name}_{random_seed}.pdf"  # Changed to PDF
+
+    # Normalize filename to ensure .pdf extension
+    plot_filename = str(pathlib.Path(plot_filename).with_suffix('.pdf'))
+
+    # Create plots subdirectory only if we're not already in a plots directory
+    if os.path.basename(results_dir) == 'plots' or os.path.basename(results_dir) == 'checkpoints':
+        # We're already in a plots directory or checkpoints subdirectory, save directly here
+        plot_path = os.path.join(results_dir, plot_filename)
+    else:
+        # Create plots subdirectory for better organization
+        plots_subdir = os.path.join(results_dir, 'plots')
+        os.makedirs(plots_subdir, exist_ok=True)
+        plot_path = os.path.join(plots_subdir, plot_filename)
+
+    # Save as PDF
+    plt.savefig(plot_path, format='pdf', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    print(f"Standardized scattered plots saved to: {plot_path}")
+
+    # Additional plots: 1D histogram and 3D scatter plots
+    print("Creating additional plots: 1D histogram and 3D scatter plots...")
+
+    # Ensure labels_train is on CPU for numpy operations
+    labels_train_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
+
+    # Reuse dimensions from main plot (consistent with existing approach)
+    # dim1, dim2, and lengthscales_cpu are already computed in the main plot section
+    # Just need to compute dim3 for 3D plots
+    values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=3, largest=False)
+    dim3 = indices.cpu().numpy().flatten()[2]  # Third dimension for 3D plots
+
+    # 1. Create 1D histogram for the most important dimension
+    fig_hist, ax_hist = plt.subplots(1, 1, figsize=(8, 6))
+
+    # Collect samples from all P samples for the most important dimension
+    all_samples = []
+    all_labels = []
+    for p in range(64):  # Same number of samples as main plot
+        samples = torch.distributions.Normal(mu_x_torch[:, dim1], sigma_x_torch[:, dim1]).sample()
+        # Ensure samples are on CPU before converting to numpy
+        all_samples.append(samples.detach().cpu().numpy())
+        # Repeat labels for each P sample
+        all_labels.append(labels_train_cpu)
+
+    all_samples = np.concatenate(all_samples)
+    all_labels = np.concatenate(all_labels)
+
+    # Create histogram with different colors for different classes (using consistent color mapping)
+    _, color_map = get_consistent_mnist_colors_replot(labels_train_cpu)
+    unique_labels = np.unique(all_labels)
+    
+    for label_val in unique_labels:
+        class_mask = all_labels == label_val
+        if np.any(class_mask):
+            class_samples = all_samples[class_mask]
+            # Use get_label_name for OOD-aware legend
+            ax_hist.hist(class_samples, bins=30, alpha=0.7,
+                         label=get_label_name_mnist_ood(label_val, dataset_name, is_ood),
+                         color=color_map[label_val])
+
+    ax_hist.set_xlabel(f'Latent Dimension {dim1} (Most Important)')
+    ax_hist.set_ylabel('Frequency')
+    ax_hist.set_title(f'1D Histogram - Most Important Dimension {dim1}')
+    ax_hist.legend()
+    ax_hist.grid(True, alpha=0.3)
+
+    # Save histogram plot as PDF
+    hist_filename = plot_filename.replace('mnist_', '1d_histogram_most_important_dim_')
+    hist_filename = str(pathlib.Path(hist_filename).with_suffix('.pdf'))
+    if os.path.basename(results_dir) == 'plots' or os.path.basename(results_dir) == 'checkpoints':
+        hist_plot_path = os.path.join(results_dir, hist_filename)
+    else:
+        plots_subdir = os.path.join(results_dir, 'plots')
+        os.makedirs(plots_subdir, exist_ok=True)
+        hist_plot_path = os.path.join(plots_subdir, hist_filename)
+
+    fig_hist.savefig(hist_plot_path, format='pdf', dpi=300, bbox_inches='tight')
+    print(f"Saved 1D histogram to: {hist_plot_path}")
+    plt.close(fig_hist)
+
+    # 2. Create 3D scatter plot for top 3 most important dimensions using plotly
+    # Collect samples for all 3 dimensions
+    samples_3d = []
+    for p in range(64):  # Same number of samples as main plot
+        sample_1 = torch.distributions.Normal(mu_x_torch[:, dim1], sigma_x_torch[:, dim1]).sample()
+        sample_2 = torch.distributions.Normal(mu_x_torch[:, dim2], sigma_x_torch[:, dim2]).sample()
+        sample_3 = torch.distributions.Normal(mu_x_torch[:, dim3], sigma_x_torch[:, dim3]).sample()
+
+        # Ensure all samples are on CPU before converting to numpy
+        samples_3d.append({
+            'dim1': sample_1.detach().cpu().numpy(),
+            'dim2': sample_2.detach().cpu().numpy(),
+            'dim3': sample_3.detach().cpu().numpy(),
+            'labels': labels_train_cpu
+        })
+
+    # Create plotly 3D scatter plot
+    fig_3d = go.Figure()
+
+    # Color mapping for labels (using consistent color mapping)
+    _, color_map = get_consistent_mnist_colors_replot(labels_train_cpu)
+    unique_labels = np.unique(labels_train_cpu)
+
+    # Add traces for each class
+    for label_val in unique_labels:
+        class_mask = labels_train_cpu == label_val
+        if np.any(class_mask):
+            # Combine samples from all P samples for this class
+            x_vals = np.concatenate([samples_3d[p]['dim1'][class_mask] for p in range(64)])
+            y_vals = np.concatenate([samples_3d[p]['dim2'][class_mask] for p in range(64)])
+            z_vals = np.concatenate([samples_3d[p]['dim3'][class_mask] for p in range(64)])
+
+            fig_3d.add_trace(go.Scatter3d(
+                x=x_vals,
+                y=y_vals,
+                z=z_vals,
+                mode='markers',
+                marker=dict(
+                    size=4,
+                    color=matplotlib_to_plotly_color_mnist(color_map[label_val]),
+                    opacity=0.6
+                ),
+                # Use get_label_name for OOD-aware legend
+                name=get_label_name_mnist_ood(label_val, dataset_name, is_ood)
+            ))
+
+    # Update layout
+    fig_3d.update_layout(
+        title=f'3D Scatter Plot - Top 3 Most Important Dimensions<br>Dim {dim1}, {dim2}, {dim3}',
+        scene=dict(
+            xaxis_title=f'Dimension {dim1} (lengthscale={lengthscales_cpu[dim1].item():.2f})',
+            yaxis_title=f'Dimension {dim2} (lengthscale={lengthscales_cpu[dim2].item():.2f})',
+            zaxis_title=f'Dimension {dim3} (lengthscale={lengthscales_cpu[dim3].item():.2f})'
+        ),
+        width=800,
+        height=600
+    )
+
+    # Save 3D plot as HTML (plotly plots remain HTML)
+    plot_3d_filename = plot_filename.replace('mnist_', '3d_scatter_top3_dims_')
+    plot_3d_filename = str(pathlib.Path(plot_3d_filename).with_suffix('.html'))
+
+    if os.path.basename(results_dir) == 'plots' or os.path.basename(results_dir) == 'checkpoints':
+        plot_3d_path = os.path.join(results_dir, plot_3d_filename)
+    else:
+        plots_subdir = os.path.join(results_dir, 'plots')
+        os.makedirs(plots_subdir, exist_ok=True)
+        plot_3d_path = os.path.join(plots_subdir, plot_3d_filename)
+
+    fig_3d.write_html(plot_3d_path)
+    print(f"Saved 3D scatter plot to: {plot_3d_path}")
+
+    print("Additional plots created successfully!")
 
