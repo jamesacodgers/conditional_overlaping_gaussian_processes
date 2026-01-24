@@ -197,41 +197,14 @@ def create_standardized_scattered_plot_qpcr_replot(model, losses, labels_train, 
         # Use consistent color mapping across SSVI and original GP LVM
         colors, color_map = get_consistent_qpcr_colors(labels_train)
 
-        # Determine which plots to show
-        plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
-        n_plots = 1 + (1 if plot_batch_elbo else 0) + 1 + 1  # Full ELBO, Batch ELBO (optional), Latent space, Hyperparams
+        # Only plot latent space and lengthscales (remove ELBO plots)
+        n_plots = 2  # Latent space, Hyperparams
         fig_width = 4 * n_plots
         fig = plt.figure(figsize=(fig_width, 4))
 
         plot_idx = 1
 
-        # Plot 1: Full ELBO Training curve (always shown)
-        plt.subplot(1, n_plots, plot_idx)
-        if full_loss_iterations is not None and len(full_loss_iterations) == len(losses):
-            # Use iteration numbers on x-axis
-            plt.plot(full_loss_iterations, losses, 'b-', alpha=0.7)
-        else:
-            # Fallback: use indices if iterations not provided
-            plt.plot(losses, 'b-', alpha=0.7)
-        plt.xlabel('Iteration')
-        plt.ylabel('Loss')
-        plt.title('ELBO Training Curve (Full ELBO)')
-        plt.grid(True, alpha=0.3)
-        plot_idx += 1
-        
-        # Plot 2: Batch ELBO progression (if batch_losses provided)
-        if plot_batch_elbo:
-            plt.subplot(1, n_plots, plot_idx)
-            # Batch losses are computed at every iteration, so x-axis is just iteration indices
-            batch_iterations = list(range(len(batch_losses)))
-            plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
-            plt.xlabel('Iteration')
-            plt.ylabel('Loss')
-            plt.title('Batch ELBO Progression')
-            plt.grid(True, alpha=0.3)
-            plot_idx += 1
-
-        # Plot 3: Latent space visualization (exactly like SSVI)
+        # Plot 1: Latent space visualization (exactly like SSVI)
         plt.subplot(1, n_plots, plot_idx)
 
         # Find the two most informative dimensions (copy original approach exactly)
@@ -276,12 +249,12 @@ def create_standardized_scattered_plot_qpcr_replot(model, losses, labels_train, 
             plt.scatter(sample_1.detach().cpu().numpy(),
                         sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
 
-        plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
-        plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})')
+        plt.xlabel(f'Latent Dimension {dim1}')
+        plt.ylabel(f'Latent Dimension {dim2}')
         plt.title(f'Latent Space - Top 2 Informative Dims')
         plot_idx += 1
 
-        # Plot 4: Hyperparameters (lengthscales) - consistent with SSVI
+        # Plot 2: Hyperparameters (lengthscales) - consistent with SSVI
         plt.subplot(1, n_plots, plot_idx)
         # For mathematical consistency with SSVI version:
         # SSVI: K = exp(-0.5 * d^2 / init_lengthscales)

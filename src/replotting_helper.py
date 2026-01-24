@@ -278,41 +278,14 @@ def visualize_ssvi_results_replot(model, y_train, labels_train, losses, config, 
         hasattr(config, 'plot_latent_space') and config.plot_latent_space,
         hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
     ]
-    plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
-    n_plots = sum(plot_flags) + (1 if plot_batch_elbo else 0)
-    fig_width = 4 * n_plots
+    # Only plot latent space and lengthscales (remove ELBO plots)
+    n_plots = (1 if plot_flags[1] else 0) + (1 if plot_flags[2] else 0)
+    fig_width = 4 * n_plots if n_plots > 0 else 8
     fig = plt.figure(figsize=(fig_width, 4))
     
     plot_idx = 1
     
-    # Plot 1: Full ELBO Training curve
-    if plot_flags[0]:
-        plt.subplot(1, n_plots, plot_idx)
-        if full_elbo_iterations is not None and len(full_elbo_iterations) == len(losses):
-            # Use iteration numbers on x-axis
-            plt.plot(full_elbo_iterations, losses, 'b-', alpha=0.7)
-        else:
-            # Fallback: use indices if iterations not provided
-            plt.plot(losses, 'b-', alpha=0.7)
-        plt.xlabel('Iteration')
-        plt.ylabel('Loss')
-        plt.title('SSVI Training Curve (Full ELBO)')
-        plt.grid(True, alpha=0.3)
-        plot_idx += 1
-    
-    # Plot 2: Batch ELBO progression (if batch_losses provided)
-    if plot_batch_elbo:
-        plt.subplot(1, n_plots, plot_idx)
-        # Batch losses are computed at every iteration, so x-axis is just iteration indices
-        batch_iterations = list(range(len(batch_losses)))
-        plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
-        plt.xlabel('Iteration')
-        plt.ylabel('Loss')
-        plt.title('Batch ELBO Progression')
-        plt.grid(True, alpha=0.3)
-        plot_idx += 1
-    
-    # Plot 2: Latent space visualization
+    # Plot 1: Latent space visualization
     if plot_flags[1]:
         plt.subplot(1, n_plots, plot_idx)
         
@@ -347,9 +320,9 @@ def visualize_ssvi_results_replot(model, y_train, labels_train, losses, config, 
             plt.scatter(sample_1.detach().cpu().numpy(),
                         sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
         
-        plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
-        plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})') 
-        plt.title(f'Latent Space - Top 2 Informative Dims (P={model.P} samples)')
+        plt.xlabel(f'Latent Dimension {dim1}')
+        plt.ylabel(f'Latent Dimension {dim2}') 
+        plt.title(f'Latent Space - Top 2 Informative Dims')
         plot_idx += 1
     
     # Generate fractions plot using the same mu_x and top dimensions
@@ -475,7 +448,7 @@ def visualize_ssvi_results_replot(model, y_train, labels_train, losses, config, 
     except FileNotFoundError as e:
         print(f"Warning: Could not create fractions plot: {e}")
     
-    # Plot 3: Hyperparameters (lengthscales)
+    # Plot 2: Hyperparameters (lengthscales)
     if plot_flags[2]:
         plt.subplot(1, n_plots, plot_idx)
         lengthscales = (1 / model.gp.beta.flatten()).cpu()
@@ -485,6 +458,7 @@ def visualize_ssvi_results_replot(model, y_train, labels_train, losses, config, 
         plt.ylabel('Lengthscale')
         plt.title('GP Lengthscales')
         plt.grid(True, alpha=0.3)
+        plot_idx += 1
     
     plt.tight_layout()
     
@@ -724,41 +698,14 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
         hasattr(config, 'plot_latent_space') and config.plot_latent_space,
         hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
     ]
-    plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
-    n_plots = sum(plot_flags) + (1 if plot_batch_elbo else 0)
-    fig_width = 4 * n_plots
+    # Only plot latent space and lengthscales (remove ELBO plots)
+    n_plots = (1 if plot_flags[1] else 0) + (1 if plot_flags[2] else 0)
+    fig_width = 4 * n_plots if n_plots > 0 else 8
     fig = plt.figure(figsize=(fig_width, 4))
 
     plot_idx = 1
 
-    # Plot 1: Full ELBO Training curve
-    if plot_flags[0]:
-        plt.subplot(1, n_plots, plot_idx)
-        if full_elbo_iterations is not None and len(full_elbo_iterations) == len(losses):
-            # Use iteration numbers on x-axis
-            plt.plot(full_elbo_iterations, losses, 'b-', alpha=0.7)
-        else:
-            # Fallback: use indices if iterations not provided
-            plt.plot(losses, 'b-', alpha=0.7)
-        plt.xlabel('Iteration')
-        plt.ylabel('Loss')
-        plt.title('SSVI Training Curve (Full ELBO)')
-        plt.grid(True, alpha=0.3)
-        plot_idx += 1
-    
-    # Plot 2: Batch ELBO progression (if batch_losses provided)
-    if plot_batch_elbo:
-        plt.subplot(1, n_plots, plot_idx)
-        # Batch losses are computed at every iteration, so x-axis is just iteration indices
-        batch_iterations = list(range(len(batch_losses)))
-        plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
-        plt.xlabel('Iteration')
-        plt.ylabel('Loss')
-        plt.title('Batch ELBO Progression')
-        plt.grid(True, alpha=0.3)
-        plot_idx += 1
-
-    # Plot 3: Latent space visualization
+    # Plot 1: Latent space visualization
     if plot_flags[1]:
         plt.subplot(1, n_plots, plot_idx)
 
@@ -793,12 +740,12 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
             plt.scatter(sample_1.detach().cpu().numpy(),
                         sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
 
-        plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
-        plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})')
-        plt.title(f'Latent Space - Top 2 Informative Dims (P={model.P} samples)')
+        plt.xlabel(f'Latent Dimension {dim1}')
+        plt.ylabel(f'Latent Dimension {dim2}')
+        plt.title(f'Latent Space - Top 2 Informative Dims')
         plot_idx += 1
 
-    # Plot 4: Hyperparameters (lengthscales)
+    # Plot 2: Hyperparameters (lengthscales)
     if plot_flags[2]:
         plt.subplot(1, n_plots, plot_idx)
         lengthscales = (1 / model.gp.beta.flatten()).cpu()
@@ -808,6 +755,7 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
         plt.ylabel('Lengthscale')
         plt.title('GP Lengthscales')
         plt.grid(True, alpha=0.3)
+        plot_idx += 1
 
     plt.tight_layout()
 
@@ -1085,40 +1033,14 @@ def visualize_mnist_ood_ssvi_results_replot(model, y_train, labels_train, losses
     # Determine which plots to show
     plot_latent_space = hasattr(config, 'plot_latent_space') and config.plot_latent_space
     plot_hyperparams = hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
-    plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
-    n_plots = 1 + (1 if plot_latent_space else 0) + (1 if plot_hyperparams else 0) + (1 if plot_batch_elbo else 0)
-    fig_width = 4 * n_plots
+    # Only plot latent space and lengthscales (remove ELBO plots)
+    n_plots = (1 if plot_latent_space else 0) + (1 if plot_hyperparams else 0)
+    fig_width = 4 * n_plots if n_plots > 0 else 8
     fig = plt.figure(figsize=(fig_width, 4))
 
     plot_idx = 1
 
-    # Plot 1: Full ELBO Training curve (always shown)
-    plt.subplot(1, n_plots, plot_idx)
-    if full_elbo_iterations is not None and len(full_elbo_iterations) == len(losses):
-        # Use iteration numbers on x-axis
-        plt.plot(full_elbo_iterations, losses, 'b-', alpha=0.7)
-    else:
-        # Fallback: use indices if iterations not provided
-        plt.plot(losses, 'b-', alpha=0.7)
-    plt.xlabel('Iteration')
-    plt.ylabel('Loss')
-    plt.title('SSVI Training Curve (Full ELBO)')
-    plt.grid(True, alpha=0.3)
-    plot_idx += 1
-
-    # Plot 2: Batch ELBO progression (if batch_losses provided) - second position
-    if plot_batch_elbo:
-        plt.subplot(1, n_plots, plot_idx)
-        # Batch losses are computed at every iteration, so x-axis is just iteration indices
-        batch_iterations = list(range(len(batch_losses)))
-        plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
-        plt.xlabel('Iteration')
-        plt.ylabel('Loss')
-        plt.title('Batch ELBO Progression')
-        plt.grid(True, alpha=0.3)
-        plot_idx += 1
-
-    # Plot 3: Latent space visualization
+    # Plot 1: Latent space visualization
     if plot_latent_space:
         plt.subplot(1, n_plots, plot_idx)
 
@@ -1174,9 +1096,9 @@ def visualize_mnist_ood_ssvi_results_replot(model, y_train, labels_train, losses
             plt.scatter(sample_1.detach().cpu().numpy(),
                         sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
 
-        plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
-        plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})')
-        plt.title(f'Latent Space - Top 2 Informative Dims (P={model.P} samples)')
+        plt.xlabel(f'Latent Dimension {dim1}')
+        plt.ylabel(f'Latent Dimension {dim2}')
+        plt.title(f'Latent Space - Top 2 Informative Dims')
         # Add legend with class names
         labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
         from matplotlib.patches import Patch
@@ -1185,7 +1107,7 @@ def visualize_mnist_ood_ssvi_results_replot(model, y_train, labels_train, losses
         plt.legend(handles=legend_handles, loc='best', fontsize='small')
         plot_idx += 1
 
-    # Plot 4: Hyperparameters (lengthscales)
+    # Plot 2: Hyperparameters (lengthscales)
     if plot_hyperparams:
         plt.subplot(1, n_plots, plot_idx)
         lengthscales = (1 / model.gp.beta.flatten()).cpu()
