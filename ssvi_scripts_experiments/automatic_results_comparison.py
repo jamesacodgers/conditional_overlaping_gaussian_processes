@@ -427,7 +427,14 @@ class ResultsComparator:
         }
         
         # Create figure with subplots (only 3 plots, no text box)
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+        # Increased figure size for better readability
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(24, 8))
+        
+        # Set larger font sizes
+        label_fontsize = 24
+        title_fontsize = 28
+        legend_fontsize = 20
+        tick_fontsize = 18
         
         # Plot metrics for each model type
         for model_type, runs in model_runs.items():
@@ -453,55 +460,58 @@ class ResultsComparator:
             std_elbo_loss = np.array(std_elbo_loss)
             
             # Plot 1: ELBO Loss
-            ax1.plot(iterations, mean_elbo_loss, color=color, label=f'{display_name}', linewidth=2)
+            ax1.plot(iterations, mean_elbo_loss, color=color, label=f'{display_name}', linewidth=2.5)
             ax1.fill_between(iterations, 
                            mean_elbo_loss - std_elbo_loss, 
                            mean_elbo_loss + std_elbo_loss, 
                            color=color, alpha=0.2)
             
             # Plot 2: Train RMSE
-            ax2.plot(iterations, mean_train_rmse, color=color, label=f'{display_name}', linewidth=2)
+            ax2.plot(iterations, mean_train_rmse, color=color, label=f'{display_name}', linewidth=2.5)
             ax2.fill_between(iterations, 
                            mean_train_rmse - std_train_rmse, 
                            mean_train_rmse + std_train_rmse, 
                            color=color, alpha=0.2)
             
             # Plot 3: Train NLPD
-            ax3.plot(iterations, mean_train_nlpd, color=color, label=f'{display_name}', linewidth=2)
+            ax3.plot(iterations, mean_train_nlpd, color=color, label=f'{display_name}', linewidth=2.5)
             ax3.fill_between(iterations, 
                            mean_train_nlpd - std_train_nlpd, 
                            mean_train_nlpd + std_train_nlpd, 
                            color=color, alpha=0.2)
         
-        # Configure subplots
-        ax1.set_xlabel('Iteration')
-        ax1.set_ylabel('ELBO Loss')
-        ax1.set_title('ELBO Loss Comparison')
-        ax1.legend()
+        # Configure subplots with larger fonts
+        ax1.set_xlabel('Iteration', fontsize=label_fontsize)
+        ax1.set_ylabel('ELBO Loss', fontsize=label_fontsize)
+        ax1.set_title('ELBO Loss Comparison', fontsize=title_fontsize)
+        ax1.legend(fontsize=legend_fontsize)
         ax1.grid(True, alpha=0.3)
+        ax1.tick_params(axis='both', labelsize=tick_fontsize)
         
-        ax2.set_xlabel('Iteration')
-        ax2.set_ylabel('Train RMSE')
-        ax2.set_title('Training RMSE Comparison')
-        ax2.legend()
+        ax2.set_xlabel('Iteration', fontsize=label_fontsize)
+        ax2.set_ylabel('Train RMSE', fontsize=label_fontsize)
+        ax2.set_title('Training RMSE Comparison', fontsize=title_fontsize)
+        ax2.legend(fontsize=legend_fontsize)
         ax2.grid(True, alpha=0.3)
+        ax2.tick_params(axis='both', labelsize=tick_fontsize)
         
-        ax3.set_xlabel('Iteration')
-        ax3.set_ylabel('Train NLPD')
-        ax3.set_title('Training NLPD Comparison')
-        ax3.legend()
+        ax3.set_xlabel('Iteration', fontsize=label_fontsize)
+        ax3.set_ylabel('Train NLPD', fontsize=label_fontsize)
+        ax3.set_title('Training NLPD Comparison', fontsize=title_fontsize)
+        ax3.legend(fontsize=legend_fontsize)
         ax3.grid(True, alpha=0.3)
+        ax3.tick_params(axis='both', labelsize=tick_fontsize)
         
         plt.tight_layout()
         
-        # Save plot with experiment name prefix
+        # Save plot with experiment name prefix as PDF
         safe_config_key = re.sub(r'[^\w\-_\.]', '_', config_key)
         if self.experiment_name:
-            plot_filename = f'{self.experiment_name}_comparison_{safe_config_key}.png'
+            plot_filename = f'{self.experiment_name}_comparison_{safe_config_key}.pdf'
         else:
-            plot_filename = f'comparison_{safe_config_key}.png'
+            plot_filename = f'comparison_{safe_config_key}.pdf'
         plot_path = os.path.join(self.output_dir, plot_filename)
-        plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+        plt.savefig(plot_path, format='pdf', bbox_inches='tight')
         plt.close()
         
         print(f"Saved comparison plot: {plot_path}")
@@ -549,7 +559,13 @@ class ResultsComparator:
             return
         
         # Create figure with subplots
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+        # Increased figure size for better readability
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(18, 14))
+        
+        # Set larger font sizes
+        label_fontsize = 24
+        title_fontsize = 28
+        tick_fontsize = 18
         
         # Define metrics to plot
         metrics_to_plot = [
@@ -581,23 +597,24 @@ class ResultsComparator:
                     patch.set_facecolor(color)
                     patch.set_alpha(0.7)
                 
-                ax.set_title(f'{metric_name} Final Performance')
-                ax.set_ylabel(metric_name)
+                ax.set_title(f'{metric_name} Final Performance', fontsize=title_fontsize)
+                ax.set_ylabel(metric_name, fontsize=label_fontsize)
                 ax.grid(True, alpha=0.3)
                 
-                # Rotate x-axis labels if needed
-                ax.tick_params(axis='x', rotation=45)
+                # Rotate x-axis labels if needed and set font sizes
+                ax.tick_params(axis='x', rotation=45, labelsize=tick_fontsize)
+                ax.tick_params(axis='y', labelsize=tick_fontsize)
         
         plt.tight_layout()
         
-        # Save boxplot
+        # Save boxplot as PDF
         safe_config_key = re.sub(r'[^\w\-_\.]', '_', config_key)
         if self.experiment_name:
-            boxplot_filename = f'{self.experiment_name}_final_metrics_boxplot_{safe_config_key}.png'
+            boxplot_filename = f'{self.experiment_name}_final_metrics_boxplot_{safe_config_key}.pdf'
         else:
-            boxplot_filename = f'final_metrics_boxplot_{safe_config_key}.png'
+            boxplot_filename = f'final_metrics_boxplot_{safe_config_key}.pdf'
         boxplot_path = os.path.join(self.output_dir, boxplot_filename)
-        plt.savefig(boxplot_path, dpi=150, bbox_inches='tight')
+        plt.savefig(boxplot_path, format='pdf', bbox_inches='tight')
         plt.close()
         
         print(f"Saved final metrics boxplot: {boxplot_path}")
@@ -779,15 +796,15 @@ def main():
     # =============================================================================
     # HARDCODED DEFAULT PATHS - Modify these for your specific setup
     # =============================================================================
-    DEFAULT_ORIG_GPLVM_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\oil_flow_related\final_v1_orig_gplvm\orig_gplvm_run_results"
-    DEFAULT_SSVI_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\oil_flow_related\final_v1_ssvi\ssvi_run_results"
+    DEFAULT_ORIG_GPLVM_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\qpcr_related\final_v1_orig_gplvm\orig_gplvm_run_results"
+    DEFAULT_SSVI_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\qpcr_related\final_v1_ssvi\ssvi_run_results"
     
     # Auto-detect experiment name and create output directory in ssvi_scripts_experiments
     experiment_name = detect_experiment_name(DEFAULT_ORIG_GPLVM_DIR)
     DEFAULT_OUTPUT_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\comparison_results"
     
     # Hardcoded subfolder name for this comparison
-    COMPARISON_SUBFOLDER = "oilflow_related_comparison_21_01"
+    COMPARISON_SUBFOLDER = "qpcr_related_comparison_24_01"
     # =============================================================================
     
     parser = argparse.ArgumentParser(description='Automatic Results Comparison for GP-LVM Experiments')
