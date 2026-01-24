@@ -47,8 +47,11 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
         # beta = lengthscales, so for init_lengthscales=1.0, beta=[1,1,1,1,1,1]
         beta = [[config.init_lengthscales] * config.latent_dim] * 1  # C=1 for GP-LVM
 
+        print(config.device)
+
         # Use init_output_noise_scale for sigma2 initialization
         sigma2 = config.init_output_noise_scale
+        sigma2 = torch.tensor(sigma2, dtype=torch.float64, device=config.device)
 
         # Initialize underlying SSVI model
         super().__init__(
@@ -201,15 +204,15 @@ def train_oil_flow_ssvi(
             if config.enable_missing_data:
                 metrics = metrics_computer.compute_full_metrics(
                     model=model,
-                    y_train=split_data["y_train"],
-                    y_test=split_data["y_test"],
+                    y_train=split_data["y_train"].to(config.device),
+                    y_test=split_data["y_test"].to(config.device),
                     iteration=i,
                     elbo_loss=loss,
                     n_samples=32,  # Fixed number of samples for metrics computation
-                    y_train_original=split_data["y_train_original"],
-                    y_test_original=split_data["y_test_original"],
-                    train_missing_mask=split_data["train_missing_mask"],
-                    test_missing_mask=split_data["test_missing_mask"],
+                    y_train_original=split_data["y_train_original"].to(config.device),
+                    y_test_original=split_data["y_test_original"].to(config.device),
+                    train_missing_mask=split_data["train_missing_mask"].to(config.device),
+                    test_missing_mask=split_data["test_missing_mask"].to(config.device),
                 )
             else:
                 metrics = metrics_computer.compute_full_metrics(
@@ -437,6 +440,7 @@ def run_fold(all_data, mask, fold, config, verbose=True):
 
     scaler = StandardScalerPytorch(device=config.device)
     y_train = scaler.fit_transform(data_with_missing)
+    y_train.to(config.device)
 
     # data_missing_for_test = all_data.clone()
     # data_missing_for_test[missing_mask] = float("nan")
@@ -450,13 +454,14 @@ def run_fold(all_data, mask, fold, config, verbose=True):
         device=config.device,
     )
     mu_x = torch.nn.Parameter(
-        torch.randn(len(data_with_missing), config.latent_dim, dtype=torch.float64)
+        torch.randn(len(data_with_missing), config.latent_dim, dtype=torch.float64, device=config.device)
         * 0.1
     )
 
     config.total_size = y_train.shape[0]
 
     model = OilFlow_SSVI_GPLVM(config=config, Vx=Vx, mu_x=mu_x, M=y_train.shape[1])
+    model.to(config.device)
 
     if verbose:
         print(f"  Training SSVI GPLVM...")
@@ -466,6 +471,7 @@ def run_fold(all_data, mask, fold, config, verbose=True):
     )
 
     data_norm_all = scaler.transform(all_data)
+    data_norm_all = data_norm_all.to(config.device)
 
     results = evaluate_ssvi_model(model, data_norm_all, scaler, missing_mask, config)
 
@@ -486,10 +492,10 @@ def main():
     )
     parser.add_argument("--latent_dim", type=int, default=6, help="Latent dimension")
     parser.add_argument(
-        "--n_inducing", type=int, default=50, help="Number of inducing points"
+        "--n_inducing", type=int, default=100, help="Number of inducing points"
     )
     parser.add_argument(
-        "--num_iterations", type=int, default=2000, help="Training iterations"
+        "--num_iterations", type=int, default=100, help="Training iterations"
     )
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--seed", type=int, default=2026, help="Random seed")
@@ -510,7 +516,17 @@ def main():
     data_df, data_np = load_data()
     cc_values = data_df["CC"].values
 
-    all_data = torch.tensor(data_np, dtype=torch.float64)
+    config = get_config(
+            training_iterations=args.num_iterations,
+            n_inducing_points=args.n_inducing,
+            batch_size=args.batch_size,
+            latent_dim=args.latent_dim,
+            seed=args.seed,
+        )
+    config.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+    all_data = torch.tensor(data_np, dtype=torch.float64, device=config.device)
 
     # load the cv masks
     work_dir = Path(__file__).parent
@@ -537,13 +553,7 @@ def main():
     for fold, mask in enumerate(masks):
         print_fold_header(fold, len(masks), masks)
 
-        config = get_config(
-            training_iterations=args.num_iterations,
-            n_inducing_points=args.n_inducing,
-            batch_size=args.batch_size,
-            latent_dim=args.latent_dim,
-            seed=args.seed + fold,
-        )
+        config.random_seed = args.seed + fold
 
         fold_results = run_fold(all_data, mask=mask, fold=fold, config=config)
 

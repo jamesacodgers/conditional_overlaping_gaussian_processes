@@ -222,12 +222,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="GPLVM for Missing Data with Entry-wise CV"
     )
-    parser.add_argument("--latent_dim", type=int, default=5, help="Latent dimension")
+    parser.add_argument("--latent_dim", type=int, default=6, help="Latent dimension")
     parser.add_argument(
-        "--n_inducing", type=int, default=50, help="Number of inducing points"
+        "--n_inducing", type=int, default=150, help="Number of inducing points"
     )
     parser.add_argument(
-        "--num_iterations", type=int, default=1000, help="Training iterations"
+        "--num_iterations", type=int, default=20000, help="Training iterations"
     )
     parser.add_argument("--seed", type=int, default=2026, help="Random seed")
     parser.add_argument(
@@ -271,6 +271,8 @@ def main():
     all_results = []
     all_results_dict = {}
     figures_dir = ensure_figures_dir(Path(__file__).parent, args.seed)
+
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     for fold, mask in enumerate(masks):
         print_fold_header(fold, len(masks), masks)

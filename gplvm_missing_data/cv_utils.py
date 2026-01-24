@@ -20,9 +20,9 @@ class StandardScalerPytorch:
         self.device = device
 
     def fit(self, X):
-        self.mean = torch.nanmean(X, dim=0)
-        self.std = np.nanstd(X.cpu().numpy(), axis=0, ddof=0)
-        self.std = torch.tensor(self.std, dtype=torch.float64, device=self.device)
+        self.mean = torch.nanmean(X, dim=0).to(device=self.device)
+        std = np.nanstd(X.cpu().numpy(), axis=0, ddof=0)
+        self.std = torch.tensor(std, dtype=torch.float64, device=self.device)
 
     def transform(self, X):
         return (X - self.mean) / self.std
