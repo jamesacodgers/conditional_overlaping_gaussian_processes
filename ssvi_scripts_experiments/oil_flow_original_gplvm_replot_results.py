@@ -189,7 +189,47 @@ def reconstruct_model(model_name: str, config: OriginalGPLVMConfig, Y_train: tor
         prior_x = NormalPrior(X_prior_mean, torch.ones_like(X_prior_mean, dtype=torch.float64))
         X = VariationalLatentVariable(X_init, prior_x, data_dim)
     elif model_name == 'nn_gauss':
+        # Infer architecture from state_dict if available (in case config doesn't match checkpoint)
         nn_layers = config.nn_layers
+        if state_dict:
+            # Extract architecture from mu_layers weights in state_dict
+            # Format: X.mu_layers.0.weight has shape [out_features, in_features]
+            mu_layer_keys = [k for k in state_dict.keys() if k.startswith('X.mu_layers.') and k.endswith('.weight')]
+            if mu_layer_keys:
+                # Sort by layer index
+                mu_layer_keys.sort(key=lambda x: int(x.split('.')[2]))
+                inferred_layers = []
+                for i, key in enumerate(mu_layer_keys):
+                    weight_shape = state_dict[key].shape
+                    out_features = weight_shape[0]
+                    in_features = weight_shape[1]
+                    
+                    # First layer: in_features should be data_dim, out_features is first hidden layer
+                    # Middle layers: out_features is next hidden layer
+                    # Last layer: out_features should be latent_dim (don't add to layers tuple)
+                    if i == 0:
+                        # First layer: verify input is data_dim
+                        if in_features != data_dim:
+                            print(f"  Warning: First layer input size ({in_features}) doesn't match data_dim ({data_dim})")
+                        # Add output size as first hidden layer
+                        inferred_layers.append(out_features)
+                    elif i == len(mu_layer_keys) - 1:
+                        # Last layer: verify output is latent_dim
+                        if out_features != latent_dim:
+                            print(f"  Warning: Last layer output size ({out_features}) doesn't match latent_dim ({latent_dim})")
+                        # Don't add latent_dim to layers tuple (it's added automatically by NNEncoder)
+                    else:
+                        # Middle layers: add output size to inferred_layers
+                        inferred_layers.append(out_features)
+                
+                if inferred_layers:
+                    nn_layers = tuple(inferred_layers)
+                    print(f"  Inferred nn_layers architecture from checkpoint: {nn_layers} (config had: {config.nn_layers})")
+                else:
+                    print(f"  Warning: Could not infer architecture, using config.nn_layers: {config.nn_layers}")
+            else:
+                print(f"  Warning: No mu_layers found in state_dict, using config.nn_layers: {config.nn_layers}")
+        
         prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1], dtype=torch.float64, device=device))
         X = NNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
     else:
@@ -371,9 +411,10 @@ def load_metrics_from_checkpoint(results_dir: str, model_name: str, config: Orig
 
 def load_losses_from_checkpoint(results_dir: str, model_name: str, config: OriginalGPLVMConfig):
     """Load training losses from JSON files"""
-    # Load full dataset losses
-    full_loss_path = os.path.join(results_dir, "training_results", f"{model_name}_{config.random_seed}_full_loss_{config.random_seed}_losses.json")
-    batch_loss_path = os.path.join(results_dir, "training_results", f"{model_name}_{config.random_seed}_batch_{config.random_seed}_losses.json")
+    # Pattern matches save_training_losses: f"{model_name}_{random_seed}_losses.json"
+    # When model_name is "gauss_full_loss", filename becomes "gauss_full_loss_42_losses.json"
+    full_loss_path = os.path.join(results_dir, "training_results", f"{model_name}_full_loss_{config.random_seed}_losses.json")
+    batch_loss_path = os.path.join(results_dir, "training_results", f"{model_name}_batch_{config.random_seed}_losses.json")
     
     full_losses = None
     batch_losses = None
@@ -692,7 +733,7 @@ if __name__ == "__main__":
     # HARDCODED CONFIGURATION - Modify these as needed
     # ============================================================================
     # Hardcoded results folder path
-    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/oil_flow_results/original_gplvm_results/orig_gplvm_fast_seed_42_01_20_16_49"
+    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/oil_flow_related/final_v1_orig_gplvm/orig_gplvm_run_results/orig_gplvm_n_ind_32_arch_192_len_1_sig_1_b_32_s_0_lr_0001_n_steps_100000_P_64_miss_f_ratio_00_test_01_seed_0_01_24_17_03"
     # Model name ('gauss' or 'nn_gauss'). If None, will auto-detect.
     MODEL_NAME = None  # Set to 'gauss' or 'nn_gauss' to specify, or None to auto-detect
     # ============================================================================
