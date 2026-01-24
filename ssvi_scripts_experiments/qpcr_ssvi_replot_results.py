@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 from src.ssvi_utils import SSVIResultsLogger, plot_metrics_history, plot_final_metrics_summary, \
     plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression
-from src.replotting_helper import plot_latent_slice_outer_replot
+from src.replotting_helper import plot_latent_slice_outer_replot, visualize_qpcr_ssvi_results_replot
 from src.ssvi_metrics import SSVIMetricsComputer, SSVIMetrics
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
@@ -504,23 +504,19 @@ def main(results_dir: str, model_filename: str = None):
     
     # Main visualization plot (qPCR-specific)
     print("  Generating main visualization plot...")
-    try:
-        from src.qpcr_plot_helper import visualize_ssvi_results as visualize_qpcr_ssvi_results
-        visualize_qpcr_ssvi_results(
-            model=model,
-            y_train=y_train,
-            labels_train=labels_train,
-            losses=full_elbo_losses,
-            config=config,
-            logger=logger,
-            show_plot=False,
-            train_indices=split_data['train_indices'],
-            full_elbo_iterations=full_elbo_iterations,
-            batch_losses=batch_losses
-        )
-        print("    Main visualization plot saved")
-    except Exception as e:
-        print(f"    Warning: Could not create qPCR visualization: {e}")
+    visualize_qpcr_ssvi_results_replot(
+        model=model,
+        y_train=y_train,
+        labels_train=labels_train,
+        losses=full_elbo_losses,
+        config=config,
+        logger=logger,
+        show_plot=False,
+        train_indices=split_data['train_indices'],
+        full_elbo_iterations=full_elbo_iterations,
+        batch_losses=batch_losses
+    )
+    print("    Main visualization plot saved")
     
     # Metrics plots (if metrics available)
     if metrics_computer is not None and metrics_computer.metrics_history:
