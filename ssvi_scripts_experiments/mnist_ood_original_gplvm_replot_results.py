@@ -302,8 +302,10 @@ def load_metrics_from_checkpoint(results_dir: str, model_name: str, config: OODO
 
 def load_losses_from_checkpoint(results_dir: str, model_name: str, config: OODOriginalGPLVMConfig):
     """Load full and batch losses from checkpoint JSON files"""
-    full_loss_path = os.path.join(results_dir, "training_results", f"{model_name}_{config.random_seed}_full_loss_{config.random_seed}_losses.json")
-    batch_loss_path = os.path.join(results_dir, "training_results", f"{model_name}_{config.random_seed}_batch_{config.random_seed}_losses.json")
+    # Pattern matches save_training_losses: f"{model_name}_{random_seed}_losses.json"
+    # When model_name is "gauss_full_loss", filename becomes "gauss_full_loss_42_losses.json"
+    full_loss_path = os.path.join(results_dir, "training_results", f"{model_name}_full_loss_{config.random_seed}_losses.json")
+    batch_loss_path = os.path.join(results_dir, "training_results", f"{model_name}_batch_{config.random_seed}_losses.json")
     
     full_losses = None
     batch_losses = None
@@ -420,7 +422,19 @@ def main(results_dir: str, model_name: str = None, model_filename: str = None, o
             
             # Use metrics losses as fallback if full_losses is None
             if full_losses is None and metrics is not None:
-                if 'metrics_losses' in metrics:
+                if 'checkpoints' in metrics and len(metrics['checkpoints']) > 0:
+                    # Extract losses and iterations from checkpoints
+                    # Check both 'full_loss' and 'full_dataset_elbo_loss' (used in checkpoint metrics)
+                    full_losses = []
+                    full_loss_iterations = []
+                    for cp in metrics['checkpoints']:
+                        loss = cp.get('full_dataset_elbo_loss', cp.get('full_loss', float('nan')))
+                        if np.isfinite(loss):
+                            full_losses.append(loss)
+                            full_loss_iterations.append(cp.get('iteration', len(full_losses) - 1))
+                    if full_losses:
+                        print(f"  Using losses from checkpoint metrics ({len(full_losses)} points)")
+                elif 'metrics_losses' in metrics:
                     full_losses = metrics['metrics_losses']
                     print(f"  Using losses from checkpoint metrics ({len(full_losses)} points)")
             
@@ -438,7 +452,30 @@ def main(results_dir: str, model_name: str = None, model_filename: str = None, o
             # 8.1 Main visualization plot
             print("  Generating main visualization plot...")
             try:
-                losses_for_plot = full_losses if full_losses else (metrics['metrics_losses'] if metrics and 'metrics_losses' in metrics else [])
+                # Use full_losses if available, otherwise extract from metrics checkpoints
+                if full_losses is None and metrics is not None:
+                    if 'checkpoints' in metrics and len(metrics['checkpoints']) > 0:
+                        # Check both 'full_loss' and 'full_dataset_elbo_loss' (used in checkpoint metrics)
+                        losses_for_plot = []
+                        for cp in metrics['checkpoints']:
+                            loss = cp.get('full_dataset_elbo_loss', cp.get('full_loss', float('nan')))
+                            if np.isfinite(loss):
+                                losses_for_plot.append(loss)
+                        # Update full_loss_iterations if not already set
+                        if full_loss_iterations is None:
+                            full_loss_iterations = [cp.get('iteration', i) for i, cp in enumerate(metrics['checkpoints']) if np.isfinite(cp.get('full_dataset_elbo_loss', cp.get('full_loss', float('nan'))))]
+                    elif 'metrics_losses' in metrics:
+                        losses_for_plot = metrics['metrics_losses']
+                    else:
+                        losses_for_plot = []
+                else:
+                    losses_for_plot = full_losses if full_losses else []
+                
+                if losses_for_plot:
+                    print(f"    Using losses for plot ({len(losses_for_plot)} points)")
+                else:
+                    print(f"    Warning: No losses available for plotting")
+                
                 create_standardized_scattered_plot_mnist_ood_replot(
                     model=model,
                     losses=losses_for_plot if losses_for_plot else [],
@@ -468,7 +505,8 @@ def main(results_dir: str, model_name: str = None, model_filename: str = None, o
                     train_rmse_list = [cp.get('train_rmse', float('nan')) for cp in metrics['checkpoints']]
                     train_nlpd_list = [cp.get('train_nlpd', float('nan')) for cp in metrics['checkpoints']]
                     metrics_iterations = [cp.get('iteration', i) for i, cp in enumerate(metrics['checkpoints'])]
-                    metrics_losses = [cp.get('full_loss', float('nan')) for cp in metrics['checkpoints']]
+                    # Check both 'full_loss' and 'full_dataset_elbo_loss' (used in checkpoint metrics)
+                    metrics_losses = [cp.get('full_dataset_elbo_loss', cp.get('full_loss', float('nan'))) for cp in metrics['checkpoints']]
                     effective_dims_list = [cp.get('effective_dims', 0) for cp in metrics['checkpoints']]
                     
                     plot_metrics_progression(
