@@ -479,7 +479,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
 
         # Get local parameters via amortized inference (encoder handles NaN replacement internally)
         mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(
-            Y_batch, epsilon, missing_mask=missing_mask
+            Y_batch, torch.zeros_like(epsilon), missing_mask=missing_mask
         )
 
         # Now zero gradients for global optimizer before global computation
@@ -563,7 +563,7 @@ class OilFlow_SSVI_GPLVM(GPLVM_SSVI_AM_INF):
 
             # Get latent parameters via amortized inference for this batch
             mu_n_batch, sigma_n_batch = self.get_mu_sigma_x_train_samples(
-                y_batch, epsilon, missing_mask=mask_batch
+                y_batch, torch.zeros_like(epsilon), missing_mask=mask_batch
             )
 
             # Compute ELBO for this batch (EXACTLY same as in training: batch_size=config.batch_size, total_size=config.total_size)
