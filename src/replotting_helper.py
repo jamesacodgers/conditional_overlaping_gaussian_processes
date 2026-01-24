@@ -9,6 +9,9 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from torch import no_grad
+import os
+from pathlib import Path
+import plotly.graph_objects as go
 
 
 @no_grad()
@@ -238,4 +241,421 @@ def plot_latent_slice_outer_replot(model, y_train, center="zeros", n_idx=None, s
         print(f"Saved latent slice plot to: {save_path}")
     else:
         plt.show()
+
+
+@no_grad()
+def visualize_ssvi_results_replot(model, y_train, labels_train, losses, config, logger, save_filename: str = "training_results.pdf", show_plot: bool = True, n_optimization_steps: int = None, is_test_data: bool = False, is_checkpoint: bool = False, train_indices: torch.Tensor = None, full_elbo_iterations: list = None, batch_losses: list = None):
+    """
+    Visualize SSVI training results and latent space (for replotting).
+    
+    This is a modified version of visualize_ssvi_results that saves all matplotlib plots as PDF.
+    HTML plots (3D plots) are still saved as HTML.
+    
+    Parameters
+    ----------
+    losses : list
+        Full ELBO losses (negative ELBO values)
+    full_elbo_iterations : list, optional
+        Iteration numbers corresponding to full_elbo_losses. If provided, used for x-axis of full ELBO plot.
+    batch_losses : list, optional
+        Batch ELBO losses (one per training iteration). If provided, creates an additional plot showing batch ELBO progression.
+    """
+    
+    if not (hasattr(config, 'plot_training') and config.plot_training or
+            hasattr(config, 'plot_latent_space') and config.plot_latent_space or
+            hasattr(config, 'plot_hyperparams') and config.plot_hyperparams):
+        return
+
+    
+    # Color mapping for labels (assuming 3 classes)
+    c = ["r", "g", "b"]
+    colors = [c[int(i)-1] for i in labels_train]
+    
+    plot_flags = [
+        hasattr(config, 'plot_training') and config.plot_training,
+        hasattr(config, 'plot_latent_space') and config.plot_latent_space,
+        hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
+    ]
+    plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
+    n_plots = sum(plot_flags) + (1 if plot_batch_elbo else 0)
+    fig_width = 4 * n_plots
+    fig = plt.figure(figsize=(fig_width, 4))
+    
+    plot_idx = 1
+    
+    # Plot 1: Full ELBO Training curve
+    if plot_flags[0]:
+        plt.subplot(1, n_plots, plot_idx)
+        if full_elbo_iterations is not None and len(full_elbo_iterations) == len(losses):
+            # Use iteration numbers on x-axis
+            plt.plot(full_elbo_iterations, losses, 'b-', alpha=0.7)
+        else:
+            # Fallback: use indices if iterations not provided
+            plt.plot(losses, 'b-', alpha=0.7)
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.title('SSVI Training Curve (Full ELBO)')
+        plt.grid(True, alpha=0.3)
+        plot_idx += 1
+    
+    # Plot 2: Batch ELBO progression (if batch_losses provided)
+    if plot_batch_elbo:
+        plt.subplot(1, n_plots, plot_idx)
+        # Batch losses are computed at every iteration, so x-axis is just iteration indices
+        batch_iterations = list(range(len(batch_losses)))
+        plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.title('Batch ELBO Progression')
+        plt.grid(True, alpha=0.3)
+        plot_idx += 1
+    
+    # Plot 2: Latent space visualization
+    if plot_flags[1]:
+        plt.subplot(1, n_plots, plot_idx)
+        
+        # Find the most informative dimensions (largest lengthscales = smallest beta)
+        lengthscales = 1 / model.gp.beta.flatten()
+        top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
+        top_3_dims = torch.argsort(lengthscales, descending=True)[:3]  # Also compute top 3 for 3D plots
+        dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
+        dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
+        lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
+        # Get latent variables using new explicit training method
+        epsilon = model.get_epsilon()
+        U = model.get_u_samples(epsilon)  # [P, M, C, Lx]
+        
+        # Handle missing data if enabled
+        if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+            # Preprocess encoder input to handle missing data (replace NaN with -9.0)
+            y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)  # [P, N, A]
+        else:
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, epsilon)  # [P, N, A]
+        
+        # Keep as torch tensors for sampling, convert to numpy after sampling
+        mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
+        sigma_x_cpu = sigma_x.cpu()  # Move to CPU but keep as tensor
+        
+        # Plot samples from all P samples with transparency
+        for p in range(model.P):
+            # Use top 2 most informative latent dimensions
+            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+            plt.scatter(sample_1.detach().cpu().numpy(),
+                        sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
+        
+        plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
+        plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})') 
+        plt.title(f'Latent Space - Top 2 Informative Dims (P={model.P} samples)')
+        plot_idx += 1
+    
+    # Generate fractions plot using the same mu_x and top dimensions
+    try:
+        # Load fractions data - check data directory first, then current directory
+        frctn_path = Path("data") / "oil_fractions.txt"
+        
+        if not frctn_path.exists():
+            # Fallback to current directory (SSVI approach)
+            frctn_path = Path(".") / "DataTrnFrctns.txt"
+
+        if not frctn_path.exists():
+            raise FileNotFoundError(f"Fractions file not found. Checked: data/oil_fractions.txt and DataTrnFrctns.txt")
+
+        w = np.loadtxt(frctn_path)  # (N, 2)
+        w3 = 1.0 - w.sum(axis=1, keepdims=True)  # (N, 1)
+        fractions = np.concatenate((w, w3), axis=1)  # (N, 3)
+        
+        # Debug: print fractions shapes
+        print(f"Debug - fractions shape before subsetting: {fractions.shape}")
+        print(f"Debug - y_train shape: {y_train.shape}")
+        
+        # Subset fractions data to match training data using train_indices
+        train_indices_cpu = train_indices.cpu().numpy()
+        fractions = fractions[train_indices_cpu]
+        print(f"Debug - fractions shape after subsetting with train_indices: {fractions.shape}")
+        
+        # Create fractions plot using the same mu_x and top dimensions from above
+        # Make figure wider to account for colorbar, but keep plot area square
+        fig_frac, ax_frac = plt.subplots(1, 1, figsize=(7.5, 6))
+        
+        # Use the same top 2 dimensions that were calculated above
+        # Plot samples from all P samples with transparency (consistent with latent dims plot)
+        for p in range(model.P):
+            # Sample from the latent distributions (consistent with main latent space plot)
+            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+            scatter = ax_frac.scatter(sample_1.detach().cpu().numpy(),
+                                    sample_2.detach().cpu().numpy(), 
+                                    c=fractions, s=20, alpha=0.6)
+        ax_frac.set_title("Latent Space Colored by Fractions")
+        ax_frac.set_xlabel(f'mu_{dim1}')
+        ax_frac.set_ylabel(f'mu_{dim2}')
+        
+        # Add colorbar
+        cbar = plt.colorbar(scatter, ax=ax_frac)
+        cbar.set_label('Fractions')
+        
+        # Ensure equal aspect ratio for square plot
+        ax_frac.set_aspect("equal", adjustable='box')
+        fig_frac.tight_layout()
+        
+        # Save fractions plot as PDF
+        fractions_filename = save_filename.replace('training_results', 'latent_space_by_fractions')
+        # Ensure PDF extension
+        if not fractions_filename.endswith('.pdf'):
+            fractions_filename = fractions_filename.rsplit('.', 1)[0] + '.pdf'
+        if is_checkpoint:
+            plot_frac_path = os.path.join(logger.plots_checkpoints_dir, fractions_filename)
+        else:
+            plot_frac_path = os.path.join(logger.plots_dir, fractions_filename)
+        fig_frac.savefig(plot_frac_path, format='pdf', bbox_inches='tight', dpi=300)
+        plt.close(fig_frac)
+        print(f"Fractions plot saved to: {plot_frac_path}")
+        
+        # Create 3D fractions plot using the same fractions data
+        print("Creating 3D fractions plot...")
+        
+        # Create plotly 3D scatter plot colored by fractions
+        fig_3d_frac = go.Figure()
+        
+        # Plot samples from all P samples with fractions as colors (consistent with 2D fractions plot)
+        for p in range(model.P):
+            # Sample from the latent distributions (consistent with 2D fractions plot)
+            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+            sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_cpu[p, :, dim3]).sample()
+            
+            fig_3d_frac.add_trace(go.Scatter3d(
+                x=sample_1.detach().cpu().numpy(),
+                y=sample_2.detach().cpu().numpy(),
+                z=sample_3.detach().cpu().numpy(),
+                mode='markers',
+                marker=dict(
+                    size=4,
+                    color=fractions[:, 0],  # Use first fraction component (consistent with 2D plot)
+                    colorscale='Viridis',
+                    opacity=0.6,
+                    colorbar=dict(title="Fraction 1")
+                ),
+                name='Latent Points',
+                showlegend=False  # Hide individual P sample traces in legend
+            ))
+        
+        # Update layout
+        fig_3d_frac.update_layout(
+            title=f'3D Latent Space Colored by Fractions - Top 3 Dimensions<br>Dim {dim1}, {dim2}, {dim3}',
+            scene=dict(
+                xaxis_title=f'Dimension {dim1} (lengthscale={lengthscales_cpu[dim1].item():.2f})',
+                yaxis_title=f'Dimension {dim2} (lengthscale={lengthscales_cpu[dim2].item():.2f})',
+                zaxis_title=f'Dimension {dim3} (lengthscale={lengthscales_cpu[dim3].item():.2f})'
+            ),
+            width=800,
+            height=600
+        )
+        
+        # Save 3D fractions plot as HTML
+        plot_3d_frac_filename = save_filename.replace('training_results', '3d_latent_space_by_fractions')
+        plot_3d_frac_filename = plot_3d_frac_filename.replace('.pdf', '.html').replace('.png', '.html')
+        
+        # Save to appropriate directory (checkpoints or main plots)
+        if is_checkpoint:
+            plot_3d_frac_path = os.path.join(logger.plots_checkpoints_dir, plot_3d_frac_filename)
+        else:
+            plot_3d_frac_path = os.path.join(logger.plots_dir, plot_3d_frac_filename)
+        
+        fig_3d_frac.write_html(plot_3d_frac_path)
+        print(f"3D fractions plot saved to: {plot_3d_frac_path}")
+        
+        if show_plot:
+            fig_3d_frac.show()
+        
+    except FileNotFoundError as e:
+        print(f"Warning: Could not create fractions plot: {e}")
+    
+    # Plot 3: Hyperparameters (lengthscales)
+    if plot_flags[2]:
+        plt.subplot(1, n_plots, plot_idx)
+        lengthscales = (1 / model.gp.beta.flatten()).cpu()
+        plt.bar(range(len(lengthscales)), lengthscales, 
+               color="blue", alpha=0.7)
+        plt.xlabel('Latent Dimension')
+        plt.ylabel('Lengthscale')
+        plt.title('GP Lengthscales')
+        plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save plot as PDF
+    # Ensure PDF extension
+    if not save_filename.endswith('.pdf'):
+        save_filename = save_filename.rsplit('.', 1)[0] + '.pdf'
+    if is_checkpoint:
+        plot_path = os.path.join(logger.plots_checkpoints_dir, save_filename)
+    else:
+        plot_path = os.path.join(logger.plots_dir, save_filename)
+    fig.savefig(plot_path, format='pdf', bbox_inches='tight', dpi=300)
+    if show_plot:
+        plt.show()
+    else:
+        plt.close(fig)  # Close figure to free memory
+    
+    # Additional plots: 1D histogram and 3D scatter plot
+    print("Creating additional plots: 1D histogram and 3D scatter plot...")
+    
+    # Ensure labels_train is on CPU for numpy operations
+    labels_train_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
+    
+    # Check if we can reuse existing computations from latent space plot
+    if plot_flags[1] and 'mu_x_cpu' in locals() and 'sigma_x_cpu' in locals():
+        # Reuse existing computations from latent space plot
+        # We already have mu_x_cpu, sigma_x_cpu, and lengthscales_cpu from the latent space plot
+        # Just need to compute top_3_dims for the 3D plot
+        lengthscales = lengthscales_cpu  # Use existing lengthscales
+    else:
+        # Need to compute the data (latent space plot wasn't computed)
+        # Find the most important dimensions (largest lengthscales = smallest beta)
+        lengthscales = (1 / model.gp.beta.flatten()).cpu()  # Move to CPU
+        
+        # Get latent variables
+        epsilon = model.get_epsilon()
+        U = model.get_u_samples(epsilon)  # [P, M, C, Lx]
+        
+        # Handle missing data if enabled
+        if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+            y_encoder_input = torch.where(torch.isnan(y_train), torch.full_like(y_train, -9.0), y_train)
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)  # [P, N, A]
+        else:
+            mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_train, epsilon)  # [P, N, A]
+        
+        # Move to CPU for plotting
+        mu_x_cpu = mu_x.cpu()
+        sigma_x_cpu = sigma_x.cpu()
+    
+    # Use dimensions already computed in latent space plot section
+    most_important_dim = dim1  # Use the first (most important) dimension for 1D histogram
+    
+    # 1. Create 1D histogram for the most important dimension
+    fig_hist, ax_hist = plt.subplots(1, 1, figsize=(8, 6))
+    
+    # Collect samples from all P samples for the most important dimension
+    all_samples = []
+    all_labels = []
+    for p in range(model.P):
+        samples = torch.distributions.Normal(mu_x_cpu[p, :, most_important_dim], 
+                                           sigma_x_cpu[p, :, most_important_dim]).sample()
+        # Ensure samples are on CPU before converting to numpy
+        all_samples.append(samples.detach().cpu().numpy())
+        # Repeat labels for each P sample
+        all_labels.append(labels_train_cpu)
+    
+    all_samples = np.concatenate(all_samples)
+    all_labels = np.concatenate(all_labels)
+    
+    # Create histogram with different colors for different classes
+    for class_idx in range(3):  # Assuming 3 classes
+        class_mask = all_labels == (class_idx + 1)
+        if np.any(class_mask):
+            class_samples = all_samples[class_mask]
+            ax_hist.hist(class_samples, bins=30, alpha=0.7, 
+                       label=f'Class {class_idx + 1}', 
+                       color=['red', 'green', 'blue'][class_idx])
+    
+    ax_hist.set_xlabel(f'Latent Dimension {most_important_dim} (Most Important)')
+    ax_hist.set_ylabel('Frequency')
+    ax_hist.set_title(f'1D Histogram - Most Important Dimension {most_important_dim}')
+    ax_hist.legend()
+    ax_hist.grid(True, alpha=0.3)
+    
+    # Save histogram plot as PDF
+    hist_filename = save_filename.replace('training_results', '1d_histogram_most_important_dim')
+    # Ensure PDF extension
+    if not hist_filename.endswith('.pdf'):
+        hist_filename = hist_filename.rsplit('.', 1)[0] + '.pdf'
+    if is_checkpoint:
+        hist_path = os.path.join(logger.plots_checkpoints_dir, hist_filename)
+    else:
+        hist_path = os.path.join(logger.plots_dir, hist_filename)
+    fig_hist.savefig(hist_path, format='pdf', bbox_inches='tight', dpi=300)
+    if show_plot:
+        plt.show()
+    else:
+        plt.close(fig_hist)
+    
+    # 2. Create 3D scatter plot for top 3 most important dimensions using plotly
+    dim1, dim2, dim3 = top_3_dims[0].item(), top_3_dims[1].item(), top_3_dims[2].item()
+    
+    # Collect samples for all 3 dimensions
+    samples_3d = []
+    for p in range(model.P):
+        sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+        sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+        sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_cpu[p, :, dim3]).sample()
+        
+        # Ensure all samples are on CPU before converting to numpy
+        samples_3d.append({
+            'dim1': sample_1.detach().cpu().numpy(),
+            'dim2': sample_2.detach().cpu().numpy(),
+            'dim3': sample_3.detach().cpu().numpy(),
+            'labels': labels_train_cpu
+        })
+    
+    # Create plotly 3D scatter plot
+    fig_3d = go.Figure()
+    
+    # Color mapping for labels
+    colors_3d = ['red', 'green', 'blue']
+    color_names = ['Class 1', 'Class 2', 'Class 3']
+    
+    # Add traces for each class
+    for class_idx in range(3):
+        class_mask = labels_train_cpu == (class_idx + 1)
+        if np.any(class_mask):
+            # Combine samples from all P samples for this class
+            x_vals = np.concatenate([samples_3d[p]['dim1'][class_mask] for p in range(model.P)])
+            y_vals = np.concatenate([samples_3d[p]['dim2'][class_mask] for p in range(model.P)])
+            z_vals = np.concatenate([samples_3d[p]['dim3'][class_mask] for p in range(model.P)])
+            
+            fig_3d.add_trace(go.Scatter3d(
+                x=x_vals,
+                y=y_vals,
+                z=z_vals,
+                mode='markers',
+                marker=dict(
+                    size=4,
+                    color=colors_3d[class_idx],
+                    opacity=0.6
+                ),
+                name=color_names[class_idx]
+            ))
+    
+    # Update layout
+    fig_3d.update_layout(
+        title=f'3D Scatter Plot - Top 3 Most Important Dimensions<br>Dim {dim1}, {dim2}, {dim3}',
+        scene=dict(
+            xaxis_title=f'Dimension {dim1} (lengthscale={lengthscales[dim1].item():.2f})',
+            yaxis_title=f'Dimension {dim2} (lengthscale={lengthscales[dim2].item():.2f})',
+            zaxis_title=f'Dimension {dim3} (lengthscale={lengthscales[dim3].item():.2f})'
+        ),
+        width=800,
+        height=600
+    )
+    
+    # Save 3D plot as HTML
+    plot_3d_filename = save_filename.replace('training_results', '3d_scatter_top3_dims')
+    plot_3d_filename = plot_3d_filename.replace('.pdf', '.html').replace('.png', '.html')
+    
+    # Save to appropriate directory (checkpoints or main plots)
+    if is_checkpoint:
+        plot_3d_path = os.path.join(logger.plots_checkpoints_dir, plot_3d_filename)
+    else:
+        plot_3d_path = os.path.join(logger.plots_dir, plot_3d_filename)
+    
+    fig_3d.write_html(plot_3d_path)
+    print(f"3D scatter plot saved to: {plot_3d_path}")
+    
+    if show_plot:
+        fig_3d.show()
+    
+    print("Additional plots created successfully!")
 
