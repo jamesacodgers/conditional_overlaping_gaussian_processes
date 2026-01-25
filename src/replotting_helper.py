@@ -235,9 +235,10 @@ def plot_latent_slice_outer_replot(model, y_train, center="zeros", n_idx=None, s
         ax = axes[m]
         ax.plot(xnp, mu, lw=2)
         ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
-        ax.set_title(f"y[{m}] vs x[{j}]", fontsize=9)
-        ax.set_xlabel(f"x[{j}]")
-        ax.set_ylabel(f"y[{m}]")
+        ax.set_title(f"y[{m}] vs x[{j}]", fontsize=12)
+        ax.set_xlabel(f"x[{j}]", fontsize=12)
+        ax.set_ylabel(f"y[{m}]", fontsize=12)
+        ax.tick_params(axis='both', which='major', labelsize=12)
         # Set consistent axis limits
         ax.set_xlim(x_lim_min, x_lim_max)
         ax.set_ylim(y_lim_min, y_lim_max)
@@ -483,8 +484,9 @@ def plot_latent_slice_outer_replot_single(model, y_train, center="zeros", n_idx=
     ax.plot(xnp, mu, lw=2)
     ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
     ax.set_title(f"y[{m}] vs x[{j}]", fontsize=12)
-    ax.set_xlabel(f"x[{j}]")
-    ax.set_ylabel(f"y[{m}]")
+    ax.set_xlabel(f"x[{j}]", fontsize=12)
+    ax.set_ylabel(f"y[{m}]", fontsize=12)
+    ax.tick_params(axis='both', which='major', labelsize=12)
     # Set consistent axis limits
     ax.set_xlim(x_lim_min, x_lim_max)
     ax.set_ylim(y_lim_min, y_lim_max)
