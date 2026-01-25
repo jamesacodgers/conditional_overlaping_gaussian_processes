@@ -473,38 +473,114 @@ class ResultsComparator:
                            mean_train_nlpd + std_train_nlpd, 
                            color=color, alpha=0.2)
         
-        # Configure subplots
-        ax1.set_xlabel('Iteration')
-        ax1.set_ylabel('ELBO Loss')
-        ax1.set_title('ELBO Loss Comparison')
-        ax1.legend()
+        # Configure subplots with consistent font size
+        ax1.set_xlabel('Iteration', fontsize=14)
+        ax1.set_ylabel('ELBO Loss', fontsize=14)
+        ax1.set_title('ELBO Loss Comparison', fontsize=14)
+        ax1.legend(fontsize=14)
         ax1.grid(True, alpha=0.3)
+        ax1.tick_params(labelsize=14)
         
-        ax2.set_xlabel('Iteration')
-        ax2.set_ylabel('Train RMSE')
-        ax2.set_title('Training RMSE Comparison')
-        ax2.legend()
+        ax2.set_xlabel('Iteration', fontsize=14)
+        ax2.set_ylabel('Train RMSE', fontsize=14)
+        ax2.set_title('Training RMSE Comparison', fontsize=14)
+        ax2.legend(fontsize=14)
         ax2.grid(True, alpha=0.3)
+        ax2.tick_params(labelsize=14)
         
-        ax3.set_xlabel('Iteration')
-        ax3.set_ylabel('Train NLPD')
-        ax3.set_title('Training NLPD Comparison')
-        ax3.legend()
+        ax3.set_xlabel('Iteration', fontsize=14)
+        ax3.set_ylabel('Train NLPD', fontsize=14)
+        ax3.set_title('Training NLPD Comparison', fontsize=14)
+        ax3.legend(fontsize=14)
         ax3.grid(True, alpha=0.3)
+        ax3.tick_params(labelsize=14)
         
         plt.tight_layout()
         
-        # Save plot with experiment name prefix
+        # Save plot with experiment name prefix (both PNG and PDF)
         safe_config_key = re.sub(r'[^\w\-_\.]', '_', config_key)
         if self.experiment_name:
-            plot_filename = f'{self.experiment_name}_comparison_{safe_config_key}.png'
+            plot_filename_png = f'{self.experiment_name}_comparison_{safe_config_key}.png'
+            plot_filename_pdf = f'{self.experiment_name}_comparison_{safe_config_key}.pdf'
         else:
-            plot_filename = f'comparison_{safe_config_key}.png'
-        plot_path = os.path.join(self.output_dir, plot_filename)
-        plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+            plot_filename_png = f'comparison_{safe_config_key}.png'
+            plot_filename_pdf = f'comparison_{safe_config_key}.pdf'
+        
+        plot_path_png = os.path.join(self.output_dir, plot_filename_png)
+        plot_path_pdf = os.path.join(self.output_dir, plot_filename_pdf)
+        plt.savefig(plot_path_png, dpi=150, bbox_inches='tight')
+        plt.savefig(plot_path_pdf, bbox_inches='tight')
         plt.close()
         
-        print(f"Saved comparison plot: {plot_path}")
+        print(f"Saved comparison plot: {plot_path_png}")
+        print(f"Saved comparison plot (PDF): {plot_path_pdf}")
+    
+    def plot_nlpd_comparison(self, config_key: str, model_runs: Dict[str, List[RunResults]]):
+        """Create a standalone NLPD comparison plot saved as PDF"""
+        
+        # Define colors and display names for different model types
+        model_colors = {
+            'gauss': 'blue',
+            'nn_gauss': 'red', 
+            'ssvi': 'green'
+        }
+        
+        model_display_names = {
+            'gauss': 'MF',
+            'nn_gauss': 'A-MF', 
+            'ssvi': 'A-S'
+        }
+        
+        # Create figure with single subplot
+        fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+        
+        # Plot metrics for each model type
+        for model_type, runs in model_runs.items():
+            if not runs:
+                continue
+                
+            color = model_colors.get(model_type, 'black')
+            display_name = model_display_names.get(model_type, model_type)
+            
+            # Aggregate metrics
+            iterations, mean_train_rmse, mean_train_nlpd, mean_elbo_loss = self.aggregate_metrics_across_runs(runs)
+            std_train_rmse, std_train_nlpd, std_elbo_loss = self.compute_std_across_runs(runs)
+            
+            if not iterations:
+                continue
+            
+            iterations = np.array(iterations)
+            mean_train_nlpd = np.array(mean_train_nlpd)
+            std_train_nlpd = np.array(std_train_nlpd)
+            
+            # Plot Train NLPD
+            ax.plot(iterations, mean_train_nlpd, color=color, label=f'{display_name}', linewidth=2)
+            ax.fill_between(iterations, 
+                           mean_train_nlpd - std_train_nlpd, 
+                           mean_train_nlpd + std_train_nlpd, 
+                           color=color, alpha=0.2)
+        
+        # Configure subplot with consistent font size
+        ax.set_xlabel('Iteration', fontsize=14)
+        ax.set_ylabel('Train NLPD', fontsize=14)
+        ax.set_title('Training NLPD Comparison', fontsize=14)
+        ax.legend(fontsize=14)
+        ax.grid(True, alpha=0.3)
+        ax.tick_params(labelsize=14)
+        
+        plt.tight_layout()
+        
+        # Save plot as PDF
+        safe_config_key = re.sub(r'[^\w\-_\.]', '_', config_key)
+        if self.experiment_name:
+            plot_filename = f'{self.experiment_name}_nlpd_comparison_{safe_config_key}.pdf'
+        else:
+            plot_filename = f'nlpd_comparison_{safe_config_key}.pdf'
+        plot_path = os.path.join(self.output_dir, plot_filename)
+        plt.savefig(plot_path, bbox_inches='tight')
+        plt.close()
+        
+        print(f"Saved NLPD comparison plot (PDF): {plot_path}")
     
     def create_final_metrics_boxplots(self, config_key: str, model_runs: Dict[str, List[RunResults]]):
         """Create boxplots for final metrics comparison"""
@@ -581,12 +657,13 @@ class ResultsComparator:
                     patch.set_facecolor(color)
                     patch.set_alpha(0.7)
                 
-                ax.set_title(f'{metric_name} Final Performance')
-                ax.set_ylabel(metric_name)
+                ax.set_title(f'{metric_name} Final Performance', fontsize=14)
+                ax.set_ylabel(metric_name, fontsize=14)
                 ax.grid(True, alpha=0.3)
                 
                 # Rotate x-axis labels if needed
-                ax.tick_params(axis='x', rotation=45)
+                ax.tick_params(axis='x', rotation=45, labelsize=14)
+                ax.tick_params(axis='y', labelsize=14)
         
         plt.tight_layout()
         
@@ -752,6 +829,8 @@ class ResultsComparator:
             print(f"\nProcessing configuration: {config_key}")
             # Create progression plots (ELBO, RMSE, NLPD over time)
             self.plot_comparison(config_key, model_runs)
+            # Create standalone NLPD plot (PDF)
+            self.plot_nlpd_comparison(config_key, model_runs)
             # Create final metrics boxplots
             self.create_final_metrics_boxplots(config_key, model_runs)
             # Generate summary report for this specific configuration
@@ -787,7 +866,7 @@ def main():
     DEFAULT_OUTPUT_DIR = r"C:\Users\mtret\MyStudy\conditional_overlaping_gaussian_processes\ssvi_scripts_experiments\comparison_results"
     
     # Hardcoded subfolder name for this comparison
-    COMPARISON_SUBFOLDER = "oilflow_related_comparison_21_01"
+    COMPARISON_SUBFOLDER = "oilflow_related_comparison_26_01"
     # =============================================================================
     
     parser = argparse.ArgumentParser(description='Automatic Results Comparison for GP-LVM Experiments')
