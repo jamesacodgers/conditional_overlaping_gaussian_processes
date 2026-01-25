@@ -185,18 +185,18 @@ def plot_latent_slice_outer_replot(model, y_train, center="zeros", n_idx=None, s
     y_lim_min = y_min_global - y_padding
     y_lim_max = y_max_global + y_padding
 
-    # 9) plot - show first 12 dimensions (or M if M < 12)
+    # 9) plot - show first 4 dimensions (or M if M < 4)
     xnp = xs.detach().cpu().numpy()
     
     # Set X-axis limits for consistency (already using [-3, 3] range)
     x_lim_min, x_lim_max = -3.0, 3.0
     
-    # Plot only first 12 dimensions (or all if M < 12)
-    M_plot = min(M, 12)
+    # Plot only first 4 dimensions (or all if M < 4) - single row
+    M_plot = min(M, 4)
     n_cols = 4
-    n_rows = int(np.ceil(M_plot / n_cols))
+    n_rows = 1
     
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2.5 * n_rows), constrained_layout=True)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2.5), constrained_layout=True)
     axes = axes.ravel()
     
     # Sample from q(X) distribution along dimension j for histogram

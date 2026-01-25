@@ -157,18 +157,18 @@ def plot_latent_slice_original_gplvm_replot(model, y_train, model_name, center="
     if not np.isfinite(y_lim_max):
         y_lim_max = 2.0
     
-    # 4) Plot - show first 12 dimensions (or M if M < 12)
+    # 4) Plot - show first 4 dimensions (or M if M < 4)
     xnp = xs.detach().cpu().numpy()
     
     # Set X-axis limits for consistency (already using [-3, 3] range)
     x_lim_min, x_lim_max = -3.0, 3.0
     
-    # Plot only first 12 dimensions (or all if M < 12)
-    M_plot = min(M, 12)
+    # Plot only first 4 dimensions (or all if M < 4) - single row
+    M_plot = min(M, 4)
     n_cols = 4
-    n_rows = int(np.ceil(M_plot / n_cols))
+    n_rows = 1
     
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2.5 * n_rows), constrained_layout=True)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 2.5), constrained_layout=True)
     axes = axes.ravel()
     
     # Sample from q(X) distribution along dimension j for histogram
@@ -182,7 +182,7 @@ def plot_latent_slice_original_gplvm_replot(model, y_train, model_name, center="
         ax = axes[m]
         ax.plot(xnp, mu, lw=2)
         ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
-        ax.set_title(f"y[{m}] vs x[{j}] (l={ells[j]:.2g})", fontsize=9)
+        ax.set_title(f"y[{m}] vs x[{j}]", fontsize=9)
         ax.set_xlabel(f"x[{j}]")
         ax.set_ylabel(f"y[{m}]")
         # Set consistent axis limits
