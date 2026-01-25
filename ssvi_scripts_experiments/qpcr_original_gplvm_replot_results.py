@@ -197,41 +197,14 @@ def create_standardized_scattered_plot_qpcr_replot(model, losses, labels_train, 
         # Use consistent color mapping across SSVI and original GP LVM
         colors, color_map = get_consistent_qpcr_colors(labels_train)
 
-        # Determine which plots to show
-        plot_batch_elbo = batch_losses is not None and len(batch_losses) > 0
-        n_plots = 1 + (1 if plot_batch_elbo else 0) + 1 + 1  # Full ELBO, Batch ELBO (optional), Latent space, Hyperparams
+        # Only plot latent space and lengthscales (remove ELBO plots)
+        n_plots = 2  # Latent space, Hyperparams
         fig_width = 4 * n_plots
         fig = plt.figure(figsize=(fig_width, 4))
 
         plot_idx = 1
 
-        # Plot 1: Full ELBO Training curve (always shown)
-        plt.subplot(1, n_plots, plot_idx)
-        if full_loss_iterations is not None and len(full_loss_iterations) == len(losses):
-            # Use iteration numbers on x-axis
-            plt.plot(full_loss_iterations, losses, 'b-', alpha=0.7)
-        else:
-            # Fallback: use indices if iterations not provided
-            plt.plot(losses, 'b-', alpha=0.7)
-        plt.xlabel('Iteration')
-        plt.ylabel('Loss')
-        plt.title('ELBO Training Curve (Full ELBO)')
-        plt.grid(True, alpha=0.3)
-        plot_idx += 1
-        
-        # Plot 2: Batch ELBO progression (if batch_losses provided)
-        if plot_batch_elbo:
-            plt.subplot(1, n_plots, plot_idx)
-            # Batch losses are computed at every iteration, so x-axis is just iteration indices
-            batch_iterations = list(range(len(batch_losses)))
-            plt.plot(batch_iterations, batch_losses, 'g-', alpha=0.7)
-            plt.xlabel('Iteration')
-            plt.ylabel('Loss')
-            plt.title('Batch ELBO Progression')
-            plt.grid(True, alpha=0.3)
-            plot_idx += 1
-
-        # Plot 3: Latent space visualization (exactly like SSVI)
+        # Plot 1: Latent space visualization (exactly like SSVI)
         plt.subplot(1, n_plots, plot_idx)
 
         # Find the two most informative dimensions (copy original approach exactly)
@@ -276,12 +249,12 @@ def create_standardized_scattered_plot_qpcr_replot(model, losses, labels_train, 
             plt.scatter(sample_1.detach().cpu().numpy(),
                         sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
 
-        plt.xlabel(f'Latent Dimension {dim1} (lengthscale={lengthscales_cpu[dim1]:.2f})')
-        plt.ylabel(f'Latent Dimension {dim2} (lengthscale={lengthscales_cpu[dim2]:.2f})')
+        plt.xlabel(f'Latent Dimension {dim1}')
+        plt.ylabel(f'Latent Dimension {dim2}')
         plt.title(f'Latent Space - Top 2 Informative Dims')
         plot_idx += 1
 
-        # Plot 4: Hyperparameters (lengthscales) - consistent with SSVI
+        # Plot 2: Hyperparameters (lengthscales) - consistent with SSVI
         plt.subplot(1, n_plots, plot_idx)
         # For mathematical consistency with SSVI version:
         # SSVI: K = exp(-0.5 * d^2 / init_lengthscales)
@@ -540,7 +513,47 @@ def reconstruct_model(model_name: str, config: OriginalGPLVMConfig, Y_train: tor
         prior_x = NormalPrior(X_prior_mean, torch.ones_like(X_prior_mean, dtype=torch.float64))
         X = VariationalLatentVariable(X_init, prior_x, data_dim)
     elif model_name == 'nn_gauss':
+        # Infer architecture from state_dict if available (in case config doesn't match checkpoint)
         nn_layers = config.nn_layers
+        if state_dict:
+            # Extract architecture from mu_layers weights in state_dict
+            # Format: X.mu_layers.0.weight has shape [out_features, in_features]
+            mu_layer_keys = [k for k in state_dict.keys() if k.startswith('X.mu_layers.') and k.endswith('.weight')]
+            if mu_layer_keys:
+                # Sort by layer index
+                mu_layer_keys.sort(key=lambda x: int(x.split('.')[2]))
+                inferred_layers = []
+                for i, key in enumerate(mu_layer_keys):
+                    weight_shape = state_dict[key].shape
+                    out_features = weight_shape[0]
+                    in_features = weight_shape[1]
+                    
+                    # First layer: in_features should be data_dim, out_features is first hidden layer
+                    # Middle layers: out_features is next hidden layer
+                    # Last layer: out_features should be latent_dim (don't add to layers tuple)
+                    if i == 0:
+                        # First layer: verify input is data_dim
+                        if in_features != data_dim:
+                            print(f"  Warning: First layer input size ({in_features}) doesn't match data_dim ({data_dim})")
+                        # Add output size as first hidden layer
+                        inferred_layers.append(out_features)
+                    elif i == len(mu_layer_keys) - 1:
+                        # Last layer: verify output is latent_dim
+                        if out_features != latent_dim:
+                            print(f"  Warning: Last layer output size ({out_features}) doesn't match latent_dim ({latent_dim})")
+                        # Don't add latent_dim to layers tuple (it's added automatically by NNEncoder)
+                    else:
+                        # Middle layers: add output size to inferred_layers
+                        inferred_layers.append(out_features)
+                
+                if inferred_layers:
+                    nn_layers = tuple(inferred_layers)
+                    print(f"  Inferred nn_layers architecture from checkpoint: {nn_layers} (config had: {config.nn_layers})")
+                else:
+                    print(f"  Warning: Could not infer architecture, using config.nn_layers: {config.nn_layers}")
+            else:
+                print(f"  Warning: No mu_layers found in state_dict, using config.nn_layers: {config.nn_layers}")
+        
         prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1], dtype=torch.float64, device=device))
         X = NNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
     else:
@@ -1075,7 +1088,7 @@ if __name__ == "__main__":
     # HARDCODED CONFIGURATION - Modify these as needed
     # ============================================================================
     # Hardcoded results folder path
-    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/qpcr_results/original_gplvm_results/orig_gplvm_fast_seed_42_01_24_17_58"
+    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/qpcr_related/final_v1_orig_gplvm/orig_gplvm_run_results/orig_gplvm_n_ind_32_arch_192_len_10_sig_1_b_32_s_0_lr_0001_n_steps_100000_P_64_miss_f_ratio_00_test_01_seed_0_01_24_20_48"
     # Model name ('gauss' or 'nn_gauss'). If None, will auto-detect.
     MODEL_NAME = None  # Set to 'gauss' or 'nn_gauss' to specify, or None to auto-detect
     # ============================================================================

@@ -77,9 +77,9 @@ from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerP
 from src.data_utils import load_image_dataset, filter_mnist_by_digits
 from src.mnist_missing_reconstruction import (
     visualize_prior_samples_original_gplvm,
-    visualize_prior_samples_original_gplvm_averaged,
-    visualize_test_image_predictions_original_gplvm
+    visualize_prior_samples_original_gplvm_averaged
 )
+from src.mf_reploting_helper import visualize_test_image_predictions_original_gplvm_replot
 import plotly.graph_objects as go
 import pathlib
 
@@ -597,13 +597,13 @@ def main(results_dir: str, model_name: str = None, model_filename: str = None, o
             print("  Generating test image predictions visualization...")
             try:
                 test_image_predictions_path = os.path.join(logger.plots_dir, f"test_image_predictions_{model_name}_{config.random_seed}.pdf")
-                visualize_test_image_predictions_original_gplvm(
+                visualize_test_image_predictions_original_gplvm_replot(
                     model=model,
                     likelihood=likelihood,
                     y_test=split_data['y_test'],
                     config=config,
                     model_name=model_name,
-                    n_images=24,
+                    n_images=8,
                     save_path=test_image_predictions_path,
                     show_plot=False,
                     dataset_name=config.id_dataset,

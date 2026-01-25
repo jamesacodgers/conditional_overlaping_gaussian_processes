@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 from src.ssvi_utils import SSVIResultsLogger, plot_metrics_history, plot_final_metrics_summary, \
     plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression
-from src.replotting_helper import plot_latent_slice_outer_replot, visualize_ssvi_results_replot
+from src.replotting_helper import plot_latent_slice_outer_replot, plot_latent_slice_outer_replot_single, visualize_ssvi_results_replot
 from src.ssvi_metrics import SSVIMetricsComputer, SSVIMetrics, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
@@ -427,10 +427,18 @@ def main(results_dir: str, model_filename: str = None):
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
 
+    # Temporarily override config.results_dir to prevent SSVIResultsLogger from trying to create
+    # directories in the original config's results_dir (which might be /workspace or another problematic path)
+    original_results_dir = config.results_dir
+    config.results_dir = output_dir
+    
     experiment_name = os.path.basename(results_dir).replace(f"_seed_{config.random_seed}_", "").split("_seed_")[0]
     logger = SSVIResultsLogger(config, experiment_name=experiment_name)
-    # Override results_dir to use the output directory
+    # Override results_dir to use the output directory (in case logger created a subdirectory)
     logger.results_dir = output_dir
+    
+    # Restore original config.results_dir (optional, but cleaner)
+    config.results_dir = original_results_dir
     logger.plots_dir = os.path.join(output_dir, "plots")
     os.makedirs(logger.plots_dir, exist_ok=True)
     logger.models_dir = os.path.join(output_dir, "pre_trained_models")
@@ -556,6 +564,21 @@ def main(results_dir: str, model_filename: str = None):
         else:
             print(f"    ✗ Warning: File not created: {latent_slice_path_origin}")
         
+        # Plot single slice centered at origin (y[0] vs x[j] only)
+        latent_slice_single_path_origin = os.path.join(logger.plots_dir, f"latent_slice_single_origin_seed_{config.random_seed}.pdf")
+        print(f"    Creating latent slice single (origin)...")
+        plot_latent_slice_outer_replot_single(
+            model=model,
+            y_train=y_train_device,
+            center="zeros",
+            save_path=latent_slice_single_path_origin,
+            scaler=split_data.get('scaler')
+        )
+        if os.path.exists(latent_slice_single_path_origin):
+            print(f"    ✓ Saved latent slice single (origin) to: {latent_slice_single_path_origin}")
+        else:
+            print(f"    ✗ Warning: File not created: {latent_slice_single_path_origin}")
+        
         # Plot slices centered at a few interesting data points
         N = y_train.shape[0]
         representative_indices = [0, N // 2, N - 1]
@@ -576,6 +599,23 @@ def main(results_dir: str, model_filename: str = None):
                 print(f"    ✓ Saved latent slice (point {idx}) to: {latent_slice_path}")
             else:
                 print(f"    ✗ Warning: File not created: {latent_slice_path}")
+            
+            # Plot single slice for this point (y[0] vs x[j] only)
+            latent_slice_single_path = os.path.join(logger.plots_dir,
+                                                    f"latent_slice_single_point_{idx}_seed_{config.random_seed}.pdf")
+            print(f"    Creating latent slice single (point {idx})...")
+            plot_latent_slice_outer_replot_single(
+                model=model,
+                y_train=y_train_device,
+                center="data_point",
+                n_idx=idx,
+                save_path=latent_slice_single_path,
+                scaler=split_data.get('scaler')
+            )
+            if os.path.exists(latent_slice_single_path):
+                print(f"    ✓ Saved latent slice single (point {idx}) to: {latent_slice_single_path}")
+            else:
+                print(f"    ✗ Warning: File not created: {latent_slice_single_path}")
     except Exception as e:
         import traceback
         print(f"    ✗ Error: Failed to generate latent slice visualizations: {e}")
@@ -596,7 +636,7 @@ if __name__ == "__main__":
     # HARDCODED CONFIGURATION - Modify these as needed
     # ============================================================================
     # Hardcoded results folder path
-    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/oil_flow_results/ssvi_results/ssvi_fast_seed_7_20_01_16_47"
+    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/oil_flow_related/final_v1_ssvi/ssvi_run_results/ssvi_n_ind_32_arch_192_len_1_sig_1_b_32_s_0_lr_0001_n_steps_100000_P_64_miss_f_ratio_00_test_01_seed_0_24_01_17_03"
     # ============================================================================
 
     # Convert to absolute path if relative
