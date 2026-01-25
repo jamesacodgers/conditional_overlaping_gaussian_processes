@@ -65,6 +65,10 @@ from src.original_gplvm_config_utils import (
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
 from src.nlpd_utils import compute_nlpd_nll_based, compute_missing_data_nlpd_gauss
 from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_latent_slice_original_gplvm
+from src.mf_reploting_helper import (
+    plot_latent_slice_original_gplvm_replot,
+    plot_latent_slice_original_gplvm_replot_single
+)
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
@@ -952,6 +956,65 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         scaler=scaler
                     )
                     print(f"  Saved latent slice (point {idx}) to: {latent_slice_path}")
+                
+                # Generate replot versions (4 subplots and single point) - PDF format
+                print(f"\nGenerating replot latent slice visualizations (4 subplots and single point)...")
+                
+                # Plot 4 subplots version centered at origin
+                latent_slice_replot_path_origin = os.path.join(plots_dir, f"latent_slice_origin_{model_name}_seed_{config.random_seed}.pdf")
+                plot_latent_slice_original_gplvm_replot(
+                    model=model,
+                    y_train=Y_train,
+                    model_name=model_name,
+                    center="zeros",
+                    save_path=latent_slice_replot_path_origin,
+                    scaler=scaler
+                )
+                if os.path.exists(latent_slice_replot_path_origin):
+                    print(f"  Saved latent slice replot (origin, 4 subplots) to: {latent_slice_replot_path_origin}")
+                
+                # Plot single point version centered at origin
+                latent_slice_single_path_origin = os.path.join(plots_dir, f"latent_slice_single_origin_{model_name}_seed_{config.random_seed}.pdf")
+                plot_latent_slice_original_gplvm_replot_single(
+                    model=model,
+                    y_train=Y_train,
+                    model_name=model_name,
+                    center="zeros",
+                    save_path=latent_slice_single_path_origin,
+                    scaler=scaler
+                )
+                if os.path.exists(latent_slice_single_path_origin):
+                    print(f"  Saved latent slice single (origin) to: {latent_slice_single_path_origin}")
+                
+                # Plot 4 subplots and single point versions centered at representative data points
+                for idx in representative_indices:
+                    # 4 subplots version
+                    latent_slice_replot_path = os.path.join(plots_dir, f"latent_slice_point_{idx}_{model_name}_seed_{config.random_seed}.pdf")
+                    plot_latent_slice_original_gplvm_replot(
+                        model=model,
+                        y_train=Y_train,
+                        model_name=model_name,
+                        center="data_point",
+                        n_idx=idx,
+                        save_path=latent_slice_replot_path,
+                        scaler=scaler
+                    )
+                    if os.path.exists(latent_slice_replot_path):
+                        print(f"  Saved latent slice replot (point {idx}, 4 subplots) to: {latent_slice_replot_path}")
+                    
+                    # Single point version
+                    latent_slice_single_path = os.path.join(plots_dir, f"latent_slice_single_point_{idx}_{model_name}_seed_{config.random_seed}.pdf")
+                    plot_latent_slice_original_gplvm_replot_single(
+                        model=model,
+                        y_train=Y_train,
+                        model_name=model_name,
+                        center="data_point",
+                        n_idx=idx,
+                        save_path=latent_slice_single_path,
+                        scaler=scaler
+                    )
+                    if os.path.exists(latent_slice_single_path):
+                        print(f"  Saved latent slice single (point {idx}) to: {latent_slice_single_path}")
         except Exception as e:
             print(f"  Warning: Failed to generate latent slice visualizations: {e}")
     
