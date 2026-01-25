@@ -1011,13 +1011,6 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
         plt.xlabel(f'Latent Dimension {dim1}')
         plt.ylabel(f'Latent Dimension {dim2}')
         plt.title(f'Latent Space - Top 2 Informative Dims')
-        # Add legend with class names below the plot in a horizontal line
-        labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
-        from matplotlib.patches import Patch
-        legend_handles = [Patch(color=color_map[l], label=get_label_name_mnist_ood(l, dataset_name, is_ood)) 
-                          for l in sorted(np.unique(labels_cpu))]
-        plt.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, -0.15), 
-                  ncol=len(legend_handles), fontsize='small', frameon=True)
         plot_idx += 1
 
         # Plot 2: Hyperparameters (lengthscales) - consistent with SSVI
@@ -1036,7 +1029,16 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
         plt.grid(True, alpha=0.3)
         plot_idx += 1
 
-        plt.tight_layout(rect=[0, 0.05, 1, 1])
+        # Ensure 50/50 layout for plots
+        plt.tight_layout(rect=[0, 0.15, 1, 1])
+        
+        # Add legend separately at the bottom (figure level, not subplot level)
+        labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
+        from matplotlib.patches import Patch
+        legend_handles = [Patch(color=color_map[l], label=get_label_name_mnist_ood(l, dataset_name, is_ood)) 
+                          for l in sorted(np.unique(labels_cpu))]
+        fig.legend(handles=legend_handles, loc='lower center', bbox_to_anchor=(0.5, 0.02), 
+                  ncol=len(legend_handles), fontsize='small', frameon=True)
 
     # Use model name (gauss/nn_gauss) instead of class name for consistency
     if model_name == 'VariationalLatentVariable':
