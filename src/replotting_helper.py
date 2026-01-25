@@ -177,13 +177,35 @@ def plot_latent_slice_outer_replot(model, y_train, center="zeros", n_idx=None, s
     if scaler is not None:
         y_data_for_limits = scaler.inverse_transform(y_data_for_limits)
     
-    # Compute global Y-axis limits from data range (with padding for uncertainty bands)
-    y_min_global = y_data_for_limits.min().item()
-    y_max_global = y_data_for_limits.max().item()
+    # Filter out NaN and Inf values before computing limits
+    y_data_valid = y_data_for_limits[torch.isfinite(y_data_for_limits)]
+    
+    if len(y_data_valid) == 0:
+        # Fallback: use default range if all data is invalid
+        y_min_global = -1.0
+        y_max_global = 1.0
+    else:
+        y_min_global = y_data_valid.min().item()
+        y_max_global = y_data_valid.max().item()
+    
+    # Ensure we have valid finite values
+    if not np.isfinite(y_min_global) or not np.isfinite(y_max_global):
+        y_min_global = -1.0
+        y_max_global = 1.0
+    
     y_range = y_max_global - y_min_global
+    if y_range <= 0 or not np.isfinite(y_range):
+        y_range = 2.0  # Default range
+    
     y_padding = 1.0 * y_range  # 100% padding (fixed proportion for consistency across scripts, extra space for histograms)
     y_lim_min = y_min_global - y_padding
     y_lim_max = y_max_global + y_padding
+    
+    # Final validation: ensure limits are finite
+    if not np.isfinite(y_lim_min):
+        y_lim_min = -2.0
+    if not np.isfinite(y_lim_max):
+        y_lim_max = 2.0
 
     # 9) plot - show first 4 dimensions (or M if M < 4)
     xnp = xs.detach().cpu().numpy()
@@ -407,13 +429,35 @@ def plot_latent_slice_outer_replot_single(model, y_train, center="zeros", n_idx=
     if scaler is not None:
         y_data_for_limits = scaler.inverse_transform(y_data_for_limits)
     
-    # Compute global Y-axis limits from data range (with padding for uncertainty bands)
-    y_min_global = y_data_for_limits.min().item()
-    y_max_global = y_data_for_limits.max().item()
+    # Filter out NaN and Inf values before computing limits
+    y_data_valid = y_data_for_limits[torch.isfinite(y_data_for_limits)]
+    
+    if len(y_data_valid) == 0:
+        # Fallback: use default range if all data is invalid
+        y_min_global = -1.0
+        y_max_global = 1.0
+    else:
+        y_min_global = y_data_valid.min().item()
+        y_max_global = y_data_valid.max().item()
+    
+    # Ensure we have valid finite values
+    if not np.isfinite(y_min_global) or not np.isfinite(y_max_global):
+        y_min_global = -1.0
+        y_max_global = 1.0
+    
     y_range = y_max_global - y_min_global
+    if y_range <= 0 or not np.isfinite(y_range):
+        y_range = 2.0  # Default range
+    
     y_padding = 1.0 * y_range  # 100% padding (fixed proportion for consistency across scripts, extra space for histograms)
     y_lim_min = y_min_global - y_padding
     y_lim_max = y_max_global + y_padding
+    
+    # Final validation: ensure limits are finite
+    if not np.isfinite(y_lim_min):
+        y_lim_min = -2.0
+    if not np.isfinite(y_lim_max):
+        y_lim_max = 2.0
 
     # Plot - only first dimension (y[0] vs x[j])
     xnp = xs.detach().cpu().numpy()
@@ -1172,7 +1216,7 @@ FASHION_MNIST_CLASSES = {
 
 def get_label_name(label_val, dataset_name, is_ood=False):
     """
-    Get legend label name based on dataset and ID/OOD status.
+    Get legend label name - just the class name without dataset prefix or ID/OOD status.
     
     Parameters
     ----------
@@ -1181,22 +1225,19 @@ def get_label_name(label_val, dataset_name, is_ood=False):
     dataset_name : str
         'MNIST' or 'FashionMNIST'
     is_ood : bool
-        Whether this is OOD data
+        Whether this is OOD data (ignored, kept for compatibility)
         
     Returns
     -------
     str
-        Legend label like "MNIST Digit 1 (ID)" or "FashionMNIST Trouser (OOD)"
+        Just the class name like "Trouser" or "1"
     """
-    status = "OOD" if is_ood else "ID"
-    
     if dataset_name == "MNIST":
-        return f'MNIST Digit {int(label_val)} ({status})'
+        return str(int(label_val))
     elif dataset_name == "FashionMNIST":
-        class_name = FASHION_MNIST_CLASSES.get(int(label_val), f'Class {int(label_val)}')
-        return f'FashionMNIST {class_name} ({status})'
+        return FASHION_MNIST_CLASSES.get(int(label_val), f'Class {int(label_val)}')
     else:
-        return f'{dataset_name} Class {int(label_val)} ({status})'
+        return f'Class {int(label_val)}'
 
 
 def get_consistent_mnist_colors(labels_train):
@@ -1321,12 +1362,13 @@ def visualize_mnist_ood_ssvi_results_replot(model, y_train, labels_train, losses
         plt.xlabel(f'Latent Dimension {dim1}')
         plt.ylabel(f'Latent Dimension {dim2}')
         plt.title(f'Latent Space - Top 2 Informative Dims')
-        # Add legend with class names
+        # Add legend with class names below the plot in a horizontal line
         labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
         from matplotlib.patches import Patch
         legend_handles = [Patch(color=color_map[l], label=get_label_name(l, dataset_name, is_ood)) 
                           for l in sorted(np.unique(labels_cpu))]
-        plt.legend(handles=legend_handles, loc='best', fontsize='small')
+        plt.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, -0.15), 
+                  ncol=len(legend_handles), fontsize='small', frameon=True)
         plot_idx += 1
 
     # Plot 2: Hyperparameters (lengthscales)
@@ -1341,7 +1383,7 @@ def visualize_mnist_ood_ssvi_results_replot(model, y_train, labels_train, losses
         plt.grid(True, alpha=0.3)
         plot_idx += 1
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.05, 1, 1])
 
     # Save plot as PDF
     # Ensure PDF extension

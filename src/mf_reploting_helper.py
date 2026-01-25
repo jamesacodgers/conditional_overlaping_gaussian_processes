@@ -825,7 +825,7 @@ FASHION_MNIST_CLASSES = {
 
 def get_label_name_mnist_ood(label_val, dataset_name, is_ood=False):
     """
-    Get legend label name based on dataset and ID/OOD status.
+    Get legend label name - just the class name without dataset prefix or ID/OOD status.
     
     Parameters
     ----------
@@ -834,22 +834,19 @@ def get_label_name_mnist_ood(label_val, dataset_name, is_ood=False):
     dataset_name : str
         'MNIST' or 'FashionMNIST'
     is_ood : bool
-        Whether this is OOD data
+        Whether this is OOD data (ignored, kept for compatibility)
         
     Returns
     -------
     str
-        Legend label like "MNIST Digit 1 (ID)" or "FashionMNIST Trouser (OOD)"
+        Just the class name like "Trouser" or "1"
     """
-    status = "OOD" if is_ood else "ID"
-    
     if dataset_name == "MNIST":
-        return f'MNIST Digit {int(label_val)} ({status})'
+        return str(int(label_val))
     elif dataset_name == "FashionMNIST":
-        class_name = FASHION_MNIST_CLASSES.get(int(label_val), f'Class {int(label_val)}')
-        return f'FashionMNIST {class_name} ({status})'
+        return FASHION_MNIST_CLASSES.get(int(label_val), f'Class {int(label_val)}')
     else:
-        return f'{dataset_name} Class {int(label_val)} ({status})'
+        return f'Class {int(label_val)}'
 
 
 def get_consistent_mnist_colors_replot(labels_train):
@@ -1013,12 +1010,13 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
         plt.xlabel(f'Latent Dimension {dim1}')
         plt.ylabel(f'Latent Dimension {dim2}')
         plt.title(f'Latent Space - Top 2 Informative Dims')
-        # Add legend with class names
+        # Add legend with class names below the plot in a horizontal line
         labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
         from matplotlib.patches import Patch
         legend_handles = [Patch(color=color_map[l], label=get_label_name_mnist_ood(l, dataset_name, is_ood)) 
                           for l in sorted(np.unique(labels_cpu))]
-        plt.legend(handles=legend_handles, loc='best', fontsize='small')
+        plt.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, -0.15), 
+                  ncol=len(legend_handles), fontsize='small', frameon=True)
         plot_idx += 1
 
         # Plot 2: Hyperparameters (lengthscales) - consistent with SSVI
@@ -1037,7 +1035,7 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
         plt.grid(True, alpha=0.3)
         plot_idx += 1
 
-        plt.tight_layout()
+        plt.tight_layout(rect=[0, 0.05, 1, 1])
 
     # Use model name (gauss/nn_gauss) instead of class name for consistency
     if model_name == 'VariationalLatentVariable':
