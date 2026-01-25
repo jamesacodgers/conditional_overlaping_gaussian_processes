@@ -72,6 +72,7 @@ from src.original_gplvm_metrics_plot import (
 )
 from src.mf_reploting_helper import (
     plot_latent_slice_original_gplvm_replot,
+    plot_latent_slice_original_gplvm_replot_single,
     create_standardized_scattered_plot_replot
 )
 from src.missing_data_utils import preprocess_data_for_missing_training
@@ -681,6 +682,18 @@ def main(results_dir: str, model_name: str = None, model_filename: str = None):
             if os.path.exists(latent_slice_path_origin):
                 print(f"    ✓ Saved latent slice (origin) to: {latent_slice_path_origin}")
             
+            # Plot single slice centered at origin (y[0] vs x[j] only)
+            latent_slice_single_path_origin = os.path.join(plots_dir, f"latent_slice_single_origin_{model_name}_seed_{config.random_seed}.pdf")
+            plot_latent_slice_original_gplvm_replot_single(
+                model=model,
+                y_train=y_train,
+                model_name=model_name,
+                center="zeros",
+                save_path=latent_slice_single_path_origin
+            )
+            if os.path.exists(latent_slice_single_path_origin):
+                print(f"    ✓ Saved latent slice single (origin) to: {latent_slice_single_path_origin}")
+            
             # Plot slices centered at a few interesting data points
             N_train = y_train.shape[0]
             representative_indices = [0, N_train // 2, N_train - 1]
@@ -697,6 +710,19 @@ def main(results_dir: str, model_name: str = None, model_filename: str = None):
                 )
                 if os.path.exists(latent_slice_path):
                     print(f"    ✓ Saved latent slice (point {idx}) to: {latent_slice_path}")
+                
+                # Plot single slice for this point (y[0] vs x[j] only)
+                latent_slice_single_path = os.path.join(plots_dir, f"latent_slice_single_point_{idx}_{model_name}_seed_{config.random_seed}.pdf")
+                plot_latent_slice_original_gplvm_replot_single(
+                    model=model,
+                    y_train=y_train,
+                    model_name=model_name,
+                    center="data_point",
+                    n_idx=idx,
+                    save_path=latent_slice_single_path
+                )
+                if os.path.exists(latent_slice_single_path):
+                    print(f"    ✓ Saved latent slice single (point {idx}) to: {latent_slice_single_path}")
         except Exception as e:
             import traceback
             print(f"    ✗ Error: Failed to generate latent slice visualizations: {e}")

@@ -217,6 +217,205 @@ def plot_latent_slice_original_gplvm_replot(model, y_train, model_name, center="
 
 
 @no_grad()
+def plot_latent_slice_original_gplvm_replot_single(model, y_train, model_name, center="zeros", n_idx=None, save_path=None, scaler=None):
+    """
+    Plot 1D latent slice for original GP-LVM models - single plot version (for replotting).
+    
+    This function creates a visualization of the GP-LVM's predictive behavior along
+    the most informative latent dimension (smallest lengthscale), showing only y[0] vs x[j]
+    (first output dimension vs most informative latent dimension).
+    
+    Modified version for replotting that:
+    - Ensures all tensors are on the correct device
+    - Saves plots as PDF instead of PNG
+    - Only plots the first output dimension (y[0])
+    
+    Args:
+        model: Original BayesianGPLVM model instance (gauss or nn_gauss)
+        y_train: Training data [N, M]
+        model_name: Type of model ('gauss' or 'nn_gauss')
+        center: str, either "zeros" (default) or "data_point". If "data_point", 
+                must provide n_idx to specify which data point to use as center.
+        n_idx: int, index of data point to use as center when center="data_point"
+        save_path: str, optional path to save the plot. If None, displays the plot.
+        scaler: optional scaler for inverse transform (to visualize in original scale)
+    """
+    # Determine device
+    device = next(model.parameters()).device
+    
+    # Get latent dimension
+    if hasattr(model.X, 'latent_dim'):
+        Q = model.X.latent_dim
+    else:
+        raise ValueError("Model does not have latent_dim attribute")
+    
+    M = y_train.shape[1]  # Observation dimension
+    N = y_train.shape[0]  # Number of training points
+    
+    # Ensure y_train is on the correct device
+    y_train = y_train.to(device)
+    
+    model.eval()
+    
+    # Get latent representations based on model type
+    if model_name == 'gauss':
+        # For gauss: latent is variational parameters
+        mu_x_mean = model.X.q_mu.detach()  # [N, Q]
+        # Get variance from q_log_sigma
+        sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma).detach()  # [N, Q] - standard deviation
+    elif model_name == 'nn_gauss':
+        # For nn_gauss: encode the training data
+        # Handle missing data if present
+        y_encoder_input = torch.where(torch.isnan(y_train), 
+                                     torch.full_like(y_train, -999.0, dtype=torch.float64), 
+                                     y_train)
+        mu_x_mean = model.X.mu(y_encoder_input).detach()  # [N, Q]
+        # Get variance from encoder
+        sigma_x_tensors = model.X.sigma(y_encoder_input).detach()  # List of covariance matrices or tensor
+        # Extract diagonal standard deviations
+        if isinstance(sigma_x_tensors, list):
+            sigma_x = torch.stack([torch.sqrt(x.diag()) for x in sigma_x_tensors])  # [N, Q]
+        else:
+            sigma_x = torch.sqrt(torch.diagonal(sigma_x_tensors, dim1=-2, dim2=-1))  # [N, Q]
+    else:
+        raise ValueError(f"Unsupported model type: {model_name}. Use 'gauss' or 'nn_gauss'")
+    
+    # 1) Pick most-informative latent dim (smallest lengthscale)
+    # For original GP-LVM: lengthscale from kernel
+    kernel_lengthscales = model.covar_module.base_kernel.lengthscale.flatten().detach().cpu().numpy()
+    # Convert to same scale as SSVI (init_lengthscales scale)
+    ells = kernel_lengthscales
+    j = int(np.argmin(ells))
+    
+    # 2) Center
+    x0 = torch.zeros(Q, dtype=torch.float64, device=device)
+    if center == "data_point":
+        assert n_idx is not None, "n_idx must be provided when center='data_point'"
+        x0 = mu_x_mean[n_idx].to(device)
+    
+    # 3) Use fixed range for consistent comparison across models
+    # Use a standard range of [-3, 3] which covers typical latent space
+    lo, hi = -3.0, 3.0
+    
+    G = 200  # Grid resolution
+    
+    xs = torch.linspace(lo, hi, G, dtype=torch.float64, device=device)
+    Xgrid = x0.repeat(G, 1)
+    Xgrid[:, j] = xs
+    
+    # Get GP predictions using original GP-LVM's forward method
+    # model(x) returns MultivariateNormal distribution
+    Y_pred = model(Xgrid)  # Returns MultivariateNormal
+    
+    # Extract predictive mean and variance
+    # Y_pred.loc has shape [M, G] (transposed)
+    # Y_pred.covariance_matrix has shape [M] list of [G, G] matrices
+    f_mean = Y_pred.loc.T  # [G, M] - transpose to match our convention
+    
+    # Extract diagonal variances from covariance matrices
+    # Y_pred.covariance_matrix is a batch of covariance matrices
+    f_var = torch.stack([torch.diag(Y_pred.covariance_matrix[m]) for m in range(M)]).T  # [G, M]
+    
+    # Add observation noise to get full predictive variance
+    obs_noise = model.likelihood.noise.item()
+    pred_var = f_var + obs_noise  # [G, M]
+    pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))  # [G, M]
+    
+    # Inverse transform predictions if scaler provided (for visualization in original scale)
+    if scaler is not None:
+        f_mean = scaler.inverse_transform(f_mean)  # [G, M]
+        # For standard deviation, scale by scaler's std if available
+        if hasattr(scaler, 'std'):
+            pred_sd = pred_sd * scaler.std  # [G, M]
+    
+    # Compute Y-axis limits from actual data for consistent scaling across models
+    # Get data in original scale (inverse transform if scaler provided)
+    y_data_for_limits = y_train.clone()
+    if scaler is not None:
+        y_data_for_limits = scaler.inverse_transform(y_data_for_limits)
+    
+    # Filter out NaN and Inf values before computing limits (important for missing data)
+    y_data_valid = y_data_for_limits[torch.isfinite(y_data_for_limits)]
+    
+    if len(y_data_valid) == 0:
+        # Fallback: use default range if all data is invalid
+        y_min_global = -1.0
+        y_max_global = 1.0
+    else:
+        y_min_global = y_data_valid.min().item()
+        y_max_global = y_data_valid.max().item()
+    
+    # Ensure we have valid finite values
+    if not np.isfinite(y_min_global) or not np.isfinite(y_max_global):
+        y_min_global = -1.0
+        y_max_global = 1.0
+    
+    y_range = y_max_global - y_min_global
+    if y_range <= 0 or not np.isfinite(y_range):
+        y_range = 2.0  # Default range
+    
+    y_padding = 1.0 * y_range  # 100% padding (fixed proportion for consistency across scripts, extra space for histograms)
+    y_lim_min = y_min_global - y_padding
+    y_lim_max = y_max_global + y_padding
+    
+    # Final validation: ensure limits are finite
+    if not np.isfinite(y_lim_min):
+        y_lim_min = -2.0
+    if not np.isfinite(y_lim_max):
+        y_lim_max = 2.0
+    
+    # Plot - only first dimension (y[0] vs x[j])
+    xnp = xs.detach().cpu().numpy()
+    
+    # Set X-axis limits for consistency (already using [-3, 3] range)
+    x_lim_min, x_lim_max = -3.0, 3.0
+    
+    # Single plot for y[0]
+    fig, ax = plt.subplots(1, 1, figsize=(6, 4), constrained_layout=True)
+    
+    # Sample from q(X) distribution along dimension j for histogram
+    # Sample from N(mu_x_mean, sigma_x^2) for each data point
+    x_samples_j = torch.normal(mu_x_mean[:, j], torch.clamp(sigma_x[:, j], min=1e-8))  # [N]
+    x_j_values = x_samples_j.detach().cpu().numpy()
+    
+    # Plot only m=0 (first output dimension)
+    m = 0
+    mu = f_mean[:, m].cpu().numpy()
+    sd = pred_sd[:, m].cpu().numpy()
+    ax.plot(xnp, mu, lw=2)
+    ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
+    ax.set_title(f"y[{m}] vs x[{j}]", fontsize=12)
+    ax.set_xlabel(f"x[{j}]")
+    ax.set_ylabel(f"y[{m}]")
+    # Set consistent axis limits
+    ax.set_xlim(x_lim_min, x_lim_max)
+    ax.set_ylim(y_lim_min, y_lim_max)
+    
+    # Add histogram directly on the same axes, aligned with x-axis at bottom
+    # Compute histogram and scale to make it bigger (use 25% of y-axis range)
+    # Use fixed number of bins for consistent granularity across all models
+    counts, bins = np.histogram(x_j_values, bins=15, density=True)
+    y_range_hist = (y_lim_max - y_lim_min) * 0.25
+    max_count = counts.max() if len(counts) > 0 and counts.max() > 0 else 1.0
+    counts_scaled = (counts / max_count) * y_range_hist if max_count > 0 else counts * 0
+    bin_centers = (bins[:-1] + bins[1:]) / 2
+    ax.bar(bin_centers, counts_scaled, width=(bins[1] - bins[0]), 
+           bottom=y_lim_min, alpha=0.6, color='lightblue', edgecolor='black')
+    
+    if save_path:
+        # Ensure PDF extension
+        if not save_path.endswith('.pdf'):
+            save_path = save_path.rsplit('.', 1)[0] + '.pdf'
+        fig.savefig(save_path, format='pdf', bbox_inches='tight', dpi=300)
+        plt.close(fig)
+        print(f"Saved latent slice plot (single) to: {save_path}")
+    else:
+        plt.show()
+    
+    model.train()
+
+
+@no_grad()
 def create_standardized_scattered_plot_replot(model, losses, labels_train, config, results_dir, model_name, random_seed, Y_train, model_type="original", custom_filename=None, train_indices=None, full_loss_iterations: list = None, batch_losses: list = None):
     """
     Create standardized scattered plots that match the SSVI plotting exactly - for replotting.
