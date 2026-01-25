@@ -193,7 +193,7 @@ def reconstruct_model(model_name: str, config: OODOriginalGPLVMConfig, Y_train: 
         prior_x = NormalPrior(X_prior_mean, torch.ones_like(X_prior_mean, dtype=torch.float64))
         X = VariationalLatentVariable(X_init, prior_x, data_dim)
     elif model_name == 'nn_gauss':
-        nn_layers = (128, 64, 32)  # Hardcoded architecture
+        nn_layers = (512, 256)  # Hardcoded architecture
         prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1], dtype=torch.float64, device=config.device))
         X = NNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
     
