@@ -101,11 +101,8 @@ class OilFlowModel(BayesianGPLVM):
         self.mean_module = ZeroMean()
         self.covar_module = ScaleKernel(RBFKernel(ard_num_dims=latent_dim))
         
-        # Initialize kernel parameters from config if provided
-        if config is not None:
-            with torch.no_grad():
-                lengthscale_device = torch.sqrt(torch.tensor(config.init_lengthscales, dtype=torch.float64, device=device))
-                self.covar_module.base_kernel.initialize(lengthscale=lengthscale_device)
+        # DO NOT initialize from config - all parameters should be loaded from checkpoint
+        # The model structure is created here, but parameter values come from state_dict
 
     def forward(self, X):
         mean_x = self.mean_module(X)
@@ -237,7 +234,9 @@ def reconstruct_model(model_name: str, config: OriginalGPLVMConfig, Y_train: tor
         raise ValueError(f"Unknown model_name: {model_name}")
     
     # Create model
-    model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers, device=device, config=config)
+    # NOTE: Do NOT pass config here - we want to load everything from checkpoint, not initialize from config
+    # The config is only used for architecture (n_inducing, etc.), not for parameter values
+    model = OilFlowModel(N, data_dim, latent_dim, n_inducing, X, nn_layers=nn_layers, device=device, config=None)
     
     # Create likelihood (needed for model structure)
     if config.enable_missing_data:
@@ -257,6 +256,49 @@ def reconstruct_model(model_name: str, config: OriginalGPLVMConfig, Y_train: tor
     # The state_dict may contain keys like "likelihood.noise_covar.raw_noise" which are not part of the model
     model_state_dict = {k: v for k, v in state_dict.items() if not k.startswith('likelihood.')}
     
+    # Debug: Print all keys in state_dict to see what's available
+    print(f"  DEBUG: Total keys in checkpoint state_dict: {len(state_dict)}")
+    print(f"  DEBUG: Model keys (excluding likelihood): {len(model_state_dict)}")
+    
+    # Debug: Check for key model components
+    key_components = {
+        'X.q_mu': 'Latent variable mean (gauss)',
+        'X.q_log_sigma': 'Latent variable log_sigma (gauss)',
+        'X.mu_layers': 'Encoder mu layers (nn_gauss)',
+        'X.sigma_layers': 'Encoder sigma layers (nn_gauss)',
+        'covar_module.base_kernel.raw_lengthscale': 'Kernel lengthscales',
+        'covar_module.raw_outputscale': 'Kernel outputscale',
+        'inducing_inputs': 'Inducing points',
+        'variational_strategy': 'Variational strategy (q_u)',
+        'variational_distribution': 'Variational distribution (q_u)',
+        'q_u': 'Variational distribution q_u'
+    }
+    
+    # Also print ALL keys to see what's actually there
+    print(f"  DEBUG: All keys in checkpoint state_dict:")
+    for i, key in enumerate(sorted(state_dict.keys())):
+        print(f"    {i+1}. {key}")
+    
+    print(f"  DEBUG: Checking for key model components in checkpoint:")
+    for key_pattern, description in key_components.items():
+        found = [k for k in model_state_dict.keys() if key_pattern in k]
+        if found:
+            print(f"    ✓ Found {description}: {len(found)} key(s) - {found[0] if found else 'N/A'}")
+        else:
+            print(f"    ✗ Missing {description}: {key_pattern}")
+    
+    # Debug: Print available likelihood keys in state_dict
+    likelihood_keys_in_checkpoint = [k for k in state_dict.keys() if k.startswith('likelihood.')]
+    if likelihood_keys_in_checkpoint:
+        print(f"  Found {len(likelihood_keys_in_checkpoint)} likelihood keys in checkpoint:")
+        for key in likelihood_keys_in_checkpoint[:10]:  # Show first 10 keys
+            print(f"    - {key}")
+        if len(likelihood_keys_in_checkpoint) > 10:
+            print(f"    ... and {len(likelihood_keys_in_checkpoint) - 10} more")
+    else:
+        print(f"  Warning: No likelihood keys found in checkpoint state_dict")
+        print(f"  Available state_dict keys (first 20): {list(state_dict.keys())[:20]}")
+    
     # Load state_dict (use strict=False to handle any remaining mismatches gracefully)
     missing_keys, unexpected_keys = model.load_state_dict(model_state_dict, strict=False)
     if missing_keys:
@@ -264,7 +306,72 @@ def reconstruct_model(model_name: str, config: OriginalGPLVMConfig, Y_train: tor
     if unexpected_keys:
         print(f"  Warning: Unexpected keys in state_dict: {unexpected_keys[:5]}..." if len(unexpected_keys) > 5 else f"  Warning: Unexpected keys in state_dict: {unexpected_keys}")
     
-    # Try to load likelihood state if available (though it's a separate object)
+    # Debug: Verify loaded parameters after loading state_dict
+    print(f"  DEBUG: Verifying loaded parameters:")
+    if model_name == 'gauss':
+        if hasattr(model.X, 'q_mu'):
+            q_mu_mean = model.X.q_mu.mean().item()
+            q_mu_std = model.X.q_mu.std().item()
+            print(f"    ✓ X.q_mu: mean={q_mu_mean:.4f}, std={q_mu_std:.4f}")
+        else:
+            print(f"    ✗ X.q_mu: NOT FOUND")
+        if hasattr(model.X, 'q_log_sigma'):
+            q_log_sigma_mean = model.X.q_log_sigma.mean().item()
+            q_log_sigma_std = model.X.q_log_sigma.std().item()
+            print(f"    ✓ X.q_log_sigma: mean={q_log_sigma_mean:.4f}, std={q_log_sigma_std:.4f}")
+            # Convert to actual sigma
+            sigma_x = torch.nn.functional.softplus(model.X.q_log_sigma)
+            print(f"    ✓ X.sigma (from q_log_sigma): mean={sigma_x.mean().item():.4f}, std={sigma_x.std().item():.4f}")
+        else:
+            print(f"    ✗ X.q_log_sigma: NOT FOUND")
+    elif model_name == 'nn_gauss':
+        if hasattr(model.X, 'mu_layers'):
+            print(f"    ✓ X.mu_layers: {len(list(model.X.mu_layers))} layers")
+        else:
+            print(f"    ✗ X.mu_layers: NOT FOUND")
+        if hasattr(model.X, 'sigma_layers'):
+            print(f"    ✓ X.sigma_layers: {len(list(model.X.sigma_layers))} layers")
+        else:
+            print(f"    ✗ X.sigma_layers: NOT FOUND")
+    
+    # Check kernel parameters
+    if hasattr(model, 'covar_module'):
+        if hasattr(model.covar_module.base_kernel, 'lengthscale'):
+            lengthscales = model.covar_module.base_kernel.lengthscale.flatten().detach().cpu().numpy()
+            print(f"    ✓ Kernel lengthscales: {lengthscales}")
+        if hasattr(model.covar_module, 'outputscale'):
+            outputscale = model.covar_module.outputscale.item()
+            print(f"    ✓ Kernel outputscale: {outputscale:.6f}")
+    
+    # Check inducing points
+    if hasattr(model, 'inducing_inputs'):
+        inducing_shape = model.inducing_inputs.shape
+        inducing_mean = model.inducing_inputs.mean().item()
+        print(f"    ✓ Inducing points: shape={inducing_shape}, mean={inducing_mean:.4f}")
+    else:
+        print(f"    ✗ Inducing points: NOT FOUND")
+    
+    # Check variational strategy parameters (critical for GP predictions!)
+    if hasattr(model, 'variational_strategy'):
+        vs = model.variational_strategy
+        print(f"    ✓ Variational strategy exists")
+        if hasattr(vs, 'variational_distribution'):
+            vd = vs.variational_distribution
+            print(f"    ✓ Variational distribution exists: {type(vd).__name__}")
+            # Check if it has parameters
+            if hasattr(vd, 'parameters'):
+                vd_params = list(vd.parameters())
+                print(f"    ✓ Variational distribution has {len(vd_params)} parameter(s)")
+                for i, param in enumerate(vd_params):
+                    print(f"      Param {i}: shape={param.shape}, mean={param.mean().item():.4f}, std={param.std().item():.4f}")
+            else:
+                print(f"    ✗ Variational distribution has no parameters() method")
+        else:
+            print(f"    ✗ Variational strategy has no variational_distribution")
+    else:
+        print(f"    ✗ Model has no variational_strategy attribute")
+    
+    # Try to load likelihood state from checkpoint (this should contain the trained noise value)
     likelihood_state_dict = {k.replace('likelihood.', ''): v for k, v in state_dict.items() if k.startswith('likelihood.')}
     if likelihood_state_dict:
         try:
@@ -273,15 +380,58 @@ def reconstruct_model(model_name: str, config: OriginalGPLVMConfig, Y_train: tor
                                       if not k.endswith('_constraint.lower_bound') and not k.endswith('_constraint.upper_bound')}
             if loadable_likelihood_keys:
                 likelihood.load_state_dict(loadable_likelihood_keys, strict=False)
+                # Verify likelihood noise was loaded correctly
+                loaded_noise = likelihood.noise.item()
+                print(f"  ✓ Loaded likelihood noise from checkpoint: {loaded_noise:.6f}")
+            else:
+                print(f"  Warning: No loadable likelihood keys found after filtering")
+                # Fallback: initialize from config
+                if config is not None:
+                    with torch.no_grad():
+                        noise_scale = torch.tensor(config.init_output_noise_scale, dtype=torch.float64, device=device)
+                        likelihood.initialize(noise=noise_scale)
+                    print(f"  Using config initialization (fallback): {likelihood.noise.item():.6f}")
         except Exception as e:
             print(f"  Warning: Could not load likelihood state: {e}")
+            # Fallback: initialize from config
+            if config is not None:
+                with torch.no_grad():
+                    noise_scale = torch.tensor(config.init_output_noise_scale, dtype=torch.float64, device=device)
+                    likelihood.initialize(noise=noise_scale)
+                print(f"  Using config initialization (fallback): {likelihood.noise.item():.6f}")
+    else:
+        print(f"  Warning: No likelihood state found in checkpoint")
+        # Fallback: initialize from config (this is just the initial value, not the trained value)
+        if config is not None:
+            with torch.no_grad():
+                noise_scale = torch.tensor(config.init_output_noise_scale, dtype=torch.float64, device=device)
+                likelihood.initialize(noise=noise_scale)
+            print(f"  Using config initialization (fallback - this is initial value, not trained): {likelihood.noise.item():.6f}")
     
     # Attach likelihood to model (some functions expect model.likelihood)
     model.likelihood = likelihood
     
+    # Debug: Verify likelihood is attached and has correct noise value
+    print(f"  DEBUG reconstruct_model: model.likelihood exists = {hasattr(model, 'likelihood')}")
+    if hasattr(model, 'likelihood') and model.likelihood is not None:
+        print(f"  DEBUG reconstruct_model: model.likelihood.noise = {model.likelihood.noise.item():.6f}")
+    else:
+        print(f"  DEBUG reconstruct_model: WARNING - model.likelihood is None!")
+    
+    # Debug: Print kernel parameters to verify they're loaded correctly
+    if hasattr(model, 'covar_module'):
+        lengthscales = model.covar_module.base_kernel.lengthscale.flatten().detach().cpu().numpy()
+        outputscale = model.covar_module.outputscale.item()
+        print(f"  DEBUG reconstruct_model: kernel lengthscales = {lengthscales}")
+        print(f"  DEBUG reconstruct_model: kernel outputscale = {outputscale:.6f}")
+    
     # Ensure model and likelihood are in float64 (same as training)
     model = model.to(dtype=torch.float64)
     likelihood = likelihood.to(dtype=torch.float64)
+    
+    # Debug: Verify likelihood noise after dtype conversion
+    if hasattr(model, 'likelihood') and model.likelihood is not None:
+        print(f"  DEBUG reconstruct_model: After dtype conversion, model.likelihood.noise = {model.likelihood.noise.item():.6f}")
     
     # Fix device placement for NNEncoder tensors (created on CPU in original code)
     # This matches the training script exactly (lines 297-306) - critical for nn_gauss models
@@ -759,7 +909,7 @@ if __name__ == "__main__":
     # HARDCODED CONFIGURATION - Modify these as needed
     # ============================================================================
     # Hardcoded results folder path
-    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/oil_flow_related/final_v1_orig_gplvm/orig_gplvm_run_results/orig_gplvm_n_ind_32_arch_192_len_1_sig_1_b_32_s_0_lr_0001_n_steps_100000_P_64_miss_f_ratio_00_test_01_seed_0_01_24_17_03"
+    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/oil_flow_related/final_v1_orig_gplvm/orig_gplvm_run_results/orig_gplvm_n_ind_32_arch_192_len_1_sig_1_b_32_s_1_lr_0001_n_steps_100000_P_64_miss_f_ratio_00_test_01_seed_1_01_24_18_51"
     # Model name ('gauss' or 'nn_gauss'). If None, will auto-detect.
     MODEL_NAME = None  # Set to 'gauss' or 'nn_gauss' to specify, or None to auto-detect
     # ============================================================================

@@ -343,9 +343,21 @@ def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros",
         f_var = torch.stack([torch.diag(Y_pred.covariance_matrix[m]) for m in range(M)]).T  # [G, M]
         
         # Add observation noise to get full predictive variance
+        # Debug: Check if likelihood is attached and get noise value
+        if not hasattr(model, 'likelihood') or model.likelihood is None:
+            raise ValueError("Model does not have likelihood attached! Cannot compute uncertainty.")
+        
         obs_noise = model.likelihood.noise.item()
+        print(f"    DEBUG plot_latent_slice: obs_noise = {obs_noise:.6f}")
+        print(f"    DEBUG plot_latent_slice: f_var range = [{f_var.min().item():.6f}, {f_var.max().item():.6f}]")
+        print(f"    DEBUG plot_latent_slice: f_var mean = {f_var.mean().item():.6f}")
+        
         pred_var = f_var + obs_noise  # [G, M]
         pred_sd = torch.sqrt(torch.clamp(pred_var, min=1e-12))  # [G, M]
+        
+        print(f"    DEBUG plot_latent_slice: pred_var range = [{pred_var.min().item():.6f}, {pred_var.max().item():.6f}]")
+        print(f"    DEBUG plot_latent_slice: pred_sd range = [{pred_sd.min().item():.6f}, {pred_sd.max().item():.6f}]")
+        print(f"    DEBUG plot_latent_slice: pred_sd mean = {pred_sd.mean().item():.6f}")
         
         # Inverse transform predictions if scaler provided (for visualization in original scale)
         if scaler is not None:

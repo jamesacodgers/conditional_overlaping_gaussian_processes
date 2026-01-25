@@ -206,12 +206,6 @@ def reconstruct_model(model_name: str, config: OODOriginalGPLVMConfig, Y_train: 
     else:
         likelihood = GaussianLikelihood(noise_constraint=Positive(transform=transforms.ExpTransform()))
     
-    # Initialize likelihood noise from config
-    if config is not None:
-        with torch.no_grad():
-            noise_scale = torch.tensor(config.init_output_noise_scale, dtype=torch.float64, device=config.device)
-            likelihood.initialize(noise=noise_scale)
-    
     # Move model and likelihood to device
     if config.device == 'cuda' and torch.cuda.is_available():
         model = model.cuda()
@@ -234,14 +228,58 @@ def reconstruct_model(model_name: str, config: OODOriginalGPLVMConfig, Y_train: 
     
     # Filter likelihood keys from state_dict (likelihood is separate object)
     model_state_dict = {k: v for k, v in state_dict.items() if not k.startswith('likelihood.')}
-    likelihood_state_dict = {k.replace('likelihood.', ''): v for k, v in state_dict.items() if k.startswith('likelihood.')}
+    
+    # Debug: Print available likelihood keys in state_dict
+    likelihood_keys_in_checkpoint = [k for k in state_dict.keys() if k.startswith('likelihood.')]
+    if likelihood_keys_in_checkpoint:
+        print(f"  Found {len(likelihood_keys_in_checkpoint)} likelihood keys in checkpoint:")
+        for key in likelihood_keys_in_checkpoint[:10]:  # Show first 10 keys
+            print(f"    - {key}")
+        if len(likelihood_keys_in_checkpoint) > 10:
+            print(f"    ... and {len(likelihood_keys_in_checkpoint) - 10} more")
+    else:
+        print(f"  Warning: No likelihood keys found in checkpoint state_dict")
+        print(f"  Available state_dict keys (first 20): {list(state_dict.keys())[:20]}")
     
     # Load model state_dict
     model.load_state_dict(model_state_dict, strict=False)
     
-    # Load likelihood state_dict if available
+    # Load likelihood state_dict from checkpoint (this should contain the trained noise value)
+    likelihood_state_dict = {k.replace('likelihood.', ''): v for k, v in state_dict.items() if k.startswith('likelihood.')}
     if likelihood_state_dict:
-        likelihood.load_state_dict(likelihood_state_dict, strict=False)
+        try:
+            # Filter out constraint-related keys that can't be loaded
+            loadable_likelihood_keys = {k: v for k, v in likelihood_state_dict.items() 
+                                      if not k.endswith('_constraint.lower_bound') and not k.endswith('_constraint.upper_bound')}
+            if loadable_likelihood_keys:
+                likelihood.load_state_dict(loadable_likelihood_keys, strict=False)
+                # Verify likelihood noise was loaded correctly
+                loaded_noise = likelihood.noise.item()
+                print(f"  ✓ Loaded likelihood noise from checkpoint: {loaded_noise:.6f}")
+            else:
+                print(f"  Warning: No loadable likelihood keys found after filtering")
+                # Fallback: initialize from config
+                if config is not None:
+                    with torch.no_grad():
+                        noise_scale = torch.tensor(config.init_output_noise_scale, dtype=torch.float64, device=config.device)
+                        likelihood.initialize(noise=noise_scale)
+                    print(f"  Using config initialization (fallback): {likelihood.noise.item():.6f}")
+        except Exception as e:
+            print(f"  Warning: Could not load likelihood state: {e}")
+            # Fallback: initialize from config
+            if config is not None:
+                with torch.no_grad():
+                    noise_scale = torch.tensor(config.init_output_noise_scale, dtype=torch.float64, device=config.device)
+                    likelihood.initialize(noise=noise_scale)
+                print(f"  Using config initialization (fallback): {likelihood.noise.item():.6f}")
+    else:
+        print(f"  Warning: No likelihood state found in checkpoint")
+        # Fallback: initialize from config (this is just the initial value, not the trained value)
+        if config is not None:
+            with torch.no_grad():
+                noise_scale = torch.tensor(config.init_output_noise_scale, dtype=torch.float64, device=config.device)
+                likelihood.initialize(noise=noise_scale)
+            print(f"  Using config initialization (fallback - this is initial value, not trained): {likelihood.noise.item():.6f}")
     
     # Attach likelihood to model for consistency with plotting functions
     model.likelihood = likelihood
