@@ -1037,7 +1037,7 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
         from matplotlib.patches import Patch
         legend_handles = [Patch(color=color_map[l], label=get_label_name_mnist_ood(l, dataset_name, is_ood)) 
                           for l in sorted(np.unique(labels_cpu))]
-        fig.legend(handles=legend_handles, loc='lower center', bbox_to_anchor=(0.5, 0.02), 
+        fig.legend(handles=legend_handles, loc='lower center', bbox_to_anchor=(0.5, 0.10), 
                   ncol=len(legend_handles), fontsize='small', frameon=True)
 
     # Use model name (gauss/nn_gauss) instead of class name for consistency

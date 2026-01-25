@@ -1385,7 +1385,7 @@ def visualize_mnist_ood_ssvi_results_replot(model, y_train, labels_train, losses
         from matplotlib.patches import Patch
         legend_handles = [Patch(color=color_map[l], label=get_label_name(l, dataset_name, is_ood)) 
                           for l in sorted(np.unique(labels_cpu))]
-        fig.legend(handles=legend_handles, loc='lower center', bbox_to_anchor=(0.5, 0.02), 
+        fig.legend(handles=legend_handles, loc='lower center', bbox_to_anchor=(0.5, 0.10), 
                   ncol=len(legend_handles), fontsize='small', frameon=True)
 
     # Save plot as PDF
