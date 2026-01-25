@@ -182,8 +182,8 @@ def plot_latent_slice_original_gplvm_replot(model, y_train, model_name, center="
         ax = axes[m]
         ax.plot(xnp, mu, lw=2)
         ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
-        ax.set_title(f"y[{m}] vs x_{j} (l={ells[j]:.2g})", fontsize=9)
-        ax.set_xlabel(f"x_{j}")
+        ax.set_title(f"y[{m}] vs x[{j}] (l={ells[j]:.2g})", fontsize=9)
+        ax.set_xlabel(f"x[{j}]")
         ax.set_ylabel(f"y[{m}]")
         # Set consistent axis limits
         ax.set_xlim(x_lim_min, x_lim_max)

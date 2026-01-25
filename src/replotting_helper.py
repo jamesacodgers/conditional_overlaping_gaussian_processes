@@ -213,8 +213,8 @@ def plot_latent_slice_outer_replot(model, y_train, center="zeros", n_idx=None, s
         ax = axes[m]
         ax.plot(xnp, mu, lw=2)
         ax.fill_between(xnp, mu - 2*sd, mu + 2*sd, alpha=0.25)
-        ax.set_title(f"y[{m}] vs x_{j}", fontsize=9)
-        ax.set_xlabel(f"x_{j}")
+        ax.set_title(f"y[{m}] vs x[{j}]", fontsize=9)
+        ax.set_xlabel(f"x[{j}]")
         ax.set_ylabel(f"y[{m}]")
         # Set consistent axis limits
         ax.set_xlim(x_lim_min, x_lim_max)
