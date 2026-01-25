@@ -193,7 +193,7 @@ def reconstruct_model(model_name: str, config: OODOriginalGPLVMConfig, Y_train: 
         prior_x = NormalPrior(X_prior_mean, torch.ones_like(X_prior_mean, dtype=torch.float64))
         X = VariationalLatentVariable(X_init, prior_x, data_dim)
     elif model_name == 'nn_gauss':
-        nn_layers = config.nn_layers
+        nn_layers = (128, 64, 32)  # Hardcoded architecture
         prior_x = MultivariateNormalPrior(X_prior_mean, torch.eye(X_prior_mean.shape[1], dtype=torch.float64, device=config.device))
         X = NNEncoder(N, latent_dim, prior_x, data_dim, layers=nn_layers)
     
@@ -655,7 +655,7 @@ if __name__ == "__main__":
     # HARDCODED CONFIGURATION - Modify these as needed
     # ============================================================================
     # Hardcoded results folder path
-    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/ood_results/original_gplvm_results/orig_gplvm_ood_gplvm_FashionMNIST_fast_seed_7_01_24_18_18"
+    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/ood_results/original_gplvm_results/orig_gplvm_ood_gplvm_FashionMNIST_fast_seed_7_01_25_15_52"
     # Model name ('gauss' or 'nn_gauss'). If None, will auto-detect.
     MODEL_NAME = None  # Set to 'gauss' or 'nn_gauss' to specify, or None to auto-detect
     # ============================================================================

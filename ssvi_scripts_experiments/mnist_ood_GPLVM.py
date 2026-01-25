@@ -664,6 +664,8 @@ def get_fast_config():
         # === GP Hyperparameters ===
         init_lengthscales=2.0,
         init_output_noise_scale=2.0,
+        # === Model-specific Configuration ===
+        nn_layers=(128, 64, 32),  # 3-layer neural network architecture for encoder
         # === Missing Data Configuration ===
         enable_missing_data=True,
         missing_data_ratio=0.3,
@@ -673,7 +675,7 @@ def get_fast_config():
         #                       5=Sandal, 6=Shirt, 7=Sneaker, 8=Bag, 9=Ankle boot
         # MNIST classes: 0-9 = Digits 0-9
         id_dataset="FashionMNIST",
-        id_classes=[1, 2],           # Trouser, Pullover
+        id_classes=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],  # All FashionMNIST classes
         id_samples_per_class=100,
         ood_dataset="MNIST",         # Explicitly specify OOD dataset
         ood_classes=[1, 2],          # Digits 1, 2
