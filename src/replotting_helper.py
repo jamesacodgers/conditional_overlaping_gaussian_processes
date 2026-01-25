@@ -1878,9 +1878,13 @@ def visualize_test_image_predictions_replot(
     
     img_h, img_w = image_shape
     
-    # Create grid layout
-    n_cols = min(8, n_images)
-    n_rows = (n_images + n_cols - 1) // n_cols
+    # Create grid layout - 8 images in 2 rows (4 columns)
+    if n_images == 8:
+        n_cols = 4
+        n_rows = 2
+    else:
+        n_cols = min(8, n_images)
+        n_rows = (n_images + n_cols - 1) // n_cols
     
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 1.5, n_rows * 1.5))
     
@@ -1906,7 +1910,6 @@ def visualize_test_image_predictions_replot(
         col = i % n_cols
         axes[row, col].axis('off')
     
-    fig.suptitle(f'{dataset_name} Test Image Predictions', fontsize=14)
     plt.tight_layout()
     
     # Save if path provided - ensure PDF extension

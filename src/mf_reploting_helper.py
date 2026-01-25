@@ -12,6 +12,7 @@ from torch import no_grad
 import os
 import pathlib
 import plotly.graph_objects as go
+from typing import Optional
 
 
 @no_grad()
@@ -1204,4 +1205,159 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
     print(f"Saved 3D scatter plot to: {plot_3d_path}")
 
     print("Additional plots created successfully!")
+
+
+@no_grad()
+def visualize_test_image_predictions_original_gplvm_replot(
+    model,
+    likelihood,
+    y_test: torch.Tensor,
+    config,
+    model_name: str = 'nn_gauss',
+    n_images: int = 8,
+    save_path: Optional[str] = None,
+    show_plot: bool = False,
+    dataset_name: str = "MNIST",
+    image_shape: tuple = (28, 28),
+    scaler=None
+):
+    """
+    Visualize predictions for selected test images using their latent representations - for replotting.
+    
+    Modified version for replotting that:
+    - Saves as PDF instead of PNG
+    - No header/title
+    
+    Args:
+        model: Trained Original GP-LVM model (BayesianGPLVM)
+        likelihood: The Gaussian likelihood from the model
+        y_test: Test data [N, M]
+        config: Configuration object with random_seed and enable_missing_data attributes
+        model_name: Model name ('nn_gauss' or 'gauss', default: 'nn_gauss')
+        n_images: Number of images to visualize (default: 8)
+        save_path: Path to save the visualization (optional)
+        show_plot: Whether to display the plot (default: False)
+        dataset_name: Name of the dataset (default: "MNIST")
+        image_shape: Shape of the output image (default: (28, 28) for MNIST)
+        scaler: Scaler for inverse transform (optional)
+    
+    Returns:
+        f_mean: Tensor of mean predictions [n_images, M]
+    """
+    model.eval()
+    likelihood.eval()
+    
+    with torch.no_grad():
+        # Get model parameters
+        device = model.variational_strategy.inducing_points.device
+        latent_dim = model.variational_strategy.inducing_points.shape[1]
+        
+        # 1. Sample image indices from test set using config seed
+        N = y_test.shape[0]
+        if n_images > N:
+            n_images = N
+        
+        # Use config seed for reproducibility
+        rng = np.random.RandomState(config.random_seed)
+        image_indices = rng.choice(N, size=n_images, replace=False)
+        image_indices = torch.tensor(image_indices, dtype=torch.int64, device=device)
+        
+        # Get selected images
+        y_selected = y_test[image_indices]  # [n_images, M]
+        
+        # 2. Get latent variables for selected images
+        if model_name == 'nn_gauss':
+            # For nn_gauss, use encoder
+            # Temporarily adjust jitter size
+            original_jitter = model.X.jitter
+            test_jitter = torch.eye(latent_dim, dtype=torch.float64, device=device).unsqueeze(0) * 1e-5
+            model.X.jitter = torch.cat([test_jitter for _ in range(n_images)], axis=0)
+            
+            # Handle missing data preprocessing for encoder input
+            if config.enable_missing_data:
+                y_selected_clean = torch.where(
+                    torch.isnan(y_selected),
+                    torch.full_like(y_selected, -9.0, dtype=torch.float64),
+                    y_selected
+                )
+            else:
+                y_selected_clean = y_selected
+            
+            # Get latent variables using encoder
+            X_selected_mean = model.X.mu(y_selected_clean)  # [n_images, latent_dim]
+            
+            # Restore original jitter
+            model.X.jitter = original_jitter
+        else:
+            # For gauss model, would need predict_latent which is expensive
+            # This function assumes nn_gauss for efficiency
+            raise ValueError(f"visualize_test_image_predictions_original_gplvm_replot currently only supports nn_gauss model, got {model_name}")
+        
+        # 3. Get GP predictive distribution using latent variables
+        # model(x) returns MultivariateNormal with shape [data_dim, n_images]
+        gp_dist = model(X_selected_mean)
+        
+        # Extract mean (same approach as prior samples)
+        # gp_dist.loc has shape [data_dim, n_images], transpose to [n_images, data_dim]
+        f_mean = gp_dist.loc.T  # [n_images, data_dim]
+    
+    # Inverse transform for visualization if scaler provided
+    if scaler is not None:
+        f_mean = scaler.inverse_transform(f_mean)
+    
+    img_h, img_w = image_shape
+    
+    # Create grid layout - 8 images in 2 rows (4 columns)
+    if n_images == 8:
+        n_cols = 4
+        n_rows = 2
+    else:
+        n_cols = min(8, n_images)
+        n_rows = (n_images + n_cols - 1) // n_cols
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 1.5, n_rows * 1.5))
+    
+    # Handle edge cases
+    if n_rows == 1 and n_cols == 1:
+        axes = np.array([[axes]])
+    elif n_rows == 1:
+        axes = axes.reshape(1, -1)
+    elif n_cols == 1:
+        axes = axes.reshape(-1, 1)
+    
+    for i in range(n_images):
+        row = i // n_cols
+        col = i % n_cols
+        img_mean = f_mean[i].cpu().numpy().reshape(img_h, img_w)
+        img_mean = np.clip(img_mean, 0, 1)
+        axes[row, col].imshow(img_mean, cmap='gray', vmin=0, vmax=1)
+        axes[row, col].axis('off')
+    
+    # Hide unused subplots
+    for i in range(n_images, n_rows * n_cols):
+        row = i // n_cols
+        col = i % n_cols
+        axes[row, col].axis('off')
+    
+    plt.tight_layout()
+    
+    # Save if path provided - ensure PDF extension
+    if save_path:
+        # Ensure PDF extension
+        if not save_path.endswith('.pdf'):
+            save_path = save_path.rsplit('.', 1)[0] + '.pdf'
+        fig.savefig(save_path, format='pdf', bbox_inches='tight', dpi=300)
+        print(f"Test image predictions visualization saved: {save_path}")
+    
+    # Show if requested
+    if show_plot:
+        plt.show()
+    else:
+        plt.close(fig)
+    
+    model.train()
+    likelihood.train()
+    
+    # Return mean predictions
+    return f_mean
 
