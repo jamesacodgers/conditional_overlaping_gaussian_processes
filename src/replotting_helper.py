@@ -1003,7 +1003,9 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
         sigma_x_cpu = sigma_x.cpu()  # Move to CPU but keep as tensor
 
         # Plot samples from all P samples with transparency
-        for p in range(model.P):
+        # Use 48 samples for PNG latent plot
+        num_samples = min(48, model.P)  # Use 48 or model.P, whichever is smaller
+        for p in range(num_samples):
             # Use top 2 most informative latent dimensions
             sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
             sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
@@ -1084,9 +1086,11 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
     fig_hist, ax_hist = plt.subplots(1, 1, figsize=(8, 6))
 
     # Collect samples from all P samples for the most important dimension
+    # Use 48 samples for PNG latent plot
+    num_samples = min(48, model.P)  # Use 48 or model.P, whichever is smaller
     all_samples = []
     all_labels = []
-    for p in range(model.P):
+    for p in range(num_samples):
         samples = torch.distributions.Normal(mu_x_cpu[p, :, most_important_dim],
                                              sigma_x_cpu[p, :, most_important_dim]).sample()
         # Ensure samples are on CPU before converting to numpy
@@ -1132,8 +1136,10 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
     dim1, dim2, dim3 = top_3_dims[0].item(), top_3_dims[1].item(), top_3_dims[2].item()
 
     # Collect samples for all 3 dimensions
+    # Use 48 samples for PNG latent plot
+    num_samples = min(48, model.P)  # Use 48 or model.P, whichever is smaller
     samples_3d = []
-    for p in range(model.P):
+    for p in range(num_samples):
         sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
         sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
         sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_cpu[p, :, dim3]).sample()
@@ -1157,9 +1163,9 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
         class_mask = labels_train_cpu == label
         if np.any(class_mask):
             # Combine samples from all P samples for this class
-            x_vals = np.concatenate([samples_3d[p]['dim1'][class_mask] for p in range(model.P)])
-            y_vals = np.concatenate([samples_3d[p]['dim2'][class_mask] for p in range(model.P)])
-            z_vals = np.concatenate([samples_3d[p]['dim3'][class_mask] for p in range(model.P)])
+            x_vals = np.concatenate([samples_3d[p]['dim1'][class_mask] for p in range(num_samples)])
+            y_vals = np.concatenate([samples_3d[p]['dim2'][class_mask] for p in range(num_samples)])
+            z_vals = np.concatenate([samples_3d[p]['dim3'][class_mask] for p in range(num_samples)])
             
             fig_3d.add_trace(go.Scatter3d(
                 x=x_vals,
@@ -1422,30 +1428,32 @@ def visualize_mnist_ood_ssvi_results_replot(model, y_train, labels_train, losses
         # 1. Create 1D histogram for the most important dimension
         fig_hist, ax_hist = plt.subplots(1, 1, figsize=(8, 6))
 
-        # Collect samples from all P samples for the most important dimension
-        all_samples = []
-        all_labels = []
-        for p in range(model.P):
-            samples = torch.distributions.Normal(mu_x_cpu[p, :, most_important_dim],
-                                                 sigma_x_cpu[p, :, most_important_dim]).sample()
-            # Ensure samples are on CPU before converting to numpy
-            all_samples.append(samples.detach().cpu().numpy())
-            # Repeat labels for each P sample
-            all_labels.append(labels_train_cpu)
+    # Collect samples from all P samples for the most important dimension
+    # Use 64 samples to match original GP-LVM version
+    num_samples = min(64, model.P)  # Use 64 or model.P, whichever is smaller
+    all_samples = []
+    all_labels = []
+    for p in range(num_samples):
+        samples = torch.distributions.Normal(mu_x_cpu[p, :, most_important_dim],
+                                             sigma_x_cpu[p, :, most_important_dim]).sample()
+        # Ensure samples are on CPU before converting to numpy
+        all_samples.append(samples.detach().cpu().numpy())
+        # Repeat labels for each P sample
+        all_labels.append(labels_train_cpu)
 
-        all_samples = np.concatenate(all_samples)
-        all_labels = np.concatenate(all_labels)
+    all_samples = np.concatenate(all_samples)
+    all_labels = np.concatenate(all_labels)
 
-        # Create histogram with different colors for different classes (using consistent color mapping)
-        unique_labels = np.unique(all_labels)
-        for label in unique_labels:
-            class_mask = all_labels == label
-            if np.any(class_mask):
-                class_samples = all_samples[class_mask]
-                # Use get_label_name for OOD-aware legend
-                ax_hist.hist(class_samples, bins=30, alpha=0.7,
-                             label=get_label_name(label, dataset_name, is_ood),
-                             color=color_map[label])
+    # Create histogram with different colors for different classes (using consistent color mapping)
+    unique_labels = np.unique(all_labels)
+    for label in unique_labels:
+        class_mask = all_labels == label
+        if np.any(class_mask):
+            class_samples = all_samples[class_mask]
+            # Use get_label_name for OOD-aware legend
+            ax_hist.hist(class_samples, bins=30, alpha=0.7,
+                         label=get_label_name(label, dataset_name, is_ood),
+                         color=color_map[label])
 
         ax_hist.set_xlabel(f'Latent Dimension {most_important_dim} (Most Important)')
         ax_hist.set_ylabel('Frequency')

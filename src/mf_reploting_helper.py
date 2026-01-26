@@ -559,7 +559,7 @@ def create_standardized_scattered_plot_replot(model, losses, labels_train, confi
     if custom_filename:
         plot_filename = custom_filename
     else:
-        plot_filename = f"oilflow_{model_short_name}_{random_seed}.pdf"  # Default to PDF
+        plot_filename = f"oilflow_{model_short_name}_{random_seed}.png"  # Default to PNG
     
     # Ensure PNG extension
     if not plot_filename.endswith('.png'):

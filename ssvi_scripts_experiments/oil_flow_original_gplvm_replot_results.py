@@ -424,6 +424,29 @@ def reconstruct_model(model_name: str, config: OriginalGPLVMConfig, Y_train: tor
         outputscale = model.covar_module.outputscale.item()
         print(f"  DEBUG reconstruct_model: kernel lengthscales = {lengthscales}")
         print(f"  DEBUG reconstruct_model: kernel outputscale = {outputscale:.6f}")
+        
+        # Verify lengthscales were loaded from checkpoint (not defaults)
+        # Check if raw_lengthscale key exists in state_dict
+        lengthscale_keys = [k for k in model_state_dict.keys() if 'lengthscale' in k.lower()]
+        if lengthscale_keys:
+            print(f"  ✓ Lengthscale keys found in checkpoint: {lengthscale_keys}")
+            # Verify the loaded values match what's in state_dict
+            if 'covar_module.base_kernel.raw_lengthscale' in model_state_dict:
+                raw_lengthscale_from_checkpoint = model_state_dict['covar_module.base_kernel.raw_lengthscale']
+                # Transform raw_lengthscale to lengthscale (GPyTorch uses positive constraint)
+                # Positive is already imported at the top of the file
+                constraint = Positive()
+                lengthscale_from_checkpoint = constraint.transform(raw_lengthscale_from_checkpoint).flatten().cpu().numpy()
+                print(f"  ✓ Lengthscales from checkpoint state_dict: {lengthscale_from_checkpoint}")
+                print(f"  ✓ Current model lengthscales: {lengthscales}")
+                if np.allclose(lengthscale_from_checkpoint, lengthscales, rtol=1e-5):
+                    print(f"  ✓ Verified: Model lengthscales match checkpoint values")
+                else:
+                    print(f"  ⚠ WARNING: Model lengthscales do NOT match checkpoint values!")
+                    print(f"    Difference: {np.abs(lengthscale_from_checkpoint - lengthscales)}")
+        else:
+            print(f"  ⚠ WARNING: No lengthscale keys found in checkpoint state_dict!")
+            print(f"    This means lengthscales are using default/random initialization, not from checkpoint!")
     
     # Ensure model and likelihood are in float64 (same as training)
     model = model.to(dtype=torch.float64)
@@ -909,7 +932,7 @@ if __name__ == "__main__":
     # HARDCODED CONFIGURATION - Modify these as needed
     # ============================================================================
     # Hardcoded results folder path
-    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/oil_flow_related/final_v1_orig_gplvm/orig_gplvm_run_results/orig_gplvm_n_ind_32_arch_192_len_1_sig_1_b_32_s_1_lr_0001_n_steps_100000_P_64_miss_f_ratio_00_test_01_seed_1_01_24_18_51"
+    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/oil_flow_related/final_v1_orig_gplvm/orig_gplvm_run_results/orig_gplvm_n_ind_32_arch_192_len_1_sig_1_b_32_s_0_lr_0001_n_steps_100000_P_64_miss_f_ratio_00_test_01_seed_0_01_25_17_04"
     # Model name ('gauss' or 'nn_gauss'). If None, will auto-detect.
     MODEL_NAME = None  # Set to 'gauss' or 'nn_gauss' to specify, or None to auto-detect
     # ============================================================================

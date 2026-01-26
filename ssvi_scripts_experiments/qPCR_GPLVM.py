@@ -69,6 +69,8 @@ from src.mf_reploting_helper import (
     plot_latent_slice_original_gplvm_replot,
     plot_latent_slice_original_gplvm_replot_single
 )
+# Import qPCR-specific replot function
+from ssvi_scripts_experiments.qpcr_original_gplvm_replot_results import create_standardized_scattered_plot_qpcr_replot
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
@@ -648,6 +650,31 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             except Exception as e:
                 print(f"Warning: Could not create standardized scattered plot: {e}")
                 print(f"This is likely due to qPCR labels structure differences. Skipping plot creation.")
+            
+            # Also generate PNG version with font size 20 and 800 DPI (matching replot script)
+            print(f"\nGenerating PNG latent and lengthscales plot (font size 20, 800 DPI)...")
+            try:
+                # Use model_name string instead of class name for consistency with replot script
+                model_name_str = model_name  # Already a string like 'gauss' or 'nn_gauss'
+                create_standardized_scattered_plot_qpcr_replot(
+                    model=model,
+                    losses=full_loss_list if full_loss_list else [],
+                    labels_train=lb_train,
+                    config=config,
+                    results_dir=logger.get_results_dir(),
+                    model_name=model_name_str,
+                    random_seed=config.random_seed,
+                    Y_train=Y_train,
+                    model_type="qPCR",
+                    train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device),
+                    full_loss_iterations=full_loss_iterations,
+                    batch_losses=loss_list
+                )
+                print(f"  PNG latent and lengthscales plot saved")
+            except Exception as e:
+                print(f"  Warning: Failed to generate PNG latent and lengthscales plot: {e}")
+                import traceback
+                traceback.print_exc()
         else:
             pass
         
