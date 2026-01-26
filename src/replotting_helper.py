@@ -1293,110 +1293,94 @@ def visualize_mnist_ood_ssvi_results_replot(model, y_train, labels_train, losses
     # Use consistent color mapping across SSVI and original GP LVM
     colors, color_map = get_consistent_mnist_colors(labels_train)
 
-    # Determine which plots to show
+    # Only plot latent space (single plot, remove lengthscales)
     plot_latent_space = hasattr(config, 'plot_latent_space') and config.plot_latent_space
-    plot_hyperparams = hasattr(config, 'plot_hyperparams') and config.plot_hyperparams
-    # Only plot latent space and lengthscales (remove ELBO plots)
-    n_plots = (1 if plot_latent_space else 0) + (1 if plot_hyperparams else 0)
-    fig_width = 4 * n_plots if n_plots > 0 else 8
-    fig = plt.figure(figsize=(fig_width, 4))
-
-    plot_idx = 1
-
-    # Plot 1: Latent space visualization
-    if plot_latent_space:
-        plt.subplot(1, n_plots, plot_idx)
-
-        # Find the most informative dimensions (largest lengthscales = smallest beta)
-        lengthscales = 1 / model.gp.beta.flatten()
-        top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
-        top_3_dims = torch.argsort(lengthscales, descending=True)[:3]  # Also compute top 3 for 3D plots
-        dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
-        dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
-        lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
-        
-        # Get latent variables using batched processing to reduce memory usage
-        batch_size = getattr(config, 'batch_size', 128)  # Use config batch_size if available, otherwise default to 128
-        epsilon = model.get_epsilon()
-        U_samples = model.get_u_samples(epsilon)  # [P, M, C, Lx] - Sample U once (shared across all batches)
-        
-        # Process data in minibatches
-        N = y_train.shape[0]
-        mu_x_batches = []
-        sigma_x_batches = []
-        
-        for start_idx in range(0, N, batch_size):
-            end_idx = min(start_idx + batch_size, N)
-            y_batch = y_train[start_idx:end_idx]
-            
-            # Handle missing data if enabled
-            if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
-                y_batch_clean = torch.where(
-                    torch.isnan(y_batch),
-                    torch.full_like(y_batch, -9.0, dtype=torch.float64),
-                    y_batch
-                )
-                mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch_clean, epsilon)
-            else:
-                mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch, epsilon)
-            
-            mu_x_batches.append(mu_x_batch)
-            sigma_x_batches.append(sigma_x_batch)
-        
-        # Concatenate all batches along the N dimension: [P, batch_size, A] -> [P, N, A]
-        mu_x = torch.cat(mu_x_batches, dim=1)
-        sigma_x = torch.cat(sigma_x_batches, dim=1)
-
-        # Keep as torch tensors for sampling, convert to numpy after sampling
-        mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
-        sigma_x_cpu = sigma_x.cpu()  # Move to CPU but keep as tensor
-
-        # Plot samples from all P samples with transparency
-        for p in range(model.P):
-            # Use top 2 most informative latent dimensions
-            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
-            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
-            plt.scatter(sample_1.detach().cpu().numpy(),
-                        sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
-
-        plt.xlabel(f'Latent Dimension {dim1}')
-        plt.ylabel(f'Latent Dimension {dim2}')
-        plt.title(f'Latent Space - Top 2 Informative Dims')
-        plot_idx += 1
-
-    # Plot 2: Hyperparameters (lengthscales)
-    if plot_hyperparams:
-        plt.subplot(1, n_plots, plot_idx)
-        lengthscales = (1 / model.gp.beta.flatten()).cpu()
-        plt.bar(range(len(lengthscales)), lengthscales,
-                color="blue", alpha=0.7)
-        plt.xlabel('Latent Dimension')
-        plt.ylabel('Lengthscale')
-        plt.title('GP Lengthscales')
-        plt.grid(True, alpha=0.3)
-        plot_idx += 1
-
-    # Ensure 50/50 layout for plots
-    plt.tight_layout(rect=[0, 0.15, 1, 1])
+    if not plot_latent_space:
+        return
     
-    # Add legend separately at the bottom (figure level, not subplot level)
-    if plot_latent_space:
-        labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
-        from matplotlib.patches import Patch
-        legend_handles = [Patch(color=color_map[l], label=get_label_name(l, dataset_name, is_ood)) 
-                          for l in sorted(np.unique(labels_cpu))]
-        fig.legend(handles=legend_handles, loc='lower center', bbox_to_anchor=(0.5, 0.10), 
-                  ncol=len(legend_handles), fontsize='small', frameon=True)
+    # Single plot with fixed rectangular size
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+    
+    # Set fixed position for axes to keep plot area constant size
+    # Position: [left, bottom, width, height] in figure coordinates
+    ax.set_position([0.1, 0.15, 0.7, 0.75])  # Fixed rectangular plot area size
 
-    # Save plot as PDF
-    # Ensure PDF extension
-    if not save_filename.endswith('.pdf'):
-        save_filename = save_filename.rsplit('.', 1)[0] + '.pdf'
+    # Find the most informative dimensions (largest lengthscales = smallest beta)
+    lengthscales = 1 / model.gp.beta.flatten()
+    top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
+    top_3_dims = torch.argsort(lengthscales, descending=True)[:3]  # Also compute top 3 for 3D plots
+    dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
+    dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
+    lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
+    
+    # Get latent variables using batched processing to reduce memory usage
+    batch_size = getattr(config, 'batch_size', 128)  # Use config batch_size if available, otherwise default to 128
+    epsilon = model.get_epsilon()
+    U_samples = model.get_u_samples(epsilon)  # [P, M, C, Lx] - Sample U once (shared across all batches)
+    
+    # Process data in minibatches
+    N = y_train.shape[0]
+    mu_x_batches = []
+    sigma_x_batches = []
+    
+    for start_idx in range(0, N, batch_size):
+        end_idx = min(start_idx + batch_size, N)
+        y_batch = y_train[start_idx:end_idx]
+        
+        # Handle missing data if enabled
+        if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+            y_batch_clean = torch.where(
+                torch.isnan(y_batch),
+                torch.full_like(y_batch, -9.0, dtype=torch.float64),
+                y_batch
+            )
+            mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch_clean, epsilon)
+        else:
+            mu_x_batch, sigma_x_batch = model.get_mu_sigma_x_train_samples(y_batch, epsilon)
+        
+        mu_x_batches.append(mu_x_batch)
+        sigma_x_batches.append(sigma_x_batch)
+    
+    # Concatenate all batches along the N dimension: [P, batch_size, A] -> [P, N, A]
+    mu_x = torch.cat(mu_x_batches, dim=1)
+    sigma_x = torch.cat(sigma_x_batches, dim=1)
+
+    # Keep as torch tensors for sampling, convert to numpy after sampling
+    mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
+    sigma_x_cpu = sigma_x.cpu()  # Move to CPU but keep as tensor
+
+    # Plot samples from all P samples with transparency
+    for p in range(model.P):
+        # Use top 2 most informative latent dimensions
+        sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
+        sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+        ax.scatter(sample_1.detach().cpu().numpy(),
+                  sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
+
+    ax.set_xlabel(f'Latent Dimension {dim1}', fontsize=24)
+    ax.set_ylabel(f'Latent Dimension {dim2}', fontsize=24)
+    ax.set_title(f'Latent Space - Top 2 Informative Dims', fontsize=24)
+    ax.tick_params(labelsize=24)
+    
+    # Add legend on the right side in columns of 5 items per column
+    labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
+    from matplotlib.patches import Patch
+    legend_handles = [Patch(color=color_map[l], label=get_label_name(l, dataset_name, is_ood)) 
+                      for l in sorted(np.unique(labels_cpu))]
+    n_items = len(legend_handles)
+    n_columns = (n_items + 4) // 5  # Calculate number of columns (5 items per column)
+    ax.legend(handles=legend_handles, loc='center left', bbox_to_anchor=(1.02, 0.5), 
+             ncol=n_columns, fontsize=20, frameon=True, columnspacing=1.0)
+
+    # Save plot as PNG in high quality
+    # Ensure PNG extension
+    if not save_filename.endswith('.png'):
+        save_filename = save_filename.rsplit('.', 1)[0] + '.png'
     if is_checkpoint:
         plot_path = os.path.join(logger.plots_checkpoints_dir, save_filename)
     else:
         plot_path = os.path.join(logger.plots_dir, save_filename)
-    fig.savefig(plot_path, format='pdf', bbox_inches='tight', dpi=300)
+    fig.savefig(plot_path, format='png', bbox_inches='tight', dpi=800)
     if show_plot:
         plt.show()
     else:

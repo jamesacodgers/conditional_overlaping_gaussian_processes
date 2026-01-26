@@ -919,15 +919,8 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
         # Handle CUDA tensors by converting to numpy
         colors, color_map = get_consistent_mnist_colors_replot(labels_train)
 
-        # Only plot latent space and lengthscales (remove ELBO plots)
-        n_plots = 2  # Latent space, Hyperparams
-        fig_width = 4 * n_plots
-        fig = plt.figure(figsize=(fig_width, 4))
-
-        plot_idx = 1
-
-        # Plot 1: Latent space visualization (exactly like SSVI)
-        plt.subplot(1, n_plots, plot_idx)
+        # Only plot latent space (single plot)
+        fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
         # Find the two most informative dimensions (copy original approach exactly)
         inv_lengthscale = 1 / model.covar_module.base_kernel.lengthscale
@@ -1005,40 +998,28 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
         for p in range(64):
             sample_1 = torch.distributions.Normal(mu_x_torch[:, dim1], sigma_x_torch[:, dim1]).sample()
             sample_2 = torch.distributions.Normal(mu_x_torch[:, dim2], sigma_x_torch[:, dim2]).sample()
-            plt.scatter(sample_1.detach().cpu().numpy(),
-                        sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
+            ax.scatter(sample_1.detach().cpu().numpy(),
+                      sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
 
-        plt.xlabel(f'Latent Dimension {dim1}')
-        plt.ylabel(f'Latent Dimension {dim2}')
-        plt.title(f'Latent Space - Top 2 Informative Dims')
-        plot_idx += 1
-
-        # Plot 2: Hyperparameters (lengthscales) - consistent with SSVI
-        plt.subplot(1, n_plots, plot_idx)
-        # For mathematical consistency with SSVI version:
-        # SSVI: K = exp(-0.5 * d^2 / init_lengthscales)
-        # GP-LVM: K = exp(-0.5 * d^2 / lengthscale^2)
-        # For equivalence: lengthscale = sqrt(init_lengthscales)
-        lengthscales_plot = 1 / model.covar_module.base_kernel.lengthscale.flatten().cpu()
-        lengthscales_plot = lengthscales_plot**2
-        plt.bar(range(len(lengthscales_plot)), lengthscales_plot,
-                color="blue", alpha=0.7)
-        plt.xlabel('Latent Dimension')
-        plt.ylabel('Lengthscale')
-        plt.title('GP Lengthscales')
-        plt.grid(True, alpha=0.3)
-        plot_idx += 1
-
-        # Ensure 50/50 layout for plots
-        plt.tight_layout(rect=[0, 0.15, 1, 1])
+        # Set fixed position for axes to keep plot area constant size
+        # Position: [left, bottom, width, height] in figure coordinates
+        ax.set_position([0.1, 0.15, 0.7, 0.75])  # Fixed rectangular plot area size
         
-        # Add legend separately at the bottom (figure level, not subplot level)
+        ax.set_xlabel(f'Latent Dimension {dim1}', fontsize=24)
+        ax.set_ylabel(f'Latent Dimension {dim2}', fontsize=24)
+        ax.set_title(f'Latent Space - Top 2 Informative Dims', fontsize=24)
+        ax.tick_params(labelsize=24)
+        
+        # Add legend on the right side in columns of 5 items per column
+        # Place legend outside the fixed plot area
         labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
         from matplotlib.patches import Patch
         legend_handles = [Patch(color=color_map[l], label=get_label_name_mnist_ood(l, dataset_name, is_ood)) 
                           for l in sorted(np.unique(labels_cpu))]
-        fig.legend(handles=legend_handles, loc='lower center', bbox_to_anchor=(0.5, 0.10), 
-                  ncol=len(legend_handles), fontsize='small', frameon=True)
+        n_items = len(legend_handles)
+        n_columns = (n_items + 4) // 5  # Calculate number of columns (5 items per column)
+        ax.legend(handles=legend_handles, loc='center left', bbox_to_anchor=(1.02, 0.5), 
+                 ncol=n_columns, fontsize=20, frameon=True, columnspacing=1.0)
 
     # Use model name (gauss/nn_gauss) instead of class name for consistency
     if model_name == 'VariationalLatentVariable':
@@ -1052,10 +1033,10 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
     if custom_filename:
         plot_filename = custom_filename
     else:
-        plot_filename = f"mnist_{model_short_name}_{random_seed}.pdf"  # Changed to PDF
+        plot_filename = f"mnist_{model_short_name}_{random_seed}.png"  # Changed to PNG
 
-    # Normalize filename to ensure .pdf extension
-    plot_filename = str(pathlib.Path(plot_filename).with_suffix('.pdf'))
+    # Normalize filename to ensure .png extension
+    plot_filename = str(pathlib.Path(plot_filename).with_suffix('.png'))
 
     # Create plots subdirectory only if we're not already in a plots directory
     if os.path.basename(results_dir) == 'plots' or os.path.basename(results_dir) == 'checkpoints':
@@ -1067,8 +1048,8 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
         os.makedirs(plots_subdir, exist_ok=True)
         plot_path = os.path.join(plots_subdir, plot_filename)
 
-    # Save as PDF
-    plt.savefig(plot_path, format='pdf', dpi=300, bbox_inches='tight')
+    # Save as PNG in high quality
+    plt.savefig(plot_path, format='png', dpi=800, bbox_inches='tight')
     plt.close()
 
     print(f"Standardized scattered plots saved to: {plot_path}")

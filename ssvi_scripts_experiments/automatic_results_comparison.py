@@ -21,6 +21,7 @@ import re
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
 from collections import defaultdict
@@ -410,6 +411,16 @@ class ResultsComparator:
         
         return std_train_rmse, std_train_nlpd, std_elbo_loss
     
+    def format_iteration_axis(self, ax):
+        """Format x-axis to use K notation for thousands and reduce number of ticks"""
+        def format_func(value, tick_number):
+            if value >= 1000:
+                return f'{int(value/1000)}K'
+            return f'{int(value)}'
+        ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_func))
+        # Reduce number of ticks to half (twice less numbers)
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+    
     def plot_comparison(self, config_key: str, model_runs: Dict[str, List[RunResults]]):
         """Create comparison plots for a specific configuration"""
         
@@ -474,26 +485,29 @@ class ResultsComparator:
                            color=color, alpha=0.2)
         
         # Configure subplots with consistent font size
-        ax1.set_xlabel('Iteration', fontsize=14)
-        ax1.set_ylabel('ELBO Loss', fontsize=14)
-        ax1.set_title('ELBO Loss Comparison', fontsize=14)
-        ax1.legend(fontsize=14)
+        ax1.set_xlabel('Iteration', fontsize=36)
+        ax1.set_ylabel('ELBO Loss', fontsize=36)
+        ax1.set_title('ELBO Loss Comparison', fontsize=36)
+        ax1.legend(fontsize=36)
         ax1.grid(True, alpha=0.3)
-        ax1.tick_params(labelsize=14)
+        ax1.tick_params(labelsize=36)
+        self.format_iteration_axis(ax1)
         
-        ax2.set_xlabel('Iteration', fontsize=14)
-        ax2.set_ylabel('Train RMSE', fontsize=14)
-        ax2.set_title('Training RMSE Comparison', fontsize=14)
-        ax2.legend(fontsize=14)
+        ax2.set_xlabel('Iteration', fontsize=36)
+        ax2.set_ylabel('Train RMSE', fontsize=36)
+        ax2.set_title('Training RMSE Comparison', fontsize=36)
+        ax2.legend(fontsize=36)
         ax2.grid(True, alpha=0.3)
-        ax2.tick_params(labelsize=14)
+        ax2.tick_params(labelsize=36)
+        self.format_iteration_axis(ax2)
         
-        ax3.set_xlabel('Iteration', fontsize=14)
-        ax3.set_ylabel('Train NLPD', fontsize=14)
-        ax3.set_title('Training NLPD Comparison', fontsize=14)
-        ax3.legend(fontsize=14)
+        ax3.set_xlabel('Iteration', fontsize=36)
+        ax3.set_ylabel('Train NLPD', fontsize=36)
+        ax3.set_title('Training NLPD Comparison', fontsize=36)
+        ax3.legend(fontsize=36)
         ax3.grid(True, alpha=0.3)
-        ax3.tick_params(labelsize=14)
+        ax3.tick_params(labelsize=36)
+        self.format_iteration_axis(ax3)
         
         plt.tight_layout()
         
@@ -560,13 +574,17 @@ class ResultsComparator:
                            mean_train_nlpd + std_train_nlpd, 
                            color=color, alpha=0.2)
         
+        # Reduce y-axis tick granularity to prevent interference with y-axis label
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+        
         # Configure subplot with consistent font size
-        ax.set_xlabel('Iteration', fontsize=14)
-        ax.set_ylabel('Train NLPD', fontsize=14)
-        ax.set_title('Training NLPD Comparison', fontsize=14)
-        ax.legend(fontsize=14)
+        ax.set_xlabel('Iteration', fontsize=36)
+        ax.set_ylabel('Train NLPD', fontsize=36)
+        ax.set_title('Training NLPD Comparison', fontsize=36)
+        ax.legend(fontsize=36)
         ax.grid(True, alpha=0.3)
-        ax.tick_params(labelsize=14)
+        ax.tick_params(labelsize=36)
+        self.format_iteration_axis(ax)
         
         plt.tight_layout()
         
@@ -657,13 +675,13 @@ class ResultsComparator:
                     patch.set_facecolor(color)
                     patch.set_alpha(0.7)
                 
-                ax.set_title(f'{metric_name} Final Performance', fontsize=14)
-                ax.set_ylabel(metric_name, fontsize=14)
+                ax.set_title(f'{metric_name} Final Performance', fontsize=36)
+                ax.set_ylabel(metric_name, fontsize=36)
                 ax.grid(True, alpha=0.3)
                 
                 # Rotate x-axis labels if needed
-                ax.tick_params(axis='x', rotation=45, labelsize=14)
-                ax.tick_params(axis='y', labelsize=14)
+                ax.tick_params(axis='x', rotation=45, labelsize=36)
+                ax.tick_params(axis='y', labelsize=36)
         
         plt.tight_layout()
         
