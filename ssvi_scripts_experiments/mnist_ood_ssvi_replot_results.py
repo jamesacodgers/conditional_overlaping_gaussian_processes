@@ -779,8 +779,8 @@ if __name__ == "__main__":
     # HARDCODED CONFIGURATION - Modify these as needed
     # ============================================================================
     # Hardcoded results folder path
-    # RESULTS_FOLDER_PATH = "/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/ssvi_scripts_experiments/ood_mnist_related/fashion_mnist_ood_experiment_final_v2_ssvi/ood_run_results/ood_ssvi_FashionMNIST_ood_fmnist_id_mnist_ood_n_ind_64_arch_768_len_10_b_32_s_0_lr_00001_n_steps_200000_P_4_test_01_seed_0_19_01_21_21"
-    RESULTS_FOLDER_PATH = "/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/ssvi_scripts_experiments/ood_mnist_related/reverse_mnist_ood_experiment_final_v3_ssvi/ood_run_results/ood_ssvi_MNIST_ood_mnist_id_fmnist_ood_n_ind_64_arch_768_len_10_b_32_s_0_lr_00001_n_steps_200000_P_4_test_01_seed_4_20_01_21_49"
+    RESULTS_FOLDER_PATH = "/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/ssvi_scripts_experiments/ood_mnist_related/fashion_mnist_ood_experiment_final_v2_ssvi/ood_run_results/ood_ssvi_FashionMNIST_ood_fmnist_id_mnist_ood_n_ind_64_arch_768_len_10_b_32_s_0_lr_00001_n_steps_200000_P_4_test_01_seed_0_19_01_21_21"
+    # RESULTS_FOLDER_PATH = "/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/ssvi_scripts_experiments/ood_mnist_related/reverse_mnist_ood_experiment_final_v3_ssvi/ood_run_results/ood_ssvi_MNIST_ood_mnist_id_fmnist_ood_n_ind_64_arch_768_len_10_b_32_s_0_lr_00001_n_steps_200000_P_4_test_01_seed_4_20_01_21_49"
 
     # ============================================================================
 
