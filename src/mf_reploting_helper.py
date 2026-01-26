@@ -523,9 +523,10 @@ def create_standardized_scattered_plot_replot(model, losses, labels_train, confi
             plt.scatter(sample_1.detach().cpu().numpy(),
                         sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
         
-        plt.xlabel(f'Latent Dimension {dim1}')
-        plt.ylabel(f'Latent Dimension {dim2}') 
-        plt.title(f'Latent Space - Top 2 Informative Dims')
+        plt.xlabel(f'Latent Dimension {dim1}', fontsize=20)
+        plt.ylabel(f'Latent Dimension {dim2}', fontsize=20)
+        plt.title(f'Top 2 Informative Dims', fontsize=20)
+        plt.tick_params(axis='both', which='major', labelsize=20)
         plot_idx += 1
         
         # Plot 2: Hyperparameters (lengthscales) - consistent with SSVI
@@ -538,9 +539,10 @@ def create_standardized_scattered_plot_replot(model, losses, labels_train, confi
         lengthscales_plot = lengthscales_plot**2
         plt.bar(range(len(lengthscales_plot)), lengthscales_plot,
                color="blue", alpha=0.7)
-        plt.xlabel('Latent Dimension')
-        plt.ylabel('Lengthscale')
-        plt.title('GP Lengthscales')
+        plt.xlabel('Latent Dimension', fontsize=20)
+        plt.ylabel('Lengthscale', fontsize=20)
+        plt.title('GP Lengthscales', fontsize=20)
+        plt.tick_params(axis='both', which='major', labelsize=20)
         plt.grid(True, alpha=0.3)
         
         plt.tight_layout()
@@ -559,9 +561,9 @@ def create_standardized_scattered_plot_replot(model, losses, labels_train, confi
     else:
         plot_filename = f"oilflow_{model_short_name}_{random_seed}.pdf"  # Default to PDF
     
-    # Ensure PDF extension
-    if not plot_filename.endswith('.pdf'):
-        plot_filename = plot_filename.rsplit('.', 1)[0] + '.pdf'
+    # Ensure PNG extension
+    if not plot_filename.endswith('.png'):
+        plot_filename = plot_filename.rsplit('.', 1)[0] + '.png'
     
     # Create plots subdirectory only if we're not already in a plots directory
     if os.path.basename(results_dir) == 'plots' or os.path.basename(results_dir) == 'checkpoints':
@@ -573,8 +575,8 @@ def create_standardized_scattered_plot_replot(model, losses, labels_train, confi
         os.makedirs(plots_subdir, exist_ok=True)
         plot_path = os.path.join(plots_subdir, plot_filename)
     
-    # Save as PDF
-    plt.savefig(plot_path, format='pdf', bbox_inches='tight', dpi=300)
+    # Save as PNG with 800 DPI
+    plt.savefig(plot_path, format='png', bbox_inches='tight', dpi=800)
     plt.close()
     
     print(f"Standardized scattered plots saved to: {plot_path}")
@@ -1036,7 +1038,7 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
 
         plt.xlabel(f'Latent Dimension {dim1}')
         plt.ylabel(f'Latent Dimension {dim2}')
-        plt.title(f'Latent Space - Top 2 Informative Dims')
+        plt.title(f'Top 2 Informative Dims')
         # Add legend with class names below the plot in a horizontal line
         labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
         from matplotlib.patches import Patch

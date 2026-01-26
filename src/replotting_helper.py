@@ -588,9 +588,10 @@ def visualize_ssvi_results_replot(model, y_train, labels_train, losses, config, 
             plt.scatter(sample_1.detach().cpu().numpy(),
                         sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
         
-        plt.xlabel(f'Latent Dimension {dim1}')
-        plt.ylabel(f'Latent Dimension {dim2}') 
-        plt.title(f'Latent Space - Top 2 Informative Dims')
+        plt.xlabel(f'Latent Dimension {dim1}', fontsize=20)
+        plt.ylabel(f'Latent Dimension {dim2}', fontsize=20)
+        plt.title(f'Top 2 Informative Dims', fontsize=20)
+        plt.tick_params(axis='both', which='major', labelsize=20)
         plot_idx += 1
     
     # Generate fractions plot using the same mu_x and top dimensions
@@ -722,23 +723,24 @@ def visualize_ssvi_results_replot(model, y_train, labels_train, losses, config, 
         lengthscales = (1 / model.gp.beta.flatten()).cpu()
         plt.bar(range(len(lengthscales)), lengthscales, 
                color="blue", alpha=0.7)
-        plt.xlabel('Latent Dimension')
-        plt.ylabel('Lengthscale')
-        plt.title('GP Lengthscales')
+        plt.xlabel('Latent Dimension', fontsize=20)
+        plt.ylabel('Lengthscale', fontsize=20)
+        plt.title('GP Lengthscales', fontsize=20)
+        plt.tick_params(axis='both', which='major', labelsize=20)
         plt.grid(True, alpha=0.3)
         plot_idx += 1
     
     plt.tight_layout()
     
-    # Save plot as PDF
-    # Ensure PDF extension
-    if not save_filename.endswith('.pdf'):
-        save_filename = save_filename.rsplit('.', 1)[0] + '.pdf'
+    # Save plot as PNG with 800 DPI
+    # Ensure PNG extension
+    if not save_filename.endswith('.png'):
+        save_filename = save_filename.rsplit('.', 1)[0] + '.png'
     if is_checkpoint:
         plot_path = os.path.join(logger.plots_checkpoints_dir, save_filename)
     else:
         plot_path = os.path.join(logger.plots_dir, save_filename)
-    fig.savefig(plot_path, format='pdf', bbox_inches='tight', dpi=300)
+    fig.savefig(plot_path, format='png', bbox_inches='tight', dpi=800)
     if show_plot:
         plt.show()
     else:
@@ -1008,9 +1010,10 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
             plt.scatter(sample_1.detach().cpu().numpy(),
                         sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
 
-        plt.xlabel(f'Latent Dimension {dim1}')
-        plt.ylabel(f'Latent Dimension {dim2}')
-        plt.title(f'Latent Space - Top 2 Informative Dims')
+        plt.xlabel(f'Latent Dimension {dim1}', fontsize=20)
+        plt.ylabel(f'Latent Dimension {dim2}', fontsize=20)
+        plt.title(f'Top 2 Informative Dims', fontsize=20)
+        plt.tick_params(axis='both', which='major', labelsize=20)
         plot_idx += 1
 
     # Plot 2: Hyperparameters (lengthscales)
@@ -1019,23 +1022,24 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
         lengthscales = (1 / model.gp.beta.flatten()).cpu()
         plt.bar(range(len(lengthscales)), lengthscales,
                 color="blue", alpha=0.7)
-        plt.xlabel('Latent Dimension')
-        plt.ylabel('Lengthscale')
-        plt.title('GP Lengthscales')
+        plt.xlabel('Latent Dimension', fontsize=20)
+        plt.ylabel('Lengthscale', fontsize=20)
+        plt.title('GP Lengthscales', fontsize=20)
+        plt.tick_params(axis='both', which='major', labelsize=20)
         plt.grid(True, alpha=0.3)
         plot_idx += 1
 
     plt.tight_layout()
 
-    # Save plot as PDF
-    # Ensure PDF extension
-    if not save_filename.endswith('.pdf'):
-        save_filename = save_filename.rsplit('.', 1)[0] + '.pdf'
+    # Save plot as PNG with 800 DPI
+    # Ensure PNG extension
+    if not save_filename.endswith('.png'):
+        save_filename = save_filename.rsplit('.', 1)[0] + '.png'
     if is_checkpoint:
         plot_path = os.path.join(logger.plots_checkpoints_dir, save_filename)
     else:
         plot_path = os.path.join(logger.plots_dir, save_filename)
-    fig.savefig(plot_path, format='pdf', bbox_inches='tight', dpi=300)
+    fig.savefig(plot_path, format='png', bbox_inches='tight', dpi=800)
     if show_plot:
         plt.show()
     else:
@@ -1361,16 +1365,17 @@ def visualize_mnist_ood_ssvi_results_replot(model, y_train, labels_train, losses
             plt.scatter(sample_1.detach().cpu().numpy(),
                         sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
 
-        plt.xlabel(f'Latent Dimension {dim1}')
-        plt.ylabel(f'Latent Dimension {dim2}')
-        plt.title(f'Latent Space - Top 2 Informative Dims')
+        plt.xlabel(f'Latent Dimension {dim1}', fontsize=20)
+        plt.ylabel(f'Latent Dimension {dim2}', fontsize=20)
+        plt.title(f'Top 2 Informative Dims', fontsize=20)
+        plt.tick_params(axis='both', which='major', labelsize=20)
         # Add legend with class names below the plot in a horizontal line
         labels_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
         from matplotlib.patches import Patch
         legend_handles = [Patch(color=color_map[l], label=get_label_name(l, dataset_name, is_ood)) 
                           for l in sorted(np.unique(labels_cpu))]
         plt.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, -0.15), 
-                  ncol=len(legend_handles), fontsize='small', frameon=True)
+                  ncol=len(legend_handles), fontsize=20, frameon=True)
         plot_idx += 1
 
     # Plot 2: Hyperparameters (lengthscales)

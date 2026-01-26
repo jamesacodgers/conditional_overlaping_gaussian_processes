@@ -486,10 +486,18 @@ def main(results_dir: str, model_filename: str = None):
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
     
+    # Temporarily override config.results_dir to prevent SSVIResultsLogger from trying to create
+    # directories in the original config's results_dir (which might be /workspace or another problematic path)
+    original_results_dir = config.results_dir
+    config.results_dir = output_dir
+    
     experiment_name = os.path.basename(results_dir).replace(f"_seed_{config.random_seed}_", "").split("_seed_")[0]
     logger = SSVIResultsLogger(config, experiment_name=experiment_name)
-    # Override results_dir to use the output directory
+    # Override results_dir to use the output directory (in case logger created a subdirectory)
     logger.results_dir = output_dir
+    
+    # Restore original config.results_dir (optional, but cleaner)
+    config.results_dir = original_results_dir
     logger.plots_dir = os.path.join(output_dir, "plots")
     os.makedirs(logger.plots_dir, exist_ok=True)
     logger.models_dir = os.path.join(output_dir, "pre_trained_models")
@@ -655,7 +663,7 @@ if __name__ == "__main__":
     # HARDCODED CONFIGURATION - Modify these as needed
     # ============================================================================
     # Hardcoded results folder path
-    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/qpcr_results/ssvi_results/ssvi_fast_seed_7_18_01_16_07"
+    RESULTS_FOLDER_PATH = "ssvi_scripts_experiments/qpcr_related/final_v1_ssvi/ssvi_run_results/ssvi_n_ind_32_arch_192_len_10_sig_1_b_32_s_0_lr_0001_n_steps_100000_P_64_miss_f_ratio_00_test_01_seed_0_24_01_20_32"
     # ============================================================================
     
     # Convert to absolute path if relative
