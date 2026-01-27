@@ -536,6 +536,7 @@ def create_standardized_scattered_plot_replot(model, losses, labels_train, confi
         # GP-LVM: K = exp(-0.5 * d^2 / lengthscale^2) 
         # For equivalence: lengthscale = sqrt(init_lengthscales)
         lengthscales_plot = 1 / model.covar_module.base_kernel.lengthscale.flatten().cpu()
+        lengthscales_plot = lengthscales_plot**2
         plt.bar(range(len(lengthscales_plot)), lengthscales_plot,
                color="blue", alpha=0.7)
         plt.xlabel('Latent Dimension', fontsize=20)
@@ -1054,6 +1055,7 @@ def create_standardized_scattered_plot_mnist_ood_replot(model, losses, labels_tr
         # GP-LVM: K = exp(-0.5 * d^2 / lengthscale^2)
         # For equivalence: lengthscale = sqrt(init_lengthscales)
         lengthscales_plot = 1 / model.covar_module.base_kernel.lengthscale.flatten().cpu()
+        lengthscales_plot = lengthscales_plot**2
         plt.bar(range(len(lengthscales_plot)), lengthscales_plot,
                 color="blue", alpha=0.7)
         plt.xlabel('Latent Dimension')
