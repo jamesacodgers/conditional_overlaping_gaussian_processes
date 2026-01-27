@@ -266,8 +266,8 @@ def create_standardized_scattered_plot_qpcr_replot(model, losses, labels_train, 
         plt.bar(range(len(lengthscales_plot)), lengthscales_plot,
                 color="blue", alpha=0.7)
         plt.xlabel('Latent Dimension', fontsize=20)
-        plt.ylabel('Lengthscale', fontsize=20)
-        plt.title('GP Lengthscales', fontsize=20)
+        plt.ylabel('')
+        plt.title('Inverse SE-ARD Lengthscales', fontsize=20)
         plt.tick_params(axis='both', which='major', labelsize=20)
         plt.grid(True, alpha=0.3)
 
