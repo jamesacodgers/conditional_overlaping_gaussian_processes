@@ -511,6 +511,14 @@ class ResultsComparator:
         # Reduce number of ticks to half (twice less numbers)
         ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
     
+    def format_yaxis_max_2_decimals(self, ax):
+        """Format y-axis: integers without decimals, non-integers with at most 2 decimal places."""
+        def format_func(value, _):
+            if abs(value - round(value)) < 1e-9:
+                return f'{int(round(value))}'
+            return f'{value:.2f}'
+        ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_func))
+    
     def plot_comparison(self, config_key: str, model_runs: Dict[str, List[RunResults]]):
         """Create comparison plots for a specific configuration"""
         
@@ -574,30 +582,33 @@ class ResultsComparator:
                            mean_train_nlpd + std_train_nlpd, 
                            color=color, alpha=0.2)
         
-        # Configure subplots with consistent font size
-        ax1.set_xlabel('Iteration', fontsize=36)
-        ax1.set_ylabel('ELBO Loss', fontsize=36)
-        ax1.set_title('ELBO Loss Comparison', fontsize=36)
-        ax1.legend(fontsize=36)
+        # Configure subplots: font size 26, no "Comparison" in titles
+        ax1.set_xlabel('Iteration', fontsize=26)
+        ax1.set_ylabel('ELBO Loss', fontsize=26)
+        ax1.set_title('ELBO Loss', fontsize=26)
+        ax1.legend(fontsize=26)
         ax1.grid(True, alpha=0.3)
-        ax1.tick_params(labelsize=36)
+        ax1.tick_params(labelsize=26)
         self.format_iteration_axis(ax1)
+        self.format_yaxis_max_2_decimals(ax1)
         
-        ax2.set_xlabel('Iteration', fontsize=36)
-        ax2.set_ylabel('Train RMSE', fontsize=36)
-        ax2.set_title('Training RMSE Comparison', fontsize=36)
-        ax2.legend(fontsize=36)
+        ax2.set_xlabel('Iteration', fontsize=26)
+        ax2.set_ylabel('Train RMSE', fontsize=26)
+        ax2.set_title('Training RMSE', fontsize=26)
+        ax2.legend(fontsize=26)
         ax2.grid(True, alpha=0.3)
-        ax2.tick_params(labelsize=36)
+        ax2.tick_params(labelsize=26)
         self.format_iteration_axis(ax2)
+        self.format_yaxis_max_2_decimals(ax2)
         
-        ax3.set_xlabel('Iteration', fontsize=36)
-        ax3.set_ylabel('Train NLPD', fontsize=36)
-        ax3.set_title('Training NLPD Comparison', fontsize=36)
-        ax3.legend(fontsize=36)
+        ax3.set_xlabel('Iteration', fontsize=26)
+        ax3.set_ylabel('Train NLPD', fontsize=26)
+        ax3.set_title('Training NLPD', fontsize=26)
+        ax3.legend(fontsize=26)
         ax3.grid(True, alpha=0.3)
-        ax3.tick_params(labelsize=36)
+        ax3.tick_params(labelsize=26)
         self.format_iteration_axis(ax3)
+        self.format_yaxis_max_2_decimals(ax3)
         
         plt.tight_layout()
         
@@ -664,14 +675,15 @@ class ResultsComparator:
                            mean_train_nlpd + std_train_nlpd, 
                            color=color, alpha=0.2)
         
-        # Configure subplot with consistent font size
-        ax.set_xlabel('Iteration', fontsize=36)
-        ax.set_ylabel('Train NLPD', fontsize=36)
-        ax.set_title('Training NLPD Comparison', fontsize=36)
-        ax.legend(fontsize=36)
+        # Configure subplot: font size 26, no "Comparison" in title
+        ax.set_xlabel('Iteration', fontsize=26)
+        ax.set_ylabel('Train NLPD', fontsize=26)
+        ax.set_title('Training NLPD', fontsize=26)
+        ax.legend(fontsize=26)
         ax.grid(True, alpha=0.3)
-        ax.tick_params(labelsize=36)
+        ax.tick_params(labelsize=26)
         self.format_iteration_axis(ax)
+        self.format_yaxis_max_2_decimals(ax)
         
         plt.tight_layout()
         
