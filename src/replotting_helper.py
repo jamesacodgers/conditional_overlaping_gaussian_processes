@@ -724,8 +724,8 @@ def visualize_ssvi_results_replot(model, y_train, labels_train, losses, config, 
         plt.bar(range(len(lengthscales)), lengthscales, 
                color="blue", alpha=0.7)
         plt.xlabel('Latent Dimension', fontsize=20)
-        plt.ylabel('Lengthscale', fontsize=20)
-        plt.title('GP Lengthscales', fontsize=20)
+        plt.ylabel('')
+        plt.title('Inverse SE-ARD Lengthscales', fontsize=20)
         plt.tick_params(axis='both', which='major', labelsize=20)
         plt.grid(True, alpha=0.3)
         plot_idx += 1
@@ -1025,8 +1025,8 @@ def visualize_qpcr_ssvi_results_replot(model, y_train, labels_train, losses, con
         plt.bar(range(len(lengthscales)), lengthscales,
                 color="blue", alpha=0.7)
         plt.xlabel('Latent Dimension', fontsize=20)
-        plt.ylabel('Lengthscale', fontsize=20)
-        plt.title('GP Lengthscales', fontsize=20)
+        plt.ylabel('')
+        plt.title('Inverse SE-ARD Lengthscales', fontsize=20)
         plt.tick_params(axis='both', which='major', labelsize=20)
         plt.grid(True, alpha=0.3)
         plot_idx += 1
