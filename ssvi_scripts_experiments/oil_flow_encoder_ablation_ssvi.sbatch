@@ -7,7 +7,7 @@
 #SBATCH --qos=gpu_normal
 #SBATCH --gres=gpu:1
 #SBATCH --nice=10000
-#SBATCH --job-name=num_inducing_ablation_ssvi
+#SBATCH --job-name=architecture_ablation_ssvi
 #SBATCH --output=%x_%j.out
 
 /home/haicu/james.odgers/conditional_overlaping_gaussian_processes/ssvi_scripts_experiments/run_ssvi_configs_folder.sh ./oil_flow_related/architecture_ablation_v1_ssvi
