@@ -383,7 +383,7 @@ class AblationStudyPlotter:
     ):
         """Generate 3 ablation plots for a given parameter."""
         all_param_values = sorted(
-            set(results['nn_gauss'].keys()) & set(results['ssvi'].keys())
+            set(results['nn_gauss'].keys()) | set(results['ssvi'].keys())
         )
         if not all_param_values:
             print(f"  No data found for {ablation_param}")
@@ -430,7 +430,7 @@ class AblationStudyPlotter:
     ):
         """Save a JSON summary of all ablation results."""
         all_param_values = sorted(
-            set(results['nn_gauss'].keys()) & set(results['ssvi'].keys())
+            set(results['nn_gauss'].keys()) | set(results['ssvi'].keys())
         )
         summary = {
             'experiment': experiment_name,
@@ -672,46 +672,47 @@ class AblationStudyPlotter:
         title: str,
         save_name: str,
     ):
-        """A-S only: P-samples effect, colored by P, x = LR, for a single batch size."""
+        """A-S only: colored by LR, x = P samples, for a single batch size."""
         fs = 26
         fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-        lr_to_idx = {v: i for i, v in enumerate(all_lrs)}
+        p_to_idx = {v: i for i, v in enumerate(all_p_values)}
 
-        for p_val in all_p_values:
-            color = self.P_SAMPLE_COLORS.get(p_val, 'gray')
+        for lr_str in all_lrs:
+            color = self.LR_COLORS.get(lr_str, 'gray')
+            lr_disp = self._format_lr(lr_str)
 
             x_pos, tr_m, tr_s, te_m, te_s = [], [], [], [], []
-            for lr_str in all_lrs:
+            for p_val in all_p_values:
                 runs = ssvi_p_detail.get(lr_str, {}).get(p_val, {}).get(batch_size, [])
                 if not runs:
                     continue
                 tm, ts = self._mean_std(runs, metric_attr_train)
                 tem, tes = self._mean_std(runs, metric_attr_test)
                 if tm is not None and tem is not None:
-                    x_pos.append(lr_to_idx[lr_str])
+                    x_pos.append(p_to_idx[p_val])
                     tr_m.append(tm); tr_s.append(ts)
                     te_m.append(tem); te_s.append(tes)
 
             if x_pos:
                 ax.errorbar(
                     x_pos, tr_m, yerr=tr_s,
-                    label=f'P={p_val} (Train)', color=color,
+                    label=f'lr={lr_disp} (Train)', color=color,
                     marker='o', markersize=10, linewidth=2, capsize=5, linestyle='-',
                 )
                 ax.errorbar(
                     x_pos, te_m, yerr=te_s,
-                    label=f'P={p_val} (Test)', color=color,
+                    label=f'lr={lr_disp} (Test)', color=color,
                     marker='s', markersize=10, linewidth=2, capsize=5, linestyle='--',
                 )
 
-        ax.set_xlabel('Learning Rate', fontsize=fs)
+        ax.set_xlabel('P Samples', fontsize=fs)
         ax.set_ylabel(ylabel, fontsize=fs)
         ax.set_title(title, fontsize=fs)
         ax.legend(fontsize=fs - 8)
         ax.grid(True, alpha=0.3)
         ax.tick_params(labelsize=fs - 4)
-        ax.set_xticks(range(len(all_lrs)))
-        ax.set_xticklabels([self._format_lr(lr) for lr in all_lrs])
+        ax.set_xticks(range(len(all_p_values)))
+        ax.set_xticklabels([str(v) for v in all_p_values])
         self._format_yaxis(ax)
         plt.tight_layout()
 
@@ -732,40 +733,41 @@ class AblationStudyPlotter:
         title: str,
         save_name: str,
     ):
-        """A-S only: P-samples effect single metric, colored by P, x = LR, for a single batch size."""
+        """A-S only: single metric, colored by LR, x = P samples, for a single batch size."""
         fs = 26
         fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-        lr_to_idx = {v: i for i, v in enumerate(all_lrs)}
+        p_to_idx = {v: i for i, v in enumerate(all_p_values)}
 
-        for p_val in all_p_values:
-            color = self.P_SAMPLE_COLORS.get(p_val, 'gray')
+        for lr_str in all_lrs:
+            color = self.LR_COLORS.get(lr_str, 'gray')
+            lr_disp = self._format_lr(lr_str)
 
             x_pos, means, stds = [], [], []
-            for lr_str in all_lrs:
+            for p_val in all_p_values:
                 runs = ssvi_p_detail.get(lr_str, {}).get(p_val, {}).get(batch_size, [])
                 if not runs:
                     continue
                 m, s = self._mean_std(runs, metric_attr)
                 if m is not None:
-                    x_pos.append(lr_to_idx[lr_str])
+                    x_pos.append(p_to_idx[p_val])
                     means.append(m)
                     stds.append(s)
 
             if x_pos:
                 ax.errorbar(
                     x_pos, means, yerr=stds,
-                    label=f'P={p_val}', color=color,
+                    label=f'lr={lr_disp}', color=color,
                     marker='o', markersize=10, linewidth=2, capsize=5,
                 )
 
-        ax.set_xlabel('Learning Rate', fontsize=fs)
+        ax.set_xlabel('P Samples', fontsize=fs)
         ax.set_ylabel(ylabel, fontsize=fs)
         ax.set_title(title, fontsize=fs)
         ax.legend(fontsize=fs - 4)
         ax.grid(True, alpha=0.3)
         ax.tick_params(labelsize=fs - 4)
-        ax.set_xticks(range(len(all_lrs)))
-        ax.set_xticklabels([self._format_lr(lr) for lr in all_lrs])
+        ax.set_xticks(range(len(all_p_values)))
+        ax.set_xticklabels([str(v) for v in all_p_values])
         self._format_yaxis(ax)
         plt.tight_layout()
 
