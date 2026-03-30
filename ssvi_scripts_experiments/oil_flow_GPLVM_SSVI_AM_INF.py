@@ -205,18 +205,25 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
         metrics_computer = SSVIMetricsComputer(device=config.device, metrics_batch_size=config.batch_size)
     
     start_time = time.time()
-    init_prior_weight = 1
+    init_prior_weight = 10
     for i in range(config.training_iterations):
         # Sample batch indices
         N = y_train.shape[0]
         batch_indices = torch.randperm(N, device=y_train.device)[:config.batch_size]
         y_batch = y_train[batch_indices]
 
+        frac = i / config.training_iterations
+        weight = (1 - frac) ** 2
+
         # Training step - U sampling happens inside automatically each step
         # prior_weight = init_prior_weight 
         # prior_weight = init_prior_weight + (i/config.training_iterations)*(1-init_prior_weight)
-        prior_weight = (init_prior_weight-1)/2 + (init_prior_weight-1)/2*torch.cos(torch.tensor(torch.pi*i/config.training_iterations)) + 1
-        loss = model.train_step(y_batch, batch_indices, prior_weight=prior_weight)
+        # prior_weight = (init_prior_weight-1)/2 + (init_prior_weight-1)/2*torch.cos(torch.tensor(torch.pi*i/config.training_iterations)) + 1
+        loss = model.train_step(
+            y_batch,
+            batch_indices,
+            prior_weight=weight * init_prior_weight + (1 - weight),
+        )
         losses.append(loss)
         
         # Metrics computation (periodic)
