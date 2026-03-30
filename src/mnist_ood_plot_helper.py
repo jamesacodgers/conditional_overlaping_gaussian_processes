@@ -613,12 +613,14 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             # Keep as torch tensors for sampling, convert to numpy after sampling
             mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
             sigma_x_cpu = sigma_x.cpu()  # Move to CPU but keep as tensor
+            # NOTE: sigma_x returned by get_mu_sigma_x_train_samples is variance-like; convert to std for sampling.
+            sigma_x_std_cpu = torch.sqrt(torch.clamp(sigma_x_cpu, min=1e-12))
 
             # Plot samples from all P samples with transparency
             for p in range(model.P):
                 # Use top 2 most informative latent dimensions
-                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
-                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_std_cpu[p, :, dim1]).sample()
+                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_std_cpu[p, :, dim2]).sample()
                 plt.scatter(sample_1.detach().cpu().numpy(),
                             sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
 
@@ -676,7 +678,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         all_labels = []
         for p in range(model.P):
             samples = torch.distributions.Normal(mu_x_cpu[p, :, most_important_dim],
-                                                 sigma_x_cpu[p, :, most_important_dim]).sample()
+                                                 sigma_x_std_cpu[p, :, most_important_dim]).sample()
             # Ensure samples are on CPU before converting to numpy
             all_samples.append(samples.detach().cpu().numpy())
             # Repeat labels for each P sample
@@ -716,9 +718,9 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         # Collect samples for all 3 dimensions
         samples_3d = []
         for p in range(model.P):
-            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
-            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
-            sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_cpu[p, :, dim3]).sample()
+            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_std_cpu[p, :, dim1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_std_cpu[p, :, dim2]).sample()
+            sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_std_cpu[p, :, dim3]).sample()
 
             # Ensure all samples are on CPU before converting to numpy
             samples_3d.append({
