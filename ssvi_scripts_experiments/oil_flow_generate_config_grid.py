@@ -122,7 +122,7 @@ def generate_config_grid():
     # For SSVI: encoder_hidden_dims
     # For Original GP-LVM: nn_layers
     # Both use the same architecture options
-    architecture_values = [[128, 64]]  # Can add more options like [[256, 128, 64], [64, 32]]
+    architecture_values = [[256, 128]]  # Can add more options like [[256, 128, 64], [64, 32]]
     test_size_values = [0.1]
     
     # Missing data parameters
@@ -130,8 +130,12 @@ def generate_config_grid():
     missing_data_ratio_values = [0.0]
 
 
-    output_folder_name = "num_induing_ablation_v2"
-    n_inducing_values = [16, 32, 64]
+    # output_folder_name = "num_induing_ablation_v2_16"
+    # n_inducing_values = [16]
+    # output_folder_name = "num_induing_ablation_v2_32"
+    # n_inducing_values = [32]
+    output_folder_name = "num_induing_ablation_v2_64"
+    n_inducing_values = [64]
     # output_folder_name = "variance_ablation_v1"
     # learning_rate_values = [1e-3,3e-4]
     # num_inducing_samples_list = [4, 64]
