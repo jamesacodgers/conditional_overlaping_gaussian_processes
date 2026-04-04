@@ -86,6 +86,14 @@ class AblationStudyPlotter:
         '00003': '3e-4',
     }
 
+    ARCH_SUM_TO_LAYERS = {
+        24: '[16, 8]',
+        48: '[32, 16]',
+        96: '[64, 32]',
+        192: '[128, 64]',
+        384: '[256, 128]',
+    }
+
     @classmethod
     def _format_lr(cls, lr_str: str) -> str:
         return cls.LR_DISPLAY.get(lr_str, f'lr={lr_str}')
@@ -192,10 +200,14 @@ class AblationStudyPlotter:
         return list(best.values())
 
     def collect_metrics(
-        self, orig_gplvm_dir: str, ssvi_dir: str, ablation_param: str
+        self,
+        orig_gplvm_dirs: List[str],
+        ssvi_dirs: List[str],
+        ablation_param: str,
     ) -> Dict[str, Dict[int, List[RunMetrics]]]:
         """
         Collect metrics grouped by model type and ablation parameter value.
+        Accepts lists of directories to aggregate runs from multiple sources.
 
         Returns: {model_type: {param_value: [RunMetrics, ...]}}
         """
@@ -204,11 +216,12 @@ class AblationStudyPlotter:
             'ssvi': defaultdict(list),
         }
 
-        # A-MF from orig_gplvm
-        print("  Scanning orig_gplvm directory...")
-        orig_runs = self._deduplicate_runs(
-            self._discover_runs(orig_gplvm_dir), ablation_param
-        )
+        all_orig_runs: List[ParsedRun] = []
+        for d in orig_gplvm_dirs:
+            all_orig_runs.extend(self._discover_runs(d))
+        print(f"  Scanning {len(orig_gplvm_dirs)} orig_gplvm directories...")
+        orig_runs = self._deduplicate_runs(all_orig_runs, ablation_param)
+        print(f"    Found {len(orig_runs)} runs")
         for run in orig_runs:
             summary_path = os.path.join(run.run_path, 'experiment_summary.json')
             if not os.path.exists(summary_path):
@@ -218,11 +231,12 @@ class AblationStudyPlotter:
                 param_val = getattr(run, ablation_param)
                 results['nn_gauss'][param_val].append(metrics)
 
-        # A-S from ssvi
-        print("  Scanning ssvi directory...")
-        ssvi_runs = self._deduplicate_runs(
-            self._discover_runs(ssvi_dir), ablation_param
-        )
+        all_ssvi_runs: List[ParsedRun] = []
+        for d in ssvi_dirs:
+            all_ssvi_runs.extend(self._discover_runs(d))
+        print(f"  Scanning {len(ssvi_dirs)} ssvi directories...")
+        ssvi_runs = self._deduplicate_runs(all_ssvi_runs, ablation_param)
+        print(f"    Found {len(ssvi_runs)} runs")
         for run in ssvi_runs:
             summary_path = os.path.join(run.run_path, 'experiment_summary.json')
             if not os.path.exists(summary_path):
@@ -265,6 +279,7 @@ class AblationStudyPlotter:
         title: str,
         param_label: str,
         save_name: str,
+        xticklabels: Optional[List[str]] = None,
     ):
         """Plot a train/test metric with error bars for both models."""
         fs = 26
@@ -306,7 +321,7 @@ class AblationStudyPlotter:
         ax.grid(True, alpha=0.3)
         ax.tick_params(labelsize=fs - 4)
         ax.set_xticks(range(len(all_param_values)))
-        ax.set_xticklabels([str(v) for v in all_param_values])
+        ax.set_xticklabels(xticklabels if xticklabels else [str(v) for v in all_param_values])
         self._format_yaxis(ax)
         plt.tight_layout()
 
@@ -325,6 +340,7 @@ class AblationStudyPlotter:
         title: str,
         param_label: str,
         save_name: str,
+        xticklabels: Optional[List[str]] = None,
     ):
         """Plot a single metric with error bars for both models."""
         fs = 26
@@ -360,7 +376,7 @@ class AblationStudyPlotter:
         ax.grid(True, alpha=0.3)
         ax.tick_params(labelsize=fs - 4)
         ax.set_xticks(range(len(all_param_values)))
-        ax.set_xticklabels([str(v) for v in all_param_values])
+        ax.set_xticklabels(xticklabels if xticklabels else [str(v) for v in all_param_values])
         self._format_yaxis(ax)
         plt.tight_layout()
 
@@ -397,12 +413,19 @@ class AblationStudyPlotter:
 
         print(f"\n  Generating plots...")
 
+        xticklabels = None
+        if ablation_param == 'arch':
+            xticklabels = [
+                self.ARCH_SUM_TO_LAYERS.get(v, str(v)) for v in all_param_values
+            ]
+
         self._plot_train_test_metric(
             results, all_param_values,
             'train_nlpd', 'test_nlpd',
             ylabel='NLPD', title='Train / Test NLPD',
             param_label=param_label,
             save_name=f'{experiment_name}_nlpd_ablation',
+            xticklabels=xticklabels,
         )
 
         self._plot_train_test_metric(
@@ -411,6 +434,7 @@ class AblationStudyPlotter:
             ylabel='RMSE', title='Train / Test RMSE',
             param_label=param_label,
             save_name=f'{experiment_name}_rmse_ablation',
+            xticklabels=xticklabels,
         )
 
         self._plot_single_metric(
@@ -419,6 +443,7 @@ class AblationStudyPlotter:
             ylabel='ELBO', title='ELBO',
             param_label=param_label,
             save_name=f'{experiment_name}_elbo_ablation',
+            xticklabels=xticklabels,
         )
 
     def save_json_summary(
@@ -462,8 +487,8 @@ class AblationStudyPlotter:
 
     def run_ablation_study(
         self,
-        orig_gplvm_dir: str,
-        ssvi_dir: str,
+        orig_gplvm_dirs: List[str],
+        ssvi_dirs: List[str],
         ablation_param: str,
         param_label: str,
         experiment_name: str,
@@ -472,11 +497,13 @@ class AblationStudyPlotter:
         print(f"\n{'='*60}")
         print(f"Ablation Study: {experiment_name}")
         print(f"  Parameter : {param_label}")
-        print(f"  orig_gplvm: {orig_gplvm_dir}")
-        print(f"  ssvi      : {ssvi_dir}")
+        for d in orig_gplvm_dirs:
+            print(f"  orig_gplvm: {d}")
+        for d in ssvi_dirs:
+            print(f"  ssvi      : {d}")
         print(f"{'='*60}")
 
-        results = self.collect_metrics(orig_gplvm_dir, ssvi_dir, ablation_param)
+        results = self.collect_metrics(orig_gplvm_dirs, ssvi_dirs, ablation_param)
         self.plot_ablation(results, ablation_param, param_label, experiment_name)
         self.save_json_summary(results, ablation_param, param_label, experiment_name)
 
@@ -493,14 +520,21 @@ class AblationStudyPlotter:
                 best[key] = run
         return list(best.values())
 
+    def _discover_runs_multi(self, dirs: List[str]) -> List[ParsedRun]:
+        """Discover and merge runs from multiple base directories."""
+        all_runs = []
+        for d in dirs:
+            all_runs.extend(self._discover_runs(d))
+        return all_runs
+
     def collect_metrics_variance(
-        self, orig_gplvm_dir: str, ssvi_dir: str,
+        self, orig_gplvm_dirs: List[str], ssvi_dirs: List[str],
     ) -> Tuple[
         Dict[Tuple[str, str], Dict[int, List[RunMetrics]]],
         Dict[str, Dict[int, Dict[int, List[RunMetrics]]]],
     ]:
         """
-        Collect metrics for the variance ablation.
+        Collect metrics for the variance ablation from multiple directories.
 
         Returns a tuple of:
           comparison: {(model_type, lr): {batch_size: [RunMetrics]}}
@@ -515,10 +549,12 @@ class AblationStudyPlotter:
             lambda: defaultdict(lambda: defaultdict(list))
         )
 
-        print("  Scanning orig_gplvm directory...")
-        orig_runs = self._deduplicate_runs_full(self._discover_runs(orig_gplvm_dir))
+        print(f"  Scanning {len(orig_gplvm_dirs)} orig_gplvm directories...")
+        orig_runs = self._deduplicate_runs_full(
+            self._discover_runs_multi(orig_gplvm_dirs)
+        )
         max_p_orig = max((r.p_samples for r in orig_runs), default=0)
-        print(f"    Using P={max_p_orig} for comparison")
+        print(f"    Found {len(orig_runs)} runs, using P={max_p_orig} for comparison")
         for run in orig_runs:
             if run.p_samples != max_p_orig:
                 continue
@@ -529,10 +565,12 @@ class AblationStudyPlotter:
             if metrics is not None:
                 comparison[('nn_gauss', run.lr)][run.batch_size].append(metrics)
 
-        print("  Scanning ssvi directory...")
-        ssvi_runs = self._deduplicate_runs_full(self._discover_runs(ssvi_dir))
+        print(f"  Scanning {len(ssvi_dirs)} ssvi directories...")
+        ssvi_runs = self._deduplicate_runs_full(
+            self._discover_runs_multi(ssvi_dirs)
+        )
         max_p_ssvi = max((r.p_samples for r in ssvi_runs), default=0)
-        print(f"    Using P={max_p_ssvi} for comparison")
+        print(f"    Found {len(ssvi_runs)} runs, using P={max_p_ssvi} for comparison")
         for run in ssvi_runs:
             summary_path = os.path.join(run.run_path, 'experiment_summary.json')
             if not os.path.exists(summary_path):
@@ -779,8 +817,8 @@ class AblationStudyPlotter:
 
     def run_variance_ablation_study(
         self,
-        orig_gplvm_dir: str,
-        ssvi_dir: str,
+        orig_gplvm_dirs: List[str],
+        ssvi_dirs: List[str],
         experiment_name: str,
     ):
         """Run variance ablation: comparison plots + per-LR P-effect plots."""
@@ -794,14 +832,16 @@ class AblationStudyPlotter:
         print(f"  X-axis    : Learning Rate")
         print(f"  Separate  : per Batch Size")
         print(f"  Comparison: A-MF vs A-S colored by model")
-        print(f"  P-effect  : A-S only, colored by P (per batch size)")
-        print(f"  orig_gplvm: {orig_gplvm_dir}")
-        print(f"  ssvi      : {ssvi_dir}")
+        print(f"  P-effect  : A-S only, colored by LR (x = P samples)")
+        for d in orig_gplvm_dirs:
+            print(f"  orig_gplvm: {d}")
+        for d in ssvi_dirs:
+            print(f"  ssvi      : {d}")
         print(f"  output    : {variance_output_dir}")
         print(f"{'='*60}")
 
         comparison, ssvi_p_detail = self.collect_metrics_variance(
-            orig_gplvm_dir, ssvi_dir,
+            orig_gplvm_dirs, ssvi_dirs,
         )
 
         all_lrs = sorted({lr for (_, lr) in comparison})
@@ -893,15 +933,27 @@ def main():
 
     ABLATION_STUDIES = [
         {
-            'orig_gplvm_dir': os.path.join(OIL_FLOW_DIR, 'architecture_ablation_v1_orig_gplvm'),
-            'ssvi_dir': os.path.join(OIL_FLOW_DIR, 'architecture_ablation_v1_ssvi'),
+            'orig_gplvm_dirs': [
+                os.path.join(OIL_FLOW_DIR, 'architecture_ablation_v1_orig_gplvm'),
+            ],
+            'ssvi_dirs': [
+                os.path.join(OIL_FLOW_DIR, 'architecture_ablation_v1_ssvi'),
+            ],
             'ablation_param': 'arch',
-            'param_label': 'Encoder Hidden Dims (total units)',
+            'param_label': 'Encoder Hidden Dims',
             'experiment_name': 'oil_flow_architecture_ablation',
         },
         {
-            'orig_gplvm_dir': os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v1_orig_gplvm'),
-            'ssvi_dir': os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v1_ssvi'),
+            'orig_gplvm_dirs': [
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_16_orig_gplvm'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_32_orig_gplvm'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_64_orig_gplvm'),
+            ],
+            'ssvi_dirs': [
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_16_ssvi'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_32_ssvi'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_64_ssvi'),
+            ],
             'ablation_param': 'n_ind',
             'param_label': 'Number of Inducing Points',
             'experiment_name': 'oil_flow_num_inducing_ablation',
@@ -910,8 +962,16 @@ def main():
 
     VARIANCE_ABLATION_STUDIES = [
         {
-            'orig_gplvm_dir': os.path.join(OIL_FLOW_DIR, 'variance_ablation_v1_orig_gplvm'),
-            'ssvi_dir': os.path.join(OIL_FLOW_DIR, 'variance_ablation_v1_ssvi'),
+            'orig_gplvm_dirs': [
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_16_orig_gplvm'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_32_orig_gplvm'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_64_orig_gplvm'),
+            ],
+            'ssvi_dirs': [
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_16_ssvi'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_32_ssvi'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_64_ssvi'),
+            ],
             'experiment_name': 'oil_flow_variance_ablation',
         },
     ]
