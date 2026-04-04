@@ -211,7 +211,7 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     pca = config.pca_init
     
     # Run models and store results
-    models = config.models
+    models = ['nn_gauss']
     steps_per_model = config.training_steps
     
     model_dict = {}
