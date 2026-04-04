@@ -9,12 +9,12 @@ data_url: "http://staffwww.dcs.shef.ac.uk/people/N.Lawrence/resources/3PhData.ta
 latent_dim: 10
 
 # Model Architecture
-n_inducing_points: 64
+n_inducing_points: 32
 encoder_hidden_dims: [128, 64]
 
 # Training Configuration
 training_iterations: 60000
-batch_size: 128
+batch_size: 32
 
 # Learning Rates
 local_lr: 0.001   # Encoder parameters
@@ -24,7 +24,7 @@ global_lr: 0.001  # GP hyperparameters
 sigma2_s: null  # Signal variances (null = auto)
 init_lengthscales: 1.0  # Initial lengthscales value (1/beta) - default matches current standard
 init_output_noise_scale: 1.0  # Initial output noise scale (sigma2) - default matches current standard
-P: 64  # Number of samples for SSVI
+P: 32  # Number of samples for SSVI
 trainable_V: true
 
 # Visualization

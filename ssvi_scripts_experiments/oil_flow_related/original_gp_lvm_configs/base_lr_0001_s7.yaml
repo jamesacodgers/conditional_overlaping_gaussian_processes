@@ -11,7 +11,7 @@ random_seed: 7  # Matches oilflow_expt.py: SEED = 7
 
 # Model Configuration (matching SSVI base config)
 latent_dim: 10  # Matches SSVI base config: latent_dim: 10
-n_inducing: 64  # Matches SSVI base config: n_inducing_points: 64
+n_inducing: 32  # Matches SSVI base config: n_inducing_points: 64
 pca_init: true   # Initialize latent variables with PCA
 
 # Models to run (from oilflow_expt.py models list)
@@ -21,7 +21,7 @@ models: ["gauss", "nn_gauss"]
 training_steps:
   gauss: 60000      # Matches oilflow_expt.py: steps = [60000, 60000, 60000, 60000]
   nn_gauss: 60000   # Matches oilflow_expt.py: steps = [60000, 60000, 60000, 60000]
-batch_size: 128     # Matches SSVI base config: batch_size: 128
+batch_size: 32     # Matches SSVI base config: batch_size: 128
 learning_rate: 0.001  # Matches oilflow_expt.py: lr=0.001
 
 # Model-specific Configuration (from oilflow_expt.py)
