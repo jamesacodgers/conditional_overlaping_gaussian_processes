@@ -20,9 +20,15 @@ import numpy as np
 from tqdm import trange
 
 from src.original_gplvm_config import OriginalGPLVMConfig
-from src.original_gplvm_config_utils import load_config_with_overrides
+from src.original_gplvm_config_utils import (
+    create_argument_parser as mf_create_parser,
+    load_config_with_overrides as mf_load_config,
+)
 from src.ssvi_config import OilFlowSSVIConfig
-from src.ssvi_config_utils import load_config_with_overrides as ssvi_load_config
+from src.ssvi_config_utils import (
+    create_argument_parser as ssvi_create_parser,
+    load_config_with_overrides as ssvi_load_config,
+)
 from src.data_utils import download_oilflow_data_if_needed
 from utils.data import load_real_data
 from sklearn.model_selection import train_test_split
@@ -67,16 +73,8 @@ def _count_params(module):
 
 def run_mf_gplvm(n_iters: int):
     """Set up and train the MF GP-LVM (nn_gauss) for n_iters steps."""
-    # Load config
-    ns = type('Args', (), {'config': MF_CONFIG_PATH})()
-    # Minimal arg namespace
-    for attr in ['device', 'training_steps', 'batch_size', 'learning_rate',
-                 'latent_dim', 'n_inducing', 'random_seed', 'test_size',
-                 'nn_layers', 'config_name']:
-        if not hasattr(ns, attr):
-            setattr(ns, attr, None)
-    config, _ = load_config_with_overrides(
-        config_path=MF_CONFIG_PATH, config_class=OriginalGPLVMConfig, args=ns)
+    args = mf_create_parser().parse_args(['--config', MF_CONFIG_PATH])
+    config, _ = mf_load_config(config_path=args.config, config_class=OriginalGPLVMConfig, args=args)
 
     config.save_results = False
     config.enable_testing = False
@@ -146,9 +144,10 @@ def run_mf_gplvm(n_iters: int):
     print(f"  MF GP-LVM (nn_gauss) — {n_params:,} trainable params")
     print(f"  N_train={N}, D={data_dim}, Q={latent_dim}, M={n_inducing}, batch={batch_size}")
 
-    # Warm-up
     model.train()
     likelihood.train()
+
+    # Warm-up
     for _ in range(3):
         idx = model._get_batch_idx(batch_size)
         idx_t = torch.tensor(idx, dtype=torch.int64, device=config.device)
@@ -191,14 +190,8 @@ def run_mf_gplvm(n_iters: int):
 
 def run_ssvi_gplvm(n_iters: int):
     """Set up and train the SSVI GP-LVM for n_iters steps."""
-    ns = type('Args', (), {'config': SSVI_CONFIG_PATH})()
-    for attr in ['device', 'training_iterations', 'batch_size', 'local_lr',
-                 'global_lr', 'latent_dim', 'n_inducing_points', 'P',
-                 'random_seed', 'test_size', 'encoder_hidden_dims', 'config_name']:
-        if not hasattr(ns, attr):
-            setattr(ns, attr, None)
-    config, _ = ssvi_load_config(
-        config_path=SSVI_CONFIG_PATH, config_class=OilFlowSSVIConfig, args=ns)
+    args = ssvi_create_parser().parse_args(['--config', SSVI_CONFIG_PATH])
+    config, _ = ssvi_load_config(config_path=args.config, config_class=OilFlowSSVIConfig, args=args)
 
     config.save_results = False
     config.enable_metrics = False
