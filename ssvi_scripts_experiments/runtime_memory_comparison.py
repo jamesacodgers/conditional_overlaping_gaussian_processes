@@ -46,7 +46,7 @@ from models.latent_variable import NNEncoder
 
 # ---------------------------------------------------------------------------
 
-N_ITERS = 1000
+N_ITERS = 100
 MF_CONFIG_PATH = os.path.join(os.path.dirname(__file__),
     "oil_flow_related/original_gp_lvm_configs/base_lr_0001_s7.yaml")
 SSVI_CONFIG_PATH = os.path.join(os.path.dirname(__file__),
@@ -146,21 +146,6 @@ def run_mf_gplvm(n_iters: int):
 
     model.train()
     likelihood.train()
-
-    # Warm-up
-    for _ in range(3):
-        idx = model._get_batch_idx(batch_size)
-        idx_t = torch.tensor(idx, dtype=torch.int64, device=config.device)
-        optimizer.zero_grad()
-        s = model.sample_latent_variable(Y_train)
-        out = model(s[idx_t])
-        loss = -elbo(out, Y_train[idx_t].T).sum()
-        loss.backward()
-        optimizer.step()
-
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
     _reset_gpu_stats()
 
     # Timed run
@@ -182,6 +167,12 @@ def run_mf_gplvm(n_iters: int):
         torch.cuda.synchronize()
     elapsed = time.perf_counter() - t0
     peak_mem = _gpu_mem_mb()
+
+    # Free all model tensors before returning
+    del model, likelihood, elbo, optimizer, Y_train, X, prior_x, mu_x_pca
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     return elapsed, peak_mem, n_params
 
@@ -220,14 +211,6 @@ def run_ssvi_gplvm(n_iters: int):
     print(f"  N_train={N}, D={data_dim}, Q={config.latent_dim}, "
           f"M={config.n_inducing_points}, batch={batch_size}, P={config.P}")
 
-    # Warm-up
-    for _ in range(3):
-        bi = torch.randperm(N, device=y_train.device)[:batch_size]
-        model.train_step(y_train[bi], bi, prior_weight=1.0)
-
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
     _reset_gpu_stats()
 
     # Timed run
@@ -244,6 +227,11 @@ def run_ssvi_gplvm(n_iters: int):
     elapsed = time.perf_counter() - t0
     peak_mem = _gpu_mem_mb()
 
+    del model, y_train, Vx, mu_x, split_data
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     return elapsed, peak_mem, n_params
 
 
@@ -254,20 +242,19 @@ def main():
     print(f"  Training-time & memory comparison  ({N_ITERS} iterations)")
     print("=" * 60)
 
-    # --- MF GP-LVM ---
-    print("\n>>> MF GP-LVM (nn_gauss)")
-    mf_time, mf_mem, mf_params = run_mf_gplvm(N_ITERS)
+    # --- SSVI GP-LVM ---
+    print("\n>>> SSVI GP-LVM")
+    ssvi_time, ssvi_mem, ssvi_params = run_ssvi_gplvm(N_ITERS)
 
     # Clean up before next run
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    # Reset default device/dtype in case SSVI needs it fresh
     torch.set_default_dtype(torch.float64)
 
-    # --- SSVI GP-LVM ---
-    print("\n>>> SSVI GP-LVM")
-    ssvi_time, ssvi_mem, ssvi_params = run_ssvi_gplvm(N_ITERS)
+    # --- MF GP-LVM ---
+    print("\n>>> MF GP-LVM (nn_gauss)")
+    mf_time, mf_mem, mf_params = run_mf_gplvm(N_ITERS)
 
     # --- Summary ---
     print("\n" + "=" * 60)
