@@ -460,23 +460,29 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
     full_elbo_losses = training_result["full_elbo_losses"]
     full_elbo_iterations = training_result["full_elbo_iterations"]
     
-    # Visualize results (use full ELBO losses for plots)
-    print(f"\nVisualizing results...")
-    visualize_ssvi_results(
-        model, 
-        y_train, 
-        labels_train, 
-        full_elbo_losses, 
-        config, 
-        logger, 
-        show_plot=False, 
-        train_indices=split_data['train_indices'],
-        full_elbo_iterations=full_elbo_iterations,
-        batch_losses=batch_losses
-    )
-    
+    # Visualize results (save early so later errors don't hide outputs)
+    print(f"\nSaving training/latent plots...")
+    try:
+        visualize_ssvi_results(
+            model,
+            y_train,
+            labels_train,
+            full_elbo_losses,
+            config,
+            logger,
+            show_plot=False,
+            train_indices=split_data['train_indices'],
+            full_elbo_iterations=full_elbo_iterations,
+            batch_losses=batch_losses
+        )
+        print(f"  Saved: training_results*_sigma_sqrt.png")
+    except Exception as e:
+        print(f"  Warning: Failed to generate training_results plot: {e}")
+        import traceback
+        traceback.print_exc()
+
     # Also generate PNG version with font size 20 and 800 DPI (matching replot script)
-    print(f"\nGenerating PNG latent and lengthscales plot (font size 20, 800 DPI)...")
+    print(f"\nSaving replot PNG (font size 20, 800 DPI)...")
     try:
         visualize_ssvi_results_replot(
             model=model,
@@ -485,15 +491,15 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
             losses=full_elbo_losses,
             config=config,
             logger=logger,
-            save_filename="training_results.png",  # PNG format
+            save_filename="training_results.png",  # Will get _sigma_sqrt appended in helper
             show_plot=False,
             train_indices=split_data['train_indices'],
             full_elbo_iterations=full_elbo_iterations,
             batch_losses=batch_losses
         )
-        print(f"  PNG latent and lengthscales plot saved")
+        print(f"  Saved: training_results*_sigma_sqrt.png (800 DPI)")
     except Exception as e:
-        print(f"  Warning: Failed to generate PNG latent and lengthscales plot: {e}")
+        print(f"  Warning: Failed to generate replot PNG: {e}")
         import traceback
         traceback.print_exc()
     
@@ -580,87 +586,90 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
 
     
     # Generate latent slice visualization (after all metrics and plots)
-    try:
-        print(f"\nGenerating latent slice visualizations (adaptive grid from data)...")
-        
-        # Plot slice centered at origin
-        latent_slice_path_origin = os.path.join(logger.plots_dir, f"latent_slice_origin_seed_{config.random_seed}.png")
-        plot_latent_slice_outer(
-            model=model,
-            y_train=y_train,
-            center="zeros",
-            save_path=latent_slice_path_origin,
-            scaler=split_data.get('scaler')
-        )
-        print(f"  Saved latent slice (origin) to: {latent_slice_path_origin}")
-        
-        # Plot slices centered at a few interesting data points
-        N = y_train.shape[0]  # Number of training points from actual data
-        # Select 3 representative points (beginning, middle, end)
-        representative_indices = [0, N // 2, N - 1]
-        
-        for idx in representative_indices:
-            latent_slice_path = os.path.join(logger.plots_dir, f"latent_slice_point_{idx}_seed_{config.random_seed}.png")
+    # NOTE: Disabled per request (keep the run folder lighter / faster).
+    # Re-enable by removing this guard.
+    if False:
+        try:
+            print(f"\nGenerating latent slice visualizations (adaptive grid from data)...")
+            
+            # Plot slice centered at origin
+            latent_slice_path_origin = os.path.join(logger.plots_dir, f"latent_slice_origin_seed_{config.random_seed}.png")
             plot_latent_slice_outer(
                 model=model,
                 y_train=y_train,
-                center="data_point",
-                n_idx=idx,
-                save_path=latent_slice_path,
+                center="zeros",
+                save_path=latent_slice_path_origin,
                 scaler=split_data.get('scaler')
             )
-            print(f"  Saved latent slice (point {idx}) to: {latent_slice_path}")
-        
-        # Generate replot versions (4 subplots and single point) - PDF format, matching oil_flow_ssvi_replot_results.py
-        print(f"\nGenerating replot latent slice visualizations (4 subplots and single point)...")
-        # Plot 4 subplots version centered at origin
-        latent_slice_replot_path_origin = os.path.join(logger.plots_dir, f"latent_slice_origin_seed_{config.random_seed}.pdf")
-        plot_latent_slice_outer_replot(
-            model=model,
-            y_train=y_train,
-            center="zeros",
-            save_path=latent_slice_replot_path_origin,
-            scaler=split_data.get('scaler')
-        )
-        if os.path.exists(latent_slice_replot_path_origin):
-            print(f"  Saved latent slice replot (origin, 4 subplots) to: {latent_slice_replot_path_origin}")
-        # Plot single point version centered at origin
-        latent_slice_single_path_origin = os.path.join(logger.plots_dir, f"latent_slice_single_origin_seed_{config.random_seed}.pdf")
-        plot_latent_slice_outer_replot_single(
-            model=model,
-            y_train=y_train,
-            center="zeros",
-            save_path=latent_slice_single_path_origin,
-            scaler=split_data.get('scaler')
-        )
-        if os.path.exists(latent_slice_single_path_origin):
-            print(f"  Saved latent slice single (origin) to: {latent_slice_single_path_origin}")
-        # Plot 4 subplots and single point versions centered at representative data points
-        for idx in representative_indices:
-            latent_slice_replot_path = os.path.join(logger.plots_dir, f"latent_slice_point_{idx}_seed_{config.random_seed}.pdf")
+            print(f"  Saved latent slice (origin) to: {latent_slice_path_origin}")
+            
+            # Plot slices centered at a few interesting data points
+            N = y_train.shape[0]  # Number of training points from actual data
+            # Select 3 representative points (beginning, middle, end)
+            representative_indices = [0, N // 2, N - 1]
+            
+            for idx in representative_indices:
+                latent_slice_path = os.path.join(logger.plots_dir, f"latent_slice_point_{idx}_seed_{config.random_seed}.png")
+                plot_latent_slice_outer(
+                    model=model,
+                    y_train=y_train,
+                    center="data_point",
+                    n_idx=idx,
+                    save_path=latent_slice_path,
+                    scaler=split_data.get('scaler')
+                )
+                print(f"  Saved latent slice (point {idx}) to: {latent_slice_path}")
+            
+            # Generate replot versions (4 subplots and single point) - PDF format
+            print(f"\nGenerating replot latent slice visualizations (4 subplots and single point)...")
+            # Plot 4 subplots version centered at origin
+            latent_slice_replot_path_origin = os.path.join(logger.plots_dir, f"latent_slice_origin_seed_{config.random_seed}.pdf")
             plot_latent_slice_outer_replot(
                 model=model,
                 y_train=y_train,
-                center="data_point",
-                n_idx=idx,
-                save_path=latent_slice_replot_path,
+                center="zeros",
+                save_path=latent_slice_replot_path_origin,
                 scaler=split_data.get('scaler')
             )
-            if os.path.exists(latent_slice_replot_path):
-                print(f"  Saved latent slice replot (point {idx}, 4 subplots) to: {latent_slice_replot_path}")
-            latent_slice_single_path = os.path.join(logger.plots_dir, f"latent_slice_single_point_{idx}_seed_{config.random_seed}.pdf")
+            if os.path.exists(latent_slice_replot_path_origin):
+                print(f"  Saved latent slice replot (origin, 4 subplots) to: {latent_slice_replot_path_origin}")
+            # Plot single point version centered at origin
+            latent_slice_single_path_origin = os.path.join(logger.plots_dir, f"latent_slice_single_origin_seed_{config.random_seed}.pdf")
             plot_latent_slice_outer_replot_single(
                 model=model,
                 y_train=y_train,
-                center="data_point",
-                n_idx=idx,
-                save_path=latent_slice_single_path,
+                center="zeros",
+                save_path=latent_slice_single_path_origin,
                 scaler=split_data.get('scaler')
             )
-            if os.path.exists(latent_slice_single_path):
-                print(f"  Saved latent slice single (point {idx}) to: {latent_slice_single_path}")
-    except Exception as e:
-        print(f"  Warning: Failed to generate latent slice visualizations: {e}")
+            if os.path.exists(latent_slice_single_path_origin):
+                print(f"  Saved latent slice single (origin) to: {latent_slice_single_path_origin}")
+            # Plot 4 subplots and single point versions centered at representative data points
+            for idx in representative_indices:
+                latent_slice_replot_path = os.path.join(logger.plots_dir, f"latent_slice_point_{idx}_seed_{config.random_seed}.pdf")
+                plot_latent_slice_outer_replot(
+                    model=model,
+                    y_train=y_train,
+                    center="data_point",
+                    n_idx=idx,
+                    save_path=latent_slice_replot_path,
+                    scaler=split_data.get('scaler')
+                )
+                if os.path.exists(latent_slice_replot_path):
+                    print(f"  Saved latent slice replot (point {idx}, 4 subplots) to: {latent_slice_replot_path}")
+                latent_slice_single_path = os.path.join(logger.plots_dir, f"latent_slice_single_point_{idx}_seed_{config.random_seed}.pdf")
+                plot_latent_slice_outer_replot_single(
+                    model=model,
+                    y_train=y_train,
+                    center="data_point",
+                    n_idx=idx,
+                    save_path=latent_slice_single_path,
+                    scaler=split_data.get('scaler')
+                )
+                if os.path.exists(latent_slice_single_path):
+                    print(f"  Saved latent slice single (point {idx}) to: {latent_slice_single_path}")
+        except Exception as e:
+            print(f"  Warning: Failed to generate latent slice visualizations: {e}")
     
     # Print final model parameters
     print_final_model_parameters(model, "GP LVM SSVI")
