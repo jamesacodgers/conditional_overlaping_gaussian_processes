@@ -86,6 +86,9 @@ from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_d
 from src.ood_metrics import evaluate_ood_detection, compute_all_ood_metrics, OODMetrics
 from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
 
+# Latent plotting utilities reused from the replot script
+from src.replotting_helper import visualize_mnist_ood_ssvi_results_replot
+
 # Device will be set in main() from config
 
 
@@ -1158,6 +1161,29 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         dataset_name=config.id_dataset,
         is_ood=False,
     )
+
+    # Additional latent plots (reuse plotting logic from mnist_ood_ssvi_replot_results.py)
+    # Saved into the same run folder under logger.plots_dir.
+    if logger and getattr(logger, "plots_dir", None):
+        try:
+            os.makedirs(logger.plots_dir, exist_ok=True)
+            y_train_2d = (
+                y_train.reshape(y_train.shape[0], -1) if len(y_train.shape) > 2 else y_train
+            )
+            visualize_mnist_ood_ssvi_results_replot(
+                model=model,
+                y_train=y_train_2d,
+                labels_train=labels_train,
+                losses=[],
+                config=config,
+                logger=logger,
+                save_filename=f"latent_space_seed_{config.random_seed}.png",
+                show_plot=False,
+                dataset_name=config.id_dataset,
+                is_ood=False,
+            )
+        except Exception as e:
+            print(f"Warning: failed to generate additional latent plots: {e}")
     
     # Generate final metrics and plots if metrics were computed
     summary = None
