@@ -130,12 +130,13 @@ def generate_config_grid():
     missing_data_ratio_values = [0.0]
 
 
-    # output_folder_name = "num_induing_ablation_v2_16"
+    # output_folder_name = "num_induing_ablation_v3_16"
     # n_inducing_values = [16]
-    # output_folder_name = "num_induing_ablation_v2_32"
+    # output_folder_name = "num_induing_ablation_v3_32"
     # n_inducing_values = [32]
-    output_folder_name = "num_induing_ablation_v2_64"
+    output_folder_name = "num_induing_ablation_v3_64"
     n_inducing_values = [64]
+    architecture_values = [[512, 256]]
     # output_folder_name = "variance_ablation_v1"
     # learning_rate_values = [1e-3,3e-4]
     # num_inducing_samples_list = [4, 64]

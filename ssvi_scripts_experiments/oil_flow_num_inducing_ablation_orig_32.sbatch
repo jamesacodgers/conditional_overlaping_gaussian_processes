@@ -10,4 +10,4 @@
 #SBATCH --job-name=num_inducing_ablation_orig_32
 #SBATCH --output=%x_%j.out
 
-/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/ssvi_scripts_experiments/run_original_gplvm_configs_folder.sh ./oil_flow_related/num_induing_ablation_v2_32_orig_gplvm
+/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/ssvi_scripts_experiments/run_original_gplvm_configs_folder.sh ./oil_flow_related/num_induing_ablation_v3_32_orig_gplvm
