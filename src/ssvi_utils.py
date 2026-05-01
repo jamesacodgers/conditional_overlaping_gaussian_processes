@@ -211,6 +211,15 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         return
 
     
+    # Tag filenames to reflect sigma_x -> sqrt(sigma_x) sampling in latent plots
+    if isinstance(save_filename, str) and "_sigma_sqrt" not in save_filename:
+        if save_filename.endswith(".png"):
+            save_filename = save_filename[:-4] + "_sigma_sqrt.png"
+        elif save_filename.endswith(".pdf"):
+            save_filename = save_filename[:-4] + "_sigma_sqrt.pdf"
+        else:
+            save_filename = save_filename + "_sigma_sqrt"
+
     with torch.no_grad():
         # Color mapping for labels (assuming 3 classes)
         c = ["r", "g", "b"]
@@ -281,12 +290,14 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             # Keep as torch tensors for sampling, convert to numpy after sampling
             mu_x_cpu = mu_x.cpu()  # Move to CPU but keep as tensor
             sigma_x_cpu = sigma_x.cpu()  # Move to CPU but keep as tensor
+            # NOTE: sigma_x returned by model is a variance; convert to std-dev for sampling
+            sigma_x_std_cpu = torch.sqrt(torch.clamp(sigma_x_cpu, min=1e-12))
             
             # Plot samples from all P samples with transparency
             for p in range(model.P):
                 # Use top 2 most informative latent dimensions
-                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
-                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_std_cpu[p, :, dim1]).sample()
+                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_std_cpu[p, :, dim2]).sample()
                 plt.scatter(sample_1.detach().cpu().numpy(),
                             sample_2.detach().cpu().numpy(), alpha=0.6, color=colors)
             
@@ -328,8 +339,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             # Plot samples from all P samples with transparency (consistent with latent dims plot)
             for p in range(model.P):
                 # Sample from the latent distributions (consistent with main latent space plot)
-                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
-                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
+                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_std_cpu[p, :, dim1]).sample()
+                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_std_cpu[p, :, dim2]).sample()
                 scatter = ax_frac.scatter(sample_1.detach().cpu().numpy(),
                                         sample_2.detach().cpu().numpy(), 
                                         c=fractions, s=20, alpha=0.6)
@@ -359,9 +370,9 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             # Plot samples from all P samples with fractions as colors (consistent with 2D fractions plot)
             for p in range(model.P):
                 # Sample from the latent distributions (consistent with 2D fractions plot)
-                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
-                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
-                sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_cpu[p, :, dim3]).sample()
+                sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_std_cpu[p, :, dim1]).sample()
+                sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_std_cpu[p, :, dim2]).sample()
+                sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_std_cpu[p, :, dim3]).sample()
                 
                 fig_3d_frac.add_trace(go.Scatter3d(
                     x=sample_1.detach().cpu().numpy(),
@@ -461,6 +472,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             # Move to CPU for plotting
             mu_x_cpu = mu_x.cpu()
             sigma_x_cpu = sigma_x.cpu()
+            sigma_x_std_cpu = torch.sqrt(torch.clamp(sigma_x_cpu, min=1e-12))
         
         # Use dimensions already computed in latent space plot section
         most_important_dim = dim1  # Use the first (most important) dimension for 1D histogram
@@ -473,7 +485,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         all_labels = []
         for p in range(model.P):
             samples = torch.distributions.Normal(mu_x_cpu[p, :, most_important_dim], 
-                                               sigma_x_cpu[p, :, most_important_dim]).sample()
+                                               sigma_x_std_cpu[p, :, most_important_dim]).sample()
             # Ensure samples are on CPU before converting to numpy
             all_samples.append(samples.detach().cpu().numpy())
             # Repeat labels for each P sample
@@ -511,9 +523,9 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         # Collect samples for all 3 dimensions
         samples_3d = []
         for p in range(model.P):
-            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_cpu[p, :, dim1]).sample()
-            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_cpu[p, :, dim2]).sample()
-            sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_cpu[p, :, dim3]).sample()
+            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_std_cpu[p, :, dim1]).sample()
+            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_std_cpu[p, :, dim2]).sample()
+            sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_std_cpu[p, :, dim3]).sample()
             
             # Ensure all samples are on CPU before converting to numpy
             samples_3d.append({
