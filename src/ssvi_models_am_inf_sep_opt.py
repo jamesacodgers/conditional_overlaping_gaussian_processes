@@ -98,8 +98,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             u_samples: [P, M, C, Lx] - samples from global U distribution (C=1 for GP-LVM)
             
         Returns:
-            mu_n: [batch_size, A] - local variational means
-            sigma_n: [batch_size, A] - local variational standard deviations
+            mu_n: [P, batch_size, A] - local variational means
+            sigma_n: [P, batch_size, A] - local variational variance (positive; use sqrt for Normal std)
         """
         batch_size = y_n.shape[0] 
         y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]

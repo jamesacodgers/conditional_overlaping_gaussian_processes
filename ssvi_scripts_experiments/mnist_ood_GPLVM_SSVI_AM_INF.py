@@ -85,6 +85,7 @@ from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_d
 # Import OOD metrics
 from src.ood_metrics import evaluate_ood_detection, compute_all_ood_metrics, OODMetrics
 from src.pytorch_scalers import MeanCenter, StandardScalerPytorch, MinMaxScalerPytorch, NoTransform
+from src.replotting_helper import visualize_mnist_ood_ssvi_results_replot
 
 # Device will be set in main() from config
 
@@ -780,7 +781,27 @@ def train_oil_flow_ssvi(
                     batch_losses=losses  # Batch losses up to current iteration
                 )
                 print(f"    Checkpoint plot saved: {plot_filename}")
-                
+
+                if config.plot_latent_space:
+                    latent_replot_name = f"latent_space_replot_iter_{i}_seed_{config.random_seed}.png"
+                    visualize_mnist_ood_ssvi_results_replot(
+                        model=model,
+                        y_train=y_train,
+                        labels_train=labels_train,
+                        losses=full_elbo_losses,
+                        config=config,
+                        logger=logger,
+                        save_filename=latent_replot_name,
+                        show_plot=False,
+                        is_checkpoint=True,
+                        train_indices=split_data["train_indices"],
+                        dataset_name=config.id_dataset,
+                        is_ood=False,
+                        full_elbo_iterations=full_elbo_iterations,
+                        batch_losses=losses,
+                        include_1d_and_3d_latent_extras=False,
+                    )
+                    print(f"    Replot-style latent figure saved: {latent_replot_name}")
 
                 # Save prior samples plots at checkpoint
                 
@@ -1158,7 +1179,28 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         dataset_name=config.id_dataset,
         is_ood=False,
     )
-    
+
+    if config.save_training_plots and config.plot_latent_space and logger:
+        latent_replot_final = f"latent_space_replot_seed_{config.random_seed}.png"
+        visualize_mnist_ood_ssvi_results_replot(
+            model=model,
+            y_train=y_train,
+            labels_train=labels_train,
+            losses=full_elbo_losses,
+            config=config,
+            logger=logger,
+            save_filename=latent_replot_final,
+            show_plot=False,
+            is_checkpoint=False,
+            train_indices=split_data["train_indices"],
+            dataset_name=config.id_dataset,
+            is_ood=False,
+            full_elbo_iterations=full_elbo_iterations,
+            batch_losses=batch_losses,
+            include_1d_and_3d_latent_extras=False,
+        )
+        print(f"Replot-style latent figure saved: {latent_replot_final}")
+
     # Generate final metrics and plots if metrics were computed
     summary = None
     if (
