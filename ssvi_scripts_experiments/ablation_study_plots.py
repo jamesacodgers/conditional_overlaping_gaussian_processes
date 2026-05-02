@@ -945,14 +945,14 @@ def main():
         },
         {
             'orig_gplvm_dirs': [
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_16_orig_gplvm'),
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_32_orig_gplvm'),
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_64_orig_gplvm'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v3_16_orig_gplvm'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v3_32_orig_gplvm'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v3_64_orig_gplvm'),
             ],
             'ssvi_dirs': [
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_16_ssvi'),
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_32_ssvi'),
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_64_ssvi'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v3_16_ssvi'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v3_32_ssvi'),
+                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v3_64_ssvi'),
             ],
             'ablation_param': 'n_ind',
             'param_label': 'Number of Inducing Points',
@@ -963,14 +963,10 @@ def main():
     VARIANCE_ABLATION_STUDIES = [
         {
             'orig_gplvm_dirs': [
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_16_orig_gplvm'),
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_32_orig_gplvm'),
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_64_orig_gplvm'),
+                os.path.join(OIL_FLOW_DIR, 'variance_ablation_v1_orig_gplvm'),
             ],
             'ssvi_dirs': [
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_16_ssvi'),
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_32_ssvi'),
-                os.path.join(OIL_FLOW_DIR, 'num_induing_ablation_v2_64_ssvi'),
+                os.path.join(OIL_FLOW_DIR, 'variance_ablation_v1_ssvi'),
             ],
             'experiment_name': 'oil_flow_variance_ablation',
         },
