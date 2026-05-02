@@ -28,6 +28,10 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                         sigma2=sigma2, weight_distribution="continuous", beta=beta, sigma2_s=sigma2_s, 
                         trainable_V=trainable_V)
         
+        # Missing data capability - set BEFORE building encoders (needed for input dimension calculation)
+        self.enable_missing_data = enable_missing_data
+        if self.enable_missing_data:
+            print("Missing data reconstruction enabled")
 
         # Amortized inference encoder networks (separate for mean and variance, like Original GP-LVM)
         # Input: y_n (observation) + u_samples (P samples from global U distribution)
@@ -39,11 +43,6 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         self.mu_encoder = self.mu_encoder.to(device)
         self.sigma_encoder = self.sigma_encoder.to(device)
         
-        # Missing data capability
-        self.enable_missing_data = enable_missing_data
-        if self.enable_missing_data:
-            print("Missing data reconstruction enabled")
-        
         # Separate optimizers for different learning rates
         self._setup_optimizers(local_lr, global_lr)
 
@@ -51,8 +50,10 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         """Build amortized inference encoder network"""
         layers = []
         # Calculate correct input dimension:
-        # y_n: [M] + u_samples: [P * M * Lx] 
+        # y_n: [M] + u_samples: [M * Lx] + missing_mask: [M] (only if enable_missing_data)
         input_dim = self.M + self.M * self.Lx
+        if self.enable_missing_data:
+            input_dim += self.M  # Add missing mask dimension
 
         prev_dim = input_dim
         for hidden_dim in hidden_dims:
@@ -89,28 +90,51 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
             
         self.optimizer_global = torch.optim.Adam(global_params, lr=global_lr)
 
-    def encode_local_params(self, y_n, epsilon):
+    def encode_local_params(self, y_n, epsilon, missing_mask=None):
         """
         Amortized inference: encode observation y_n and u_samples to local variational parameters
         
         Args:
-            y_n: [batch_size, M] - observations
-            u_samples: [P, M, C, Lx] - samples from global U distribution (C=1 for GP-LVM)
+            y_n: [batch_size, M] - observations (may contain NaN for missing values)
+            epsilon: [P, M, C, Lx] - epsilon samples for U reparameterization (C=1 for GP-LVM)
+            missing_mask: [batch_size, M] - binary mask where True=missing (optional, only used if enable_missing_data=True)
             
         Returns:
-            mu_n: [batch_size, A] - local variational means
-            sigma_n: [batch_size, A] - local variational standard deviations
+            mu_n: [P, batch_size, A] - local variational means
+            sigma_n: [P, batch_size, A] - local variational standard deviations
         """
         batch_size = y_n.shape[0] 
+        
+        # Handle missing data only if enabled
+        if self.enable_missing_data:
+            # Replace NaN with 0.0 for encoder input
+            if missing_mask is None:
+                missing_mask = torch.isnan(y_n)
+            
+            y_n_clean = torch.where(
+                missing_mask,
+                torch.zeros_like(y_n, dtype=torch.float64),
+                y_n
+            )
+            y_n = y_n_clean
+        else:
+            # No missing data - use y_n as is
+            missing_mask = None
+        
         y_n = y_n.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
 
         epsilon = epsilon.squeeze(2)  # Remove C=1 dimension for GP-LVM: [P, M, Lx]
         epsilon = epsilon.unsqueeze(1).expand(-1, batch_size, -1, -1)  # [P, batch_size, M, Lx]
         epsilon = epsilon.reshape(self.P, batch_size, -1)  # [P, batch_size, M*Lx]
 
-
-
-        encoder_input = torch.cat([y_n, epsilon], dim=-1) # [P, batch_size, M + M*Lx]
+        # Concatenate inputs: include missing_mask only if enable_missing_data is True
+        if self.enable_missing_data and missing_mask is not None:
+            # Expand missing_mask to match encoder input shape
+            missing_mask_expanded = missing_mask.unsqueeze(0).expand(self.P, -1, -1)  # [P, batch_size, M]
+            missing_mask_flat = missing_mask_expanded.float()  # Convert to float for concatenation
+            encoder_input = torch.cat([y_n, epsilon, missing_mask_flat], dim=-1)  # [P, batch_size, M + M*Lx + M]
+        else:
+            encoder_input = torch.cat([y_n, epsilon], dim=-1)  # [P, batch_size, M + M*Lx]
         
         # Encode to local parameters using separate networks (like Original GP-LVM)
         mu_n = self.mu_encoder(encoder_input)  # [P, batch_size, A]
@@ -120,24 +144,36 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         
         return mu_n, Sigma_n
 
-    def get_mu_sigma_x_train_samples(self, Y_train_batch, epsilon):
+    def get_mu_sigma_x_train_samples(self, Y_train_batch, epsilon, missing_mask=None):
         """
         Get latent variable samples for training data using amortized inference
         
         Args:
-            Y_train_batch: Training observations [batch_size, M]
-            U_samples: U samples from q(u) distribution [P, M, C, Lx]
+            Y_train_batch: Training observations [batch_size, M] (may contain NaN)
+            epsilon: [P, M, C, Lx] - epsilon samples for U reparameterization
+            missing_mask: [batch_size, M] - binary mask where True=missing (optional)
             
         Returns:
             (mu_x, sigma_x): Training latent variable samples (P, batch_size, D)
         """
         
-        mu_x, sigma_x = self.encode_local_params(Y_train_batch, epsilon)
+        mu_x, sigma_x = self.encode_local_params(Y_train_batch, epsilon, missing_mask=missing_mask)
         return mu_x, sigma_x
     
-    def get_mu_sigma_x_test_samples(self, Y_test_batch, epsilon):
+    def get_mu_sigma_x_test_samples(self, Y_test_batch, epsilon, missing_mask=None):
+        """
+        Get latent variable samples for test data using amortized inference
+        
+        Args:
+            Y_test_batch: Test observations [batch_size, M] (may contain NaN)
+            epsilon: [P, M, C, Lx] - epsilon samples for U reparameterization
+            missing_mask: [batch_size, M] - binary mask where True=missing (optional)
+            
+        Returns:
+            (mu_x, sigma_x): Test latent variable samples (P, batch_size, D)
+        """
         # For SSVI, test and train use the same amortized inference
-        mu_x, sigma_x = self.encode_local_params(Y_test_batch, epsilon)
+        mu_x, sigma_x = self.encode_local_params(Y_test_batch, epsilon, missing_mask=missing_mask)
         return mu_x, sigma_x
     
     
@@ -301,6 +337,12 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
         if missing_mask is None:
             missing_mask = torch.zeros_like(y, dtype=torch.bool)
         n_observed = (~missing_mask).sum().item()
+
+        y_clean = torch.where(
+            missing_mask,
+            torch.zeros_like(y, dtype=torch.float64),
+            y
+        )
         
         # STUFF
 
@@ -311,8 +353,8 @@ class GPLVM_SSVI_AM_INF(Struc_WS_GPLVM):
                                                           U_samples=U_samples)
         f_train_expectation = f_train_expectation[..., 0]  # [P, N, M] since C=1 for GP-LVM
         
-        y_sqr_clean = (y[~missing_mask] ** 2).sum() # 1
-        cross_clean = (y[None,:,:] * f_train_expectation * (~missing_mask)[None,:,:]).sum(dim=[-1,-2]).mean()
+        y_sqr_clean = (y_clean[~missing_mask] ** 2).sum() # 1
+        cross_clean = (y_clean[None,:,:] * f_train_expectation * (~missing_mask)[None,:,:]).sum(dim=[-1,-2]).mean()
         # s_sqr_clean = .sum(dim=[-1,-2,-3]) # [P]
 
         K_VV = self.gp.get_K_VV_matrix()               # L x L 

@@ -193,7 +193,7 @@ def compute_nlpd_scores(model, Y: torch.Tensor, n_samples: int = 32) -> np.ndarr
             Y_batch = Y[start_idx:end_idx]
             
             # Preprocess encoder input to handle missing data (same as ssvi_metrics.py line 274)
-            y_encoder_input = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0, dtype=torch.float64), Y_batch)
+            y_encoder_input = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, 0.0, dtype=torch.float64), Y_batch)
             
             # Get latent representations using SSVI encoder (same as ssvi_metrics.py line 277)
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
@@ -308,7 +308,8 @@ def compute_reconstruction_error_scores(model, Y: torch.Tensor,
             Y_batch = Y[start_idx:end_idx]
             
             # Preprocess encoder input to handle missing data (same as ssvi_metrics.py line 109)
-            y_encoder_input = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0, dtype=torch.float64), Y_batch)
+            # Pass NaN directly to encoder (encoder will replace with 0.0 internally)
+            y_encoder_input = Y_batch
             
             # Get latent representations for this batch using SSVI encoder (same as ssvi_metrics.py line 112)
             mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
@@ -386,8 +387,8 @@ def compute_latent_variance_scores(model, Y: torch.Tensor) -> np.ndarray:
     with torch.no_grad():
         epsilon = model.get_epsilon()
         
-        Y_clean = torch.where(torch.isnan(Y), torch.full_like(Y, -9.0, dtype=torch.float64), Y)
-        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y_clean, epsilon)
+        # Pass NaN directly to encoder (encoder will replace with 0.0 internally)
+        mu_x, sigma_x = model.get_mu_sigma_x_train_samples(Y, epsilon)
         
         # sigma_x may have shape [P, N, latent_dim] or [N, latent_dim]
         # Sum variance across latent dimensions for each sample
