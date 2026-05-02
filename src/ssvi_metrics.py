@@ -106,11 +106,11 @@ class SSVIMetricsComputer:
                 end_idx = min(start_idx + batch_size, N)
                 y_batch = y_true[start_idx:end_idx]
                 
-                # Preprocess encoder input to handle missing data (consistent with training)
-                y_encoder_input = torch.where(torch.isnan(y_batch), torch.full_like(y_batch, -9.0, dtype=torch.float64), y_batch)
+                # Pass NaN directly to encoder (encoder will replace with 0.0 internally)
+                # No preprocessing needed - encoder handles NaN replacement
                 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_batch, epsilon)
                 
                 # Use proper probabilistic sampling like in compute_nlpd
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -199,13 +199,13 @@ class SSVIMetricsComputer:
                 y_batch = y_original[start_idx:end_idx]
                 mask_batch = missing_mask[start_idx:end_idx]
 
-                # Preprocess encoder input to handle missing data (consistent with training)
-                # Create masked data by setting missing dimensions to -9.0
+                # Set missing dimensions to NaN (encoder will replace with 0.0 internally)
                 y_encoder_input = y_batch.clone()
-                y_encoder_input[mask_batch] = -9.0
+                y_encoder_input[mask_batch] = float('nan')
 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
+                # Pass missing_mask so encoder can include it in input
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon, missing_mask=mask_batch)
 
                 # Use proper probabilistic sampling like in compute_nlpd
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -273,11 +273,11 @@ class SSVIMetricsComputer:
                 y_batch = y_true[start_idx:end_idx]
                 current_batch_size = end_idx - start_idx
                 
-                # Preprocess encoder input to handle missing data (consistent with training)
-                y_encoder_input = torch.where(torch.isnan(y_batch), torch.full_like(y_batch, -9.0, dtype=torch.float64), y_batch)
+                # Pass NaN directly to encoder (encoder will replace with 0.0 internally)
+                # No preprocessing needed - encoder handles NaN replacement
                 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_batch, epsilon)
                 
                 # Compute averaged latent variables once before the loop (optimization)
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
@@ -384,13 +384,13 @@ class SSVIMetricsComputer:
                 mask_batch = missing_mask[start_idx:end_idx]
                 current_batch_size = end_idx - start_idx
                 
-                # Preprocess encoder input to handle missing data (consistent with training)
-                # Create masked data by setting missing dimensions to -9.0
+                # Set missing dimensions to NaN (encoder will replace with 0.0 internally)
                 y_encoder_input = y_batch.clone()
-                y_encoder_input[mask_batch] = -9.0
+                y_encoder_input[mask_batch] = float('nan')
                 
                 # Get latent representations for this batch using SSVI encoder
-                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
+                # Pass missing_mask so encoder can include it in input
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon, missing_mask=mask_batch)
                 
                 # Compute averaged latent variables once before the loop (optimization)
                 x_dist = torch.distributions.Normal(mu_x, sigma_x)
