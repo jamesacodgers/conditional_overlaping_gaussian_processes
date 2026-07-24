@@ -63,8 +63,8 @@ from src.original_gplvm_config_utils import (
     ensure_config_dir_exists, print_available_configs
 )
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
-from src.nlpd_utils import compute_nlpd_nll_based, compute_missing_data_nlpd_gauss
-from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_latent_slice_original_gplvm
+from src.nlpd_utils import compute_nlpd_nll_based, compute_crps_nll_based, compute_coverage_nll_based, compute_missing_data_nlpd_gauss
+from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_crps_metrics_progression, plot_latent_slice_original_gplvm
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
@@ -416,6 +416,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         # Metrics tracking for progression plot (train only)
         train_rmse_list = []
         train_nlpd_list = []
+        train_crps_list = []
+        train_coverage_90_list = []
+        train_coverage_95_list = []
+        train_interval_width_90_list = []
+        train_interval_width_95_list = []
         train_missing_nlpd_list = []  # For missing data NLPD tracking
         train_missing_rmse_list = []  # For missing data RMSE tracking
         effective_dims_list = []
@@ -497,6 +502,35 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         except Exception as e:
                             print(f"  Warning: Could not get covariance for NLPD: {e}")
                             train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, enable_missing_data=config.enable_missing_data)
+
+                        # Compute training CRPS (same predictive path as NLPD)
+                        try:
+                            obs_noise = likelihood.noise
+                            train_crps = compute_crps_nll_based(
+                                model, Y_train, X_train_mean, model_name, X_train_covar, obs_noise,
+                                enable_missing_data=config.enable_missing_data
+                            )
+                        except Exception as e:
+                            print(f"  Warning: Could not compute CRPS: {e}")
+                            train_crps = float('nan')
+
+                        # Predictive interval coverage (same predictive path as NLPD)
+                        try:
+                            obs_noise = likelihood.noise
+                            train_cov = compute_coverage_nll_based(
+                                model, Y_train, X_train_mean, model_name, X_train_covar, obs_noise,
+                                enable_missing_data=config.enable_missing_data
+                            )
+                            train_coverage_90 = train_cov.get('coverage_90', float('nan'))
+                            train_coverage_95 = train_cov.get('coverage_95', float('nan'))
+                            train_interval_width_90 = train_cov.get('interval_width_90', float('nan'))
+                            train_interval_width_95 = train_cov.get('interval_width_95', float('nan'))
+                        except Exception as e:
+                            print(f"  Warning: Could not compute coverage: {e}")
+                            train_coverage_90 = float('nan')
+                            train_coverage_95 = float('nan')
+                            train_interval_width_90 = float('nan')
+                            train_interval_width_95 = float('nan')
                         
                         # Compute missing data NLPD and RMSE for gauss model during training (for checkpoints)
                         train_missing_nlpd = None
@@ -535,13 +569,21 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                         # Store metrics
                         train_rmse_list.append(float(train_rmse.item()) if hasattr(train_rmse, 'item') else float(train_rmse))
                         train_nlpd_list.append(float(train_nlpd))
+                        train_crps_list.append(float(train_crps))
+                        train_coverage_90_list.append(float(train_coverage_90))
+                        train_coverage_95_list.append(float(train_coverage_95))
+                        train_interval_width_90_list.append(float(train_interval_width_90))
+                        train_interval_width_95_list.append(float(train_interval_width_95))
                         train_missing_nlpd_list.append(float(train_missing_nlpd) if train_missing_nlpd is not None else float('nan'))
                         train_missing_rmse_list.append(float(train_missing_rmse) if train_missing_rmse is not None else float('nan'))
                         effective_dims_list.append(effective_dims)
                         metrics_iterations.append(i)
                         metrics_losses.append(full_loss)  # Use full dataset loss instead of batch loss
                         
-                        print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, Effective dims: {effective_dims}/{total_dims}")
+                        print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, CRPS={train_crps:.4f}, "
+                              f"cov90={train_coverage_90:.3f}, cov95={train_coverage_95:.3f}, "
+                              f"width90={train_interval_width_90:.4f}, width95={train_interval_width_95:.4f}, "
+                              f"Effective dims: {effective_dims}/{total_dims}")
                         
                 except Exception as e:
                     print(f"  Warning: Could not compute metrics at iteration {i}: {e}")
@@ -579,10 +621,24 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         if logger.get_results_dir() and train_rmse_list and train_nlpd_list:
             plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iterations, 
                                    metrics_losses, effective_dims_list, logger.get_results_dir(), model_name, config.random_seed, batch_losses=loss_list)
+
+            # Separate CRPS + coverage progression plot (comparable across models)
+            if train_crps_list:
+                plot_crps_metrics_progression(
+                    train_crps_list, metrics_iterations,
+                    logger.get_results_dir(), model_name, config.random_seed,
+                    train_coverage_90_list=train_coverage_90_list,
+                    train_coverage_95_list=train_coverage_95_list,
+                    train_interval_width_90_list=train_interval_width_90_list,
+                    train_interval_width_95_list=train_interval_width_95_list,
+                )
             
             # Save checkpoint metrics to JSON (train metrics only)
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
-                                         metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list, train_missing_rmse_list)
+                                         metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list, train_missing_rmse_list, train_crps_list=train_crps_list,
+                                         train_coverage_90_list=train_coverage_90_list, train_coverage_95_list=train_coverage_95_list,
+                                         train_interval_width_90_list=train_interval_width_90_list,
+                                         train_interval_width_95_list=train_interval_width_95_list)
             
             # Save training losses (full dataset loss and batch loss) - matching SSVI pattern
             print("Saving training losses (full dataset loss)...")
@@ -796,6 +852,57 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 test_nlpd = float('nan')
                 print(f'Train NLPD {model_name} = NaN (error)')
                 print(f'Test NLPD {model_name} = NaN (error)')
+
+            # 2b) Continuous Ranked Probability Score (same predictive path as NLPD)
+            try:
+                train_crps = compute_crps_nll_based(
+                    model, Y_train, X_train_mean_device, model_name, X_train_covar, obs_noise,
+                    enable_missing_data=config.enable_missing_data
+                )
+                test_crps = compute_crps_nll_based(
+                    model, Y_test, X_test_mean_device, model_name, X_test_covar, obs_noise,
+                    enable_missing_data=config.enable_missing_data
+                )
+                crps = test_crps  # held-out scalar for evaluation output
+
+                print(f'Train CRPS {model_name} = ' + str(train_crps))
+                print(f'Test CRPS (crps) {model_name} = ' + str(crps))
+            except Exception as e:
+                print(f"Warning: Failed to compute CRPS for {model_name} due to error: {e}")
+                train_crps = float('nan')
+                test_crps = float('nan')
+                crps = float('nan')
+                print(f'Train CRPS {model_name} = NaN (error)')
+                print(f'Test CRPS (crps) {model_name} = NaN (error)')
+
+            # 2c) Predictive interval coverage (same predictive path as NLPD)
+            try:
+                train_cov = compute_coverage_nll_based(
+                    model, Y_train, X_train_mean_device, model_name, X_train_covar, obs_noise,
+                    enable_missing_data=config.enable_missing_data
+                )
+                test_cov = compute_coverage_nll_based(
+                    model, Y_test, X_test_mean_device, model_name, X_test_covar, obs_noise,
+                    enable_missing_data=config.enable_missing_data
+                )
+                coverage_90 = test_cov.get('coverage_90', float('nan'))
+                coverage_95 = test_cov.get('coverage_95', float('nan'))
+                interval_width_90 = test_cov.get('interval_width_90', float('nan'))
+                interval_width_95 = test_cov.get('interval_width_95', float('nan'))
+                print(f'Train coverage_90/95 {model_name} = {train_cov.get("coverage_90"):.4f} / {train_cov.get("coverage_95"):.4f}')
+                print(f'Test coverage_90/95 {model_name} = {coverage_90:.4f} / {coverage_95:.4f}')
+                print(f'Train interval_width_90/95 {model_name} = {train_cov.get("interval_width_90"):.4f} / {train_cov.get("interval_width_95"):.4f}')
+                print(f'Test interval_width_90/95 {model_name} = {interval_width_90:.4f} / {interval_width_95:.4f}')
+            except Exception as e:
+                print(f"Warning: Failed to compute coverage for {model_name} due to error: {e}")
+                train_cov = {
+                    'coverage_90': float('nan'), 'coverage_95': float('nan'),
+                    'interval_width_90': float('nan'), 'interval_width_95': float('nan'),
+                }
+                coverage_90 = float('nan')
+                coverage_95 = float('nan')
+                interval_width_90 = float('nan')
+                interval_width_95 = float('nan')
                 
             # Initialize results_summary[model_name] if it doesn't exist
             if model_name not in results_summary:
@@ -904,6 +1011,21 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_rmse': float(mse_test.item()) if hasattr(mse_test, 'item') else float(mse_test),
                 'train_nlpd': float(train_nlpd),  # train_nlpd is already a float from compute_nlpd_nll_based
                 'test_nlpd': float(test_nlpd),    # test_nlpd is already a float from compute_nlpd_nll_based
+                'train_crps': float(train_crps),
+                'test_crps': float(test_crps),
+                'crps': float(crps),  # held-out CRPS (same as test_crps)
+                'train_coverage_90': float(train_cov.get('coverage_90', float('nan'))),
+                'train_coverage_95': float(train_cov.get('coverage_95', float('nan'))),
+                'test_coverage_90': float(coverage_90),
+                'test_coverage_95': float(coverage_95),
+                'coverage_90': float(coverage_90),
+                'coverage_95': float(coverage_95),
+                'train_interval_width_90': float(train_cov.get('interval_width_90', float('nan'))),
+                'train_interval_width_95': float(train_cov.get('interval_width_95', float('nan'))),
+                'test_interval_width_90': float(interval_width_90),
+                'test_interval_width_95': float(interval_width_95),
+                'interval_width_90': float(interval_width_90),
+                'interval_width_95': float(interval_width_95),
                 'train_missing_nlpd': train_missing_nlpd_value,  # Preserve computed value or use NaN
                 'test_missing_nlpd': test_missing_nlpd_value,   # Preserve computed value or use NaN
                 'train_missing_rmse': train_missing_rmse_value,  # Preserve computed value or use NaN
@@ -913,7 +1035,13 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
                 'final_noise': float(noise_trace[-1])
             }
             
-            logger.log_training(f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}")
+            logger.log_training(
+                f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, "
+                f"Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}, "
+                f"Train CRPS: {train_crps:.4f}, Test CRPS (crps): {crps:.4f}, "
+                f"coverage_90: {coverage_90:.4f}, coverage_95: {coverage_95:.4f}, "
+                f"interval_width_90: {interval_width_90:.4f}, interval_width_95: {interval_width_95:.4f}"
+            )
 
         # Generate latent slice visualization (after training and testing)
         try:

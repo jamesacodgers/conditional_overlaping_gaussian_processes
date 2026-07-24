@@ -7,15 +7,107 @@ with Stochastic Variational Inference" paper for evaluating model performance.
 Key metrics:
 - RMSE: Root Mean Square Error for reconstruction quality
 - NLPD: Negative Log Predictive Density for uncertainty quantification
+- CRPS: Continuous Ranked Probability Score for predictive accuracy / uncertainty quality
+- Predictive interval coverage and mean interval width (MPIW)
 - Train/Test performance comparison for overfitting detection
 """
 
+import math
 import torch
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+
+# Numerical floor for predictive standard deviation in CRPS / coverage
+_CRPS_SIGMA_EPS = 1e-8
+
+# Nominal predictive interval coverage levels
+COVERAGE_LEVELS = (0.90, 0.95)
+
+
+def _normal_z_for_coverage(level: float) -> float:
+    """z_{1-α/2} for central (1-α) Gaussian predictive interval, level = 1-α."""
+    alpha = 1.0 - level
+    return float(torch.distributions.Normal(0.0, 1.0).icdf(torch.tensor(1.0 - alpha / 2.0)))
+
+
+def gaussian_crps(mu: torch.Tensor, sigma: torch.Tensor, y: torch.Tensor,
+                  eps: float = _CRPS_SIGMA_EPS) -> torch.Tensor:
+    """
+    Closed-form CRPS for univariate Gaussian predictive distributions.
+
+    CRPS(N(μ, σ²), y) = σ [ z (2 Φ(z) − 1) + 2 φ(z) − 1/√π ],
+    where z = (y − μ) / σ, φ and Φ are the standard normal pdf and cdf.
+    """
+    sigma = sigma.clamp(min=eps)
+    z = (y - mu) / sigma
+    phi = torch.exp(-0.5 * z ** 2) / math.sqrt(2.0 * math.pi)
+    Phi = 0.5 * (1.0 + torch.erf(z / math.sqrt(2.0)))
+    return sigma * (z * (2.0 * Phi - 1.0) + 2.0 * phi - (1.0 / math.sqrt(math.pi)))
+
+
+def sample_crps(samples: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    """
+    Sample-based CRPS estimator:
+        CRPS = E|X − y| − (1/2) E|X − X′|
+    where samples has leading dimension over predictive draws.
+    """
+    term1 = (samples - y).abs().mean(dim=0)
+    # Pairwise absolute differences over the sample axis
+    term2 = 0.5 * (samples.unsqueeze(0) - samples.unsqueeze(1)).abs().mean(dim=(0, 1))
+    return term1 - term2
+
+
+def gaussian_interval_bounds(mu: torch.Tensor, sigma: torch.Tensor, level: float,
+                             eps: float = _CRPS_SIGMA_EPS) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Central Gaussian predictive interval [L, U] at level = 1−α."""
+    sigma = sigma.clamp(min=eps)
+    z = _normal_z_for_coverage(level)
+    lower = mu - z * sigma
+    upper = mu + z * sigma
+    return lower, upper
+
+
+def gaussian_interval_coverage(mu: torch.Tensor, sigma: torch.Tensor, y: torch.Tensor,
+                               level: float, eps: float = _CRPS_SIGMA_EPS) -> torch.Tensor:
+    """
+    Indicator that y lies in the central Gaussian predictive interval
+    [μ − z_{1−α/2} σ, μ + z_{1−α/2} σ], with level = 1−α.
+    """
+    lower, upper = gaussian_interval_bounds(mu, sigma, level, eps=eps)
+    return ((y >= lower) & (y <= upper)).float()
+
+
+def gaussian_interval_width(mu: torch.Tensor, sigma: torch.Tensor, level: float,
+                            eps: float = _CRPS_SIGMA_EPS) -> torch.Tensor:
+    """Width U − L of the central Gaussian predictive interval at ``level``."""
+    lower, upper = gaussian_interval_bounds(mu, sigma, level, eps=eps)
+    return upper - lower
+
+
+def sample_interval_bounds(samples: torch.Tensor, level: float) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Empirical central interval bounds from predictive samples (leading draw dim)."""
+    alpha = 1.0 - level
+    lower = torch.quantile(samples, alpha / 2.0, dim=0)
+    upper = torch.quantile(samples, 1.0 - alpha / 2.0, dim=0)
+    return lower, upper
+
+
+def sample_interval_coverage(samples: torch.Tensor, y: torch.Tensor, level: float) -> torch.Tensor:
+    """
+    Indicator that y lies in the empirical central interval from predictive samples.
+    ``samples`` has leading dimension over draws.
+    """
+    lower, upper = sample_interval_bounds(samples, level)
+    return ((y >= lower) & (y <= upper)).float()
+
+
+def sample_interval_width(samples: torch.Tensor, level: float) -> torch.Tensor:
+    """Width U − L of the empirical central interval from predictive samples."""
+    lower, upper = sample_interval_bounds(samples, level)
+    return upper - lower
 
 
 @dataclass
@@ -29,6 +121,28 @@ class SSVIMetrics:
     # Uncertainty metrics
     train_nlpd: float = 0.0
     test_nlpd: float = 0.0
+    
+    # Continuous Ranked Probability Score (lower is better)
+    train_crps: float = 0.0
+    test_crps: float = 0.0
+    # Alias for held-out / test CRPS in evaluation output
+    crps: float = 0.0
+
+    # Predictive interval coverage (held-out primary names: coverage_90 / coverage_95)
+    train_coverage_90: float = float('nan')
+    train_coverage_95: float = float('nan')
+    test_coverage_90: float = float('nan')
+    test_coverage_95: float = float('nan')
+    coverage_90: float = float('nan')
+    coverage_95: float = float('nan')
+
+    # Mean prediction interval width / MPIW (held-out: interval_width_90 / interval_width_95)
+    train_interval_width_90: float = float('nan')
+    train_interval_width_95: float = float('nan')
+    test_interval_width_90: float = float('nan')
+    test_interval_width_95: float = float('nan')
+    interval_width_90: float = float('nan')
+    interval_width_95: float = float('nan')
     
     # Missing data uncertainty metrics
     train_missing_nlpd: float = float('nan')
@@ -54,6 +168,21 @@ class SSVIMetrics:
             'test_rmse': self.test_rmse,
             'train_nlpd': self.train_nlpd,
             'test_nlpd': self.test_nlpd,
+            'train_crps': self.train_crps,
+            'test_crps': self.test_crps,
+            'crps': self.crps,
+            'train_coverage_90': self.train_coverage_90,
+            'train_coverage_95': self.train_coverage_95,
+            'test_coverage_90': self.test_coverage_90,
+            'test_coverage_95': self.test_coverage_95,
+            'coverage_90': self.coverage_90,
+            'coverage_95': self.coverage_95,
+            'train_interval_width_90': self.train_interval_width_90,
+            'train_interval_width_95': self.train_interval_width_95,
+            'test_interval_width_90': self.test_interval_width_90,
+            'test_interval_width_95': self.test_interval_width_95,
+            'interval_width_90': self.interval_width_90,
+            'interval_width_95': self.interval_width_95,
             'train_missing_nlpd': self.train_missing_nlpd,
             'test_missing_nlpd': self.test_missing_nlpd,
             'train_missing_rmse': self.train_missing_rmse,
@@ -335,8 +464,213 @@ class SSVIMetricsComputer:
             
         model.train()
         return nlpd
-    
-    
+
+    def compute_crps(self,
+                     model,
+                     y_true: torch.Tensor,
+                     n_samples: int = 50,
+                     use_sample_estimator: bool = False) -> float:
+        """
+        Compute Continuous Ranked Probability Score mirroring ``compute_nlpd``.
+
+        Uses the identical SSVI predictive path as NLPD (encoder latents, U samples,
+        GP mean/variance + observation noise). By default, applies closed-form
+        Gaussian CRPS to each MC predictive Gaussian and averages over MC samples
+        the same way NLPD averages log-density — then sums over observed dimensions
+        and averages over datapoints (NLPD-style reduction).
+
+        If ``use_sample_estimator`` is True, uses
+            E|X − y| − (1/2) E|X − X′|
+        on draws from those same predictive Gaussians.
+
+        Lower is better.
+        """
+        model.eval()
+        with torch.no_grad():
+            # Same U / epsilon sampling as compute_nlpd
+            epsilon = model.get_epsilon()
+            U_samples = model.get_u_samples(epsilon)
+
+            N = y_true.shape[0]
+            batch_size = self.metrics_batch_size
+
+            total_crps = 0.0
+            total_count = 0
+
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = y_true[start_idx:end_idx]
+                current_batch_size = end_idx - start_idx
+
+                # Same encoder preprocessing as compute_nlpd
+                y_encoder_input = torch.where(
+                    torch.isnan(y_batch),
+                    torch.full_like(y_batch, -9.0, dtype=torch.float64),
+                    y_batch,
+                )
+
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
+                x_dist = torch.distributions.Normal(mu_x, sigma_x)
+                x_samples = x_dist.rsample()  # [n_samples, batch_size, latent_dim]
+
+                f_mean = model.gp.get_gp_expectation_given_U(x_samples, U_samples)
+                gp_cov = model.gp.get_gp_covariance_given_U(x_samples, U_samples)
+
+                if gp_cov.shape[-1] == 1:
+                    f_var = gp_cov[..., 0, 0] + model.sigma2  # [n_samples, batch, M]
+                    f_mean = f_mean[..., 0]
+                else:
+                    f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2
+
+                f_std = f_var.clamp(min=_CRPS_SIGMA_EPS).sqrt()
+
+                if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                    observed_mask = ~torch.isnan(y_batch)
+                    if observed_mask.sum() == 0:
+                        continue
+                    y_obs = torch.where(observed_mask, y_batch, torch.zeros_like(y_batch))
+                    mask_f = observed_mask.float()[None, :, :]  # [1, batch, M]
+                else:
+                    observed_mask = None
+                    y_obs = y_batch
+                    mask_f = None
+
+                if use_sample_estimator:
+                    y_pred_samples = torch.distributions.Normal(f_mean, f_std).rsample()
+                    # sample_crps returns [batch, M]; treat as single score map
+                    crps_vals = sample_crps(y_pred_samples, y_obs)  # [batch, M]
+                    if mask_f is not None:
+                        crps_per_point = (crps_vals * observed_mask.float()).sum(dim=-1)  # [batch]
+                    else:
+                        crps_per_point = crps_vals.sum(dim=-1)
+                else:
+                    # Mirror NLPD: score each MC Gaussian, then average over MC samples
+                    # gaussian_crps broadcasts over leading sample dim → [n_samples, batch, M]
+                    crps_vals = gaussian_crps(f_mean, f_std, y_obs)
+                    if mask_f is not None:
+                        crps_per_point = (crps_vals * mask_f).sum(dim=-1).mean(dim=0)  # [batch]
+                    else:
+                        crps_per_point = crps_vals.sum(dim=-1).mean(dim=0)  # [batch]
+
+                total_crps += crps_per_point.sum().item()
+                total_count += current_batch_size
+
+            if total_count == 0:
+                model.train()
+                return float('nan')
+
+            crps = total_crps / total_count
+
+        model.train()
+        return crps
+
+    def compute_coverage(self,
+                         model,
+                         y_true: torch.Tensor,
+                         n_samples: int = 50,
+                         levels: Tuple[float, ...] = COVERAGE_LEVELS,
+                         use_sample_quantiles: bool = False) -> Dict[str, float]:
+        """
+        Predictive interval coverage and mean width (MPIW), mirroring the SSVI NLPD path.
+
+        Uses encoder latents, U samples, and GP mean/variance + observation noise
+        (full posterior predictive variance). Moment-matches MC components to a
+        single Gaussian per entry (or empirical quantiles if
+        ``use_sample_quantiles``), builds central intervals at each ``level``,
+        and returns:
+
+            coverage = (1 / N_obs) Σ_{n,d} 1[y_nd ∈ [L_nd, U_nd]]
+            interval_width = (1 / N_obs) Σ_{n,d} (U_nd − L_nd)
+
+        over observed entries. Keys: ``coverage_90``, ``coverage_95``,
+        ``interval_width_90``, ``interval_width_95``, ...
+        """
+        model.eval()
+        results = {}
+        for level in levels:
+            pct = int(round(level * 100))
+            results[f'coverage_{pct}'] = float('nan')
+            results[f'interval_width_{pct}'] = float('nan')
+
+        with torch.no_grad():
+            epsilon = model.get_epsilon()
+            U_samples = model.get_u_samples(epsilon)
+
+            N = y_true.shape[0]
+            batch_size = self.metrics_batch_size
+
+            cov_totals = {f'coverage_{int(round(level * 100))}': 0.0 for level in levels}
+            width_totals = {f'interval_width_{int(round(level * 100))}': 0.0 for level in levels}
+            total_count = 0
+
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                y_batch = y_true[start_idx:end_idx]
+
+                y_encoder_input = torch.where(
+                    torch.isnan(y_batch),
+                    torch.full_like(y_batch, -9.0, dtype=torch.float64),
+                    y_batch,
+                )
+
+                mu_x, sigma_x = model.get_mu_sigma_x_train_samples(y_encoder_input, epsilon)
+                x_dist = torch.distributions.Normal(mu_x, sigma_x)
+                x_samples = x_dist.rsample()
+
+                f_mean = model.gp.get_gp_expectation_given_U(x_samples, U_samples)
+                gp_cov = model.gp.get_gp_covariance_given_U(x_samples, U_samples)
+
+                if gp_cov.shape[-1] == 1:
+                    f_var = gp_cov[..., 0, 0] + model.sigma2
+                    f_mean = f_mean[..., 0]
+                else:
+                    f_var = torch.diagonal(gp_cov, dim1=-2, dim2=-1) + model.sigma2
+
+                if hasattr(model, 'enable_missing_data') and model.enable_missing_data:
+                    observed_mask = ~torch.isnan(y_batch)
+                    if observed_mask.sum() == 0:
+                        continue
+                    y_obs = torch.where(observed_mask, y_batch, torch.zeros_like(y_batch))
+                else:
+                    observed_mask = torch.ones_like(y_batch, dtype=torch.bool)
+                    y_obs = y_batch
+
+                f_std = f_var.clamp(min=_CRPS_SIGMA_EPS).sqrt()
+                mask_f = observed_mask.float()
+
+                if use_sample_quantiles:
+                    y_pred_samples = torch.distributions.Normal(f_mean, f_std).rsample()
+                    for level in levels:
+                        pct = int(round(level * 100))
+                        inside = sample_interval_coverage(y_pred_samples, y_obs, level)
+                        width = sample_interval_width(y_pred_samples, level)
+                        cov_totals[f'coverage_{pct}'] += (inside * mask_f).sum().item()
+                        width_totals[f'interval_width_{pct}'] += (width * mask_f).sum().item()
+                else:
+                    # One predictive Gaussian per entry via moment matching (includes noise)
+                    mu_pred = f_mean.mean(dim=0)
+                    var_pred = f_var.mean(dim=0) + f_mean.var(dim=0, unbiased=False)
+                    sigma_pred = var_pred.clamp(min=_CRPS_SIGMA_EPS).sqrt()
+                    for level in levels:
+                        pct = int(round(level * 100))
+                        inside = gaussian_interval_coverage(mu_pred, sigma_pred, y_obs, level)
+                        width = gaussian_interval_width(mu_pred, sigma_pred, level)
+                        cov_totals[f'coverage_{pct}'] += (inside * mask_f).sum().item()
+                        width_totals[f'interval_width_{pct}'] += (width * mask_f).sum().item()
+
+                total_count += observed_mask.sum().item()
+
+            if total_count == 0:
+                model.train()
+                return results
+
+            for key, total in cov_totals.items():
+                results[key] = total / total_count
+            for key, total in width_totals.items():
+                results[key] = total / total_count
+
+        model.train()
+        return results    
     def compute_missing_data_nlpd(self, 
                      model, 
                      y_original: torch.Tensor, 
@@ -499,6 +833,27 @@ class SSVIMetricsComputer:
         # Uncertainty metrics (computationally expensive, use fewer samples)
         metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
         metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
+
+        # Continuous Ranked Probability Score (Gaussian closed form by default)
+        metrics.train_crps = self.compute_crps(model, y_train, n_samples)
+        metrics.test_crps = self.compute_crps(model, y_test, n_samples)
+        metrics.crps = metrics.test_crps  # held-out scalar for evaluation output
+
+        # Predictive interval coverage + mean width (full predictive variance incl. likelihood noise)
+        train_cov = self.compute_coverage(model, y_train, n_samples)
+        test_cov = self.compute_coverage(model, y_test, n_samples)
+        metrics.train_coverage_90 = train_cov.get('coverage_90', float('nan'))
+        metrics.train_coverage_95 = train_cov.get('coverage_95', float('nan'))
+        metrics.test_coverage_90 = test_cov.get('coverage_90', float('nan'))
+        metrics.test_coverage_95 = test_cov.get('coverage_95', float('nan'))
+        metrics.coverage_90 = metrics.test_coverage_90
+        metrics.coverage_95 = metrics.test_coverage_95
+        metrics.train_interval_width_90 = train_cov.get('interval_width_90', float('nan'))
+        metrics.train_interval_width_95 = train_cov.get('interval_width_95', float('nan'))
+        metrics.test_interval_width_90 = test_cov.get('interval_width_90', float('nan'))
+        metrics.test_interval_width_95 = test_cov.get('interval_width_95', float('nan'))
+        metrics.interval_width_90 = metrics.test_interval_width_90
+        metrics.interval_width_95 = metrics.test_interval_width_95
         
         # Missing data metrics (only if missing data is enabled and original data/masks are provided)
         if (hasattr(model, 'enable_missing_data') and model.enable_missing_data and
@@ -541,6 +896,21 @@ class SSVIMetricsComputer:
             'final_test_rmse': final_metrics.test_rmse,
             'final_train_nlpd': final_metrics.train_nlpd,
             'final_test_nlpd': final_metrics.test_nlpd,
+            'final_train_crps': final_metrics.train_crps,
+            'final_test_crps': final_metrics.test_crps,
+            'crps': final_metrics.crps,
+            'final_train_coverage_90': final_metrics.train_coverage_90,
+            'final_train_coverage_95': final_metrics.train_coverage_95,
+            'final_test_coverage_90': final_metrics.test_coverage_90,
+            'final_test_coverage_95': final_metrics.test_coverage_95,
+            'coverage_90': final_metrics.coverage_90,
+            'coverage_95': final_metrics.coverage_95,
+            'final_train_interval_width_90': final_metrics.train_interval_width_90,
+            'final_train_interval_width_95': final_metrics.train_interval_width_95,
+            'final_test_interval_width_90': final_metrics.test_interval_width_90,
+            'final_test_interval_width_95': final_metrics.test_interval_width_95,
+            'interval_width_90': final_metrics.interval_width_90,
+            'interval_width_95': final_metrics.interval_width_95,
             'final_train_missing_nlpd': final_metrics.train_missing_nlpd,
             'final_test_missing_nlpd': final_metrics.test_missing_nlpd,
             'final_train_missing_rmse': final_metrics.train_missing_rmse,

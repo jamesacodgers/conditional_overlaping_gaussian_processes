@@ -167,7 +167,9 @@ class OriginalGPLVMResultsLogger:
             self.log_training(f"Experiment summary saved: {summary_file}")
     
     def save_checkpoint_metrics(self, train_rmse_list, train_nlpd_list, metrics_iterations, 
-                               metrics_losses, model_name: str, random_seed: int, effective_dims_list=None, train_missing_nlpd_list=None, train_missing_rmse_list=None):
+                               metrics_losses, model_name: str, random_seed: int, effective_dims_list=None, train_missing_nlpd_list=None, train_missing_rmse_list=None, train_crps_list=None,
+                               train_coverage_90_list=None, train_coverage_95_list=None,
+                               train_interval_width_90_list=None, train_interval_width_95_list=None):
         """Save checkpoint metrics to JSON file in training_results folder (train metrics only)"""
         if self.results_dir and train_rmse_list and train_nlpd_list:
             # Prepare checkpoint data (train metrics only)
@@ -187,6 +189,17 @@ class OriginalGPLVMResultsLogger:
                     'train_nlpd': float(train_nlpd),
                     'full_dataset_elbo_loss': float(loss)  # Negative ELBO (loss) computed on full dataset
                 }
+                # Add CRPS if available
+                if train_crps_list and i < len(train_crps_list):
+                    checkpoint_entry['train_crps'] = float(train_crps_list[i])
+                if train_coverage_90_list and i < len(train_coverage_90_list):
+                    checkpoint_entry['train_coverage_90'] = float(train_coverage_90_list[i])
+                if train_coverage_95_list and i < len(train_coverage_95_list):
+                    checkpoint_entry['train_coverage_95'] = float(train_coverage_95_list[i])
+                if train_interval_width_90_list and i < len(train_interval_width_90_list):
+                    checkpoint_entry['train_interval_width_90'] = float(train_interval_width_90_list[i])
+                if train_interval_width_95_list and i < len(train_interval_width_95_list):
+                    checkpoint_entry['train_interval_width_95'] = float(train_interval_width_95_list[i])
                 # Add effective dimensions if available
                 if effective_dims_list and i < len(effective_dims_list):
                     checkpoint_entry['effective_dims'] = int(effective_dims_list[i])

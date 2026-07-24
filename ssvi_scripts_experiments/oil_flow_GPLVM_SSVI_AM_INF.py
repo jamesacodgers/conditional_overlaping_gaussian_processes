@@ -35,7 +35,7 @@ sys.path.insert(0, project_root)
 sys.path.insert(0, os.path.join(project_root, 'generalised_gplvm_code'))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
-from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_latent_slice_outer
+from src.ssvi_utils import SSVIResultsLogger, visualize_ssvi_results, plot_metrics_history, plot_final_metrics_summary, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_crps_metrics_progression, plot_latent_slice_outer
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
@@ -267,6 +267,9 @@ def train_oil_flow_ssvi(model: OilFlow_SSVI_GPLVM, y_train, config: OilFlowSSVIC
             
             print(f"    Train RMSE: {metrics.train_rmse:.4f}, Test RMSE: {metrics.test_rmse:.4f} ")
             print(f"    Train NLPD: {metrics.train_nlpd:.3f}, Test NLPD: {metrics.test_nlpd:.3f}")
+            print(f"    Train CRPS: {metrics.train_crps:.4f}, Test CRPS (crps): {metrics.crps:.4f}")
+            print(f"    coverage_90: {metrics.coverage_90:.4f}, coverage_95: {metrics.coverage_95:.4f}")
+            print(f"    interval_width_90: {metrics.interval_width_90:.4f}, interval_width_95: {metrics.interval_width_95:.4f}")
             if config.enable_missing_data and not np.isnan(metrics.train_missing_nlpd):
                 print(f"    Train Missing Data NLPD: {metrics.train_missing_nlpd:.3f}")
                 print(f"    Test Missing Data NLPD: {metrics.test_missing_nlpd:.3f}")
@@ -522,6 +525,12 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         print(f"Final Test RMSE: {summary['final_test_rmse']:.4f}")
         print(f"Final Train NLPD: {summary['final_train_nlpd']:.3f}")
         print(f"Final Test NLPD: {summary['final_test_nlpd']:.3f}")
+        print(f"Final Train CRPS: {summary['final_train_crps']:.4f}")
+        print(f"Final Test CRPS (crps): {summary['crps']:.4f}")
+        print(f"Final coverage_90: {summary['coverage_90']:.4f}")
+        print(f"Final coverage_95: {summary['coverage_95']:.4f}")
+        print(f"Final interval_width_90: {summary['interval_width_90']:.4f}")
+        print(f"Final interval_width_95: {summary['interval_width_95']:.4f}")
         if config.enable_missing_data and not np.isnan(summary.get('final_train_missing_nlpd', float('nan'))):
             print(f"Final Train Missing Data NLPD: {summary['final_train_missing_nlpd']:.3f}")
             print(f"Final Test Missing Data NLPD: {summary['final_test_missing_nlpd']:.3f}")
@@ -535,6 +544,9 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
         # Generate metrics plots
         print("Generating metrics progression plots...")
         plot_metrics_history(metrics_computer, logger, show_plot=False, batch_losses=batch_losses)
+
+        print("Generating CRPS & coverage metrics progression plot...")
+        plot_crps_metrics_progression(metrics_computer, logger, show_plot=False)
         
         print("Generating final metrics summary plots...")
         plot_final_metrics_summary(metrics_computer, model, logger, show_plot=False)
@@ -622,6 +634,21 @@ def main(config: OilFlowSSVIConfig = None, config_name: str = "fast"):
                 'test_rmse': summary.get('final_test_rmse', 0.0),
                 'train_nlpd': summary.get('final_train_nlpd', 0.0),
                 'test_nlpd': summary.get('final_test_nlpd', 0.0),
+                'train_crps': summary.get('final_train_crps', 0.0),
+                'test_crps': summary.get('final_test_crps', 0.0),
+                'crps': summary.get('crps', 0.0),  # held-out CRPS (same as test_crps)
+                'train_coverage_90': summary.get('final_train_coverage_90', float('nan')),
+                'train_coverage_95': summary.get('final_train_coverage_95', float('nan')),
+                'test_coverage_90': summary.get('final_test_coverage_90', float('nan')),
+                'test_coverage_95': summary.get('final_test_coverage_95', float('nan')),
+                'coverage_90': summary.get('coverage_90', float('nan')),
+                'coverage_95': summary.get('coverage_95', float('nan')),
+                'train_interval_width_90': summary.get('final_train_interval_width_90', float('nan')),
+                'train_interval_width_95': summary.get('final_train_interval_width_95', float('nan')),
+                'test_interval_width_90': summary.get('final_test_interval_width_90', float('nan')),
+                'test_interval_width_95': summary.get('final_test_interval_width_95', float('nan')),
+                'interval_width_90': summary.get('interval_width_90', float('nan')),
+                'interval_width_95': summary.get('interval_width_95', float('nan')),
                 'train_missing_data_nlpd': summary.get('final_train_missing_nlpd', float('nan')),
                 'test_missing_data_nlpd': summary.get('final_test_missing_nlpd', float('nan')),
                 'train_missing_data_rmse': summary.get('final_train_missing_rmse', float('nan')),

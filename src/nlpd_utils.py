@@ -1,12 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-NLPD Utilities for GP-LVM Models
+NLPD / CRPS Utilities for GP-LVM Models
 """
 
 from math import e
 import torch
 import numpy as np
+
+from src.ssvi_metrics import (
+    gaussian_crps,
+    sample_crps,
+    gaussian_interval_coverage,
+    gaussian_interval_width,
+    sample_interval_coverage,
+    sample_interval_width,
+    _CRPS_SIGMA_EPS,
+    COVERAGE_LEVELS,
+)
 
 
 def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar=None, obs_noise=None, enable_missing_data=False, batch_size=256):
@@ -124,6 +135,232 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
     model.train()
     return nlpd
 
+
+def compute_crps_nll_based(model, Y_true, X_mean, model_name, X_covar=None, obs_noise=None,
+                           enable_missing_data=False, batch_size=256, use_sample_estimator=False):
+    """
+    Compute CRPS mirroring ``compute_nlpd_nll_based`` for original GP-LVM models.
+
+    Uses the identical predictive path as NLPD: sample x ~ q(x), GP predictive
+    mean/variance (+ observation noise), then closed-form Gaussian CRPS on each
+    MC component. Aggregation matches NLPD:
+      - score each MC draw
+      - average over MC samples
+      - sum over observed dimensions
+      - average over datapoints
+
+    Optional sample estimator: E|X − y| − (1/2) E|X − X′|.
+    Lower is better.
+    """
+    model.eval()
+
+    with torch.no_grad():
+        N = len(Y_true)
+
+        if model_name not in ('gauss', 'nn_gauss'):
+            raise ValueError(f"Invalid model name: {model_name}")
+
+        try:
+            n_samples = 4  # Same as compute_nlpd_nll_based
+
+            total_crps = 0.0
+            total_count = 0
+
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+                current_batch_size = end_idx - start_idx
+
+                Y_batch = Y_true[start_idx:end_idx]
+                X_mean_batch = X_mean[start_idx:end_idx]
+
+                if model_name == 'nn_gauss':
+                    X_covar_batch = X_covar[start_idx:end_idx]
+                    X_std_batch = torch.stack([torch.sqrt(x.diag()) for x in X_covar_batch])
+                else:
+                    X_std_batch = X_covar[start_idx:end_idx]
+
+                if enable_missing_data:
+                    observed_mask = ~torch.isnan(Y_batch)
+                    if observed_mask.sum() == 0:
+                        continue
+                    Y_obs = torch.where(observed_mask, Y_batch, torch.zeros_like(Y_batch, dtype=torch.float64))
+                    observed_mask_T = observed_mask.T  # [D, batch]
+                else:
+                    observed_mask = None
+                    Y_obs = Y_batch
+                    observed_mask_T = None
+
+                Y_obs_T = Y_obs.T  # [D, batch] — matches GP output layout
+                x_dist = torch.distributions.Normal(X_mean_batch, X_std_batch)
+
+                batch_crps = []
+                means = []
+                vars_ = []
+
+                for _ in range(n_samples):
+                    x_sample = x_dist.rsample()
+                    Y_star = model(x_sample)
+                    f_mean = Y_star.loc  # [D, batch]
+                    f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, batch]
+                    if obs_noise is not None:
+                        f_var = f_var + obs_noise
+
+                    if use_sample_estimator:
+                        means.append(f_mean)
+                        vars_.append(f_var)
+                    else:
+                        f_std = f_var.clamp(min=_CRPS_SIGMA_EPS).sqrt()
+                        crps_vals = gaussian_crps(f_mean, f_std, Y_obs_T)  # [D, batch]
+                        if observed_mask_T is not None:
+                            crps_sum = (crps_vals * observed_mask_T.float()).sum(dim=0)  # [batch]
+                        else:
+                            crps_sum = crps_vals.sum(dim=0)
+                        batch_crps.append(crps_sum)
+
+                if use_sample_estimator:
+                    f_mean_stack = torch.stack(means)
+                    f_var_stack = torch.stack(vars_)
+                    f_std = f_var_stack.clamp(min=_CRPS_SIGMA_EPS).sqrt()
+                    y_pred_samples = torch.distributions.Normal(f_mean_stack, f_std).rsample()
+                    crps_vals = sample_crps(y_pred_samples, Y_obs_T)  # [D, batch]
+                    if observed_mask_T is not None:
+                        crps_per_point = (crps_vals * observed_mask_T.float()).sum(dim=0)
+                    else:
+                        crps_per_point = crps_vals.sum(dim=0)
+                else:
+                    # Mirror NLPD: average MC sample scores → [batch]
+                    crps_per_point = torch.stack(batch_crps).mean(dim=0)
+
+                total_crps += crps_per_point.sum().item()
+                total_count += current_batch_size
+
+            if total_count == 0:
+                model.train()
+                return float('nan')
+
+            crps = total_crps / total_count
+
+        except Exception as e:
+            print(f"WARNING: CRPS computation failed for {model_name} model: {str(e)}")
+            crps = float('nan')
+
+    model.train()
+    return crps
+
+
+def compute_coverage_nll_based(model, Y_true, X_mean, model_name, X_covar=None, obs_noise=None,
+                               enable_missing_data=False, batch_size=256,
+                               levels=COVERAGE_LEVELS, use_sample_quantiles=False):
+    """
+    Predictive interval coverage and mean width (MPIW) mirroring ``compute_nlpd_nll_based``.
+
+    Same predictive path as NLPD (x ~ q(x), GP loc/diag-cov + observation noise).
+    Moment-matches MC Gaussians to one predictive N(μ, σ²) per entry (σ² includes
+    likelihood noise), builds central intervals at each ``level``, and returns:
+
+        coverage = (1 / N_obs) Σ 1[y ∈ [L, U]]
+        interval_width = (1 / N_obs) Σ (U − L)
+
+    over observed entries only. Keys: ``coverage_90``, ``coverage_95``,
+    ``interval_width_90``, ``interval_width_95``, ...
+    """
+    model.eval()
+    results = {}
+    for level in levels:
+        pct = int(round(level * 100))
+        results[f'coverage_{pct}'] = float('nan')
+        results[f'interval_width_{pct}'] = float('nan')
+
+    with torch.no_grad():
+        N = len(Y_true)
+
+        if model_name not in ('gauss', 'nn_gauss'):
+            raise ValueError(f"Invalid model name: {model_name}")
+
+        try:
+            n_samples = 4  # Same as NLPD / CRPS
+
+            cov_totals = {f'coverage_{int(round(level * 100))}': 0.0 for level in levels}
+            width_totals = {f'interval_width_{int(round(level * 100))}': 0.0 for level in levels}
+            total_count = 0
+
+            for start_idx in range(0, N, batch_size):
+                end_idx = min(start_idx + batch_size, N)
+
+                Y_batch = Y_true[start_idx:end_idx]
+                X_mean_batch = X_mean[start_idx:end_idx]
+
+                if model_name == 'nn_gauss':
+                    X_covar_batch = X_covar[start_idx:end_idx]
+                    X_std_batch = torch.stack([torch.sqrt(x.diag()) for x in X_covar_batch])
+                else:
+                    X_std_batch = X_covar[start_idx:end_idx]
+
+                if enable_missing_data:
+                    observed_mask = ~torch.isnan(Y_batch)
+                    if observed_mask.sum() == 0:
+                        continue
+                    Y_obs = torch.where(observed_mask, Y_batch, torch.zeros_like(Y_batch, dtype=torch.float64))
+                else:
+                    observed_mask = torch.ones_like(Y_batch, dtype=torch.bool)
+                    Y_obs = Y_batch
+
+                Y_obs_T = Y_obs.T
+                observed_mask_T = observed_mask.T
+                x_dist = torch.distributions.Normal(X_mean_batch, X_std_batch)
+
+                means = []
+                vars_ = []
+                for _ in range(n_samples):
+                    x_sample = x_dist.rsample()
+                    Y_star = model(x_sample)
+                    f_mean = Y_star.loc
+                    f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])
+                    if obs_noise is not None:
+                        f_var = f_var + obs_noise
+                    means.append(f_mean)
+                    vars_.append(f_var)
+
+                f_mean_stack = torch.stack(means)
+                f_var_stack = torch.stack(vars_)
+                f_std_stack = f_var_stack.clamp(min=_CRPS_SIGMA_EPS).sqrt()
+                mask_f = observed_mask_T.float()
+
+                if use_sample_quantiles:
+                    y_pred_samples = torch.distributions.Normal(f_mean_stack, f_std_stack).rsample()
+                    for level in levels:
+                        pct = int(round(level * 100))
+                        inside = sample_interval_coverage(y_pred_samples, Y_obs_T, level)
+                        width = sample_interval_width(y_pred_samples, level)
+                        cov_totals[f'coverage_{pct}'] += (inside * mask_f).sum().item()
+                        width_totals[f'interval_width_{pct}'] += (width * mask_f).sum().item()
+                else:
+                    mu_pred = f_mean_stack.mean(dim=0)
+                    var_pred = f_var_stack.mean(dim=0) + f_mean_stack.var(dim=0, unbiased=False)
+                    sigma_pred = var_pred.clamp(min=_CRPS_SIGMA_EPS).sqrt()
+                    for level in levels:
+                        pct = int(round(level * 100))
+                        inside = gaussian_interval_coverage(mu_pred, sigma_pred, Y_obs_T, level)
+                        width = gaussian_interval_width(mu_pred, sigma_pred, level)
+                        cov_totals[f'coverage_{pct}'] += (inside * mask_f).sum().item()
+                        width_totals[f'interval_width_{pct}'] += (width * mask_f).sum().item()
+
+                total_count += observed_mask.sum().item()
+
+            if total_count == 0:
+                model.train()
+                return results
+
+            for key, total in cov_totals.items():
+                results[key] = total / total_count
+            for key, total in width_totals.items():
+                results[key] = total / total_count
+
+        except Exception as e:
+            print(f"WARNING: Coverage computation failed for {model_name} model: {str(e)}")
+
+    model.train()
+    return results
 
 def compute_missing_data_nlpd_gauss(model, Y_original, missing_mask, X_mean, X_std, obs_noise, n_samples=50, batch_size=256):
     """

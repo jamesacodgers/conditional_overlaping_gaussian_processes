@@ -252,6 +252,93 @@ def plot_metrics_progression(train_rmse_list, train_nlpd_list, metrics_iteration
     print(f"Metrics progression plot saved to: {plot_path}")
 
 
+def plot_crps_metrics_progression(train_crps_list, metrics_iterations,
+                                  results_dir, model_name, random_seed,
+                                  test_crps_list=None,
+                                  train_coverage_90_list=None,
+                                  train_coverage_95_list=None,
+                                  test_coverage_90_list=None,
+                                  test_coverage_95_list=None,
+                                  train_interval_width_90_list=None,
+                                  train_interval_width_95_list=None,
+                                  test_interval_width_90_list=None,
+                                  test_interval_width_95_list=None):
+    """
+    Plot CRPS, coverage, and mean interval width progression (separate plot).
+
+    Panel 1: CRPS; Panel 2: coverage_90 / coverage_95; Panel 3: interval_width_90 / 95.
+    """
+    if not train_crps_list:
+        print("No CRPS data available for progression plot")
+        return
+
+    import numpy as np
+    valid_train_idx = [i for i, x in enumerate(train_crps_list) if not np.isnan(x)]
+    if not valid_train_idx and not test_crps_list:
+        print("No valid CRPS data available for plotting")
+        return
+
+    fig, (ax_crps, ax_cov, ax_width) = plt.subplots(3, 1, figsize=(10, 14), sharex=True)
+
+    if valid_train_idx:
+        valid_iterations = [metrics_iterations[i] for i in valid_train_idx]
+        ax_crps.plot(valid_iterations, [train_crps_list[i] for i in valid_train_idx],
+                     'b-', label='Train CRPS', linewidth=2, marker='o', markersize=4)
+
+    if test_crps_list:
+        valid_test_idx = [i for i, x in enumerate(test_crps_list) if not np.isnan(x)]
+        if valid_test_idx:
+            test_iterations = [metrics_iterations[i] for i in valid_test_idx]
+            ax_crps.plot(test_iterations, [test_crps_list[i] for i in valid_test_idx],
+                         'r-', label='Test CRPS', linewidth=2, marker='s', markersize=4)
+
+    ax_crps.set_ylabel('CRPS (lower is better)')
+    ax_crps.set_title('CRPS, Coverage & Interval Width Progression')
+    ax_crps.legend()
+    ax_crps.grid(True, alpha=0.3)
+
+    def _plot_series(ax, values, style, label):
+        if not values:
+            return
+        valid_idx = [i for i, x in enumerate(values) if not np.isnan(x)]
+        if not valid_idx:
+            return
+        ax.plot([metrics_iterations[i] for i in valid_idx],
+                [values[i] for i in valid_idx],
+                style, label=label, linewidth=2, marker='o', markersize=4)
+
+    _plot_series(ax_cov, train_coverage_90_list, 'b-', 'Train coverage_90')
+    _plot_series(ax_cov, test_coverage_90_list, 'r-', 'Test coverage_90')
+    _plot_series(ax_cov, train_coverage_95_list, 'b--', 'Train coverage_95')
+    _plot_series(ax_cov, test_coverage_95_list, 'r--', 'Test coverage_95')
+    ax_cov.axhline(0.90, color='gray', linestyle=':', alpha=0.7, label='Nominal 0.90')
+    ax_cov.axhline(0.95, color='black', linestyle=':', alpha=0.5, label='Nominal 0.95')
+    ax_cov.set_ylabel('Coverage')
+    ax_cov.set_ylim(0.0, 1.05)
+    ax_cov.legend(fontsize=9)
+    ax_cov.grid(True, alpha=0.3)
+
+    _plot_series(ax_width, train_interval_width_90_list, 'b-', 'Train interval_width_90')
+    _plot_series(ax_width, test_interval_width_90_list, 'r-', 'Test interval_width_90')
+    _plot_series(ax_width, train_interval_width_95_list, 'b--', 'Train interval_width_95')
+    _plot_series(ax_width, test_interval_width_95_list, 'r--', 'Test interval_width_95')
+    ax_width.set_xlabel('Iteration')
+    ax_width.set_ylabel('Mean interval width (lower is sharper)')
+    ax_width.legend(fontsize=9)
+    ax_width.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    plots_dir = os.path.join(results_dir, 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
+    plot_path = os.path.join(plots_dir, f'crps_metrics_progression_{model_name}.png')
+
+    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.close()
+
+    print(f"CRPS/coverage/width metrics progression plot saved to: {plot_path}")
+
+
 def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros", n_idx=None, save_path=None, scaler=None):
     """
     Plot 1D latent slice for original GP-LVM models (gauss and nn_gauss).

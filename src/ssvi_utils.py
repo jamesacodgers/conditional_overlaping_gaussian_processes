@@ -145,6 +145,21 @@ class SSVIResultsLogger:
                     'test_rmse': float(metrics.test_rmse),
                     'train_nlpd': float(metrics.train_nlpd),
                     'test_nlpd': float(metrics.test_nlpd),
+                    'train_crps': float(metrics.train_crps),
+                    'test_crps': float(metrics.test_crps),
+                    'crps': float(metrics.crps),
+                    'train_coverage_90': float(metrics.train_coverage_90),
+                    'train_coverage_95': float(metrics.train_coverage_95),
+                    'test_coverage_90': float(metrics.test_coverage_90),
+                    'test_coverage_95': float(metrics.test_coverage_95),
+                    'coverage_90': float(metrics.coverage_90),
+                    'coverage_95': float(metrics.coverage_95),
+                    'train_interval_width_90': float(metrics.train_interval_width_90),
+                    'train_interval_width_95': float(metrics.train_interval_width_95),
+                    'test_interval_width_90': float(metrics.test_interval_width_90),
+                    'test_interval_width_95': float(metrics.test_interval_width_95),
+                    'interval_width_90': float(metrics.interval_width_90),
+                    'interval_width_95': float(metrics.interval_width_95),
                     'train_missing_nlpd': float(metrics.train_missing_nlpd),
                     'test_missing_nlpd': float(metrics.test_missing_nlpd),
                     'full_dataset_elbo_loss': float(-metrics.elbo_loss)  # Convert positive ELBO to negative (loss) for consistency
@@ -684,6 +699,93 @@ def plot_metrics_history(metrics_computer,
     return fig
 
 
+def plot_crps_metrics_progression(metrics_computer,
+                                  logger: SSVIResultsLogger = None,
+                                  show_plot: bool = True) -> plt.Figure:
+    """
+    Plot CRPS, predictive interval coverage, and mean interval width (MPIW).
+
+    Panel 1: train/test CRPS
+    Panel 2: train/test coverage_90 and coverage_95
+    Panel 3: train/test interval_width_90 and interval_width_95
+    """
+    if not hasattr(metrics_computer, 'metrics_history') or not metrics_computer.metrics_history:
+        print("No metrics history available for CRPS/coverage plotting")
+        return None
+
+    iterations = [m.iteration for m in metrics_computer.metrics_history]
+    train_crps = [m.train_crps for m in metrics_computer.metrics_history]
+    test_crps = [m.test_crps for m in metrics_computer.metrics_history]
+    train_c90 = [m.train_coverage_90 for m in metrics_computer.metrics_history]
+    test_c90 = [m.test_coverage_90 for m in metrics_computer.metrics_history]
+    train_c95 = [m.train_coverage_95 for m in metrics_computer.metrics_history]
+    test_c95 = [m.test_coverage_95 for m in metrics_computer.metrics_history]
+    train_w90 = [m.train_interval_width_90 for m in metrics_computer.metrics_history]
+    test_w90 = [m.test_interval_width_90 for m in metrics_computer.metrics_history]
+    train_w95 = [m.train_interval_width_95 for m in metrics_computer.metrics_history]
+    test_w95 = [m.test_interval_width_95 for m in metrics_computer.metrics_history]
+
+    valid_train = [not np.isnan(x) for x in train_crps]
+    valid_test = [not np.isnan(x) for x in test_crps]
+
+    if not any(valid_train) and not any(valid_test):
+        print("No valid CRPS data available for plotting")
+        return None
+
+    fig, (ax_crps, ax_cov, ax_width) = plt.subplots(3, 1, figsize=(10, 14), sharex=True)
+
+    if any(valid_train):
+        train_iterations = [iterations[i] for i in range(len(iterations)) if valid_train[i]]
+        ax_crps.plot(train_iterations, [train_crps[i] for i in range(len(train_crps)) if valid_train[i]],
+                     'b-', label='Train CRPS', linewidth=2, marker='o', markersize=4)
+    if any(valid_test):
+        test_iterations = [iterations[i] for i in range(len(iterations)) if valid_test[i]]
+        ax_crps.plot(test_iterations, [test_crps[i] for i in range(len(test_crps)) if valid_test[i]],
+                     'r-', label='Test CRPS', linewidth=2, marker='s', markersize=4)
+
+    ax_crps.set_ylabel('CRPS (lower is better)')
+    ax_crps.set_title('CRPS, Coverage & Interval Width Progression')
+    ax_crps.legend()
+    ax_crps.grid(True, alpha=0.3)
+
+    def _plot_series(ax, values, iters, style, label):
+        valid = [not np.isnan(x) for x in values]
+        if any(valid):
+            ax.plot([iters[i] for i in range(len(iters)) if valid[i]],
+                    [values[i] for i in range(len(values)) if valid[i]],
+                    style, label=label, linewidth=2, marker='o', markersize=4)
+
+    _plot_series(ax_cov, train_c90, iterations, 'b-', 'Train coverage_90')
+    _plot_series(ax_cov, test_c90, iterations, 'r-', 'Test coverage_90')
+    _plot_series(ax_cov, train_c95, iterations, 'b--', 'Train coverage_95')
+    _plot_series(ax_cov, test_c95, iterations, 'r--', 'Test coverage_95')
+    ax_cov.axhline(0.90, color='gray', linestyle=':', alpha=0.7, label='Nominal 0.90')
+    ax_cov.axhline(0.95, color='black', linestyle=':', alpha=0.5, label='Nominal 0.95')
+    ax_cov.set_ylabel('Coverage')
+    ax_cov.set_ylim(0.0, 1.05)
+    ax_cov.legend(fontsize=9)
+    ax_cov.grid(True, alpha=0.3)
+
+    _plot_series(ax_width, train_w90, iterations, 'b-', 'Train interval_width_90')
+    _plot_series(ax_width, test_w90, iterations, 'r-', 'Test interval_width_90')
+    _plot_series(ax_width, train_w95, iterations, 'b--', 'Train interval_width_95')
+    _plot_series(ax_width, test_w95, iterations, 'r--', 'Test interval_width_95')
+    ax_width.set_xlabel('Iteration')
+    ax_width.set_ylabel('Mean interval width (lower is sharper)')
+    ax_width.legend(fontsize=9)
+    ax_width.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    if logger:
+        logger.save_plots(fig, "crps_metrics_progression.png")
+
+    if show_plot:
+        plt.show()
+
+    return fig
+
+
 def plot_missing_nlpd_metrics_progression(metrics_computer,
                                          logger: SSVIResultsLogger = None,
                                          show_plot: bool = True) -> plt.Figure:
@@ -896,6 +998,12 @@ def plot_final_metrics_summary(metrics_computer,
         ['Test RMSE', f'{final_metrics.test_rmse:.4f}'],
         ['Train NLPD', f'{final_metrics.train_nlpd:.3f}'],
         ['Test NLPD', f'{final_metrics.test_nlpd:.3f}'],
+        ['Train CRPS', f'{final_metrics.train_crps:.4f}'],
+        ['Test CRPS (crps)', f'{final_metrics.crps:.4f}'],
+        ['coverage_90', f'{final_metrics.coverage_90:.4f}'],
+        ['coverage_95', f'{final_metrics.coverage_95:.4f}'],
+        ['interval_width_90', f'{final_metrics.interval_width_90:.4f}'],
+        ['interval_width_95', f'{final_metrics.interval_width_95:.4f}'],
         ['Overfitting Ratio', f'{metrics_summary.get("overfitting_ratio", 0):.3f}'],
         ['Effective Dims', f'{final_metrics.effective_latent_dims}/{final_metrics.total_latent_dims}'],
         ['Final Loss', f'{final_metrics.elbo_loss:.4f}']
