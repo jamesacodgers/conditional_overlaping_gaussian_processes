@@ -1,1 +1,0 @@
-This test was with a lower learning rate and was successful! 

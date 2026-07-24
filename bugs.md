@@ -1,1 +1,0 @@
- - [ ] The mean field covariance doesn't provide the answer in the correct form for 

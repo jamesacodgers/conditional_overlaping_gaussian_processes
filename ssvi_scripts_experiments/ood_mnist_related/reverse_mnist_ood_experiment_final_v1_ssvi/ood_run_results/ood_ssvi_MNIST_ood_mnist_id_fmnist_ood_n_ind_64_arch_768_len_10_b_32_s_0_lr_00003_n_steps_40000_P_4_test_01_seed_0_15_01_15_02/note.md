@@ -1,1 +1,0 @@
-This was using the constant variance scaling 
