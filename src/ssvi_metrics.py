@@ -8,6 +8,7 @@ Key metrics:
 - RMSE: Root Mean Square Error for reconstruction quality
 - NLPD: Negative Log Predictive Density for uncertainty quantification
 - CRPS: Continuous Ranked Probability Score for predictive accuracy / uncertainty quality
+- Predictive interval coverage and mean interval width (MPIW)
 - Train/Test performance comparison for overfitting detection
 """
 
@@ -59,17 +60,39 @@ def sample_crps(samples: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     return term1 - term2
 
 
+def gaussian_interval_bounds(mu: torch.Tensor, sigma: torch.Tensor, level: float,
+                             eps: float = _CRPS_SIGMA_EPS) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Central Gaussian predictive interval [L, U] at level = 1−α."""
+    sigma = sigma.clamp(min=eps)
+    z = _normal_z_for_coverage(level)
+    lower = mu - z * sigma
+    upper = mu + z * sigma
+    return lower, upper
+
+
 def gaussian_interval_coverage(mu: torch.Tensor, sigma: torch.Tensor, y: torch.Tensor,
                                level: float, eps: float = _CRPS_SIGMA_EPS) -> torch.Tensor:
     """
     Indicator that y lies in the central Gaussian predictive interval
     [μ − z_{1−α/2} σ, μ + z_{1−α/2} σ], with level = 1−α.
     """
-    sigma = sigma.clamp(min=eps)
-    z = _normal_z_for_coverage(level)
-    lower = mu - z * sigma
-    upper = mu + z * sigma
+    lower, upper = gaussian_interval_bounds(mu, sigma, level, eps=eps)
     return ((y >= lower) & (y <= upper)).float()
+
+
+def gaussian_interval_width(mu: torch.Tensor, sigma: torch.Tensor, level: float,
+                            eps: float = _CRPS_SIGMA_EPS) -> torch.Tensor:
+    """Width U − L of the central Gaussian predictive interval at ``level``."""
+    lower, upper = gaussian_interval_bounds(mu, sigma, level, eps=eps)
+    return upper - lower
+
+
+def sample_interval_bounds(samples: torch.Tensor, level: float) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Empirical central interval bounds from predictive samples (leading draw dim)."""
+    alpha = 1.0 - level
+    lower = torch.quantile(samples, alpha / 2.0, dim=0)
+    upper = torch.quantile(samples, 1.0 - alpha / 2.0, dim=0)
+    return lower, upper
 
 
 def sample_interval_coverage(samples: torch.Tensor, y: torch.Tensor, level: float) -> torch.Tensor:
@@ -77,10 +100,14 @@ def sample_interval_coverage(samples: torch.Tensor, y: torch.Tensor, level: floa
     Indicator that y lies in the empirical central interval from predictive samples.
     ``samples`` has leading dimension over draws.
     """
-    alpha = 1.0 - level
-    lower = torch.quantile(samples, alpha / 2.0, dim=0)
-    upper = torch.quantile(samples, 1.0 - alpha / 2.0, dim=0)
+    lower, upper = sample_interval_bounds(samples, level)
     return ((y >= lower) & (y <= upper)).float()
+
+
+def sample_interval_width(samples: torch.Tensor, level: float) -> torch.Tensor:
+    """Width U − L of the empirical central interval from predictive samples."""
+    lower, upper = sample_interval_bounds(samples, level)
+    return upper - lower
 
 
 @dataclass
@@ -108,6 +135,14 @@ class SSVIMetrics:
     test_coverage_95: float = float('nan')
     coverage_90: float = float('nan')
     coverage_95: float = float('nan')
+
+    # Mean prediction interval width / MPIW (held-out: interval_width_90 / interval_width_95)
+    train_interval_width_90: float = float('nan')
+    train_interval_width_95: float = float('nan')
+    test_interval_width_90: float = float('nan')
+    test_interval_width_95: float = float('nan')
+    interval_width_90: float = float('nan')
+    interval_width_95: float = float('nan')
     
     # Missing data uncertainty metrics
     train_missing_nlpd: float = float('nan')
@@ -142,6 +177,12 @@ class SSVIMetrics:
             'test_coverage_95': self.test_coverage_95,
             'coverage_90': self.coverage_90,
             'coverage_95': self.coverage_95,
+            'train_interval_width_90': self.train_interval_width_90,
+            'train_interval_width_95': self.train_interval_width_95,
+            'test_interval_width_90': self.test_interval_width_90,
+            'test_interval_width_95': self.test_interval_width_95,
+            'interval_width_90': self.interval_width_90,
+            'interval_width_95': self.interval_width_95,
             'train_missing_nlpd': self.train_missing_nlpd,
             'test_missing_nlpd': self.test_missing_nlpd,
             'train_missing_rmse': self.train_missing_rmse,
@@ -530,20 +571,26 @@ class SSVIMetricsComputer:
                          levels: Tuple[float, ...] = COVERAGE_LEVELS,
                          use_sample_quantiles: bool = False) -> Dict[str, float]:
         """
-        Predictive interval coverage mirroring the SSVI NLPD predictive path.
+        Predictive interval coverage and mean width (MPIW), mirroring the SSVI NLPD path.
 
         Uses encoder latents, U samples, and GP mean/variance + observation noise
         (full posterior predictive variance). Moment-matches MC components to a
         single Gaussian per entry (or empirical quantiles if
         ``use_sample_quantiles``), builds central intervals at each ``level``,
-        and returns the fraction of observed entries inside each interval:
+        and returns:
 
             coverage = (1 / N_obs) Σ_{n,d} 1[y_nd ∈ [L_nd, U_nd]]
+            interval_width = (1 / N_obs) Σ_{n,d} (U_nd − L_nd)
 
-        Returns dict with keys like ``coverage_90``, ``coverage_95``.
+        over observed entries. Keys: ``coverage_90``, ``coverage_95``,
+        ``interval_width_90``, ``interval_width_95``, ...
         """
         model.eval()
-        results = {f'coverage_{int(round(level * 100))}': float('nan') for level in levels}
+        results = {}
+        for level in levels:
+            pct = int(round(level * 100))
+            results[f'coverage_{pct}'] = float('nan')
+            results[f'interval_width_{pct}'] = float('nan')
 
         with torch.no_grad():
             epsilon = model.get_epsilon()
@@ -552,7 +599,8 @@ class SSVIMetricsComputer:
             N = y_true.shape[0]
             batch_size = self.metrics_batch_size
 
-            totals = {f'coverage_{int(round(level * 100))}': 0.0 for level in levels}
+            cov_totals = {f'coverage_{int(round(level * 100))}': 0.0 for level in levels}
+            width_totals = {f'interval_width_{int(round(level * 100))}': 0.0 for level in levels}
             total_count = 0
 
             for start_idx in range(0, N, batch_size):
@@ -588,22 +636,27 @@ class SSVIMetricsComputer:
                     y_obs = y_batch
 
                 f_std = f_var.clamp(min=_CRPS_SIGMA_EPS).sqrt()
+                mask_f = observed_mask.float()
 
                 if use_sample_quantiles:
                     y_pred_samples = torch.distributions.Normal(f_mean, f_std).rsample()
                     for level in levels:
-                        key = f'coverage_{int(round(level * 100))}'
+                        pct = int(round(level * 100))
                         inside = sample_interval_coverage(y_pred_samples, y_obs, level)
-                        totals[key] += (inside * observed_mask.float()).sum().item()
+                        width = sample_interval_width(y_pred_samples, level)
+                        cov_totals[f'coverage_{pct}'] += (inside * mask_f).sum().item()
+                        width_totals[f'interval_width_{pct}'] += (width * mask_f).sum().item()
                 else:
                     # One predictive Gaussian per entry via moment matching (includes noise)
                     mu_pred = f_mean.mean(dim=0)
                     var_pred = f_var.mean(dim=0) + f_mean.var(dim=0, unbiased=False)
                     sigma_pred = var_pred.clamp(min=_CRPS_SIGMA_EPS).sqrt()
                     for level in levels:
-                        key = f'coverage_{int(round(level * 100))}'
+                        pct = int(round(level * 100))
                         inside = gaussian_interval_coverage(mu_pred, sigma_pred, y_obs, level)
-                        totals[key] += (inside * observed_mask.float()).sum().item()
+                        width = gaussian_interval_width(mu_pred, sigma_pred, level)
+                        cov_totals[f'coverage_{pct}'] += (inside * mask_f).sum().item()
+                        width_totals[f'interval_width_{pct}'] += (width * mask_f).sum().item()
 
                 total_count += observed_mask.sum().item()
 
@@ -611,12 +664,13 @@ class SSVIMetricsComputer:
                 model.train()
                 return results
 
-            for key in totals:
-                results[key] = totals[key] / total_count
+            for key, total in cov_totals.items():
+                results[key] = total / total_count
+            for key, total in width_totals.items():
+                results[key] = total / total_count
 
         model.train()
-        return results
-    
+        return results    
     def compute_missing_data_nlpd(self, 
                      model, 
                      y_original: torch.Tensor, 
@@ -785,7 +839,7 @@ class SSVIMetricsComputer:
         metrics.test_crps = self.compute_crps(model, y_test, n_samples)
         metrics.crps = metrics.test_crps  # held-out scalar for evaluation output
 
-        # Predictive interval coverage (full predictive variance incl. likelihood noise)
+        # Predictive interval coverage + mean width (full predictive variance incl. likelihood noise)
         train_cov = self.compute_coverage(model, y_train, n_samples)
         test_cov = self.compute_coverage(model, y_test, n_samples)
         metrics.train_coverage_90 = train_cov.get('coverage_90', float('nan'))
@@ -794,6 +848,12 @@ class SSVIMetricsComputer:
         metrics.test_coverage_95 = test_cov.get('coverage_95', float('nan'))
         metrics.coverage_90 = metrics.test_coverage_90
         metrics.coverage_95 = metrics.test_coverage_95
+        metrics.train_interval_width_90 = train_cov.get('interval_width_90', float('nan'))
+        metrics.train_interval_width_95 = train_cov.get('interval_width_95', float('nan'))
+        metrics.test_interval_width_90 = test_cov.get('interval_width_90', float('nan'))
+        metrics.test_interval_width_95 = test_cov.get('interval_width_95', float('nan'))
+        metrics.interval_width_90 = metrics.test_interval_width_90
+        metrics.interval_width_95 = metrics.test_interval_width_95
         
         # Missing data metrics (only if missing data is enabled and original data/masks are provided)
         if (hasattr(model, 'enable_missing_data') and model.enable_missing_data and
@@ -845,6 +905,12 @@ class SSVIMetricsComputer:
             'final_test_coverage_95': final_metrics.test_coverage_95,
             'coverage_90': final_metrics.coverage_90,
             'coverage_95': final_metrics.coverage_95,
+            'final_train_interval_width_90': final_metrics.train_interval_width_90,
+            'final_train_interval_width_95': final_metrics.train_interval_width_95,
+            'final_test_interval_width_90': final_metrics.test_interval_width_90,
+            'final_test_interval_width_95': final_metrics.test_interval_width_95,
+            'interval_width_90': final_metrics.interval_width_90,
+            'interval_width_95': final_metrics.interval_width_95,
             'final_train_missing_nlpd': final_metrics.train_missing_nlpd,
             'final_test_missing_nlpd': final_metrics.test_missing_nlpd,
             'final_train_missing_rmse': final_metrics.train_missing_rmse,

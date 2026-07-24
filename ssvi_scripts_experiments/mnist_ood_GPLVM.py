@@ -863,6 +863,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         train_crps_list = []
         train_coverage_90_list = []
         train_coverage_95_list = []
+        train_interval_width_90_list = []
+        train_interval_width_95_list = []
         train_missing_nlpd_list = []
         train_missing_rmse_list = []
         effective_dims_list = []
@@ -961,10 +963,14 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                             )
                             train_coverage_90 = train_cov.get('coverage_90', float('nan'))
                             train_coverage_95 = train_cov.get('coverage_95', float('nan'))
+                            train_interval_width_90 = train_cov.get('interval_width_90', float('nan'))
+                            train_interval_width_95 = train_cov.get('interval_width_95', float('nan'))
                         except Exception as e:
                             print(f"  Warning: Could not compute coverage: {e}")
                             train_coverage_90 = float('nan')
                             train_coverage_95 = float('nan')
+                            train_interval_width_90 = float('nan')
+                            train_interval_width_95 = float('nan')
                         
                         # Compute missing data metrics if enabled
                         train_missing_nlpd = None
@@ -1014,6 +1020,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         train_crps_list.append(float(train_crps))
                         train_coverage_90_list.append(float(train_coverage_90))
                         train_coverage_95_list.append(float(train_coverage_95))
+                        train_interval_width_90_list.append(float(train_interval_width_90))
+                        train_interval_width_95_list.append(float(train_interval_width_95))
                         train_missing_nlpd_list.append(float(train_missing_nlpd) if train_missing_nlpd is not None else float('nan'))
                         train_missing_rmse_list.append(float(train_missing_rmse) if train_missing_rmse is not None else float('nan'))
                         effective_dims_list.append(effective_dims)
@@ -1037,7 +1045,9 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         knn_metrics_history.append(knn_results)
                         
                         print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, CRPS={train_crps:.4f}, "
-                              f"cov90={train_coverage_90:.3f}, cov95={train_coverage_95:.3f}, Effective dims: {effective_dims}/{total_dims}")
+                              f"cov90={train_coverage_90:.3f}, cov95={train_coverage_95:.3f}, "
+                              f"width90={train_interval_width_90:.4f}, width95={train_interval_width_95:.4f}, "
+                              f"Effective dims: {effective_dims}/{total_dims}")
                         
                 except Exception as e:
                     print(f"  Warning: Could not compute metrics at iteration {i}: {e}")
@@ -1130,13 +1140,17 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     logger.get_results_dir(), model_name, config.random_seed,
                     train_coverage_90_list=train_coverage_90_list,
                     train_coverage_95_list=train_coverage_95_list,
+                    train_interval_width_90_list=train_interval_width_90_list,
+                    train_interval_width_95_list=train_interval_width_95_list,
                 )
             
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
                                          metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list, train_missing_rmse_list,
                                          train_crps_list=train_crps_list,
                                          train_coverage_90_list=train_coverage_90_list,
-                                         train_coverage_95_list=train_coverage_95_list)
+                                         train_coverage_95_list=train_coverage_95_list,
+                                         train_interval_width_90_list=train_interval_width_90_list,
+                                         train_interval_width_95_list=train_interval_width_95_list)
             
             # Save training losses (full dataset loss and batch loss) - matching SSVI pattern
             print("Saving training losses (full dataset loss)...")
@@ -1387,13 +1401,22 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 )
                 coverage_90 = test_cov.get('coverage_90', float('nan'))
                 coverage_95 = test_cov.get('coverage_95', float('nan'))
+                interval_width_90 = test_cov.get('interval_width_90', float('nan'))
+                interval_width_95 = test_cov.get('interval_width_95', float('nan'))
                 print(f'Train coverage_90/95 {model_name} = {train_cov.get("coverage_90"):.4f} / {train_cov.get("coverage_95"):.4f}')
                 print(f'Test coverage_90/95 {model_name} = {coverage_90:.4f} / {coverage_95:.4f}')
+                print(f'Train interval_width_90/95 {model_name} = {train_cov.get("interval_width_90"):.4f} / {train_cov.get("interval_width_95"):.4f}')
+                print(f'Test interval_width_90/95 {model_name} = {interval_width_90:.4f} / {interval_width_95:.4f}')
             except Exception as e:
                 print(f"Warning: Failed to compute coverage for {model_name} due to error: {e}")
-                train_cov = {'coverage_90': float('nan'), 'coverage_95': float('nan')}
+                train_cov = {
+                    'coverage_90': float('nan'), 'coverage_95': float('nan'),
+                    'interval_width_90': float('nan'), 'interval_width_95': float('nan'),
+                }
                 coverage_90 = float('nan')
                 coverage_95 = float('nan')
+                interval_width_90 = float('nan')
+                interval_width_95 = float('nan')
                 
             if model_name not in results_summary:
                 results_summary[model_name] = {}
@@ -1499,6 +1522,12 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 'test_coverage_95': float(coverage_95),
                 'coverage_90': float(coverage_90),
                 'coverage_95': float(coverage_95),
+                'train_interval_width_90': float(train_cov.get('interval_width_90', float('nan'))),
+                'train_interval_width_95': float(train_cov.get('interval_width_95', float('nan'))),
+                'test_interval_width_90': float(interval_width_90),
+                'test_interval_width_95': float(interval_width_95),
+                'interval_width_90': float(interval_width_90),
+                'interval_width_95': float(interval_width_95),
                 'train_missing_nlpd': train_missing_nlpd_value,
                 'test_missing_nlpd': test_missing_nlpd_value,
                 'train_missing_rmse': train_missing_rmse_value,
@@ -1512,7 +1541,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, "
                 f"Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}, "
                 f"Train CRPS: {train_crps:.4f}, Test CRPS (crps): {crps:.4f}, "
-                f"coverage_90: {coverage_90:.4f}, coverage_95: {coverage_95:.4f}"
+                f"coverage_90: {coverage_90:.4f}, coverage_95: {coverage_95:.4f}, "
+                f"interval_width_90: {interval_width_90:.4f}, interval_width_95: {interval_width_95:.4f}"
             )
             
             # Visualize missing data reconstruction for gauss model if enabled

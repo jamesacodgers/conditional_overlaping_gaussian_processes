@@ -12,7 +12,9 @@ from src.ssvi_metrics import (
     gaussian_crps,
     sample_crps,
     gaussian_interval_coverage,
+    gaussian_interval_width,
     sample_interval_coverage,
+    sample_interval_width,
     _CRPS_SIGMA_EPS,
     COVERAGE_LEVELS,
 )
@@ -250,18 +252,24 @@ def compute_coverage_nll_based(model, Y_true, X_mean, model_name, X_covar=None, 
                                enable_missing_data=False, batch_size=256,
                                levels=COVERAGE_LEVELS, use_sample_quantiles=False):
     """
-    Predictive interval coverage mirroring ``compute_nlpd_nll_based``.
+    Predictive interval coverage and mean width (MPIW) mirroring ``compute_nlpd_nll_based``.
 
     Same predictive path as NLPD (x ~ q(x), GP loc/diag-cov + observation noise).
     Moment-matches MC Gaussians to one predictive N(μ, σ²) per entry (σ² includes
     likelihood noise), builds central intervals at each ``level``, and returns:
 
         coverage = (1 / N_obs) Σ 1[y ∈ [L, U]]
+        interval_width = (1 / N_obs) Σ (U − L)
 
-    over observed entries only. Keys: ``coverage_90``, ``coverage_95``, ...
+    over observed entries only. Keys: ``coverage_90``, ``coverage_95``,
+    ``interval_width_90``, ``interval_width_95``, ...
     """
     model.eval()
-    results = {f'coverage_{int(round(level * 100))}': float('nan') for level in levels}
+    results = {}
+    for level in levels:
+        pct = int(round(level * 100))
+        results[f'coverage_{pct}'] = float('nan')
+        results[f'interval_width_{pct}'] = float('nan')
 
     with torch.no_grad():
         N = len(Y_true)
@@ -272,7 +280,8 @@ def compute_coverage_nll_based(model, Y_true, X_mean, model_name, X_covar=None, 
         try:
             n_samples = 4  # Same as NLPD / CRPS
 
-            totals = {f'coverage_{int(round(level * 100))}': 0.0 for level in levels}
+            cov_totals = {f'coverage_{int(round(level * 100))}': 0.0 for level in levels}
+            width_totals = {f'interval_width_{int(round(level * 100))}': 0.0 for level in levels}
             total_count = 0
 
             for start_idx in range(0, N, batch_size):
@@ -315,21 +324,26 @@ def compute_coverage_nll_based(model, Y_true, X_mean, model_name, X_covar=None, 
                 f_mean_stack = torch.stack(means)
                 f_var_stack = torch.stack(vars_)
                 f_std_stack = f_var_stack.clamp(min=_CRPS_SIGMA_EPS).sqrt()
+                mask_f = observed_mask_T.float()
 
                 if use_sample_quantiles:
                     y_pred_samples = torch.distributions.Normal(f_mean_stack, f_std_stack).rsample()
                     for level in levels:
-                        key = f'coverage_{int(round(level * 100))}'
+                        pct = int(round(level * 100))
                         inside = sample_interval_coverage(y_pred_samples, Y_obs_T, level)
-                        totals[key] += (inside * observed_mask_T.float()).sum().item()
+                        width = sample_interval_width(y_pred_samples, level)
+                        cov_totals[f'coverage_{pct}'] += (inside * mask_f).sum().item()
+                        width_totals[f'interval_width_{pct}'] += (width * mask_f).sum().item()
                 else:
                     mu_pred = f_mean_stack.mean(dim=0)
                     var_pred = f_var_stack.mean(dim=0) + f_mean_stack.var(dim=0, unbiased=False)
                     sigma_pred = var_pred.clamp(min=_CRPS_SIGMA_EPS).sqrt()
                     for level in levels:
-                        key = f'coverage_{int(round(level * 100))}'
+                        pct = int(round(level * 100))
                         inside = gaussian_interval_coverage(mu_pred, sigma_pred, Y_obs_T, level)
-                        totals[key] += (inside * observed_mask_T.float()).sum().item()
+                        width = gaussian_interval_width(mu_pred, sigma_pred, level)
+                        cov_totals[f'coverage_{pct}'] += (inside * mask_f).sum().item()
+                        width_totals[f'interval_width_{pct}'] += (width * mask_f).sum().item()
 
                 total_count += observed_mask.sum().item()
 
@@ -337,15 +351,16 @@ def compute_coverage_nll_based(model, Y_true, X_mean, model_name, X_covar=None, 
                 model.train()
                 return results
 
-            for key in totals:
-                results[key] = totals[key] / total_count
+            for key, total in cov_totals.items():
+                results[key] = total / total_count
+            for key, total in width_totals.items():
+                results[key] = total / total_count
 
         except Exception as e:
             print(f"WARNING: Coverage computation failed for {model_name} model: {str(e)}")
 
     model.train()
     return results
-
 
 def compute_missing_data_nlpd_gauss(model, Y_original, missing_mask, X_mean, X_std, obs_noise, n_samples=50, batch_size=256):
     """
