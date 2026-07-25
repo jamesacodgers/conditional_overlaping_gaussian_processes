@@ -11,6 +11,8 @@ import numpy as np
 from src.ssvi_metrics import (
     gaussian_crps,
     sample_crps,
+    gaussian_mixture_crps,
+    posterior_predictive_sample_crps,
     gaussian_interval_coverage,
     gaussian_interval_width,
     sample_interval_coverage,
@@ -139,20 +141,38 @@ def compute_nlpd_nll_based(model, Y_true, X_mean, model_name, loss_data, X_covar
 def compute_crps_nll_based(model, Y_true, X_mean, model_name, X_covar=None, obs_noise=None,
                            enable_missing_data=False, batch_size=256, use_sample_estimator=False):
     """
-    Compute CRPS mirroring ``compute_nlpd_nll_based`` for original GP-LVM models.
+    Default CRPS (NLPD-style MC average of conditional Gaussian CRPS). Unchanged.
 
-    Uses the identical predictive path as NLPD: sample x ~ q(x), GP predictive
-    mean/variance (+ observation noise), then closed-form Gaussian CRPS on each
-    MC component. Aggregation matches NLPD:
-      - score each MC draw
-      - average over MC samples
-      - sum over observed dimensions
-      - average over datapoints
+    See ``compute_all_crps_nll_based`` for posterior-predictive variants.
+    """
+    return compute_all_crps_nll_based(
+        model, Y_true, X_mean, model_name, X_covar=X_covar, obs_noise=obs_noise,
+        enable_missing_data=enable_missing_data, batch_size=batch_size,
+        use_sample_estimator=use_sample_estimator,
+    )['crps']
 
-    Optional sample estimator: E|X − y| − (1/2) E|X − X′|.
-    Lower is better.
+
+def compute_all_crps_nll_based(model, Y_true, X_mean, model_name, X_covar=None, obs_noise=None,
+                               enable_missing_data=False, batch_size=256, use_sample_estimator=False):
+    """
+    Compute default CRPS plus two posterior-predictive CRPS variants for original GP-LVM.
+
+    Returns dict with:
+      - ``crps``: NLPD-style MC average of conditional Gaussian CRPS
+        (sum over observed dims, mean over datapoints). Unchanged.
+      - ``crps_posterior_predictive_sample``: empirical CRPS of draws from F*
+        (mean over observed scalar entries).
+      - ``crps_posterior_predictive_mixture``: exact finite Gaussian-mixture CRPS
+        of F* = (1/S) Σ_s N(μ_s, σ_s²) (mean over observed scalar entries).
+
+    Uses the identical predictive path as NLPD / default CRPS.
     """
     model.eval()
+    results = {
+        'crps': float('nan'),
+        'crps_posterior_predictive_sample': float('nan'),
+        'crps_posterior_predictive_mixture': float('nan'),
+    }
 
     with torch.no_grad():
         N = len(Y_true)
@@ -164,7 +184,10 @@ def compute_crps_nll_based(model, Y_true, X_mean, model_name, X_covar=None, obs_
             n_samples = 4  # Same as compute_nlpd_nll_based
 
             total_crps = 0.0
-            total_count = 0
+            total_datapoints = 0
+            total_sample_crps = 0.0
+            total_mixture_crps = 0.0
+            total_obs_entries = 0
 
             for start_idx in range(0, N, batch_size):
                 end_idx = min(start_idx + batch_size, N)
@@ -184,19 +207,17 @@ def compute_crps_nll_based(model, Y_true, X_mean, model_name, X_covar=None, obs_
                     if observed_mask.sum() == 0:
                         continue
                     Y_obs = torch.where(observed_mask, Y_batch, torch.zeros_like(Y_batch, dtype=torch.float64))
-                    observed_mask_T = observed_mask.T  # [D, batch]
                 else:
-                    observed_mask = None
+                    observed_mask = torch.ones_like(Y_batch, dtype=torch.bool)
                     Y_obs = Y_batch
-                    observed_mask_T = None
 
                 Y_obs_T = Y_obs.T  # [D, batch] — matches GP output layout
+                observed_mask_T = observed_mask.T
+                mask_f = observed_mask_T.float()
                 x_dist = torch.distributions.Normal(X_mean_batch, X_std_batch)
 
-                batch_crps = []
                 means = []
                 vars_ = []
-
                 for _ in range(n_samples):
                     x_sample = x_dist.rsample()
                     Y_star = model(x_sample)
@@ -204,48 +225,44 @@ def compute_crps_nll_based(model, Y_true, X_mean, model_name, X_covar=None, obs_
                     f_var = torch.stack([torch.diag(x) for x in Y_star.covariance_matrix])  # [D, batch]
                     if obs_noise is not None:
                         f_var = f_var + obs_noise
+                    means.append(f_mean)
+                    vars_.append(f_var)
 
-                    if use_sample_estimator:
-                        means.append(f_mean)
-                        vars_.append(f_var)
-                    else:
-                        f_std = f_var.clamp(min=_CRPS_SIGMA_EPS).sqrt()
-                        crps_vals = gaussian_crps(f_mean, f_std, Y_obs_T)  # [D, batch]
-                        if observed_mask_T is not None:
-                            crps_sum = (crps_vals * observed_mask_T.float()).sum(dim=0)  # [batch]
-                        else:
-                            crps_sum = crps_vals.sum(dim=0)
-                        batch_crps.append(crps_sum)
+                f_mean_stack = torch.stack(means)  # [S, D, batch]
+                f_var_stack = torch.stack(vars_)
+                f_std = f_var_stack.clamp(min=_CRPS_SIGMA_EPS).sqrt()
 
+                # --- default crps (NLPD-style; unchanged) ---
                 if use_sample_estimator:
-                    f_mean_stack = torch.stack(means)
-                    f_var_stack = torch.stack(vars_)
-                    f_std = f_var_stack.clamp(min=_CRPS_SIGMA_EPS).sqrt()
                     y_pred_samples = torch.distributions.Normal(f_mean_stack, f_std).rsample()
                     crps_vals = sample_crps(y_pred_samples, Y_obs_T)  # [D, batch]
-                    if observed_mask_T is not None:
-                        crps_per_point = (crps_vals * observed_mask_T.float()).sum(dim=0)
-                    else:
-                        crps_per_point = crps_vals.sum(dim=0)
+                    crps_per_point = (crps_vals * mask_f).sum(dim=0)
                 else:
-                    # Mirror NLPD: average MC sample scores → [batch]
-                    crps_per_point = torch.stack(batch_crps).mean(dim=0)
+                    crps_vals = gaussian_crps(f_mean_stack, f_std, Y_obs_T)  # [S, D, batch]
+                    crps_per_point = (crps_vals * mask_f[None, :, :]).sum(dim=1).mean(dim=0)
 
                 total_crps += crps_per_point.sum().item()
-                total_count += current_batch_size
+                total_datapoints += current_batch_size
 
-            if total_count == 0:
-                model.train()
-                return float('nan')
+                # --- posterior-predictive variants (mean over observed entries) ---
+                # Layout is [S, D, batch]; sample/mixture helpers treat leading dim as S
+                sample_vals = posterior_predictive_sample_crps(f_mean_stack, f_std, Y_obs_T)  # [D, batch]
+                mixture_vals = gaussian_mixture_crps(f_mean_stack, f_std, Y_obs_T)  # [D, batch]
+                total_sample_crps += (sample_vals * mask_f).sum().item()
+                total_mixture_crps += (mixture_vals * mask_f).sum().item()
+                total_obs_entries += observed_mask.sum().item()
 
-            crps = total_crps / total_count
+            if total_datapoints > 0:
+                results['crps'] = total_crps / total_datapoints
+            if total_obs_entries > 0:
+                results['crps_posterior_predictive_sample'] = total_sample_crps / total_obs_entries
+                results['crps_posterior_predictive_mixture'] = total_mixture_crps / total_obs_entries
 
         except Exception as e:
             print(f"WARNING: CRPS computation failed for {model_name} model: {str(e)}")
-            crps = float('nan')
 
     model.train()
-    return crps
+    return results
 
 
 def compute_coverage_nll_based(model, Y_true, X_mean, model_name, X_covar=None, obs_noise=None,

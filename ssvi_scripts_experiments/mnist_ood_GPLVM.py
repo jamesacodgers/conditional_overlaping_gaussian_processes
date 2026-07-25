@@ -91,8 +91,8 @@ from src.original_gplvm_config_utils import (
     ensure_config_dir_exists, print_available_configs
 )
 from src.original_gplvm_results_logger import OriginalGPLVMResultsLogger
-from src.nlpd_utils import compute_nlpd_nll_based, compute_crps_nll_based, compute_coverage_nll_based, compute_missing_data_nlpd_gauss
-from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_crps_metrics_progression
+from src.nlpd_utils import compute_nlpd_nll_based, compute_crps_nll_based, compute_all_crps_nll_based, compute_coverage_nll_based, compute_missing_data_nlpd_gauss
+from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_effective_latent_dims, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_crps_metrics_progression, plot_crps_posterior_predictive_progression
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
@@ -861,6 +861,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
         train_rmse_list = []
         train_nlpd_list = []
         train_crps_list = []
+        train_crps_pp_sample_list = []
+        train_crps_pp_mixture_list = []
         train_coverage_90_list = []
         train_coverage_95_list = []
         train_interval_width_90_list = []
@@ -943,16 +945,21 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                             print(f"  Warning: Could not get covariance for NLPD: {e}")
                             train_nlpd = compute_nlpd_nll_based(model, Y_train, X_train_mean, model_name, loss_list, enable_missing_data=config.enable_missing_data, batch_size=config.batch_size)
 
-                        # Compute training CRPS (same predictive path as NLPD)
+                        # Compute training CRPS family (same predictive path as NLPD)
                         try:
                             obs_noise = likelihood.noise
-                            train_crps = compute_crps_nll_based(
+                            train_crps_all = compute_all_crps_nll_based(
                                 model, Y_train, X_train_mean, model_name, X_train_covar, obs_noise,
                                 enable_missing_data=config.enable_missing_data, batch_size=config.batch_size
                             )
+                            train_crps = train_crps_all['crps']
+                            train_crps_pp_sample = train_crps_all['crps_posterior_predictive_sample']
+                            train_crps_pp_mixture = train_crps_all['crps_posterior_predictive_mixture']
                         except Exception as e:
                             print(f"  Warning: Could not compute CRPS: {e}")
                             train_crps = float('nan')
+                            train_crps_pp_sample = float('nan')
+                            train_crps_pp_mixture = float('nan')
 
                         # Predictive interval coverage (same predictive path as NLPD)
                         try:
@@ -1018,6 +1025,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         train_rmse_list.append(float(train_rmse.item()) if hasattr(train_rmse, 'item') else float(train_rmse))
                         train_nlpd_list.append(float(train_nlpd))
                         train_crps_list.append(float(train_crps))
+                        train_crps_pp_sample_list.append(float(train_crps_pp_sample))
+                        train_crps_pp_mixture_list.append(float(train_crps_pp_mixture))
                         train_coverage_90_list.append(float(train_coverage_90))
                         train_coverage_95_list.append(float(train_coverage_95))
                         train_interval_width_90_list.append(float(train_interval_width_90))
@@ -1044,7 +1053,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                         print(f"    k=12: {knn_results['knn_12']:.4f}")
                         knn_metrics_history.append(knn_results)
                         
-                        print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, CRPS={train_crps:.4f}, "
+                        print(f"  Train metrics at iter {i}: RMSE={train_rmse:.4f}, NLPD={train_nlpd:.3f}, CRPS={train_crps:.4f}, pp_sample={train_crps_pp_sample:.4f}, pp_mix={train_crps_pp_mixture:.4f}, "
                               f"cov90={train_coverage_90:.3f}, cov95={train_coverage_95:.3f}, "
                               f"width90={train_interval_width_90:.4f}, width95={train_interval_width_95:.4f}, "
                               f"Effective dims: {effective_dims}/{total_dims}")
@@ -1143,6 +1152,10 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     train_interval_width_90_list=train_interval_width_90_list,
                     train_interval_width_95_list=train_interval_width_95_list,
                 )
+                plot_crps_posterior_predictive_progression(
+                    train_crps_pp_sample_list, train_crps_pp_mixture_list,
+                    metrics_iterations, logger.get_results_dir(), model_name, config.random_seed,
+                )
             
             logger.save_checkpoint_metrics(train_rmse_list, train_nlpd_list, metrics_iterations, 
                                          metrics_losses, model_name, config.random_seed, effective_dims_list, train_missing_nlpd_list, train_missing_rmse_list,
@@ -1150,7 +1163,9 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                                          train_coverage_90_list=train_coverage_90_list,
                                          train_coverage_95_list=train_coverage_95_list,
                                          train_interval_width_90_list=train_interval_width_90_list,
-                                         train_interval_width_95_list=train_interval_width_95_list)
+                                         train_interval_width_95_list=train_interval_width_95_list,
+                                         train_crps_pp_sample_list=train_crps_pp_sample_list,
+                                         train_crps_pp_mixture_list=train_crps_pp_mixture_list)
             
             # Save training losses (full dataset loss and batch loss) - matching SSVI pattern
             print("Saving training losses (full dataset loss)...")
@@ -1369,25 +1384,41 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 train_nlpd = float('nan')
                 test_nlpd = float('nan')
 
-            # Continuous Ranked Probability Score (same predictive path as NLPD)
+            # Continuous Ranked Probability Score family (same predictive path as NLPD)
             try:
-                train_crps = compute_crps_nll_based(
+                train_crps_all = compute_all_crps_nll_based(
                     model, Y_train, X_train_mean_device, model_name, X_train_covar, obs_noise,
                     enable_missing_data=config.enable_missing_data, batch_size=config.batch_size
                 )
-                test_crps = compute_crps_nll_based(
+                test_crps_all = compute_all_crps_nll_based(
                     model, Y_test_for_encoder, X_test_mean_device, model_name, X_test_covar, obs_noise,
                     enable_missing_data=config.enable_missing_data, batch_size=config.batch_size
                 )
+                train_crps = train_crps_all['crps']
+                test_crps = test_crps_all['crps']
                 crps = test_crps  # held-out scalar for evaluation output
+                train_crps_pp_sample = train_crps_all['crps_posterior_predictive_sample']
+                test_crps_pp_sample = test_crps_all['crps_posterior_predictive_sample']
+                crps_posterior_predictive_sample = test_crps_pp_sample
+                train_crps_pp_mixture = train_crps_all['crps_posterior_predictive_mixture']
+                test_crps_pp_mixture = test_crps_all['crps_posterior_predictive_mixture']
+                crps_posterior_predictive_mixture = test_crps_pp_mixture
 
                 print(f'Train CRPS {model_name} = ' + str(train_crps))
                 print(f'Test CRPS (crps) {model_name} = ' + str(crps))
+                print(f'Train/Test crps_pp_sample {model_name} = {train_crps_pp_sample:.4f} / {test_crps_pp_sample:.4f}')
+                print(f'Train/Test crps_pp_mixture {model_name} = {train_crps_pp_mixture:.4f} / {test_crps_pp_mixture:.4f}')
             except Exception as e:
                 print(f"Warning: Failed to compute CRPS for {model_name} due to error: {e}")
                 train_crps = float('nan')
                 test_crps = float('nan')
                 crps = float('nan')
+                train_crps_pp_sample = float('nan')
+                test_crps_pp_sample = float('nan')
+                crps_posterior_predictive_sample = float('nan')
+                train_crps_pp_mixture = float('nan')
+                test_crps_pp_mixture = float('nan')
+                crps_posterior_predictive_mixture = float('nan')
 
             # Predictive interval coverage (same predictive path as NLPD)
             try:
@@ -1516,6 +1547,12 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 'train_crps': float(train_crps),
                 'test_crps': float(test_crps),
                 'crps': float(crps),  # held-out CRPS (same as test_crps)
+                'train_crps_posterior_predictive_sample': float(train_crps_pp_sample),
+                'test_crps_posterior_predictive_sample': float(test_crps_pp_sample),
+                'crps_posterior_predictive_sample': float(crps_posterior_predictive_sample),
+                'train_crps_posterior_predictive_mixture': float(train_crps_pp_mixture),
+                'test_crps_posterior_predictive_mixture': float(test_crps_pp_mixture),
+                'crps_posterior_predictive_mixture': float(crps_posterior_predictive_mixture),
                 'train_coverage_90': float(train_cov.get('coverage_90', float('nan'))),
                 'train_coverage_95': float(train_cov.get('coverage_95', float('nan'))),
                 'test_coverage_90': float(coverage_90),
@@ -1541,6 +1578,7 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 f"Model {model_name} - Train RMSE: {mse_train:.4f}, Test RMSE: {mse_test:.4f}, "
                 f"Train NLPD: {train_nlpd:.4f}, Test NLPD: {test_nlpd:.4f}, "
                 f"Train CRPS: {train_crps:.4f}, Test CRPS (crps): {crps:.4f}, "
+                f"crps_pp_sample: {crps_posterior_predictive_sample:.4f}, crps_pp_mixture: {crps_posterior_predictive_mixture:.4f}, "
                 f"coverage_90: {coverage_90:.4f}, coverage_95: {coverage_95:.4f}, "
                 f"interval_width_90: {interval_width_90:.4f}, interval_width_95: {interval_width_95:.4f}"
             )

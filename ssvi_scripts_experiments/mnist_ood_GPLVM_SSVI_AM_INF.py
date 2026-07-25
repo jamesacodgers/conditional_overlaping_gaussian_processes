@@ -60,7 +60,7 @@ sys.path.insert(0, os.path.join(project_root, "generalised_gplvm_code"))
 
 from src.ssvi_models_am_inf_sep_opt import GPLVM_SSVI_AM_INF
 
-from src.ssvi_utils import SSVIResultsLogger, plot_metrics_history, plot_final_metrics_summary, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_crps_metrics_progression
+from src.ssvi_utils import SSVIResultsLogger, plot_metrics_history, plot_final_metrics_summary, plot_missing_nlpd_metrics_progression, plot_missing_rmse_metrics_progression, plot_crps_metrics_progression, plot_crps_posterior_predictive_progression
 from src.ssvi_metrics import SSVIMetricsComputer, create_train_test_split
 from src.missing_data_utils import preprocess_data_for_missing_training
 from src.save_utils import print_final_model_parameters
@@ -719,6 +719,9 @@ def train_oil_flow_ssvi(
                 f"    Train CRPS: {metrics.train_crps:.4f}, Test CRPS (crps): {metrics.crps:.4f}"
             )
             print(
+                f"    crps_pp_sample: {metrics.crps_posterior_predictive_sample:.4f}, crps_pp_mixture: {metrics.crps_posterior_predictive_mixture:.4f}"
+            )
+            print(
                 f"    coverage_90: {metrics.coverage_90:.4f}, coverage_95: {metrics.coverage_95:.4f}"
             )
             print(
@@ -1224,6 +1227,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         print(f"Final Test NLPD: {summary['final_test_nlpd']:.3f}")
         print(f"Final Train CRPS: {summary['final_train_crps']:.4f}")
         print(f"Final Test CRPS (crps): {summary['crps']:.4f}")
+        print(f"Final crps_pp_sample: {summary['crps_posterior_predictive_sample']:.4f}")
+        print(f"Final crps_pp_mixture: {summary['crps_posterior_predictive_mixture']:.4f}")
         print(f"Final coverage_90: {summary['coverage_90']:.4f}")
         print(f"Final coverage_95: {summary['coverage_95']:.4f}")
         print(f"Final interval_width_90: {summary['interval_width_90']:.4f}")
@@ -1260,6 +1265,9 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
 
         print("Generating CRPS & coverage metrics progression plot...")
         plot_crps_metrics_progression(metrics_computer, logger, show_plot=False)
+
+        print("Generating posterior-predictive CRPS progression plot...")
+        plot_crps_posterior_predictive_progression(metrics_computer, logger, show_plot=False)
         
         print("Generating final metrics summary plots...")
         plot_final_metrics_summary(metrics_computer, model, logger, show_plot=False)
@@ -1390,6 +1398,12 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
                 "train_crps": summary.get("final_train_crps", 0.0),
                 "test_crps": summary.get("final_test_crps", 0.0),
                 "crps": summary.get("crps", 0.0),  # held-out CRPS (same as test_crps)
+                "train_crps_posterior_predictive_sample": summary.get("final_train_crps_posterior_predictive_sample", float("nan")),
+                "test_crps_posterior_predictive_sample": summary.get("final_test_crps_posterior_predictive_sample", float("nan")),
+                "crps_posterior_predictive_sample": summary.get("crps_posterior_predictive_sample", float("nan")),
+                "train_crps_posterior_predictive_mixture": summary.get("final_train_crps_posterior_predictive_mixture", float("nan")),
+                "test_crps_posterior_predictive_mixture": summary.get("final_test_crps_posterior_predictive_mixture", float("nan")),
+                "crps_posterior_predictive_mixture": summary.get("crps_posterior_predictive_mixture", float("nan")),
                 "train_coverage_90": summary.get("final_train_coverage_90", float("nan")),
                 "train_coverage_95": summary.get("final_train_coverage_95", float("nan")),
                 "test_coverage_90": summary.get("final_test_coverage_90", float("nan")),
