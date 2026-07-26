@@ -148,6 +148,12 @@ class SSVIResultsLogger:
                     'train_crps': float(metrics.train_crps),
                     'test_crps': float(metrics.test_crps),
                     'crps': float(metrics.crps),
+                    'train_crps_posterior_predictive_sample': float(metrics.train_crps_posterior_predictive_sample),
+                    'test_crps_posterior_predictive_sample': float(metrics.test_crps_posterior_predictive_sample),
+                    'crps_posterior_predictive_sample': float(metrics.crps_posterior_predictive_sample),
+                    'train_crps_posterior_predictive_mixture': float(metrics.train_crps_posterior_predictive_mixture),
+                    'test_crps_posterior_predictive_mixture': float(metrics.test_crps_posterior_predictive_mixture),
+                    'crps_posterior_predictive_mixture': float(metrics.crps_posterior_predictive_mixture),
                     'train_coverage_90': float(metrics.train_coverage_90),
                     'train_coverage_95': float(metrics.train_coverage_95),
                     'test_coverage_90': float(metrics.test_coverage_90),
@@ -786,6 +792,66 @@ def plot_crps_metrics_progression(metrics_computer,
     return fig
 
 
+def plot_crps_posterior_predictive_progression(metrics_computer,
+                                               logger: SSVIResultsLogger = None,
+                                               show_plot: bool = True) -> plt.Figure:
+    """
+    Separate progression plot for posterior-predictive CRPS variants.
+
+    Panel 1: crps_posterior_predictive_sample (train/test)
+    Panel 2: crps_posterior_predictive_mixture (train/test)
+    """
+    if not hasattr(metrics_computer, 'metrics_history') or not metrics_computer.metrics_history:
+        print("No metrics history available for posterior-predictive CRPS plotting")
+        return None
+
+    iterations = [m.iteration for m in metrics_computer.metrics_history]
+    train_sample = [m.train_crps_posterior_predictive_sample for m in metrics_computer.metrics_history]
+    test_sample = [m.test_crps_posterior_predictive_sample for m in metrics_computer.metrics_history]
+    train_mix = [m.train_crps_posterior_predictive_mixture for m in metrics_computer.metrics_history]
+    test_mix = [m.test_crps_posterior_predictive_mixture for m in metrics_computer.metrics_history]
+
+    def _has_valid(values):
+        return any(not np.isnan(x) for x in values)
+
+    if not (_has_valid(train_sample) or _has_valid(test_sample) or _has_valid(train_mix) or _has_valid(test_mix)):
+        print("No valid posterior-predictive CRPS data available for plotting")
+        return None
+
+    fig, (ax_sample, ax_mix) = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+
+    def _plot_series(ax, values, iters, style, label):
+        valid = [not np.isnan(x) for x in values]
+        if any(valid):
+            ax.plot([iters[i] for i in range(len(iters)) if valid[i]],
+                    [values[i] for i in range(len(values)) if valid[i]],
+                    style, label=label, linewidth=2, marker='o', markersize=4)
+
+    _plot_series(ax_sample, train_sample, iterations, 'b-', 'Train sample CRPS')
+    _plot_series(ax_sample, test_sample, iterations, 'r-', 'Test sample CRPS')
+    ax_sample.set_ylabel('CRPS (lower is better)')
+    ax_sample.set_title('Posterior-Predictive CRPS Variants')
+    ax_sample.legend()
+    ax_sample.grid(True, alpha=0.3)
+
+    _plot_series(ax_mix, train_mix, iterations, 'b-', 'Train mixture CRPS')
+    _plot_series(ax_mix, test_mix, iterations, 'r-', 'Test mixture CRPS')
+    ax_mix.set_xlabel('Iteration')
+    ax_mix.set_ylabel('CRPS (lower is better)')
+    ax_mix.legend()
+    ax_mix.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    if logger:
+        logger.save_plots(fig, "crps_posterior_predictive_progression.png")
+
+    if show_plot:
+        plt.show()
+
+    return fig
+
+
 def plot_missing_nlpd_metrics_progression(metrics_computer,
                                          logger: SSVIResultsLogger = None,
                                          show_plot: bool = True) -> plt.Figure:
@@ -1000,6 +1066,8 @@ def plot_final_metrics_summary(metrics_computer,
         ['Test NLPD', f'{final_metrics.test_nlpd:.3f}'],
         ['Train CRPS', f'{final_metrics.train_crps:.4f}'],
         ['Test CRPS (crps)', f'{final_metrics.crps:.4f}'],
+        ['crps_pp_sample', f'{final_metrics.crps_posterior_predictive_sample:.4f}'],
+        ['crps_pp_mixture', f'{final_metrics.crps_posterior_predictive_mixture:.4f}'],
         ['coverage_90', f'{final_metrics.coverage_90:.4f}'],
         ['coverage_95', f'{final_metrics.coverage_95:.4f}'],
         ['interval_width_90', f'{final_metrics.interval_width_90:.4f}'],

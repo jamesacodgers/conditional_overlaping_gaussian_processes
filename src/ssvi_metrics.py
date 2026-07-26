@@ -60,6 +60,59 @@ def sample_crps(samples: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     return term1 - term2
 
 
+def gaussian_mixture_A(a: torch.Tensor, v: torch.Tensor,
+                       eps: float = _CRPS_SIGMA_EPS) -> torch.Tensor:
+    """
+    Kernel used by exact finite Gaussian-mixture CRPS:
+
+        A(a, v) = 2 √v φ(a/√v) + a (2 Φ(a/√v) − 1)
+
+    where φ, Φ are the standard normal pdf and cdf.
+    """
+    v = v.clamp(min=eps)
+    s = v.sqrt()
+    z = a / s
+    phi = torch.exp(-0.5 * z ** 2) / math.sqrt(2.0 * math.pi)
+    Phi = 0.5 * (1.0 + torch.erf(z / math.sqrt(2.0)))
+    return 2.0 * s * phi + a * (2.0 * Phi - 1.0)
+
+
+def gaussian_mixture_crps(mu: torch.Tensor, sigma: torch.Tensor, y: torch.Tensor,
+                          eps: float = _CRPS_SIGMA_EPS) -> torch.Tensor:
+    """
+    Exact CRPS of an equally-weighted finite Gaussian mixture
+
+        F_mix = (1/S) Σ_s N(μ_s, σ_s²)
+
+    with components stacked on the leading dimension of ``mu`` / ``sigma``:
+
+        CRPS = (1/S) Σ_s A(y−μ_s, σ_s²)
+             − (1/(2 S²)) Σ_{s,t} A(μ_s−μ_t, σ_s²+σ_t²)
+    """
+    var = (sigma ** 2).clamp(min=eps)
+    term1 = gaussian_mixture_A(y - mu, var, eps=eps).mean(dim=0)
+
+    mu_s = mu.unsqueeze(1)
+    mu_t = mu.unsqueeze(0)
+    var_st = var.unsqueeze(1) + var.unsqueeze(0)
+    term2 = 0.5 * gaussian_mixture_A(mu_s - mu_t, var_st, eps=eps).mean(dim=(0, 1))
+    return term1 - term2
+
+
+def posterior_predictive_sample_crps(mu: torch.Tensor, sigma: torch.Tensor, y: torch.Tensor,
+                                     eps: float = _CRPS_SIGMA_EPS) -> torch.Tensor:
+    """
+    Sample-based CRPS of the marginalized posterior predictive.
+
+    Draws one y-sample per mixture component:
+        y_s = μ_s + σ_s ε_s,  ε_s ~ N(0,1)
+    then applies the empirical CRPS estimator on those draws.
+    """
+    sigma = sigma.clamp(min=eps)
+    y_samples = mu + sigma * torch.randn_like(mu)
+    return sample_crps(y_samples, y)
+
+
 def gaussian_interval_bounds(mu: torch.Tensor, sigma: torch.Tensor, level: float,
                              eps: float = _CRPS_SIGMA_EPS) -> Tuple[torch.Tensor, torch.Tensor]:
     """Central Gaussian predictive interval [L, U] at level = 1−α."""
@@ -123,10 +176,18 @@ class SSVIMetrics:
     test_nlpd: float = 0.0
     
     # Continuous Ranked Probability Score (lower is better)
+    # Default `crps`: NLPD-style MC average of conditional Gaussian CRPS (unchanged)
     train_crps: float = 0.0
     test_crps: float = 0.0
-    # Alias for held-out / test CRPS in evaluation output
     crps: float = 0.0
+
+    # Posterior-predictive CRPS variants (mean over observed scalar entries)
+    train_crps_posterior_predictive_sample: float = float('nan')
+    test_crps_posterior_predictive_sample: float = float('nan')
+    crps_posterior_predictive_sample: float = float('nan')
+    train_crps_posterior_predictive_mixture: float = float('nan')
+    test_crps_posterior_predictive_mixture: float = float('nan')
+    crps_posterior_predictive_mixture: float = float('nan')
 
     # Predictive interval coverage (held-out primary names: coverage_90 / coverage_95)
     train_coverage_90: float = float('nan')
@@ -171,6 +232,12 @@ class SSVIMetrics:
             'train_crps': self.train_crps,
             'test_crps': self.test_crps,
             'crps': self.crps,
+            'train_crps_posterior_predictive_sample': self.train_crps_posterior_predictive_sample,
+            'test_crps_posterior_predictive_sample': self.test_crps_posterior_predictive_sample,
+            'crps_posterior_predictive_sample': self.crps_posterior_predictive_sample,
+            'train_crps_posterior_predictive_mixture': self.train_crps_posterior_predictive_mixture,
+            'test_crps_posterior_predictive_mixture': self.test_crps_posterior_predictive_mixture,
+            'crps_posterior_predictive_mixture': self.crps_posterior_predictive_mixture,
             'train_coverage_90': self.train_coverage_90,
             'train_coverage_95': self.train_coverage_95,
             'test_coverage_90': self.test_coverage_90,
@@ -471,23 +538,38 @@ class SSVIMetricsComputer:
                      n_samples: int = 50,
                      use_sample_estimator: bool = False) -> float:
         """
-        Compute Continuous Ranked Probability Score mirroring ``compute_nlpd``.
+        Default CRPS (NLPD-style MC average of conditional Gaussian CRPS).
 
-        Uses the identical SSVI predictive path as NLPD (encoder latents, U samples,
-        GP mean/variance + observation noise). By default, applies closed-form
-        Gaussian CRPS to each MC predictive Gaussian and averages over MC samples
-        the same way NLPD averages log-density — then sums over observed dimensions
-        and averages over datapoints (NLPD-style reduction).
+        Unchanged behaviour; see ``compute_all_crps`` for posterior-predictive variants.
+        """
+        return self.compute_all_crps(
+            model, y_true, n_samples=n_samples, use_sample_estimator=use_sample_estimator
+        )['crps']
 
-        If ``use_sample_estimator`` is True, uses
-            E|X − y| − (1/2) E|X − X′|
-        on draws from those same predictive Gaussians.
+    def compute_all_crps(self,
+                         model,
+                         y_true: torch.Tensor,
+                         n_samples: int = 50,
+                         use_sample_estimator: bool = False) -> Dict[str, float]:
+        """
+        Compute default CRPS plus two posterior-predictive CRPS variants in one pass.
 
-        Lower is better.
+        Returns dict with:
+          - ``crps``: NLPD-style MC average of conditional Gaussian CRPS
+            (sum over observed dims, mean over datapoints). Unchanged.
+          - ``crps_posterior_predictive_sample``: empirical CRPS of draws from the
+            mixture F* (mean over observed scalar entries).
+          - ``crps_posterior_predictive_mixture``: exact finite Gaussian-mixture CRPS
+            of F* = (1/S) Σ_s N(μ_s, σ_s²) (mean over observed scalar entries).
         """
         model.eval()
+        results = {
+            'crps': float('nan'),
+            'crps_posterior_predictive_sample': float('nan'),
+            'crps_posterior_predictive_mixture': float('nan'),
+        }
+
         with torch.no_grad():
-            # Same U / epsilon sampling as compute_nlpd
             epsilon = model.get_epsilon()
             U_samples = model.get_u_samples(epsilon)
 
@@ -495,14 +577,16 @@ class SSVIMetricsComputer:
             batch_size = self.metrics_batch_size
 
             total_crps = 0.0
-            total_count = 0
+            total_datapoints = 0
+            total_sample_crps = 0.0
+            total_mixture_crps = 0.0
+            total_obs_entries = 0
 
             for start_idx in range(0, N, batch_size):
                 end_idx = min(start_idx + batch_size, N)
                 y_batch = y_true[start_idx:end_idx]
                 current_batch_size = end_idx - start_idx
 
-                # Same encoder preprocessing as compute_nlpd
                 y_encoder_input = torch.where(
                     torch.isnan(y_batch),
                     torch.full_like(y_batch, -9.0, dtype=torch.float64),
@@ -529,40 +613,39 @@ class SSVIMetricsComputer:
                     if observed_mask.sum() == 0:
                         continue
                     y_obs = torch.where(observed_mask, y_batch, torch.zeros_like(y_batch))
-                    mask_f = observed_mask.float()[None, :, :]  # [1, batch, M]
+                    mask_f = observed_mask.float()
                 else:
-                    observed_mask = None
+                    observed_mask = torch.ones_like(y_batch, dtype=torch.bool)
                     y_obs = y_batch
-                    mask_f = None
+                    mask_f = observed_mask.float()
 
+                # --- default crps (NLPD-style; unchanged) ---
                 if use_sample_estimator:
                     y_pred_samples = torch.distributions.Normal(f_mean, f_std).rsample()
-                    # sample_crps returns [batch, M]; treat as single score map
                     crps_vals = sample_crps(y_pred_samples, y_obs)  # [batch, M]
-                    if mask_f is not None:
-                        crps_per_point = (crps_vals * observed_mask.float()).sum(dim=-1)  # [batch]
-                    else:
-                        crps_per_point = crps_vals.sum(dim=-1)
+                    crps_per_point = (crps_vals * mask_f).sum(dim=-1)
                 else:
-                    # Mirror NLPD: score each MC Gaussian, then average over MC samples
-                    # gaussian_crps broadcasts over leading sample dim → [n_samples, batch, M]
-                    crps_vals = gaussian_crps(f_mean, f_std, y_obs)
-                    if mask_f is not None:
-                        crps_per_point = (crps_vals * mask_f).sum(dim=-1).mean(dim=0)  # [batch]
-                    else:
-                        crps_per_point = crps_vals.sum(dim=-1).mean(dim=0)  # [batch]
+                    crps_vals = gaussian_crps(f_mean, f_std, y_obs)  # [S, batch, M]
+                    crps_per_point = (crps_vals * mask_f[None, :, :]).sum(dim=-1).mean(dim=0)
 
                 total_crps += crps_per_point.sum().item()
-                total_count += current_batch_size
+                total_datapoints += current_batch_size
 
-            if total_count == 0:
-                model.train()
-                return float('nan')
+                # --- posterior-predictive variants (mean over observed entries) ---
+                sample_vals = posterior_predictive_sample_crps(f_mean, f_std, y_obs)  # [batch, M]
+                mixture_vals = gaussian_mixture_crps(f_mean, f_std, y_obs)  # [batch, M]
+                total_sample_crps += (sample_vals * mask_f).sum().item()
+                total_mixture_crps += (mixture_vals * mask_f).sum().item()
+                total_obs_entries += observed_mask.sum().item()
 
-            crps = total_crps / total_count
+            if total_datapoints > 0:
+                results['crps'] = total_crps / total_datapoints
+            if total_obs_entries > 0:
+                results['crps_posterior_predictive_sample'] = total_sample_crps / total_obs_entries
+                results['crps_posterior_predictive_mixture'] = total_mixture_crps / total_obs_entries
 
         model.train()
-        return crps
+        return results
 
     def compute_coverage(self,
                          model,
@@ -834,10 +917,18 @@ class SSVIMetricsComputer:
         metrics.train_nlpd = self.compute_nlpd(model, y_train, n_samples)
         metrics.test_nlpd = self.compute_nlpd(model, y_test, n_samples)
 
-        # Continuous Ranked Probability Score (Gaussian closed form by default)
-        metrics.train_crps = self.compute_crps(model, y_train, n_samples)
-        metrics.test_crps = self.compute_crps(model, y_test, n_samples)
-        metrics.crps = metrics.test_crps  # held-out scalar for evaluation output
+        # Continuous Ranked Probability Score family (default crps unchanged)
+        train_crps_all = self.compute_all_crps(model, y_train, n_samples)
+        test_crps_all = self.compute_all_crps(model, y_test, n_samples)
+        metrics.train_crps = train_crps_all['crps']
+        metrics.test_crps = test_crps_all['crps']
+        metrics.crps = metrics.test_crps
+        metrics.train_crps_posterior_predictive_sample = train_crps_all['crps_posterior_predictive_sample']
+        metrics.test_crps_posterior_predictive_sample = test_crps_all['crps_posterior_predictive_sample']
+        metrics.crps_posterior_predictive_sample = metrics.test_crps_posterior_predictive_sample
+        metrics.train_crps_posterior_predictive_mixture = train_crps_all['crps_posterior_predictive_mixture']
+        metrics.test_crps_posterior_predictive_mixture = test_crps_all['crps_posterior_predictive_mixture']
+        metrics.crps_posterior_predictive_mixture = metrics.test_crps_posterior_predictive_mixture
 
         # Predictive interval coverage + mean width (full predictive variance incl. likelihood noise)
         train_cov = self.compute_coverage(model, y_train, n_samples)
@@ -899,6 +990,12 @@ class SSVIMetricsComputer:
             'final_train_crps': final_metrics.train_crps,
             'final_test_crps': final_metrics.test_crps,
             'crps': final_metrics.crps,
+            'final_train_crps_posterior_predictive_sample': final_metrics.train_crps_posterior_predictive_sample,
+            'final_test_crps_posterior_predictive_sample': final_metrics.test_crps_posterior_predictive_sample,
+            'crps_posterior_predictive_sample': final_metrics.crps_posterior_predictive_sample,
+            'final_train_crps_posterior_predictive_mixture': final_metrics.train_crps_posterior_predictive_mixture,
+            'final_test_crps_posterior_predictive_mixture': final_metrics.test_crps_posterior_predictive_mixture,
+            'crps_posterior_predictive_mixture': final_metrics.crps_posterior_predictive_mixture,
             'final_train_coverage_90': final_metrics.train_coverage_90,
             'final_train_coverage_95': final_metrics.train_coverage_95,
             'final_test_coverage_90': final_metrics.test_coverage_90,

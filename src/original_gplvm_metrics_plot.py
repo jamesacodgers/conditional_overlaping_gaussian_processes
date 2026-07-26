@@ -339,6 +339,60 @@ def plot_crps_metrics_progression(train_crps_list, metrics_iterations,
     print(f"CRPS/coverage/width metrics progression plot saved to: {plot_path}")
 
 
+def plot_crps_posterior_predictive_progression(train_sample_list, train_mixture_list,
+                                               metrics_iterations, results_dir, model_name, random_seed,
+                                               test_sample_list=None, test_mixture_list=None):
+    """
+    Separate progression plot for posterior-predictive CRPS variants (original GPLVM).
+
+    Panel 1: sample CRPS; Panel 2: mixture CRPS.
+    """
+    import numpy as np
+
+    def _has_valid(values):
+        return values is not None and any(not np.isnan(x) for x in values)
+
+    if not (_has_valid(train_sample_list) or _has_valid(train_mixture_list)
+            or _has_valid(test_sample_list) or _has_valid(test_mixture_list)):
+        print("No valid posterior-predictive CRPS data available for plotting")
+        return
+
+    fig, (ax_sample, ax_mix) = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+
+    def _plot_series(ax, values, style, label):
+        if not values:
+            return
+        valid_idx = [i for i, x in enumerate(values) if not np.isnan(x)]
+        if not valid_idx:
+            return
+        ax.plot([metrics_iterations[i] for i in valid_idx],
+                [values[i] for i in valid_idx],
+                style, label=label, linewidth=2, marker='o', markersize=4)
+
+    _plot_series(ax_sample, train_sample_list, 'b-', 'Train sample CRPS')
+    _plot_series(ax_sample, test_sample_list, 'r-', 'Test sample CRPS')
+    ax_sample.set_ylabel('CRPS (lower is better)')
+    ax_sample.set_title('Posterior-Predictive CRPS Variants')
+    ax_sample.legend()
+    ax_sample.grid(True, alpha=0.3)
+
+    _plot_series(ax_mix, train_mixture_list, 'b-', 'Train mixture CRPS')
+    _plot_series(ax_mix, test_mixture_list, 'r-', 'Test mixture CRPS')
+    ax_mix.set_xlabel('Iteration')
+    ax_mix.set_ylabel('CRPS (lower is better)')
+    ax_mix.legend()
+    ax_mix.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    plots_dir = os.path.join(results_dir, 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
+    plot_path = os.path.join(plots_dir, f'crps_posterior_predictive_progression_{model_name}.png')
+    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"Posterior-predictive CRPS progression plot saved to: {plot_path}")
+
+
 def plot_latent_slice_original_gplvm(model, y_train, model_name, center="zeros", n_idx=None, save_path=None, scaler=None):
     """
     Plot 1D latent slice for original GP-LVM models (gauss and nn_gauss).
