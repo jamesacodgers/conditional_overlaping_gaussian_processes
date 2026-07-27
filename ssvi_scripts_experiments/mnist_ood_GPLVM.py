@@ -691,6 +691,8 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
     # Use default config if none provided
     if config is None:
         config = get_fast_config()
+
+    config.save_models = False
     
     # Override results directory for OOD experiments when using fast config
     if config_name == "fast":
@@ -1065,10 +1067,14 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
 
             # Save iteration-based models and plots
             if logger and logger.get_results_dir() and i > 0 and i % config.checkpoint_frequency == 0:
-                print(f"  Saving iteration {i} model and plot...")
+                if config.save_models:
+                    print(f"  Saving iteration {i} model and plot...")
+                else:
+                    print(f"  Saving iteration {i} plot...")
                 try:
                     from src.mnist_ood_plot_helper import save_iteration_model, create_iteration_plot
-                    save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
+                    if config.save_models:
+                        save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
                     # Use full_loss_list for checkpoint plots (consistent with SSVI)
                     plot_filename = create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, config.id_dataset, train_indices=torch.from_numpy(split_data['train_indices']).to(dtype=torch.int64, device=Y_train.device), is_ood=False, full_loss_iterations=full_loss_iterations, batch_losses=loss_list)
                 except Exception as e:
@@ -1258,9 +1264,9 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                 print(f"Warning: Could not create standardized scattered plot: {e}")
                 print(f"Skipping plot creation.")
         
-        # Save model
-        print(f'Saving {model_name} {config.random_seed}')
-        logger.save_model(model, model_name, config.random_seed)
+        if config.save_models:
+            print(f'Saving {model_name} {config.random_seed}')
+            logger.save_model(model, model_name, config.random_seed)
 
         ####################### Testing Framework ################################################
         if config.enable_testing:

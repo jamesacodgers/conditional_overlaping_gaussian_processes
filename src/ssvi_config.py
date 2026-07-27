@@ -60,6 +60,7 @@ class OilFlowSSVIConfig:
     
     # === Visualization Configuration ===
     save_training_plots: bool = True       # Save training result plots during training (saved with checkpoints)
+    save_models: bool = True
     plot_training: bool = True             # Plot training progress
     plot_latent_space: bool = True         # Plot latent space visualization  
     plot_hyperparams: bool = True          # Plot model hyperparameters

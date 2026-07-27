@@ -764,10 +764,11 @@ def train_oil_flow_ssvi(
         # Checkpoint saving (models and plots together)
         if logger and i > 0 and i % config.checkpoint_frequency == 0:
             print(f"  Saving checkpoint at iteration {i}...")
-            # Save checkpoint model
-            checkpoint_filename = f"ood_ssvi_iter_{i}_seed_{config.random_seed}.pkl"
-            logger.save_model(model, checkpoint_filename, is_checkpoint=True)
-            print(f"    Checkpoint model saved: {checkpoint_filename}")
+            if config.save_models:
+                # Save checkpoint model
+                checkpoint_filename = f"ood_ssvi_iter_{i}_seed_{config.random_seed}.pkl"
+                logger.save_model(model, checkpoint_filename, is_checkpoint=True)
+                print(f"    Checkpoint model saved: {checkpoint_filename}")
 
             # Save checkpoint plot (if enabled)
             if config.save_training_plots:
@@ -1092,6 +1093,8 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
         if config_name == "fast":
             config.results_dir = "ood_results/ssvi_results"
 
+    config.save_models = False
+
     # Set device and dtype from config
     torch.set_default_device(config.device)
     torch.set_default_dtype(torch.float64)
@@ -1365,7 +1368,7 @@ def main(config: OODSSVIConfig = None, config_name: str = "fast"):
     print_final_model_parameters(model, "GP LVM SSVI")
 
     # Save final model
-    if logger:
+    if logger and config.save_models:
         print("Saving final model...")
         logger.save_model(
             model, f"ood_ssvi_{config.random_seed}.pkl", is_checkpoint=False

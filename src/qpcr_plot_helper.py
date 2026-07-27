@@ -12,8 +12,6 @@ import pickle as pkl
 import json
 from datetime import datetime
 from sklearn.model_selection import train_test_split
-import plotly.graph_objects as go
-import plotly.express as px
 import matplotlib.pyplot as plt
 
 # Add generalised_gplvm_code to path for original utilities
@@ -43,14 +41,6 @@ def get_consistent_qpcr_colors(labels_train):
     # Return colors in the same order as labels_train
     colors = [color_map[label] for label in labels_train]
     return colors, color_map
-
-
-def matplotlib_to_plotly_color(matplotlib_color):
-    """Convert matplotlib RGB tuple to Plotly format"""
-    if isinstance(matplotlib_color, tuple) and len(matplotlib_color) == 3:
-        r, g, b = matplotlib_color
-        return f'rgb({int(r*255)}, {int(g*255)}, {int(b*255)})'
-    return matplotlib_color
 
 
 def create_standardized_scattered_plot(model, losses, labels_train, config, results_dir, model_name, random_seed,
@@ -212,17 +202,11 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
 
     print(f"Standardized scattered plots saved to: {plot_path}")
 
-    # Additional plots: 1D histogram and 3D scatter plots
-    print("Creating additional plots: 1D histogram and 3D scatter plots...")
+    # Additional plot: 1D histogram
+    print("Creating additional plot: 1D histogram...")
 
     # Ensure labels_train is on CPU for numpy operations
     labels_train_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
-
-    # Reuse dimensions from main plot (consistent with existing approach)
-    # dim1, dim2, and lengthscales_cpu are already computed in the main plot section
-    # Just need to compute dim3 for 3D plots
-    values, indices = torch.topk(model.covar_module.base_kernel.lengthscale, k=3, largest=False)
-    dim3 = indices.cpu().numpy().flatten()[2]  # Third dimension for 3D plots
 
     # 1. Create 1D histogram for the most important dimension
     fig_hist, ax_hist = plt.subplots(1, 1, figsize=(8, 6))
@@ -270,77 +254,6 @@ def create_standardized_scattered_plot(model, losses, labels_train, config, resu
     fig_hist.savefig(hist_plot_path, dpi=300, bbox_inches='tight')
     print(f"Saved 1D histogram to: {hist_plot_path}")
     plt.close(fig_hist)
-
-    # 2. Create 3D scatter plot for top 3 most important dimensions using plotly
-    # Collect samples for all 3 dimensions
-    samples_3d = []
-    for p in range(64):  # Same number of samples as main plot
-        sample_1 = torch.distributions.Normal(mu_x_torch[:, dim1], sigma_x_torch[:, dim1]).sample()
-        sample_2 = torch.distributions.Normal(mu_x_torch[:, dim2], sigma_x_torch[:, dim2]).sample()
-        sample_3 = torch.distributions.Normal(mu_x_torch[:, dim3], sigma_x_torch[:, dim3]).sample()
-
-        # Ensure all samples are on CPU before converting to numpy
-        samples_3d.append({
-            'dim1': sample_1.detach().cpu().numpy(),
-            'dim2': sample_2.detach().cpu().numpy(),
-            'dim3': sample_3.detach().cpu().numpy(),
-            'labels': labels_train_cpu
-        })
-
-    # Create plotly 3D scatter plot
-    fig_3d = go.Figure()
-
-    # Color mapping for labels (using consistent color mapping)
-    _, color_map = get_consistent_qpcr_colors(labels_train_cpu)
-    unique_labels = np.unique(labels_train_cpu)
-
-    # Add traces for each class
-    for label_val in unique_labels:
-        class_mask = labels_train_cpu == label_val
-        if np.any(class_mask):
-            # Combine samples from all P samples for this class
-            x_vals = np.concatenate([samples_3d[p]['dim1'][class_mask] for p in range(64)])
-            y_vals = np.concatenate([samples_3d[p]['dim2'][class_mask] for p in range(64)])
-            z_vals = np.concatenate([samples_3d[p]['dim3'][class_mask] for p in range(64)])
-
-            fig_3d.add_trace(go.Scatter3d(
-                x=x_vals,
-                y=y_vals,
-                z=z_vals,
-                mode='markers',
-                marker=dict(
-                    size=4,
-                    color=matplotlib_to_plotly_color(color_map[label_val]),
-                    opacity=0.6
-                ),
-                name=f'Class {label_val}'
-            ))
-
-    # Update layout
-    fig_3d.update_layout(
-        title=f'3D Scatter Plot - Top 3 Most Important Dimensions<br>Dim {dim1}, {dim2}, {dim3}',
-        scene=dict(
-            xaxis_title=f'Dimension {dim1} (lengthscale={lengthscales_cpu[dim1].item():.2f})',
-            yaxis_title=f'Dimension {dim2} (lengthscale={lengthscales_cpu[dim2].item():.2f})',
-            zaxis_title=f'Dimension {dim3} (lengthscale={lengthscales_cpu[dim3].item():.2f})'
-        ),
-        width=800,
-        height=600
-    )
-
-    # Save 3D plot as HTML
-    plot_3d_filename = plot_filename.replace('qpcr_', '3d_scatter_top3_dims_')
-    plot_3d_filename = plot_3d_filename.replace('.png', '.html')
-
-    if os.path.basename(results_dir) == 'plots' or os.path.basename(results_dir) == 'checkpoints':
-        plot_3d_path = os.path.join(results_dir, plot_3d_filename)
-    else:
-        plots_subdir = os.path.join(results_dir, 'plots')
-        os.makedirs(plots_subdir, exist_ok=True)
-        plot_3d_path = os.path.join(plots_subdir, plot_3d_filename)
-
-    fig_3d.write_html(plot_3d_path)
-    print(f"Saved 3D scatter plot to: {plot_3d_path}")
 
     print("Additional plots created successfully!")
 
@@ -467,9 +380,7 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             # Find the most informative dimensions (largest lengthscales = smallest beta)
             lengthscales = 1 / model.gp.beta.flatten()
             top_2_dims = torch.argsort(lengthscales, descending=True)[:2]
-            top_3_dims = torch.argsort(lengthscales, descending=True)[:3]  # Also compute top 3 for 3D plots
             dim1, dim2 = top_2_dims[0].item(), top_2_dims[1].item()
-            dim3 = top_3_dims[2].item()  # Third dimension for 3D plots
             lengthscales_cpu = lengthscales.cpu()  # Move to CPU for string formatting
             # Get latent variables using new explicit training method
             epsilon = model.get_epsilon()
@@ -522,8 +433,8 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         else:
             plt.close(fig)  # Close figure to free memory
 
-        # Additional plots: 1D histogram and 3D scatter plot
-        print("Creating additional plots: 1D histogram and 3D scatter plot...")
+        # Additional plot: 1D histogram
+        print("Creating additional plot: 1D histogram...")
 
         # Ensure labels_train is on CPU for numpy operations
         labels_train_cpu = labels_train.cpu().numpy() if torch.is_tensor(labels_train) else labels_train
@@ -531,8 +442,6 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
         # Check if we can reuse existing computations from latent space plot
         if plot_flags[1] and 'mu_x_cpu' in locals() and 'sigma_x_cpu' in locals():
             # Reuse existing computations from latent space plot
-            # We already have mu_x_cpu, sigma_x_cpu, and lengthscales_cpu from the latent space plot
-            # Just need to compute top_3_dims for the 3D plot
             lengthscales = lengthscales_cpu  # Use existing lengthscales
         else:
             # Need to compute the data (latent space plot wasn't computed)
@@ -598,79 +507,5 @@ def visualize_ssvi_results(model, y_train, labels_train, losses, config, logger:
             plt.show()
         else:
             plt.close(fig_hist)
-
-        # 2. Create 3D scatter plot for top 3 most important dimensions using plotly
-        dim1, dim2, dim3 = top_3_dims[0].item(), top_3_dims[1].item(), top_3_dims[2].item()
-
-        # Collect samples for all 3 dimensions
-        samples_3d = []
-        for p in range(model.P):
-            sample_1 = torch.distributions.Normal(mu_x_cpu[p, :, dim1], sigma_x_std_cpu[p, :, dim1]).sample()
-            sample_2 = torch.distributions.Normal(mu_x_cpu[p, :, dim2], sigma_x_std_cpu[p, :, dim2]).sample()
-            sample_3 = torch.distributions.Normal(mu_x_cpu[p, :, dim3], sigma_x_std_cpu[p, :, dim3]).sample()
-
-            # Ensure all samples are on CPU before converting to numpy
-            samples_3d.append({
-                'dim1': sample_1.detach().cpu().numpy(),
-                'dim2': sample_2.detach().cpu().numpy(),
-                'dim3': sample_3.detach().cpu().numpy(),
-                'labels': labels_train_cpu
-            })
-
-        # Create plotly 3D scatter plot
-        fig_3d = go.Figure()
-
-        # Color mapping for labels (using consistent color mapping)
-        unique_labels = np.unique(labels_train_cpu)
-        
-        # Add traces for each class
-        for label in unique_labels:
-            class_mask = labels_train_cpu == label
-            if np.any(class_mask):
-                # Combine samples from all P samples for this class
-                x_vals = np.concatenate([samples_3d[p]['dim1'][class_mask] for p in range(model.P)])
-                y_vals = np.concatenate([samples_3d[p]['dim2'][class_mask] for p in range(model.P)])
-                z_vals = np.concatenate([samples_3d[p]['dim3'][class_mask] for p in range(model.P)])
-                
-                fig_3d.add_trace(go.Scatter3d(
-                    x=x_vals,
-                    y=y_vals,
-                    z=z_vals,
-                    mode='markers',
-                    marker=dict(
-                        size=4,
-                        color=matplotlib_to_plotly_color(color_map[label]),
-                        opacity=0.6
-                    ),
-                    name=f'Class {label}'
-                ))
-
-        # Update layout
-        fig_3d.update_layout(
-            title=f'3D Scatter Plot - Top 3 Most Important Dimensions<br>Dim {dim1}, {dim2}, {dim3}',
-            scene=dict(
-                xaxis_title=f'Dimension {dim1} (lengthscale={lengthscales[dim1].item():.2f})',
-                yaxis_title=f'Dimension {dim2} (lengthscale={lengthscales[dim2].item():.2f})',
-                zaxis_title=f'Dimension {dim3} (lengthscale={lengthscales[dim3].item():.2f})'
-            ),
-            width=800,
-            height=600
-        )
-
-        # Save 3D plot as HTML
-        plot_3d_filename = save_filename.replace('training_results', '3d_scatter_top3_dims')
-        plot_3d_filename = plot_3d_filename.replace('.png', '.html')
-
-        # Save to appropriate directory (checkpoints or main plots)
-        if is_checkpoint:
-            plot_3d_path = os.path.join(logger.plots_checkpoints_dir, plot_3d_filename)
-        else:
-            plot_3d_path = os.path.join(logger.plots_dir, plot_3d_filename)
-
-        fig_3d.write_html(plot_3d_path)
-        print(f"3D scatter plot saved to: {plot_3d_path}")
-
-        if show_plot:
-            fig_3d.show()
 
         print("Additional plots created successfully!")

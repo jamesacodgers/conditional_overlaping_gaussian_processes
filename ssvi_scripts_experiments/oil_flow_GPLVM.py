@@ -130,6 +130,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     # Use default config if none provided
     if config is None:
         config = get_fast_config()
+
+    config.save_models = False
     
     # Set device and dtype from config
     torch.set_default_device(config.device)
@@ -511,8 +513,11 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             # Save iteration-based models and plots (like SSVI does)
             if logger and logger.get_results_dir() and i > 0 and i % config.checkpoint_frequency == 0:
                 from src.ssvi_alignment_utils import save_iteration_model, create_iteration_plot
-                print(f"  Saving iteration {i} model and plot...")
-                save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
+                if config.save_models:
+                    print(f"  Saving iteration {i} model and plot...")
+                    save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
+                else:
+                    print(f"  Saving iteration {i} plot...")
                 # Use full_loss_list for checkpoint plots (consistent with SSVI)
                 create_iteration_plot(model, full_loss_list, lb_train, config, logger.get_results_dir(), model_name, config.random_seed, Y_train, i, "original", train_indices=torch.from_numpy(train_indices).to(dtype=torch.int64, device=Y_train.device), full_loss_iterations=full_loss_iterations, batch_losses=loss_list)
         model.store(loss_list, likelihood)
@@ -618,11 +623,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
         else:
             pass
         
-        #### Saving model with seed 
-        print(f'Saving {model_name} {config.random_seed}')
-        
-        # Save model using logger
-        logger.save_model(model, model_name, config.random_seed)
+        if config.save_models:
+            print(f'Saving {model_name} {config.random_seed}')
+            logger.save_model(model, model_name, config.random_seed)
 
         ####################### Testing Framework ################################################
         if config.enable_testing:

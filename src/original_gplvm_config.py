@@ -53,6 +53,7 @@ class OriginalGPLVMConfig:
     
     # === Visualization Configuration ===
     save_plots: bool = True
+    save_models: bool = True
     plot_colors: List[str] = None  # Will be set to ['r', 'b', 'g'] if None
     
     # === Testing Configuration ===

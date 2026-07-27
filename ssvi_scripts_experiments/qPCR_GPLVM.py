@@ -147,6 +147,8 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
     # Use default config if none provided
     if config is None:
         config = get_fast_config()
+
+    config.save_models = False
     
     # Override results directory for qPCR experiments when using fast config
     if config_name == "fast":
@@ -601,9 +603,12 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
 
             # Save iteration-based models and plots (like SSVI does)
             if logger and logger.get_results_dir() and i > 0 and i % config.checkpoint_frequency == 0:
-                from src.ssvi_alignment_utils import save_iteration_model
-                print(f"  Saving iteration {i} model and plot...")
-                save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
+                if config.save_models:
+                    from src.ssvi_alignment_utils import save_iteration_model
+                    print(f"  Saving iteration {i} model and plot...")
+                    save_iteration_model(model, model_name, i, config.random_seed, logger.get_results_dir())
+                else:
+                    print(f"  Saving iteration {i} plot...")
                 # Use full_loss_list for checkpoint plots (consistent with SSVI)
                 try:
                     from src.qpcr_plot_helper import create_iteration_plot
@@ -719,10 +724,9 @@ def main(config: OriginalGPLVMConfig = None, config_name: str = "fast"):
             pass
         
         #### Saving model with seed 
-        print(f'Saving {model_name} {config.random_seed}')
-        
-        # Save model using logger
-        logger.save_model(model, model_name, config.random_seed)
+        if config.save_models:
+            print(f'Saving {model_name} {config.random_seed}')
+            logger.save_model(model, model_name, config.random_seed)
 
         ####################### Testing Framework ################################################
         if config.enable_testing:
