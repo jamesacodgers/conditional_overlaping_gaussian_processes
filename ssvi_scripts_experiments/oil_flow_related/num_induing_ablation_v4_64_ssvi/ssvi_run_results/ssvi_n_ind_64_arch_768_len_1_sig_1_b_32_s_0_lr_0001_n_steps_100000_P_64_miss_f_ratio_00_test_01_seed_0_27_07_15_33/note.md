@@ -1,0 +1,1 @@
+test with an encoder of epsilon prior to being passed to the amortizing nn. 

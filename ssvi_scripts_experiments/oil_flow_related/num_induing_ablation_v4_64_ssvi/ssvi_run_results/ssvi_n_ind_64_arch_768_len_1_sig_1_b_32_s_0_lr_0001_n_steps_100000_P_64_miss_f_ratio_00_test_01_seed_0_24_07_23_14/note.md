@@ -1,0 +1,1 @@
+Trying to turn off the dropout halfway through training. 
