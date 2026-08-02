@@ -10,4 +10,4 @@
 #SBATCH --job-name=fashion_mnist_ood_ssvi
 #SBATCH --output=%x_%j.out
 
-/home/haicu/james.odgers/conditional_overlaping_gaussian_processes/ssvi_scripts_experiments/run_mnist_ood_ssvi_configs_folder.sh /ood_mnist_related/fashion_mnist_ood_experiment_final_v2_ssvi/
+/home/haicu/james.odgers/rbtl/conditional_overlaping_gaussian_processes/ssvi_scripts_experiments/run_mnist_ood_ssvi_configs_folder.sh /ood_mnist_related/fashion_mnist_ood_experiment_final_v2_ssvi/
