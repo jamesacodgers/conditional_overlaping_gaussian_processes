@@ -28,11 +28,11 @@ python3 -m venv .venv
 .venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 .venv/bin/pip install -r requirements.txt pyyaml
 
-# exact paper code for both arms (MFVI ~21 h/run)
-bash ssvi_scripts_experiments/run_full_mnist_benchmarks.sh
+# exact paper code for both arms (MFVI ~21 h/run), one run per GPU
+GPUS="0 1 2 3" bash ssvi_scripts_experiments/run_full_mnist_benchmarks.sh
 
-# or MFVI with encode_batch_only (~2 h/run)
-bash ssvi_scripts_experiments/run_full_mnist_benchmarks.sh \
+# or MFVI with encode_batch_only (~1.2 h/run)
+GPUS="0 1 2 3" bash ssvi_scripts_experiments/run_full_mnist_benchmarks.sh \
   ood_mnist_related/full_mnist_v1_ssvi ood_mnist_related/full_mnist_v1_batchenc_orig_gplvm \
   ood_mnist_related/full_fmnist_v1_ssvi ood_mnist_related/full_fmnist_v1_batchenc_orig_gplvm
 
@@ -41,8 +41,11 @@ cd ssvi_scripts_experiments && ../.venv/bin/python full_mnist_summarise.py <fold
 ```
 
 The launcher:
-- runs seed 0 of every folder first
-- skips configs that already have a `.done` marker, but restarts interrupted runs from step 0
+- runs one worker per GPU in `GPUS`, each taking the next unclaimed config from a shared queue
+  (SSVI first, since those runs are longest, then by seed)
+- also works with one launcher per node over a shared checkout
+- skips configs that already have a `.done` marker; after a crash, delete the stale `.claimed`
+  files so those runs restart from step 0
 - logs each run to `<folder>/logs/`
 
 ## Timings on one RTX PRO 6000 Blackwell, float64, full MNIST
@@ -51,12 +54,12 @@ The launcher:
 |---|---|---|---|---|
 | SSVI | 0.176 | 9.8 h | ~5 min | ~11 h |
 | MFVI, exact code | 0.37 | 20.5 h | ~3 min | ~21 h |
-| MFVI, `encode_batch_only` | see below | | ~3 min | |
+| MFVI, `encode_batch_only` | 0.010 | 35 min | ~3 min | ~1.2 h |
 
 - In the exact-code MFVI step, 344 ms of the 0.37 s is the encoder pass over all 60k images;
   over the 32-image batch it takes 2.5 ms.
-- Running two jobs at once halves each one's speed (0.371 s/step each for SSVI), so
-  `JOBS=1` is the right setting.
+- Two runs sharing one GPU each slow to 0.371 s/step (SSVI), so there's no gain: give each run
+  its own GPU.
 
 ## Environment check against the paper
 
