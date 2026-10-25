@@ -96,7 +96,7 @@ from src.original_gplvm_metrics_plot import plot_metrics_progression, compute_ef
 from src.missing_data_utils import preprocess_data_for_missing_training, rmse_missing_improved
 from src.missing_data_experiment import run_missing_data_reconstruction_experiment
 from src.unified_rmse_utils import compute_rmse_with_sampling, compute_missing_data_rmse_with_sampling
-from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset
+from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset, official_train_test_split
 from src.mnist_missing_reconstruction import visualize_mnist_missing_reconstruction_gauss, visualize_mnist_missing_reconstruction_gauss_detailed, visualize_prior_samples_original_gplvm, visualize_prior_samples_original_gplvm_averaged, visualize_test_image_predictions_original_gplvm
 from src.knn_clustering_metrics import compute_knn_accuracies_original_gplvm
 from src.knn_progression_plot import plot_knn_metrics_progression
@@ -144,6 +144,8 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
     id_dataset: str = "FashionMNIST"      # ID dataset name: "MNIST" or "FashionMNIST"
     id_classes: List[int] = None           # ID class indices (None = all classes)
     id_samples_per_class: int = None       # Samples per ID class (None = use all)
+    use_official_split: bool = False       # torchvision train/test split instead of test_size; split no longer depends on the seed
+    encode_batch_only: bool = False        # nn_gauss: encode only the minibatch each step instead of all N (same objective in expectation)
     
     # === Out-of-Distribution (OOD) Dataset Configuration ===
     ood_dataset: str = "MNIST"            # OOD dataset name (must be explicitly specified)
@@ -293,11 +295,17 @@ def load_ood_data(config: OODOriginalGPLVMConfig):
     indices = np.arange(len(Y))
     
     # Split data and labels together to maintain correspondence
-    train_indices, test_indices, Y_train_np, Y_test_np, lb_train_np, lb_test_np = train_test_split(
-        indices, Y_np, labels_cpu,
-        test_size=config.test_size,
-        random_state=config.random_seed
-    )
+    if config.use_official_split:
+        print(f"Using the official {config.id_dataset} train/test split...")
+        train_indices, test_indices, Y_train_np, Y_test_np, lb_train_np, lb_test_np = official_train_test_split(
+            config.id_dataset, id_classes, id_samples_per_class
+        )
+    else:
+        train_indices, test_indices, Y_train_np, Y_test_np, lb_train_np, lb_test_np = train_test_split(
+            indices, Y_np, labels_cpu,
+            test_size=config.test_size,
+            random_state=config.random_seed
+        )
     
     # Convert back to tensors on original device
     Y_train = torch.tensor(Y_train_np, dtype=torch.float64, device=config.device)
@@ -884,8 +892,19 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             batch_index = model._get_batch_idx(batch_size)
             batch_index_tensor = torch.tensor(batch_index, dtype=torch.int64, device=config.device)
             optimizer.zero_grad()
+            batch_only = model_name == 'nn_gauss' and config.encode_batch_only and not config.enable_missing_data
             if model_name in ['point','map', 'gauss']:
                 sample = model.sample_latent_variable()
+                sample_batch = sample[batch_index_tensor]
+            elif batch_only:
+                # x_kl is sum/n over the encoded rows, so encoding only the batch is an unbiased
+                # estimate of the full-N objective. The encoder slices its jitter and prior to the
+                # rows it sees and x_kl is evaluated inside elbo(), so restore them after the loss.
+                full_jitter, full_loc, full_cov = model.X.jitter, model.X.prior_x.loc, model.X.prior_x.covariance_matrix
+                model.X.jitter = full_jitter[batch_index_tensor]
+                model.X.prior_x.loc = full_loc[batch_index_tensor]
+                model.X.prior_x.covariance_matrix = full_cov[batch_index_tensor]
+                sample_batch = model.sample_latent_variable(Y_train[batch_index_tensor], np.arange(batch_size))
             else:
                 if config.enable_missing_data:
                     Y_train_for_encoder = Y_train.clone()
@@ -893,9 +912,11 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
                     sample = model.sample_latent_variable(Y_train_for_encoder)
                 else:
                     sample = model.sample_latent_variable(Y_train)
-            sample_batch = sample[batch_index_tensor]
+                sample_batch = sample[batch_index_tensor]
             output_batch = model(sample_batch)
             loss = -elbo(output_batch, Y_train[batch_index_tensor].T).sum()
+            if batch_only:
+                model.X.jitter, model.X.prior_x.loc, model.X.prior_x.covariance_matrix = full_jitter, full_loc, full_cov
             loss_list.append(float(loss.item()))
             noise_trace.append(float(np.round(likelihood.noise.item(),3)))
             iterator.set_description('Loss: ' + str(float(np.round(loss.item(),2))) + ", iter no: " + str(i))

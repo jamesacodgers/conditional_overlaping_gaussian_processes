@@ -301,3 +301,20 @@ def filter_mnist_by_digits(Y, labels, selected_digits=None, samples_per_digit=No
     print(f"  Original samples: {len(Y)} -> Filtered samples: {len(Y_filtered)}")
     
     return Y_filtered, labels_filtered
+
+def official_train_test_split(dataset_name, selected_digits=None, samples_per_digit=None):
+    """
+    Torchvision's own train/test split (60k/10k for MNIST and FashionMNIST), in the
+    same return order as sklearn's train_test_split(indices, Y, labels).
+
+    The class filter is applied to each split separately; indices are positions in
+    the pooled train+test order of load_image_dataset when no filter is applied.
+    """
+    Y_train, labels_train = load_image_dataset(dataset_name, train_only=True)
+    Y_test, labels_test = load_image_dataset(dataset_name, test_only=True)
+    n_train_full = len(Y_train)
+    Y_train, labels_train = filter_mnist_by_digits(Y_train / 255.0, labels_train, selected_digits, samples_per_digit)
+    Y_test, labels_test = filter_mnist_by_digits(Y_test / 255.0, labels_test, selected_digits, samples_per_digit)
+    train_indices = np.arange(len(Y_train))
+    test_indices = n_train_full + np.arange(len(Y_test))
+    return train_indices, test_indices, Y_train.cpu().numpy(), Y_test.cpu().numpy(), labels_train, labels_test

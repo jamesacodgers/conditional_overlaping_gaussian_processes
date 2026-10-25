@@ -80,7 +80,7 @@ from sklearn.model_selection import train_test_split
 from src.ssvi_config import OilFlowSSVIConfig
 
 # Import data loaders
-from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset
+from src.data_utils import load_mnist_data, filter_mnist_by_digits, load_image_dataset, official_train_test_split
 
 # Import OOD metrics
 from src.ood_metrics import evaluate_ood_detection, compute_all_ood_metrics, OODMetrics
@@ -122,6 +122,7 @@ class OODSSVIConfig(OilFlowSSVIConfig):
     id_dataset: str = "FashionMNIST"      # ID dataset name: "MNIST" or "FashionMNIST"
     id_classes: List[int] = None           # ID class indices (None = all classes)
     id_samples_per_class: int = None       # Samples per ID class (None = use all)
+    use_official_split: bool = False       # torchvision train/test split instead of test_size; split no longer depends on the seed
     
     # === Out-of-Distribution (OOD) Dataset Configuration ===
     ood_dataset: str = "MNIST"            # OOD dataset name (must be explicitly specified)
@@ -226,21 +227,32 @@ def load_ood_data(config: OODSSVIConfig):
     y_np = y_cpu.numpy()
 
     # Create train/test split
-    print(f"Creating train/test split (test_size={config.test_size})...")
-    (
-        train_indices,
-        test_indices,
-        y_train_np,
-        y_test_np,
-        labels_train_np,
-        labels_test_np,
-    ) = train_test_split(
-        np.arange(len(y_full)),
-        y_np,
-        labels_cpu,
-        test_size=config.test_size,
-        random_state=config.random_seed,
-    )
+    if config.use_official_split:
+        print(f"Using the official {config.id_dataset} train/test split...")
+        (
+            train_indices,
+            test_indices,
+            y_train_np,
+            y_test_np,
+            labels_train_np,
+            labels_test_np,
+        ) = official_train_test_split(config.id_dataset, id_classes, id_samples_per_class)
+    else:
+        print(f"Creating train/test split (test_size={config.test_size})...")
+        (
+            train_indices,
+            test_indices,
+            y_train_np,
+            y_test_np,
+            labels_train_np,
+            labels_test_np,
+        ) = train_test_split(
+            np.arange(len(y_full)),
+            y_np,
+            labels_cpu,
+            test_size=config.test_size,
+            random_state=config.random_seed,
+        )
 
     # Convert back to tensors on original device
     y_train = torch.tensor(y_train_np, dtype=torch.float64, device=config.device)
