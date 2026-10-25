@@ -44,7 +44,7 @@ The launcher:
   files so those runs restart from step 0
 - logs each run to `<folder>/logs/`
 
-## Timings on one RTX PRO 6000 Blackwell, float64, full MNIST
+## Timings on one RTX PRO 6000 Blackwell (weak float64), full MNIST
 
 | arm | s/step | 200k steps | one full eval (70k) | per run |
 |---|---|---|---|---|
@@ -64,8 +64,13 @@ The launcher:
 | SSVI | 17.7 GiB | 26.1 GiB |
 | MFVI | 1.8 GiB | 1.9 GiB |
 
-Plus about 0.5-1 GiB of CUDA context. SSVI needs a GPU with at least 32 GB (A100-40/80, H100,
-L40S, A6000); 24 GB cards do not fit as-is. MFVI fits anywhere.
+Plus about 0.5-1 GiB of CUDA context. SSVI needs at least 32 GB; MFVI fits anywhere.
+
+**Use A100 or H100.** Both arms run in float64. Workstation and consumer cards have
+little float64 throughput: this RTX PRO 6000 Blackwell does 1.5 TFLOP/s in float64 against
+80 in float32, and L40S, A6000 and RTX cards are similar. A100 does ~19.5 and H100 ~67 float64
+TFLOP/s. The paper's SSVI runs logged 28.9 it/s against 5.7 it/s here for the same code, so
+the timings below are a slow-hardware worst case.
 
 ## Environment check against the paper
 
