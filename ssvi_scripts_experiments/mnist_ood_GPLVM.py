@@ -145,7 +145,6 @@ class OODOriginalGPLVMConfig(OriginalGPLVMConfig):
     id_classes: List[int] = None           # ID class indices (None = all classes)
     id_samples_per_class: int = None       # Samples per ID class (None = use all)
     use_official_split: bool = False       # torchvision train/test split instead of test_size; split no longer depends on the seed
-    encode_batch_only: bool = False        # nn_gauss: encode only the minibatch each step instead of all N (same objective in expectation)
     
     # === Out-of-Distribution (OOD) Dataset Configuration ===
     ood_dataset: str = "MNIST"            # OOD dataset name (must be explicitly specified)
@@ -892,30 +891,26 @@ def main(config: OODOriginalGPLVMConfig = None, config_name: str = "fast"):
             batch_index = model._get_batch_idx(batch_size)
             batch_index_tensor = torch.tensor(batch_index, dtype=torch.int64, device=config.device)
             optimizer.zero_grad()
-            batch_only = model_name == 'nn_gauss' and config.encode_batch_only and not config.enable_missing_data
             if model_name in ['point','map', 'gauss']:
                 sample = model.sample_latent_variable()
                 sample_batch = sample[batch_index_tensor]
-            elif batch_only:
-                # x_kl is sum/n over the encoded rows, so encoding only the batch is an unbiased
-                # estimate of the full-N objective. The encoder slices its jitter and prior to the
-                # rows it sees and x_kl is evaluated inside elbo(), so restore them after the loss.
+                output_batch = model(sample_batch)
+                loss = -elbo(output_batch, Y_train[batch_index_tensor].T).sum()
+            else:
+                # Encode only the minibatch: x_kl is sum/n over the encoded rows, so this is an
+                # unbiased estimate of the full-N objective at batch cost. The encoder slices its
+                # jitter and prior to the rows it sees and x_kl is evaluated inside elbo(), so the
+                # full-N versions (used by the metrics) are restored after the loss.
+                Y_batch = Y_train[batch_index_tensor]
+                if config.enable_missing_data:
+                    Y_batch = torch.where(torch.isnan(Y_batch), torch.full_like(Y_batch, -9.0), Y_batch)
                 full_jitter, full_loc, full_cov = model.X.jitter, model.X.prior_x.loc, model.X.prior_x.covariance_matrix
                 model.X.jitter = full_jitter[batch_index_tensor]
                 model.X.prior_x.loc = full_loc[batch_index_tensor]
                 model.X.prior_x.covariance_matrix = full_cov[batch_index_tensor]
-                sample_batch = model.sample_latent_variable(Y_train[batch_index_tensor], np.arange(batch_size))
-            else:
-                if config.enable_missing_data:
-                    Y_train_for_encoder = Y_train.clone()
-                    Y_train_for_encoder[torch.isnan(Y_train_for_encoder)] = -9.0
-                    sample = model.sample_latent_variable(Y_train_for_encoder)
-                else:
-                    sample = model.sample_latent_variable(Y_train)
-                sample_batch = sample[batch_index_tensor]
-            output_batch = model(sample_batch)
-            loss = -elbo(output_batch, Y_train[batch_index_tensor].T).sum()
-            if batch_only:
+                sample_batch = model.sample_latent_variable(Y_batch, np.arange(batch_size))
+                output_batch = model(sample_batch)
+                loss = -elbo(output_batch, Y_train[batch_index_tensor].T).sum()
                 model.X.jitter, model.X.prior_x.loc, model.X.prior_x.covariance_matrix = full_jitter, full_loc, full_cov
             loss_list.append(float(loss.item()))
             noise_trace.append(float(np.round(likelihood.noise.item(),3)))

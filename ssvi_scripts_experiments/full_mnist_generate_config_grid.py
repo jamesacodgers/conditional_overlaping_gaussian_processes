@@ -13,16 +13,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent / "ood_mnist_related"
 
-# output folder -> (paper folder, extra overrides) per dataset and arm. The *_batchenc_*
-# folders run the MFVI arm with encode_batch_only: its encoder sees only the minibatch
-# rather than all 60k images each step (same objective in expectation, ~10x faster).
+# output folder -> (paper folder, extra overrides) per dataset and arm
 SOURCES = {
     "full_mnist_v1_ssvi": ("reverse_mnist_ood_experiment_final_v3_ssvi", {}),
     "full_mnist_v1_orig_gplvm": ("reverse_mnist_ood_experiment_final_v3_orig_gplvm", {}),
-    "full_mnist_v1_batchenc_orig_gplvm": ("reverse_mnist_ood_experiment_final_v3_orig_gplvm", {"encode_batch_only": "true"}),
     "full_fmnist_v1_ssvi": ("fashion_mnist_ood_experiment_final_v2_ssvi", {}),
     "full_fmnist_v1_orig_gplvm": ("fashion_mnist_ood_experiment_final_v2_orig_gplvm", {}),
-    "full_fmnist_v1_batchenc_orig_gplvm": ("fashion_mnist_ood_experiment_final_v2_orig_gplvm", {"encode_batch_only": "true"}),
 }
 SEEDS = [0, 1, 2, 3, 4]
 

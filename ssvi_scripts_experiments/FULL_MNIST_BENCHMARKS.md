@@ -9,9 +9,11 @@ full datasets, using the official 60k/10k torchvision split, seeds 0-4. The pape
 - `use_official_split` (both arms, default off): load torchvision's own train and test splits
   instead of a seeded random split of the pooled 70k images. The helper is
   `src/data_utils.py: official_train_test_split`.
-- `encode_batch_only` (MFVI arm only, default off): the `nn_gauss` encoder sees only the
-  minibatch instead of all N images each step. `x_kl` is sum/n over the rows it encodes, so this
-  is an unbiased estimate of the same objective; only the gradient noise differs.
+- The MFVI arm (`nn_gauss`) now encodes only the minibatch each step. Previously it ran the
+  encoder over all N training images and kept 32 rows, which made each step O(N): 0.37 s at 60k.
+  `x_kl` is sum/n over the encoded rows, so the minibatch version is an unbiased estimate of the
+  same objective; only the gradient noise of the KL term differs. This applies to every config
+  this script runs, including the paper's subsampled ones.
 - `full_mnist_generate_config_grid.py` writes `ood_mnist_related/full_*_v1_*/`. Each config is the
   paper's seed-0 config plus:
   - `id_samples_per_class: null`
@@ -19,7 +21,6 @@ full datasets, using the official 60k/10k torchvision split, seeds 0-4. The pape
   - the seed
   - `metrics_frequency` and `checkpoint_frequency` raised from 4000 to 20000, because each
     evaluation now passes over 70k images. This affects logging only.
-  - in the `*_batchenc_*` folders, also `encode_batch_only: true`
 
 ## Run
 
@@ -28,13 +29,8 @@ python3 -m venv .venv
 .venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 .venv/bin/pip install -r requirements.txt pyyaml
 
-# exact paper code for both arms (MFVI ~21 h/run), one run per GPU
+# all 20 runs, one run per GPU (SSVI ~11 h/run, MFVI ~1.2 h/run)
 GPUS="0 1 2 3" bash ssvi_scripts_experiments/run_full_mnist_benchmarks.sh
-
-# or MFVI with encode_batch_only (~1.2 h/run)
-GPUS="0 1 2 3" bash ssvi_scripts_experiments/run_full_mnist_benchmarks.sh \
-  ood_mnist_related/full_mnist_v1_ssvi ood_mnist_related/full_mnist_v1_batchenc_orig_gplvm \
-  ood_mnist_related/full_fmnist_v1_ssvi ood_mnist_related/full_fmnist_v1_batchenc_orig_gplvm
 
 # mean ± std over seeds -> full_mnist_summary.{csv,md}
 cd ssvi_scripts_experiments && ../.venv/bin/python full_mnist_summarise.py <folders...>
@@ -53,18 +49,28 @@ The launcher:
 | arm | s/step | 200k steps | one full eval (70k) | per run |
 |---|---|---|---|---|
 | SSVI | 0.176 | 9.8 h | ~5 min | ~11 h |
-| MFVI, exact code | 0.37 | 20.5 h | ~3 min | ~21 h |
-| MFVI, `encode_batch_only` | 0.010 | 35 min | ~3 min | ~1.2 h |
+| MFVI | 0.010 | 35 min | ~3 min | ~1.2 h |
+| MFVI, old full-N encoder | 0.37 | 20.5 h | ~3 min | ~21 h |
 
-- In the exact-code MFVI step, 344 ms of the 0.37 s is the encoder pass over all 60k images;
+- In the old MFVI step, 344 ms of the 0.37 s was the encoder pass over all 60k images;
   over the 32-image batch it takes 2.5 ms.
 - Two runs sharing one GPU each slow to 0.371 s/step (SSVI), so there's no gain: give each run
   its own GPU.
 
+## GPU memory (peak per run, full MNIST)
+
+| arm | allocated | reserved |
+|---|---|---|
+| SSVI | 17.7 GiB | 26.1 GiB |
+| MFVI | 1.8 GiB | 1.9 GiB |
+
+Plus about 0.5-1 GiB of CUDA context. SSVI needs a GPU with at least 32 GB (A100-40/80, H100,
+L40S, A6000); 24 GB cards do not fit as-is. MFVI fits anywhere.
+
 ## Environment check against the paper
 
-The unchanged paper MNIST seed-0 configs were run in this environment to step 4000 and compared
-with the stored July runs:
+Before the MFVI minibatch change, the unchanged paper MNIST seed-0 configs were run in this
+environment to step 4000 and compared with the stored July runs:
 
 | arm | metric | paper | here |
 |---|---|---|---|
